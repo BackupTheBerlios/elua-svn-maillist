@@ -1,0 +1,767 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r336 - in trunk/doc: . luadoc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r336%20-%20in%20trunk/doc%3A%20.%20luadoc&In-Reply-To=%3C200906291643.n5TGhYeX029443%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000291.html">
+   <LINK REL="Next"  HREF="000293.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r336 - in trunk/doc: . luadoc</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r336%20-%20in%20trunk/doc%3A%20.%20luadoc&In-Reply-To=%3C200906291643.n5TGhYeX029443%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r336 - in trunk/doc: . luadoc">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Jun 29 18:43:34 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000291.html">[Elua-svn] r335 - in trunk/doc: . en luadoc wb
+</A></li>
+        <LI>Next message: <A HREF="000293.html">[Elua-svn] r337 - in trunk/doc: pt wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#292">[ date ]</a>
+              <a href="thread.html#292">[ thread ]</a>
+              <a href="subject.html#292">[ subject ]</a>
+              <a href="author.html#292">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-29 18:43:27 +0200 (Mon, 29 Jun 2009)
+New Revision: 336
+
+Modified:
+   trunk/doc/builddoc.lua
+   trunk/doc/luadoc/arch_platform_eth.lua
+   trunk/doc/luadoc/arch_platform_ll.lua
+   trunk/doc/luadoc/arch_platform_pio.lua
+   trunk/doc/luadoc/arch_platform_pwm.lua
+   trunk/doc/luadoc/arch_platform_spi.lua
+   trunk/doc/luadoc/arch_platform_timers.lua
+   trunk/doc/luadoc/arch_platform_uart.lua
+   trunk/doc/luadoc/refman_gen_bit.lua
+   trunk/doc/luadoc/refman_gen_cpu.lua
+   trunk/doc/luadoc/refman_gen_pack.lua
+Log:
+simplified a bit the format of the documentation files ('args' now has the same format as 'ret', so it can be either a string or a list of strings)
+
+Modified: trunk/doc/builddoc.lua
+===================================================================
+--- trunk/doc/builddoc.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/builddoc.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -198,15 +198,12 @@
+       page = page .. &quot;&lt;p&gt;&lt;b&gt;Arguments&lt;/b&gt;: &quot;
+       if f.args then
+         local a = f.args
+-        if #a == 1 then
+-          local t = a[ 1 ]
+-          page = page .. &quot;&lt;b&gt;&quot; .. t.name .. &quot;&lt;/b&gt; - &quot; .. format_string( t.desc )
++        if type( a ) == &quot;string&quot; or ( type( a ) == &quot;table&quot; and #a == 1 ) then
++          local text = type( a ) == &quot;string&quot; and a or a[ 1 ]
++          page = page .. format_string( text )
+         else
+           page = page .. &quot;\n&lt;ul&gt;\n&quot;
+-          for i = 1, #a do
+-            local t = a[ i ]
+-            page = page .. &quot;  &lt;li&gt;&lt;b&gt;&quot; .. t.name .. &quot;&lt;/b&gt; - &quot; .. format_string( t.desc) .. &quot;&lt;/li&gt;\n&quot;
+-          end
++          for i = 1, #a do page = page .. &quot;  &lt;li&gt;&quot; .. format_string( a[ i ] ) .. &quot;&lt;/li&gt;\n&quot; end
+           page = page .. &quot;&lt;/ul&gt;&quot;
+         end
+       else
+
+Modified: trunk/doc/luadoc/arch_platform_eth.lua
+===================================================================
+--- trunk/doc/luadoc/arch_platform_eth.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/luadoc/arch_platform_eth.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -62,8 +62,8 @@
+       desc = &quot;Sends an Ethernet packet to the network&quot;,
+       args = 
+       {
+-        { name = &quot;src&quot;, desc = &quot;start address of the Ethernet packet&quot; },
+-        { name = &quot;size&quot;, desc = &quot;size of the Ethernet packet&quot; }
++        &quot;$src$ - start address of the Ethernet packet&quot;,
++        &quot;$size$ - size of the Ethernet packet&quot;
+       },
+     },
+ 
+@@ -71,13 +71,10 @@
+       desc = &quot;Non-blocking read of an Ethernet packet from the network&quot;,
+       args = 
+       {
+-        { name = &quot;buf&quot;, desc = &quot;start address of the receive buffer&quot; },
+-        { name = &quot;maxlen&quot;, desc = &quot;maximum length of the Ethernet packet&quot; },
++        &quot;$buf$ - start address of the receive buffer&quot;,
++        &quot;$maxlen$ - maximum length of the Ethernet packet&quot;,
+       },
+-      ret = 
+-      {
+-        &quot;the size of the read packet or 0 if no packet is available&quot;
+-      }
++      ret = &quot;the size of the read packet or 0 if no packet is available&quot;
+     },
+ 
+     { sig = &quot;void #platform_eth_force_interrupt#();&quot;,
+
+Modified: trunk/doc/luadoc/arch_platform_ll.lua
+===================================================================
+--- trunk/doc/luadoc/arch_platform_ll.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/luadoc/arch_platform_ll.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -65,10 +65,7 @@
+   free RAM in the system. For internal RAM, this is generally handled by a linker exported symbol (named $end$ in many eLua ports) which 
+   points to the firs RAM address after all the constant and non-constant program data. An example is given below:&lt;/p&gt;
+   ~#define MEM_START_ADDRESS     { ( void* )end }~&lt;p&gt;]],
+-      args = 
+-      {
+-        { name = &quot;id&quot;, desc = &quot;the identifier of the RAM area&quot; },
+-      },
++      args = &quot;$id$ - the identifier of the RAM area&quot;,
+       ret = &quot;the start address of the given memory area&quot;,   
+     },
+ 
+@@ -80,10 +77,7 @@
+   free RAM in the system. For internal RAM, this is generally set as the last RAM memory address minus the size of the system stack(s). An example is 
+   given below:&lt;/p&gt;
+   ~#define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + 0x10000 - STACK_SIZE_TOTAL - 1 ) }~&lt;p&gt;]],
+-      args = 
+-      {
+-        { name = &quot;id&quot;, desc = &quot;the identifier of the RAM area&quot; },
+-      },
++      args = &quot;$id$ - the identifier of the RAM area&quot;,
+       ret = &quot;the end address of the given memory area&quot;,   
+     },
+ 
+
+Modified: trunk/doc/luadoc/arch_platform_pio.lua
+===================================================================
+--- trunk/doc/luadoc/arch_platform_pio.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/luadoc/arch_platform_pio.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -50,10 +50,7 @@
+       desc = [[Checks if the platform has the hardware port specified as argument. Implemented in %src/common.c%, it uses the $NUM_PIO$ macro that must be defined in the
+   platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). For example:&lt;/p&gt;
+   ~#define NUM_PIO   4      $// The platform has 4 hardware PIO ports$~&lt;p&gt; ]],
+-      args = 
+-      {
+-        { name = &quot;port&quot;, desc = &quot;the port ID&quot; },
+-      },
++      args = &quot;$port$ - the port ID&quot;,
+       ret = &quot;1 if the port exists, 0 otherwise&quot;,
+     },
+ 
+@@ -69,8 +66,8 @@
+   &lt;/ul&gt;]],
+       args = 
+       {
+-        { name = &quot;port&quot;, desc = &quot;the port ID&quot; },
+-        { name = &quot;pin&quot;, desc = &quot;the pin number&quot; },
++        &quot;$port$ - the port ID&quot;,
++        &quot;$pin$ - the pin number&quot;
+       },
+       ret = &quot;1 if the pin exists, 0 otherwise&quot;,
+     },
+@@ -80,10 +77,7 @@
+   $PIO_PREFIX$ macro that must be defined in the platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). The value of this macro can be either '0' (for
+   numeric notation) or 'A' (for letter notation). For example:
+   ~#define PIO_PREFIX    'A'   $// Use PA, PB, PC ... for port notation$~&lt;p&gt;]],
+-      args = 
+-      {
+-        { name = &quot;port&quot;, desc = &quot;the port ID&quot; }
+-      },
++      args = &quot;$port$ - the port ID&quot;,
+       ret = &quot;the port prefix (either '0' or 'A')&quot;,  
+     },
+ 
+@@ -92,14 +86,14 @@
+       desc = &quot;This is the function that does the actual I/O work. It is implemented in the platform's own porting layer (%platform.c%, see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">ports at here</A>@ for more details).&quot;,
+       args = 
+       {
+-        { name = &quot;port&quot;, desc = &quot;the port number&quot; },
+-        { name = &quot;pinmask&quot;, desc = [[has different meanings:
++        &quot;$port$ - the port number&quot;,
++        [[$pinmask$ - has different meanings:
+   &lt;ul&gt;
+     &lt;li&gt;for $pin operations$ it is the mask of pins in the operation. Each pin on which the function action is executed is encoded with an 1 in the corresponding bit position 
+         of the pinmask.&lt;/li&gt;
+     &lt;li&gt;for $port operations$ it is only meaningful for $PLATFORM_IO_PORT_SET_VALUE$ and in this case it specifies the new value of the port.&lt;/li&gt;
+-  &lt;/ul&gt;]]},
+-       { name = &quot;op&quot;, desc = &quot;specifies the I/O operations, as specified @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">pio_operations at here</A>@.&quot; },
++  &lt;/ul&gt;]],
++       &quot;$op$ - specifies the I/O operations, as specified @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">pio_operations at here</A>@.&quot;
+       },
+      ret = 
+      {
+
+Modified: trunk/doc/luadoc/arch_platform_pwm.lua
+===================================================================
+--- trunk/doc/luadoc/arch_platform_pwm.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/luadoc/arch_platform_pwm.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -34,10 +34,7 @@
+       desc = [[Checks if the platform has the PWM channel specified as argument. Implemented in %src/common.c%, it uses the $NUM_PWM$ macro that must be defined in the
+   platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). For example:&lt;/p&gt;
+   ~#define NUM_PWM   4      $// The platform has 4 PWM channels$~&lt;p&gt; ]],
+-      args = 
+-      {
+-        { name = &quot;id&quot;, desc = &quot;PWM channel ID&quot; },
+-      },
++      args = &quot;$id$ - PWM channel ID&quot;,
+       ret = &quot;1 if the specified PWM channel exists, 0 otherwise&quot;
+     },
+ 
+@@ -45,9 +42,9 @@
+       desc = &quot;Sets up a PWM channel&quot;,
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;PWM channel ID&quot; },
+-        { name = &quot;frequency&quot;, desc = &quot;PWM channel frequency (in hertz)&quot; },
+-        { name = &quot;duty&quot;, desc = &quot;PWM channel duty cycle, specified as percent (from 0 to 100). Note that some platform don't allow the full 0%-100% duty cycle&quot; }
++        &quot;$id$ - PWM channel ID&quot;,
++        &quot;$frequency$ - PWM channel frequency (in hertz)&quot;,
++        &quot;$duty$ - PWM channel duty cycle, specified as percent (from 0 to 100). Note that some platform don't allow the full 0%-100% duty cycle&quot;
+       },
+       ret = &quot;The actual frequency set on the PWM channel, which might differ from the $frequency$ parameter, depeding on the hardware&quot;,
+     },
+@@ -56,16 +53,16 @@
+       desc = &quot;Executes an operation on a PWM channel&quot;,
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;PWM channel ID&quot; },
+-        { name = &quot;op&quot;, desc = [[the operation that must be executed. It can take any value from @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">pwm_operations at this</A> enum@, as follows:
++        &quot;$id$ - PWM channel ID&quot;,
++        [[$op$ - the operation that must be executed. It can take any value from @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">pwm_operations at this</A> enum@, as follows:
+   &lt;ul&gt;
+     &lt;li&gt;$PLATFORM_PWM_OP_START$: starts PWM generation on the specified channel.&lt;/li&gt;
+     &lt;li&gt;$PLATFORM_PWM_OP_STOP$: stops PWM generation on the specified channel.&lt;/li&gt;  
+     &lt;li&gt;$PLATFORM_PWM_OP_SET_CLOCK$: sets the $base$ clock of the specified PWM channel (which will be used to generate the frequencies requested by 
+         @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_pwm_setup at platform_pwm_setup</A>@) to $data$ hertz.&lt;/li&gt;
+     &lt;li&gt;$PLATFORM_PWM_OP_GET_CLOCK$: get the $base$ clock of the specified PWM channel.&lt;/liA&gt;
+-  &lt;/ul&gt;]],},
+-        { name = &quot;data&quot;, desc = &quot;When used with $op$ == $PLATFORM_PWM_OP_SET_CLOCK$ it is used to specify the value of the base clock. Not used with other operations.&quot;}
++  &lt;/ul&gt;]],
++        &quot;$data$ - when used with $op$ == $PLATFORM_PWM_OP_SET_CLOCK$ it is used to specify the value of the base clock. Not used with other operations.&quot;
+       },
+       ret = 
+       {
+
+Modified: trunk/doc/luadoc/arch_platform_spi.lua
+===================================================================
+--- trunk/doc/luadoc/arch_platform_spi.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/luadoc/arch_platform_spi.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -42,10 +42,7 @@
+       desc = [[Checks if the platform has the hardware SPI specified as argument. Implemented in %src/common.c%, it uses the $NUM_SPI$ macro that must be defined in the
+   platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). For example:&lt;/p&gt;
+   ~#define NUM_SPI   1      $// The platform has 1 SPI interface$~&lt;/p&gt; ]],
+-      args = 
+-      {
+-        { name = &quot;id&quot;, desc = &quot;SPI interface ID&quot; },
+-      },
++      args = &quot;$id$ - SPI interface ID&quot;,
+       ret = &quot;1 if the SPI interface exists, 0 otherwise&quot;
+     },
+ 
+@@ -53,12 +50,12 @@
+       desc = [[This function is used to initialize the parameters of the SPI interface. &lt;br&gt;&lt;font color=&quot;red&quot;&gt;$NOTE$&lt;/font&gt;: currently, only master SPI mode is implemented in eLua.]],
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;SPI interface ID&quot; },
+-        { name = &quot;mode&quot;, desc = &quot;SPI port mode ($PLATFORM_SPI_MASTER$ or $PLATFORM_SPI_SLAVE$, see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">spi_mode at here</A>@.&quot; },
+-        { name = &quot;clock&quot;, desc = &quot;clock speed for the SPI interface in master mode.&quot; },
+-        { name = &quot;cpol&quot;, desc = &quot;SPI clock polarity&quot; },
+-        { name = &quot;cpha&quot;, desc = &quot;SPI clock phase&quot; },
+-        { name = &quot;databits&quot;, desc = &quot;length of the SPI data word in bits (usually 8, but configurable on some platforms).&quot; }
++        &quot;$id$ - SPI interface ID&quot;,
++        &quot;$mode$ - SPI port mode ($PLATFORM_SPI_MASTER$ or $PLATFORM_SPI_SLAVE$, see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">spi_mode at here</A>@.&quot;,
++        &quot;$clock$ - clock speed for the SPI interface in master mode.&quot;,
++        &quot;$cpol$ - SPI clock polarity&quot;,
++        &quot;$cpha$ - SPI clock phase&quot;,
++        &quot;$databits$ - length of the SPI data word in bits (usually 8, but configurable on some platforms).&quot;
+       },
+       ret = &quot;the actual clock set for the SPI interface. Depending on the hardware, this may have a different value than the $clock$ argument.&quot;
+     },
+@@ -67,8 +64,8 @@
+        desc = &quot;Executes a SPI read/write cycle&quot;,
+        args = 
+        {
+-         { name = &quot;id&quot;, desc = &quot;SPI interface ID&quot; },
+-         { name = &quot;data&quot;, desc = &quot;data to be sent to the SPI interface&quot; },
++         &quot;$id$ - SPI interface ID&quot;,
++         &quot;$data$ - data to be sent to the SPI interface&quot;,
+        },
+        ret = &quot;data read from the SPI interface&quot;
+     },
+@@ -78,8 +75,8 @@
+   does not exist in hardware this function does nothing.]],
+       args =
+       {
+-        { name = &quot;id&quot;, desc = &quot;SPI interface ID.&quot; },
+-        { name = &quot;is_select&quot;, desc = &quot;$PLATFORM_SPI_SELECT_ON$ to select, $PLATFORM_SPI_SELECT_OFF$ to deselect , see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">chip_select at here</A>@.&quot; }
++        &quot;$id$ - SPI interface ID.&quot;,
++        &quot;$is_select$ - $PLATFORM_SPI_SELECT_ON$ to select, $PLATFORM_SPI_SELECT_OFF$ to deselect , see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">chip_select at here</A>@.&quot; 
+       },
+     }
+   }
+
+Modified: trunk/doc/luadoc/arch_platform_timers.lua
+===================================================================
+--- trunk/doc/luadoc/arch_platform_timers.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/luadoc/arch_platform_timers.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -42,10 +42,7 @@
+       desc = [[Checks if the platform has the timer specified as argument. Implemented in %src/common.c%, it uses the $NUM_TIMER$ macro that must be defined in the
+   platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details) and the virtual timer configuration (@#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">virtual at here</A>@ for details). For example:&lt;/p&gt;
+   ~#define NUM_TIMER   2      $// The platform has 2 hardware timers$~&lt;p&gt;]],
+-      args = 
+-      {
+-        { name = &quot;id&quot;, desc = &quot;the timer ID&quot; },
+-      },
++      args = &quot;$id$ - the timer ID&quot;,
+       ret = &quot;1 if the timer exists, 0 otherwise&quot;
+     },
+ 
+@@ -60,8 +57,8 @@
+   the timer base clock.]],
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;the timer ID&quot; },
+-        { name = &quot;delay_us&quot;, desc = &quot;the delay time (in microseconds)&quot; }
++        &quot;$id$ - the timer ID&quot;,
++        &quot;$delay_us$ - the delay time (in microseconds)&quot;
+       }
+     },
+ 
+@@ -70,8 +67,8 @@
+   and it must never handle virtual timer IDs, only hardware timer IDs. It has the same @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">limitations at limitations</A>@ as @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_timer_delay at platform_timer_delay</A>@.]],
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;the timer ID&quot; },
+-        { name = &quot;delay_us&quot;, desc = &quot;the delay time (in microseconds)&quot; }
++        &quot;$id$ - the timer ID&quot;,
++        &quot;$delay_us$ - the delay time (in microseconds)&quot;
+       }
+     },
+ 
+@@ -81,8 +78,8 @@
+   timer IDs.]],
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;the timer ID&quot; },
+-        { name = &quot;op&quot;, desc = [[the operation. $op$ can take any value from the @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">timer_operations at this</A> enum@, as follows:
++        &quot;$id$ - the timer ID&quot;,
++        [[$op$ - the operation. $op$ can take any value from the @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">timer_operations at this</A> enum@, as follows:
+   &lt;ul&gt;
+     &lt;li&gt;$PLATFORM_TIMER_OP_START$: start the specified timer by setting its counter register to a predefined value.&lt;/li&gt;
+     &lt;li&gt;$PLATFORM_TIMER_OP_READ$: get the value of the specified timer's counter register.&lt;/li&gt; 
+@@ -90,8 +87,8 @@
+     &lt;li&gt;$PLATFORM_TIMER_GET_CLOCK$: get the clock of the specified timer.&lt;/li&gt;  
+     &lt;li&gt;$PLATFORM_TIMER_OP_GET_MAX_DELAY$: get the maximum achievable timeout on the specified timer (in us).&lt;/li&gt;  
+     &lt;li&gt;$PLATFORM_TIMER_OP_GET_MIN_DELAY$: get the minimum achievable timeout on the specified timer (in us).&lt;/li&gt;
+-  &lt;/ul&gt;]] },
+-        { name = &quot;data&quot;, desc = &quot;used to specify the timer clock value when $op = PLATFORM_TIMER_SET_CLOCK$, ignored otherwise&quot; },
++  &lt;/ul&gt;]],
++        &quot;$data$ - used to specify the timer clock value when $op = PLATFORM_TIMER_SET_CLOCK$, ignored otherwise&quot;,
+       },
+       ret = 
+       {
+@@ -109,8 +106,8 @@
+   never handle virtual timer IDs, only hardware timer IDs.]],
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;the timer ID&quot; },
+-        { name = &quot;op&quot;, desc = [[the operation. $op$ can take any value from the @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">opval at this</A> enum@, as follows:
++        &quot;$id$ - the timer ID&quot;,
++        [[$op$ - the operation. $op$ can take any value from the @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">opval at this</A> enum@, as follows:
+   &lt;ul&gt;
+     &lt;li&gt;$PLATFORM_TIMER_OP_START$: start the specified timer by setting its counter register to a predefined value.&lt;/li&gt;
+     &lt;li&gt;$PLATFORM_TIMER_OP_READ$: get the value of the specified timer's counter register.&lt;/li&gt; 
+@@ -118,8 +115,8 @@
+     &lt;li&gt;$PLATFORM_TIMER_GET_CLOCK$: get the clock of the specified timer.&lt;/li&gt;  
+     &lt;li&gt;$PLATFORM_TIMER_OP_GET_MAX_DELAY$: get the maximum achievable timeout on the specified timer (in us).&lt;/li&gt;  
+     &lt;li&gt;$PLATFORM_TIMER_OP_GET_MIN_DELAY$: get the minimum achievable timeout on the specified timer (in us).&lt;/li&gt;
+-  &lt;/ul&gt;]] },
+-        { name = &quot;data&quot;, desc = &quot;used to specify the timer clock value when $op = PLATFORM_TIMER_SET_CLOCK$, ignored otherwise&quot; },
++  &lt;/ul&gt;]],
++        &quot;$data$ - used to specify the timer clock value when $op = PLATFORM_TIMER_SET_CLOCK$, ignored otherwise&quot;,
+       },
+       ret = 
+       {
+@@ -136,9 +133,9 @@
+       desc = [[Return the time difference (in us) betweeen two timer values. This function is generic for all platforms, thus it is implemented in %src/common.c%.]],
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;the timer ID&quot; },
+-        { name = &quot;end&quot;, desc = &quot;the first timer value&quot; },
+-        { name = &quot;start&quot;, desc = &quot;the second timer value&quot; },
++        &quot;$id$ - the timer ID&quot;,
++        &quot;$end$ - the first timer value&quot;,
++        &quot;$start$ - the second timer value&quot;,
+       },
+       ret = &quot;the time difference (in microseconds)&quot;
+     }
+
+Modified: trunk/doc/luadoc/arch_platform_uart.lua
+===================================================================
+--- trunk/doc/luadoc/arch_platform_uart.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/luadoc/arch_platform_uart.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -50,10 +50,7 @@
+       desc = [[Checks if the platform has the hardware UART specified as argument. Implemented in %src/common.c%, it uses the $NUM_UART$ macro that must be defined in the
+   platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). For example:&lt;/p&gt;
+   ~#define NUM_UART   2      $// The platform has 2 UART interfaces$~&lt;p&gt;]],
+-      args = 
+-      {
+-        { name = &quot;id&quot;, desc = &quot;UART interface ID&quot; },
+-      },
++      args = &quot;$id$ - UART interface ID&quot;,
+       ret = &quot;1 if the specified UART exists, 0 otherwise&quot;
+     },
+ 
+@@ -61,12 +58,12 @@
+       desc = &quot;This function is used to initialize the parameters of the UART interface.&quot;,
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;UART interface ID.&quot; },
+-        { name = &quot;baud&quot;, desc = &quot;baud rate.&quot; },
+-        { name = &quot;databits&quot;, desc = &quot;number of databits (maximum 8).&quot; },
+-        { name = &quot;parity&quot;, desc = &quot;parity type (can be either $PLATFORM_UART_PARITY_EVEN$, $PLATFORM_UART_PARITY_ODD$ or $PLATFORM_UART_PARITY_NONE$, see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_parity at here</A>@).&quot; },
+-        { name = &quot;stopbits&quot;, desc = [[number of stop bits (can be either $PLATFORM_UART_STOPBITS_1$, $PLATFORM_UART_STOPBITS_1_5$ or $PLATFORM_UART_STOPBITS_2$, see
+-           @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_stop_bits at here</A>@).]] },
++        &quot;$id$ - UART interface ID.&quot;,
++        &quot;$baud$ - baud rate.&quot;,
++        &quot;$databits$ - number of databits (maximum 8).&quot;,
++        &quot;$parity$ - parity type (can be either $PLATFORM_UART_PARITY_EVEN$, $PLATFORM_UART_PARITY_ODD$ or $PLATFORM_UART_PARITY_NONE$, see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_parity at here</A>@).&quot;,
++        [[$stopbits$ - number of stop bits (can be either $PLATFORM_UART_STOPBITS_1$, $PLATFORM_UART_STOPBITS_1_5$ or $PLATFORM_UART_STOPBITS_2$, see
++           @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_stop_bits at here</A>@).]],
+       },
+       ret = &quot;the actual baud rate. Depending on the hardware, this may have a different value than the $baud$ argument.&quot;,
+     },
+@@ -75,8 +72,8 @@
+       desc = &quot;Send data to an UART interface.&quot;,
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;UART interface ID.&quot; },
+-        { name = &quot;data&quot;, desc = &quot;data to be sent.&quot; },
++        &quot;$id$ - UART interface ID.&quot;,
++        &quot;$data$ - data to be sent.&quot;,
+       },
+     },
+ 
+@@ -87,15 +84,15 @@
+   platform in a function named @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_s_uart_recv at platform_s_uart_recv</A>@.]],
+       args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;UART interface ID.&quot; },
+-        { name = &quot;timer_id&quot;, desc = &quot;the ID of the timer used in this operation (see @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">arch_platform_timers.html at here</A>@ for details). See also the description of the $timeout$ argument.&quot; },
+-        { name = &quot;timeout&quot;, desc = [[specifies a timeout for the receive operation as follows:
++        &quot;$id$ - UART interface ID.&quot;,
++        &quot;$timer_id$ - the ID of the timer used in this operation (see @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">arch_platform_timers.html at here</A>@ for details). See also the description of the $timeout$ argument.&quot;,
++        [[$timeout$ - specifies a timeout for the receive operation as follows:
+   &lt;ul&gt;
+     &lt;li&gt;$timeout &gt; 0$: the timer with the specified $timer_id$ will be used to timeout the receive operation after $timeout$ microseconds.&lt;/li&gt;
+     &lt;li&gt;$timeout = 0$: the function returns immediately regardless of data being available or not. $timer_id$ is ignored.&lt;/li&gt;
+     &lt;li&gt;$timeout$ = @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_timeout at PLATFORM_UART_INFINITE_TIMEOUT</A>@: the function waits indefinitely for UART data to be available and returns it. In this mode the function doesn't 
+         time out, so $timer_id$ is ignored.&lt;/li&gt;
+-  &lt;/ul&gt;]] },
++  &lt;/ul&gt;]],
+       },
+       ret = 
+       {
+@@ -111,12 +108,12 @@
+   (thus being easier to implement by each platform in part). In particular, it never needs to deal with the $timeout &gt; 0$ case, which is handled by @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_uart_recv at platform_uart_recv</A>@.]],
+        args = 
+       {
+-        { name = &quot;id&quot;, desc = &quot;UART interface ID.&quot; },
+-        { name = &quot;timeout&quot;, desc = [[specifies a timeout for the receive operation as follows:
++        &quot;$id$ - UART interface ID.&quot;,
++        [[$timeout$ - specifies a timeout for the receive operation as follows:
+   &lt;ul&gt;
+     &lt;li&gt;$timeout = 0$: the function returns immediately regardless of data being available or not.&lt;/li&gt;
+     &lt;li&gt;$timeout$ = @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_timeout at PLATFORM_UART_INFINITE_TIMEOUT</A>@: the function waits indefinitely for UART data to be available and returns it.&lt;/li&gt;
+-  &lt;/ul&gt;]] },
++  &lt;/ul&gt;]],
+       },
+       ret = 
+       {
+
+Modified: trunk/doc/luadoc/refman_gen_bit.lua
+===================================================================
+--- trunk/doc/luadoc/refman_gen_bit.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/luadoc/refman_gen_bit.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -18,10 +18,7 @@
+   {
+     { sig = &quot;number = #bit.bit#( position )&quot;,
+       desc = &quot;Generate a number with a 1 bit (used for mask generation). Equivalent to %1 &lt;&lt;&lt;&lt; position% in C.&quot;,
+-      args = 
+-      {
+-        { name = &quot;position&quot;, desc = &quot;position of the bit that will be set to 1.&quot; },
+-      },
++      args = &quot;$position$ - position of the bit that will be set to 1.&quot;,
+       ret = &quot;$number$ - a number with only one 1 bit at $position$ (the rest are set to 0.&quot;
+     },
+ 
+@@ -29,8 +26,8 @@
+       desc = &quot;Test if a given bit is set.&quot;,
+       args = 
+       {
+-        { name = &quot;value&quot;, desc = &quot;the value to test.&quot; },
+-        { name = &quot;position&quot;, desc = &quot;bit position to test.&quot; }
++        &quot;$value$ - the value to test.&quot;,
++        &quot;$position$ - bit position to test.&quot;
+       },
+       ret = &quot;$flag$ - 1 if the bit at the given position is 1, 0 otherwise.&quot;
+     },
+@@ -39,8 +36,8 @@
+       desc = &quot;Test if a given bit is cleared.&quot;,
+       args = 
+       {
+-        { name = &quot;value&quot;, desc = &quot;the value to test.&quot; },
+-        { name = &quot;position&quot;, desc = &quot;bit position to test.&quot; }
++        &quot;$value$ - the value to test.&quot;,
++        &quot;$position$ - bit position to test.&quot;
+       },
+       ret = &quot;$flag$ - 1 if the bit at the given position is 0, 0 othewise.&quot;
+     },
+@@ -49,10 +46,10 @@
+       desc = &quot;Set bits in a number.&quot;,
+       args =
+       {
+-        { name = &quot;value&quot;, desc = &quot;the base number.&quot; },
+-        { name = &quot;pos1&quot;, desc = &quot;position of the first bit to set.&quot; },
+-        { name = &quot;pos2&quot;, desc = &quot;position of the second bit to set.&quot; },
+-        { name = &quot;posn&quot;, desc = &quot;position of the nth bit to set.&quot; }
++        &quot;$value$ - the base number.&quot;,
++        &quot;$pos1$ - position of the first bit to set.&quot;,
++        &quot;$pos2$ - position of the second bit to set.&quot;,
++        &quot;$posn$ - position of the nth bit to set.&quot;
+       },
+       ret = &quot;$number$ - the number with the bit(s) set in the given position(s).&quot;
+     },
+@@ -61,20 +58,17 @@
+       desc = &quot;Clear bits in a number.&quot;,
+       args = 
+       {
+-        { name = &quot;value&quot;, desc = &quot;the base number.&quot; },
+-        { name = &quot;pos1&quot;, desc = &quot;position of the first bit to clear.&quot; },
+-        { name = &quot;pos2&quot;, desc = &quot;position of the second bit to clear.&quot; },
+-        { name = &quot;posn&quot;, desc = &quot;position of thet nth bit to clear.&quot; },
++        &quot;$value$ - the base number.&quot;,
++        &quot;$pos1$ - position of the first bit to clear.&quot;,
++        &quot;$pos2$ - position of the second bit to clear.&quot;,
++        &quot;$posn$ - position of thet nth bit to clear.&quot;,
+       },
+       ret = &quot;$number$ - the number with the bit(s) cleared in the given position(s).&quot;
+     },
+ 
+     { sig = &quot;number = #bit.bnot#( value )&quot;,
+       desc = &quot;Bitwise negation, equivalent to %~~value% in C.&quot;,
+-      args = 
+-      {
+-        { name = &quot;value&quot;, desc = &quot;the number to negate.&quot; },
+-      },
++      args = &quot;$value$ - the number to negate.&quot;,
+       ret = &quot;$number$ - the bitwise negated value of the number.&quot;,
+     },
+ 
+@@ -82,9 +76,9 @@
+       desc = &quot;Bitwise AND, equivalent to %val1 &amp; val2 &amp; ... &amp; valn% in C.&quot;,
+       args = 
+       {
+-        { name = &quot;val1&quot;, desc = &quot;first AND argument.&quot; },
+-        { name = &quot;val2&quot;, desc = &quot;second AND argument.&quot; },
+-        { name = &quot;valn&quot;, desc = &quot;nth AND argument.&quot; },
++        &quot;$val1$ - first AND argument.&quot;,
++        &quot;$val2$ - second AND argument.&quot;,
++        &quot;$valn$ - nth AND argument.&quot;,
+       },
+       ret = &quot;$number$ - the bitwise AND of all the arguments.&quot;
+     },
+@@ -93,9 +87,9 @@
+       desc = &quot;Bitwise OR, equivalent to %val1 | val2 | ... | valn% in C.&quot;,
+       args = 
+       {
+-        { name = &quot;val1&quot;, desc = &quot;first OR argument.&quot; },
+-        { name = &quot;val2&quot;, desc = &quot;second OR argument.&quot; },
+-        { name = &quot;valn&quot;, desc = &quot;nth OR argument.&quot; }
++        &quot;$val1$ - first OR argument.&quot;,
++        &quot;$val2$ - second OR argument.&quot;,
++        &quot;$valn$ - nth OR argument.&quot;
+       },
+       ret = &quot;$number$ - the bitwise OR of all the arguments.&quot;
+     },
+@@ -104,9 +98,9 @@
+       desc = &quot;Bitwise exclusive OR (XOR), equivalent to %val1 ^^ val2 ^^ ... ^^ valn% in C.&quot;,
+       args = 
+       {
+-        { name = &quot;val1&quot;, desc = &quot;first XOR argument.&quot; },
+-        { name = &quot;val2&quot;, desc = &quot;second XOR argument.&quot; },
+-        { name = &quot;valn&quot;, desc = &quot;nth XOR argument.&quot; }
++        &quot;$val1$ - first XOR argument.&quot;,
++        &quot;$val2$ - second XOR argument.&quot;,
++        &quot;$valn$ - nth XOR argument.&quot;
+       },
+       ret = &quot;$number$ - the bitwise exclusive OR of all the arguments.&quot;
+     },
+@@ -115,8 +109,8 @@
+       desc = &quot;Left-shift a number, equivalent to %value &lt;&lt; shift% in C.&quot;,
+       args = 
+       {
+-        { name = &quot;value&quot;, desc = &quot;the value to shift.&quot; },
+-        { name = &quot;shift&quot;, desc = &quot;positions to shift.&quot; },
++        &quot;$value$ - the value to shift.&quot;,
++        &quot;$shift$ - positions to shift.&quot;,
+       },
+       ret = &quot;$number$ - the number shifted left&quot;,
+     },
+@@ -125,8 +119,8 @@
+       desc = &quot;Logical right shift a number, equivalent to %( unsigned )value &gt;&gt;&gt;&gt; shift% in C.&quot;,
+       args = 
+       {
+-        { name = &quot;value&quot;, desc = &quot;the value to shift.&quot; },
+-        { name = &quot;shift&quot;, desc = &quot;positions to shift.&quot; },
++        &quot;$value$ - the value to shift.&quot;,
++        &quot;$shift$ - positions to shift.&quot;,
+       },
+       ret = &quot;$number$ - the number shifted right (logically).&quot;
+     },
+@@ -135,8 +129,8 @@
+       desc = &quot;Arithmetic right shift a number equivalent to %value &gt;&gt;&gt;&gt; shift% in C.&quot;,
+       args = 
+       {
+-        { name = &quot;value&quot;, desc = &quot;the value to shift.&quot; },
+-        { name = &quot;shift&quot;, desc = &quot;positions to shift.&quot; }
++        &quot;$value$ - the value to shift.&quot;,
++        &quot;$shift$ - positions to shift.&quot;
+       },
+       ret = &quot;$number$ - the number shifted right (arithmetically).&quot;
+     }
+
+Modified: trunk/doc/luadoc/refman_gen_cpu.lua
+===================================================================
+--- trunk/doc/luadoc/refman_gen_cpu.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/luadoc/refman_gen_cpu.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -42,17 +42,14 @@
+       desc = &quot;Writes a 32-bit word to memory.&quot;,
+       args = 
+       {
+-        { name = &quot;address&quot;, desc = &quot;the memory address.&quot; },
+-        { name = &quot;data&quot;, desc = &quot;the 32-bit data to write.&quot; }
++        &quot;$address$ - the memory address.&quot;,
++        &quot;$data$ - the 32-bit data to write.&quot;
+       },
+     },
+ 
+     { sig = &quot;data = #cpu.r32#( address )&quot;,
+       desc = &quot;Read a 32-bit word from memory.&quot;,
+-      args = 
+-      {
+-        { name = &quot;address&quot;, desc = &quot;the memory address.&quot; }
+-      },
++      args = &quot;$address$ - the memory address.&quot;,
+       ret = &quot;$data$ - the 32-bit word read from memory.&quot;
+     },
+ 
+@@ -60,17 +57,14 @@
+       desc = &quot;Writes a 16-bit word to memory.&quot;,
+       args =
+       {
+-        { name = &quot;address&quot;, desc = &quot;the memory address.&quot; },
+-        { name = &quot;data&quot;, desc = &quot;the 16-bit data to write.&quot; }
++        &quot;$address$ - the memory address.&quot;,
++        &quot;$data$ - the 16-bit data to write.&quot;
+       },
+     },
+ 
+     { sig = &quot;data = #cpu.r16#( address )&quot;,
+       desc = &quot;Reads a 16-bit word from memory.&quot;,
+-      args =
+-      {
+-        { name = &quot;address&quot;, desc = &quot;the memory address.&quot; }
+-      },
++      args = &quot;$address$ - the memory address.&quot;,
+       ret = &quot;$data$ - the 16-bit word read from memory.&quot;
+     },
+ 
+@@ -78,17 +72,14 @@
+       desc = &quot;Writes a byte to memory.&quot;,
+       args =
+       {
+-        { name = &quot;address&quot;, desc = &quot;the memory address.&quot; },
+-        { name = &quot;data&quot;, desc = &quot;the byte to write.&quot; }
++        &quot;$address$ - the memory address.&quot;,
++        &quot;$data$ - the byte to write.&quot;
+       }
+     },
+ 
+     { sig = &quot;data = #cpu.r8#( address )&quot;,
+       desc = &quot;Reads a byte from memory.&quot;,
+-      args = 
+-      {
+-        { name = &quot;address&quot;, desc = &quot;the memory address&quot; }
+-      },
++      args = &quot;$address$ - the memory address&quot;,
+       ret = &quot;$data$ - the byte read from memory.&quot;
+     },
+ 
+
+Modified: trunk/doc/luadoc/refman_gen_pack.lua
+===================================================================
+--- trunk/doc/luadoc/refman_gen_pack.lua	2009-06-29 16:43:17 UTC (rev 335)
++++ trunk/doc/luadoc/refman_gen_pack.lua	2009-06-29 16:43:27 UTC (rev 336)
+@@ -106,10 +106,10 @@
+       desc = &quot;Packs variables in a string.&quot;,
+       args = 
+       {
+-        { name = &quot;format&quot;, desc = &quot;format specifier (as described @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">overview at here</A>@).&quot; },
+-        { name = &quot;val1&quot;, desc = &quot;first variable to pack.&quot; },
+-        { name = &quot;val2&quot;, desc = &quot;second variable to pack.&quot; },
+-        { name = &quot;valn&quot;, desc = &quot;nth variable to pack.&quot; },
++        &quot;$format$ - format specifier (as described @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">overview at here</A>@).&quot;,
++        &quot;$val1$ - first variable to pack.&quot;,
++        &quot;$val2$ - second variable to pack.&quot;,
++        &quot;$valn$ - nth variable to pack.&quot;,
+       },
+       ret = &quot;$packed$ - a string containing the packed representation of all variables according to the format.&quot;
+     },
+@@ -118,9 +118,9 @@
+       desc = &quot;Unpacks a string&quot;,
+       args = 
+       {
+-        { name = &quot;string&quot;, desc = &quot;the string to unpack.&quot; },
+-        { name = &quot;format&quot;, desc = &quot;format specifier (as described @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">overview at here</A>@).&quot; },
+-        { name = &quot;init&quot;, desc = &quot;$(optional)$ marks where in $string$ the unpacking should start (1 if not specified).&quot; }
++        &quot;$string$ - the string to unpack.&quot;,
++        &quot;$format$ - format specifier (as described @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">overview at here</A>@).&quot;,
++        &quot;$init$ - $(optional)$ marks where in $string$ the unpacking should start (1 if not specified).&quot;
+       },
+       ret = 
+       {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000291.html">[Elua-svn] r335 - in trunk/doc: . en luadoc wb
+</A></li>
+	<LI>Next message: <A HREF="000293.html">[Elua-svn] r337 - in trunk/doc: pt wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#292">[ date ]</a>
+              <a href="thread.html#292">[ thread ]</a>
+              <a href="subject.html#292">[ subject ]</a>
+              <a href="author.html#292">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

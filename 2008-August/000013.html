@@ -1,0 +1,391 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r58 - in trunk: . src/modules src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r58%20-%20in%20trunk%3A%20.%20src/modules%20src/platform/lm3s&In-Reply-To=%3C200808181743.m7IHhSMR017737%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000012.html">
+   <LINK REL="Next"  HREF="000014.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r58 - in trunk: . src/modules src/platform/lm3s</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r58%20-%20in%20trunk%3A%20.%20src/modules%20src/platform/lm3s&In-Reply-To=%3C200808181743.m7IHhSMR017737%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r58 - in trunk: . src/modules src/platform/lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Aug 18 19:43:28 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000012.html">[Elua-svn] r57 - in trunk: . inc src/modules src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000014.html">[Elua-svn] r59 - in trunk: files src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#13">[ date ]</a>
+              <a href="thread.html#13">[ thread ]</a>
+              <a href="subject.html#13">[ subject ]</a>
+              <a href="author.html#13">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-08-18 19:43:26 +0200 (Mon, 18 Aug 2008)
+New Revision: 58
+
+Added:
+   trunk/src/modules/lpack.c
+Modified:
+   trunk/SConstruct
+   trunk/src/modules/auxmods.h
+   trunk/src/platform/lm3s/platform_libs.h
+Log:
+added LHF's lpack module
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2008-08-18 16:29:09 UTC (rev 57)
++++ trunk/SConstruct	2008-08-18 17:43:26 UTC (rev 58)
+@@ -71,7 +71,7 @@
+ 
+ # Lua module files
+ module_files = &quot;&quot;&quot; src/modules/pio.c src/modules/spi.c src/modules/tmr.c src/modules/pd.c src/modules/uart.c
+-                   src/modules/term.c src/modules/pwm.c&quot;&quot;&quot;
++                   src/modules/term.c src/modules/pwm.c src/modules/lpack.c&quot;&quot;&quot;
+   
+ # Optimizer flags (speed or size)
+ #opt = &quot;-O3&quot;
+
+Modified: trunk/src/modules/auxmods.h
+===================================================================
+--- trunk/src/modules/auxmods.h	2008-08-18 16:29:09 UTC (rev 57)
++++ trunk/src/modules/auxmods.h	2008-08-18 17:43:26 UTC (rev 58)
+@@ -27,6 +27,9 @@
+ #define AUXLIB_PWM      &quot;pwm&quot;
+ LUALIB_API int ( luaopen_pwm )( lua_State* L );
+ 
++#define AUXLIB_PACK     &quot;pack&quot;
++LUALIB_API int ( luaopen_pack )( lua_State* L );
++
+ #ifdef ELUA_MOD_CHECK_PARS
+ 
+ // Helper macros
+
+Added: trunk/src/modules/lpack.c
+===================================================================
+--- trunk/src/modules/lpack.c	2008-08-18 16:29:09 UTC (rev 57)
++++ trunk/src/modules/lpack.c	2008-08-18 17:43:26 UTC (rev 58)
+@@ -0,0 +1,268 @@
++/*
++* lpack.c
++* a Lua library for packing and unpacking binary data
++* Luiz Henrique de Figueiredo &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">lhf at tecgraf.puc-rio.br</A>&gt;
++* 29 Jun 2007 19:27:20
++* This code is hereby placed in the public domain.
++* with contributions from Ignacio Castano &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">castanyo at yahoo.es</A>&gt; and
++* Roberto Ierusalimschy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">roberto at inf.puc-rio.br</A>&gt;.
++*
++* Modified by BogdanM for eLua
++*/
++
++#define	OP_ZSTRING	'z'		/* zero-terminated string */
++#define	OP_BSTRING	'p'		/* string preceded by length byte */
++#define	OP_WSTRING	'P'		/* string preceded by length word */
++#define	OP_SSTRING	'a'		/* string preceded by length size_t */
++#define	OP_STRING	'A'		/* string */
++#define	OP_FLOAT	'f'		/* float */
++#define	OP_DOUBLE	'd'		/* double */
++#define	OP_NUMBER	'n'		/* Lua number */
++#define	OP_CHAR		'c'		/* char */
++#define	OP_BYTE		'b'		/* byte = unsigned char */
++#define	OP_SHORT	'h'		/* short */
++#define	OP_USHORT	'H'		/* unsigned short */
++#define	OP_INT		'i'		/* int */
++#define	OP_UINT		'I'		/* unsigned int */
++#define	OP_LONG		'l'		/* long */
++#define	OP_ULONG	'L'		/* unsigned long */
++#define	OP_LITTLEENDIAN	'&lt;'		/* little endian */
++#define	OP_BIGENDIAN	'&gt;'		/* big endian */
++#define	OP_NATIVE	'='		/* native endian */
++
++#include &lt;ctype.h&gt;
++#include &lt;string.h&gt;
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;auxmods.h&quot;
++
++static void badcode(lua_State *L, int c)
++{
++ char s[]=&quot;bad code `?'&quot;;
++ s[sizeof(s)-3]=c;
++ luaL_argerror(L,1,s);
++}
++
++static int doendian(int c)
++{
++ int x=1;
++ int e=*(char*)&x;
++ if (c==OP_LITTLEENDIAN) return !e;
++ if (c==OP_BIGENDIAN) return e;
++ if (c==OP_NATIVE) return 0;
++ return 0;
++}
++
++static void doswap(int swap, void *p, size_t n)
++{
++ if (swap)
++ {
++  char *a=p;
++  int i,j;
++  for (i=0, j=n-1, n=n/2; n--; i++, j--)
++  {
++   char t=a[i]; a[i]=a[j]; a[j]=t;
++  }
++ }
++}
++
++#define UNPACKNUMBER(OP,T)		\
++   case OP:				\
++   {					\
++    T a;				\
++    int m=sizeof(a);			\
++    if (i+m&gt;len) goto done;		\
++    memcpy(&amp;a,s+i,m);			\
++    i+=m;				\
++    doswap(swap,&amp;a,m);			\
++    lua_pushnumber(L,(lua_Number)a);	\
++    ++n;				\
++    break;				\
++   }
++
++#define UNPACKSTRING(OP,T)		\
++   case OP:				\
++   {					\
++    T l;				\
++    int m=sizeof(l);			\
++    if (i+m&gt;len) goto done;		\
++    memcpy(&amp;l,s+i,m);			\
++    doswap(swap,&amp;l,m);			\
++    if (i+m+l&gt;len) goto done;		\
++    i+=m;				\
++    lua_pushlstring(L,s+i,l);		\
++    i+=l;				\
++    ++n;				\
++    break;				\
++   }
++
++static int l_unpack(lua_State *L) 		/** unpack(s,f,[init]) */
++{
++ size_t len;
++ const char *s=luaL_checklstring(L,1,&amp;len);
++ const char *f=luaL_checkstring(L,2);
++ int i=luaL_optnumber(L,3,1)-1;
++ int n=0;
++ int swap=0;
++ lua_pushnil(L);
++ while (*f)
++ {
++  int c=*f++;
++  int N=1;
++  if (isdigit(*f)) 
++  {
++   N=0;
++   while (isdigit(*f)) N=10*N+(*f++)-'0';
++   if (N==0 &amp;&amp; c==OP_STRING) { lua_pushliteral(L,&quot;&quot;); ++n; }
++  }
++  while (N--) switch (c)
++  {
++   case OP_LITTLEENDIAN:
++   case OP_BIGENDIAN:
++   case OP_NATIVE:
++   {
++    swap=doendian(c);
++    N=0;
++    break;
++   }
++   case OP_STRING:
++   {
++    ++N;
++    if (i+N&gt;len) goto done;
++    lua_pushlstring(L,s+i,N);
++    i+=N;
++    ++n;
++    N=0;
++    break;
++   }
++   case OP_ZSTRING:
++   {
++    size_t l;
++    if (i&gt;=len) goto done;
++    l=strlen(s+i);
++    lua_pushlstring(L,s+i,l);
++    i+=l+1;
++    ++n;
++    break;
++   }
++   UNPACKSTRING(OP_BSTRING, unsigned char)
++   UNPACKSTRING(OP_WSTRING, unsigned short)
++   UNPACKSTRING(OP_SSTRING, size_t)
++   UNPACKNUMBER(OP_NUMBER, lua_Number)
++   UNPACKNUMBER(OP_DOUBLE, double)
++   UNPACKNUMBER(OP_FLOAT, float)
++   UNPACKNUMBER(OP_CHAR, char)
++   UNPACKNUMBER(OP_BYTE, unsigned char)
++   UNPACKNUMBER(OP_SHORT, short)
++   UNPACKNUMBER(OP_USHORT, unsigned short)
++   UNPACKNUMBER(OP_INT, int)
++   UNPACKNUMBER(OP_UINT, unsigned int)
++   UNPACKNUMBER(OP_LONG, long)
++   UNPACKNUMBER(OP_ULONG, unsigned long)
++   case ' ': case ',':
++    break;
++   default:
++    badcode(L,c);
++    break;
++  }
++ }
++done:
++ lua_pushnumber(L,i+1);
++ lua_replace(L,-n-2);
++ return n+1;
++}
++
++#define PACKNUMBER(OP,T)			\
++   case OP:					\
++   {						\
++    T a=(T)luaL_checknumber(L,i++);		\
++    doswap(swap,&amp;a,sizeof(a));			\
++    luaL_addlstring(&amp;b,(void*)&amp;a,sizeof(a));	\
++    break;					\
++   }
++
++#define PACKSTRING(OP,T)			\
++   case OP:					\
++   {						\
++    size_t l;					\
++    const char *a=luaL_checklstring(L,i++,&amp;l);	\
++    T ll=(T)l;					\
++    doswap(swap,&amp;ll,sizeof(ll));		\
++    luaL_addlstring(&amp;b,(void*)&amp;ll,sizeof(ll));	\
++    luaL_addlstring(&amp;b,a,l);			\
++    break;					\
++   }
++
++static int l_pack(lua_State *L) 		/** pack(f,...) */
++{
++ int i=2;
++ const char *f=luaL_checkstring(L,1);
++ int swap=0;
++ luaL_Buffer b;
++ luaL_buffinit(L,&amp;b);
++ while (*f)
++ {
++  int c=*f++;
++  int N=1;
++  if (isdigit(*f)) 
++  {
++   N=0;
++   while (isdigit(*f)) N=10*N+(*f++)-'0';
++  }
++  while (N--) switch (c)
++  {
++   case OP_LITTLEENDIAN:
++   case OP_BIGENDIAN:
++   case OP_NATIVE:
++   {
++    swap=doendian(c);
++    N=0;
++    break;
++   }
++   case OP_STRING:
++   case OP_ZSTRING:
++   {
++    size_t l;
++    const char *a=luaL_checklstring(L,i++,&amp;l);
++    luaL_addlstring(&amp;b,a,l+(c==OP_ZSTRING));
++    break;
++   }
++   PACKSTRING(OP_BSTRING, unsigned char)
++   PACKSTRING(OP_WSTRING, unsigned short)
++   PACKSTRING(OP_SSTRING, size_t)
++   PACKNUMBER(OP_NUMBER, lua_Number)
++   PACKNUMBER(OP_DOUBLE, double)
++   PACKNUMBER(OP_FLOAT, float)
++   PACKNUMBER(OP_CHAR, char)
++   PACKNUMBER(OP_BYTE, unsigned char)
++   PACKNUMBER(OP_SHORT, short)
++   PACKNUMBER(OP_USHORT, unsigned short)
++   PACKNUMBER(OP_INT, int)
++   PACKNUMBER(OP_UINT, unsigned int)
++   PACKNUMBER(OP_LONG, long)
++   PACKNUMBER(OP_ULONG, unsigned long)
++   case ' ': case ',':
++    break;
++   default:
++    badcode(L,c);
++    break;
++  }
++ }
++ luaL_pushresult(&amp;b);
++ return 1;
++}
++
++static const luaL_reg pack_map[] =
++{
++	{&quot;pack&quot;,	l_pack},
++	{&quot;unpack&quot;,	l_unpack},
++	{NULL,	NULL}
++};
++
++int luaopen_pack( lua_State *L )
++{
++  luaL_register( L, AUXLIB_PACK, pack_map );
++  return 1;  
++}
+
+Modified: trunk/src/platform/lm3s/platform_libs.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_libs.h	2008-08-18 16:29:09 UTC (rev 57)
++++ trunk/src/platform/lm3s/platform_libs.h	2008-08-18 17:43:26 UTC (rev 58)
+@@ -12,6 +12,7 @@
+   { AUXLIB_PD, luaopen_pd },\
+   { AUXLIB_UART, luaopen_uart },\
+   { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PWM, luaopen_pwm }
++  { AUXLIB_PWM, luaopen_pwm },\
++  { AUXLIB_PACK, luaopen_pack }
+   
+ #endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000012.html">[Elua-svn] r57 - in trunk: . inc src/modules src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000014.html">[Elua-svn] r59 - in trunk: files src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#13">[ date ]</a>
+              <a href="thread.html#13">[ thread ]</a>
+              <a href="subject.html#13">[ subject ]</a>
+              <a href="author.html#13">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

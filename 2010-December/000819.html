@@ -1,0 +1,165 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r866 - in trunk/src: . platform/avr32/EVK1100	platform/avr32/EVK1101 platform/avr32/MIZAR32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r866%20-%20in%20trunk/src%3A%20.%20platform/avr32/EVK1100%0A%09platform/avr32/EVK1101%20platform/avr32/MIZAR32&In-Reply-To=%3C20101218175425.5B212480F9D%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000818.html">
+   <LINK REL="Next"  HREF="000820.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r866 - in trunk/src: . platform/avr32/EVK1100	platform/avr32/EVK1101 platform/avr32/MIZAR32</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r866%20-%20in%20trunk/src%3A%20.%20platform/avr32/EVK1100%0A%09platform/avr32/EVK1101%20platform/avr32/MIZAR32&In-Reply-To=%3C20101218175425.5B212480F9D%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r866 - in trunk/src: . platform/avr32/EVK1100	platform/avr32/EVK1101 platform/avr32/MIZAR32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Dec 18 18:54:25 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000818.html">[Elua-svn] r865 - branches/remotefs_int/src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000820.html">[Elua-svn] r867 - in branches/remotefs_int: inc mux src src/modules	src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#819">[ date ]</a>
+              <a href="thread.html#819">[ thread ]</a>
+              <a href="subject.html#819">[ subject ]</a>
+              <a href="author.html#819">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-12-18 18:54:24 +0100 (Sat, 18 Dec 2010)
+New Revision: 866
+
+Modified:
+   trunk/src/elua_mmc.c
+   trunk/src/platform/avr32/EVK1100/evk1100_conf.h
+   trunk/src/platform/avr32/EVK1101/evk1101_conf.h
+   trunk/src/platform/avr32/MIZAR32/mizar32.h
+   trunk/src/platform/avr32/MIZAR32/mizar32_conf.h
+Log:
+merged Martin's new patch for SD on AVR32 platforms
+
+Modified: trunk/src/elua_mmc.c
+===================================================================
+--- trunk/src/elua_mmc.c	2010-12-18 16:45:33 UTC (rev 865)
++++ trunk/src/elua_mmc.c	2010-12-18 17:54:24 UTC (rev 866)
+@@ -35,16 +35,14 @@
+ static
+ void SELECT (void)
+ {
+-  platform_pio_op( MMCFS_CS_PORT , ( ( u32 ) 1 &lt;&lt; MMCFS_CS_PIN ), PLATFORM_IO_PIN_CLEAR ); 
+-	//platform_spi_select( MMCFS_SPI_NUM, PLATFORM_SPI_SELECT_ON ); // select sd card pin
++    platform_pio_op( MMCFS_CS_PORT , ( ( u32 ) 1 &lt;&lt; MMCFS_CS_PIN ), PLATFORM_IO_PIN_CLEAR );    
+ }
+ 
+ // de-asserts the CS pin to the card
+ static
+ void DESELECT (void)
+ {
+-  platform_pio_op( MMCFS_CS_PORT, ( ( u32 ) 1 &lt;&lt; MMCFS_CS_PIN ), PLATFORM_IO_PIN_SET );
+-	//platform_spi_select( MMCFS_SPI_NUM, PLATFORM_SPI_SELECT_OFF ); // deselect sd card pin
++    platform_pio_op( MMCFS_CS_PORT, ( ( u32 ) 1 &lt;&lt; MMCFS_CS_PIN ), PLATFORM_IO_PIN_SET );
+ }
+ 
+ 
+@@ -152,7 +150,7 @@
+     platform_pio_op( MMCFS_CS_PORT, ( ( u32 ) 1 &lt;&lt; MMCFS_CS_PIN ), PLATFORM_IO_PIN_DIR_OUTPUT );
+     //platform_pio_op( MMCFS_CS_PORT, ( ( u32 ) 1 &lt;&lt; MMCFS_CS_PIN ), PLATFORM_IO_PIN_PULLUP );
+     DESELECT();
+-
++    
+     // Setup SPI
+     platform_spi_setup( MMCFS_SPI_NUM, PLATFORM_SPI_MASTER, 400000, 0, 0, 8 );
+ 
+
+Modified: trunk/src/platform/avr32/EVK1100/evk1100_conf.h
+===================================================================
+--- trunk/src/platform/avr32/EVK1100/evk1100_conf.h	2010-12-18 16:45:33 UTC (rev 865)
++++ trunk/src/platform/avr32/EVK1100/evk1100_conf.h	2010-12-18 17:54:24 UTC (rev 866)
+@@ -108,6 +108,8 @@
+ #define MMCFS_TICK_HZ     10
+ #define MMCFS_TICK_MS     ( 1000 / MMCFS_TICK_HZ )
+ #define MMCFS_SPI_NUM     5
++#define MMCFS_CS_PORT     0
++#define MMCFS_CS_PIN      SD_MMC_SPI_NPCS_PIN
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         REQ_CPU_FREQ
+
+Modified: trunk/src/platform/avr32/EVK1101/evk1101_conf.h
+===================================================================
+--- trunk/src/platform/avr32/EVK1101/evk1101_conf.h	2010-12-18 16:45:33 UTC (rev 865)
++++ trunk/src/platform/avr32/EVK1101/evk1101_conf.h	2010-12-18 17:54:24 UTC (rev 866)
+@@ -96,6 +96,8 @@
+ #define MMCFS_TICK_HZ     10
+ #define MMCFS_TICK_MS     ( 1000 / MMCFS_TICK_HZ )
+ #define MMCFS_SPI_NUM     1
++#define MMCFS_CS_PORT     0  //PA17
++#define MMCFS_CS_PIN      SD_MMC_SPI_NPCS_PIN
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         REQ_CPU_FREQ
+
+Modified: trunk/src/platform/avr32/MIZAR32/mizar32.h
+===================================================================
+--- trunk/src/platform/avr32/MIZAR32/mizar32.h	2010-12-18 16:45:33 UTC (rev 865)
++++ trunk/src/platform/avr32/MIZAR32/mizar32.h	2010-12-18 17:54:24 UTC (rev 866)
+@@ -109,8 +109,8 @@
+ #define SD_MMC_SPI_MISO_FUNCTION    AVR32_SPI1_MISO_0_0_FUNCTION
+ #define SD_MMC_SPI_MOSI_PIN         AVR32_SPI1_MOSI_0_0_PIN
+ #define SD_MMC_SPI_MOSI_FUNCTION    AVR32_SPI1_MOSI_0_0_FUNCTION
+-#define SD_MMC_SPI_NPCS_PIN         AVR32_SPI1_NPCS_1_0_PIN
+-#define SD_MMC_SPI_NPCS_FUNCTION    AVR32_SPI1_NPCS_1_0_FUNCTION
++#define SD_MMC_SPI_NPCS_PIN         AVR32_SPI1_NPCS_0_0_PIN
++#define SD_MMC_SPI_NPCS_FUNCTION    AVR32_SPI1_NPCS_0_0_FUNCTION
+ //! @}
+ 
+ #endif  // _MIZAR32_H_
+
+Modified: trunk/src/platform/avr32/MIZAR32/mizar32_conf.h
+===================================================================
+--- trunk/src/platform/avr32/MIZAR32/mizar32_conf.h	2010-12-18 16:45:33 UTC (rev 865)
++++ trunk/src/platform/avr32/MIZAR32/mizar32_conf.h	2010-12-18 17:54:24 UTC (rev 866)
+@@ -120,6 +120,8 @@
+ #define MMCFS_TICK_HZ                10
+ #define MMCFS_TICK_MS                ( 1000 / MMCFS_TICK_HZ )
+ #define MMCFS_SPI_NUM                4
++#define MMCFS_CS_PORT                0
++#define MMCFS_CS_PIN                 SD_MMC_SPI_NPCS_PIN
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         REQ_CPU_FREQ
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000818.html">[Elua-svn] r865 - branches/remotefs_int/src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000820.html">[Elua-svn] r867 - in branches/remotefs_int: inc mux src src/modules	src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#819">[ date ]</a>
+              <a href="thread.html#819">[ thread ]</a>
+              <a href="subject.html#819">[ subject ]</a>
+              <a href="author.html#819">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

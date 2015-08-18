@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] a9c704: Use new hard reset command to reset	LCD module.
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20a9c704%3A%20Use%20new%20hard%20reset%20command%20to%20reset%0A%09LCD%20module.&In-Reply-To=%3C20111003050257.13D75425FC%40smtp1.rs.github.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001075.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] a9c704: Use new hard reset command to reset	LCD module.</H1>
+    <B>noreply at github.com</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20a9c704%3A%20Use%20new%20hard%20reset%20command%20to%20reset%0A%09LCD%20module.&In-Reply-To=%3C20111003050257.13D75425FC%40smtp1.rs.github.com%3E"
+       TITLE="[eLua-svn] [elua/elua] a9c704: Use new hard reset command to reset	LCD module.">noreply at github.com
+       </A><BR>
+    <I>Mon Oct  3 07:02:57 CEST 2011</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001075.html">[eLua-svn] [elua/elua] 60d620: Remove separate dependency step from	Lua build sys...
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1074">[ date ]</a>
+              <a href="thread.html#1074">[ thread ]</a>
+              <a href="subject.html#1074">[ subject ]</a>
+              <a href="author.html#1074">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+
+  Commit: a9c7041af7adc32bb30d12b33b83cd7cc0845eec
+      <A HREF="https://github.com/elua/elua/commit/a9c7041af7adc32bb30d12b33b83cd7cc0845eec">https://github.com/elua/elua/commit/a9c7041af7adc32bb30d12b33b83cd7cc0845eec</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-10-02 (Sun, 02 Oct 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  Use new hard reset command to reset LCD module.
+
+We just changed LCD command 0 from a no-op to a speciall-recognized
+hardware reset. This is essential because the LCD controller's reset line
+is not connected to the AVR32's reset line, so if the AVR32 is reset,
+the LCD is left in an unknown, possible unusable, state.
+
+
+  Commit: 2c7d3a37437d4e87530dd6ea3db80f8641ced450
+      <A HREF="https://github.com/elua/elua/commit/2c7d3a37437d4e87530dd6ea3db80f8641ced450">https://github.com/elua/elua/commit/2c7d3a37437d4e87530dd6ea3db80f8641ced450</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-10-02 (Sun, 02 Oct 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  Increase LCD I2C bus frequency to fit with new LCD module firmware.
+
+The new firmware can run at up to 68kHz, so increase the I2C bus speed
+to 60000Hz
+
+
+  Commit: 121a70b8b11ebab38964ac92d0ff4b46b374e814
+      <A HREF="https://github.com/elua/elua/commit/121a70b8b11ebab38964ac92d0ff4b46b374e814">https://github.com/elua/elua/commit/121a70b8b11ebab38964ac92d0ff4b46b374e814</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-10-02 (Sun, 02 Oct 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+  M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  New firmware works with no delays and max speed of 50000Hz
+
+The new LCD firmware doesn't need the caller to wait after each command:
+it stretches the clock instead. Actually, it works at 68kHz too, but
+there is a non-working range from 55 to 66kHz.
+We set it to 50000Hz to have reliable operation and allow for clock drift.
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/f048bec...121a70b">https://github.com/elua/elua/compare/f048bec...121a70b</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001075.html">[eLua-svn] [elua/elua] 60d620: Remove separate dependency step from	Lua build sys...
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1074">[ date ]</a>
+              <a href="thread.html#1074">[ thread ]</a>
+              <a href="subject.html#1074">[ subject ]</a>
+              <a href="author.html#1074">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

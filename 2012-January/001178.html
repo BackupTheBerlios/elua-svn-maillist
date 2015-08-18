@@ -1,0 +1,679 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] 8b60c5: Fix Mizar32 speed regression introduced by systime...
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2012-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%208b60c5%3A%20Fix%20Mizar32%20speed%20regression%0A%20introduced%20by%20systime...&In-Reply-To=%3C4f1a03c0cd4b3_6d7b3fa2bb1e5af8545c6%40sh1.rs.github.com.mail%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001177.html">
+   <LINK REL="Next"  HREF="001179.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] 8b60c5: Fix Mizar32 speed regression introduced by systime...</H1>
+    <B>GitHub</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%208b60c5%3A%20Fix%20Mizar32%20speed%20regression%0A%20introduced%20by%20systime...&In-Reply-To=%3C4f1a03c0cd4b3_6d7b3fa2bb1e5af8545c6%40sh1.rs.github.com.mail%3E"
+       TITLE="[eLua-svn] [elua/elua] 8b60c5: Fix Mizar32 speed regression introduced by systime...">noreply at github.com
+       </A><BR>
+    <I>Sat Jan 21 01:16:00 CET 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001177.html">[eLua-svn] [elua/elua] d60845: Apply strexh/strexb fix to lpc17xx	as well
+</A></li>
+        <LI>Next message: <A HREF="001179.html">[eLua-svn] [elua/elua] 34c634: AVR32: Configure ADC within spec and at optimal va...
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1178">[ date ]</a>
+              <a href="thread.html#1178">[ thread ]</a>
+              <a href="subject.html#1178">[ subject ]</a>
+              <a href="author.html#1178">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/include_git_rev
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+  Commit: 8b60c5f44b82c56a8692c9b24f67ed23afa7c14e
+      <A HREF="https://github.com/elua/elua/commit/8b60c5f44b82c56a8692c9b24f67ed23afa7c14e">https://github.com/elua/elua/commit/8b60c5f44b82c56a8692c9b24f67ed23afa7c14e</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-11-29 (Tue, 29 Nov 2011)
+
+  Changed paths:
+    M src/platform/avr32/platform_int.c
+
+  Log Message:
+  -----------
+  Fix Mizar32 speed regression introduced by systimer commit
+
+Commit d4f03efb96973d73056d87b4173c394ca673bebf halves the running
+speed of the interpreter on Mizar32 because the vitrual timer tick
+happens 128906 ties a second when there is no FOSC32 crystal.
+This commit restores VTMR granularity by calling the 10Hz routines
+once every 12890 ticks.
+
+
+  Commit: 583191e697f242adbe6e0f414e959b213cfd9544
+      <A HREF="https://github.com/elua/elua/commit/583191e697f242adbe6e0f414e959b213cfd9544">https://github.com/elua/elua/commit/583191e697f242adbe6e0f414e959b213cfd9544</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-11-30 (Wed, 30 Nov 2011)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+  M src/platform/avr32/platform_int.c
+
+  Log Message:
+  -----------
+  AVR32 timer interrupt on match bugfix
+
+
+  Commit: c18d019556d885121a420cf584c65cc8e06df4e0
+      <A HREF="https://github.com/elua/elua/commit/c18d019556d885121a420cf584c65cc8e06df4e0">https://github.com/elua/elua/commit/c18d019556d885121a420cf584c65cc8e06df4e0</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-11-30 (Wed, 30 Nov 2011)
+
+  Changed paths:
+    M src/platform/str9/platform.c
+
+  Log Message:
+  -----------
+  fixed potential timer match interrupt overflow on STR9
+
+
+  Commit: 7b58d26d01e0ffc804f5ae838e063ce6456190eb
+      <A HREF="https://github.com/elua/elua/commit/7b58d26d01e0ffc804f5ae838e063ce6456190eb">https://github.com/elua/elua/commit/7b58d26d01e0ffc804f5ae838e063ce6456190eb</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-11-30 (Wed, 30 Nov 2011)
+
+  Changed paths:
+    M src/platform/stm32/platform.c
+
+  Log Message:
+  -----------
+  fixed potential timer match interrupt overflow on STM32
+
+
+  Commit: 1802aea31f7dd7f352344de9bb7eba191a89337e
+      <A HREF="https://github.com/elua/elua/commit/1802aea31f7dd7f352344de9bb7eba191a89337e">https://github.com/elua/elua/commit/1802aea31f7dd7f352344de9bb7eba191a89337e</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-12-02 (Fri, 02 Dec 2011)
+
+  Changed paths:
+    M README.asciidoc
+
+  Log Message:
+  -----------
+  Update README to include information about where to find doc
+
+
+  Commit: 8f708346b0ed264261f9d6d217ff1bfb2c81f20d
+      <A HREF="https://github.com/elua/elua/commit/8f708346b0ed264261f9d6d217ff1bfb2c81f20d">https://github.com/elua/elua/commit/8f708346b0ed264261f9d6d217ff1bfb2c81f20d</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-09 (Fri, 09 Dec 2011)
+
+  Changed paths:
+    M src/newlib/stubs.c
+
+  Log Message:
+  -----------
+  Fix two spellos in commentary
+
+
+  Commit: f35b786cccd1da3d5b0a9d239297b6679da0c3f1
+      <A HREF="https://github.com/elua/elua/commit/f35b786cccd1da3d5b0a9d239297b6679da0c3f1">https://github.com/elua/elua/commit/f35b786cccd1da3d5b0a9d239297b6679da0c3f1</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-09 (Fri, 09 Dec 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+  M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  Use a #define for the LCD_RESET command, not a literal value
+
+
+  Commit: d154d935235436d1eef4db9884f5b5fe95ecc2b1
+      <A HREF="https://github.com/elua/elua/commit/d154d935235436d1eef4db9884f5b5fe95ecc2b1">https://github.com/elua/elua/commit/d154d935235436d1eef4db9884f5b5fe95ecc2b1</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-10 (Sat, 10 Dec 2011)
+
+  Changed paths:
+    M doc/eluadoc/refman_ps_mizar32_lcd.lua
+
+  Log Message:
+  -----------
+  Fix mizar32.lcd.*() documentation
+
+
+  Commit: 1a087dbc7b2cf6d831504322e65f6d44c5af0d24
+      <A HREF="https://github.com/elua/elua/commit/1a087dbc7b2cf6d831504322e65f6d44c5af0d24">https://github.com/elua/elua/commit/1a087dbc7b2cf6d831504322e65f6d44c5af0d24</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-10 (Sat, 10 Dec 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  Conform in-bracket spacing to eLua convention
+
+
+  Commit: b07f2fd6c2118d224e3790bd370b4cd501936746
+      <A HREF="https://github.com/elua/elua/commit/b07f2fd6c2118d224e3790bd370b4cd501936746">https://github.com/elua/elua/commit/b07f2fd6c2118d224e3790bd370b4cd501936746</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-10 (Sat, 10 Dec 2011)
+
+  Changed paths:
+    M doc/eluadoc/refman_ps_mizar32_lcd.lua
+  M src/platform/avr32/lcd.c
+  M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  Implement and document mizar32.lcd.{getpos,buttons}() functions
+
+The new LCD PIC firmware has the ability to return the cursor position
+in the LCD character RAM and the state of the buttons. This commit
+implements eLua module functions to make these available to users.
+
+
+  Commit: d3948700bc8db90b634afecc2b9ac41a51049403
+      <A HREF="https://github.com/elua/elua/commit/d3948700bc8db90b634afecc2b9ac41a51049403">https://github.com/elua/elua/commit/d3948700bc8db90b634afecc2b9ac41a51049403</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-10 (Sat, 10 Dec 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  When defining a user character, restore cursor position using getpos()
+
+When defining a user-defined character on the LCD panel, the hardware
+forgets the current cursor position on the display.  We used to
+restore it by keeping track of the cursor in software, but now that
+the LCD firmware has a &quot;report current cursor position&quot; command,
+we simply use that to save and restore the cursor position when
+defining a char. Code saving: 272 bytes.
+
+The old firmware could not return the current cursor position, so
+previously, when defining a user-definable character, it could
+
+
+  Commit: a4389ed77c473a67c965d6befe946fed943bcf23
+      <A HREF="https://github.com/elua/elua/commit/a4389ed77c473a67c965d6befe946fed943bcf23">https://github.com/elua/elua/commit/a4389ed77c473a67c965d6befe946fed943bcf23</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-10 (Sat, 10 Dec 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  Fix signed/unsigned conflicts in i2c data and integer parameters
+
+
+  Commit: 991bcec20dee7d70decb360f2ad37417be8dbbe3
+      <A HREF="https://github.com/elua/elua/commit/991bcec20dee7d70decb360f2ad37417be8dbbe3">https://github.com/elua/elua/commit/991bcec20dee7d70decb360f2ad37417be8dbbe3</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-10 (Sat, 10 Dec 2011)
+
+  Changed paths:
+    M doc/en/installing_at91sam7x.html
+  M doc/en/inthandlers.txt
+
+  Log Message:
+  -----------
+  Fix typos in interrupt docs
+
+
+  Commit: fb1d9c464c8b50f3ed5ace4c0f782f5538615e50
+      <A HREF="https://github.com/elua/elua/commit/fb1d9c464c8b50f3ed5ace4c0f782f5538615e50">https://github.com/elua/elua/commit/fb1d9c464c8b50f3ed5ace4c0f782f5538615e50</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-10 (Sat, 10 Dec 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  For new LCD firmware, drop need to limit data to 31 bytes
+
+The previous Mizar32 LCD firmware had a limit of 31 bytes per
+data message, while the new has no limit. This commit drops the
+code that used to split long data transfers into 31-byte chunks.
+
+
+  Commit: 8e3e4a634bad9114c0fc70e8ce12b4934baf6b0a
+      <A HREF="https://github.com/elua/elua/commit/8e3e4a634bad9114c0fc70e8ce12b4934baf6b0a">https://github.com/elua/elua/commit/8e3e4a634bad9114c0fc70e8ce12b4934baf6b0a</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-10 (Sat, 10 Dec 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  optimize LCD reset code, as it is now a single command
+
+
+  Commit: 3b5fd90fb2e7593f71c6ed730c4bc0262e1eea89
+      <A HREF="https://github.com/elua/elua/commit/3b5fd90fb2e7593f71c6ed730c4bc0262e1eea89">https://github.com/elua/elua/commit/3b5fd90fb2e7593f71c6ed730c4bc0262e1eea89</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-10 (Sat, 10 Dec 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  Move saving of old LCD cursor position to after the arg checking.
+
+
+  Commit: bbd7c635b9fcc2dfde7afab9ff066aadbb9f6e85
+      <A HREF="https://github.com/elua/elua/commit/bbd7c635b9fcc2dfde7afab9ff066aadbb9f6e85">https://github.com/elua/elua/commit/bbd7c635b9fcc2dfde7afab9ff066aadbb9f6e85</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-11 (Sun, 11 Dec 2011)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  AVR32 platform: Replace literal constant with its symbolic name
+
+Numer of hardware timer IDs is available as a symbolic constant
+on AVR32. This uses it instead of a literal &quot;3&quot;.
+
+
+  Commit: 2f560fb16bbbd0171e5c6af4a5b8f146b7b85c55
+      <A HREF="https://github.com/elua/elua/commit/2f560fb16bbbd0171e5c6af4a5b8f146b7b85c55">https://github.com/elua/elua/commit/2f560fb16bbbd0171e5c6af4a5b8f146b7b85c55</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-11 (Sun, 11 Dec 2011)
+
+  Changed paths:
+    M src/modules/tmr.c
+
+  Log Message:
+  -----------
+  Fix compilation error when optram=0
+
+This commit fixes
+src/modules/tmr.c:203: warning: implicit declaration of function 'LNUMVAL'
+src/modules/tmr.c:203: error: initializer element is not constant
+src/modules/tmr.c:203: error: (near initialization for 'tmr_map[11].func')
+due to missing #if LUA_OPTIMIZE_MEMORY &gt; 0
+
+
+  Commit: ddcec49ae1e3f8485252e47e5ff5589a80d58280
+      <A HREF="https://github.com/elua/elua/commit/ddcec49ae1e3f8485252e47e5ff5589a80d58280">https://github.com/elua/elua/commit/ddcec49ae1e3f8485252e47e5ff5589a80d58280</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-11 (Sun, 11 Dec 2011)
+
+  Changed paths:
+    M src/platform/avr32/MIZAR32/mizar32_conf.h
+
+  Log Message:
+  -----------
+  Drop timer support in Mizar32 128k default build to that the image fits.
+
+The default config for the 128K Mizar32 board no longer fitted into the
+available 129KB of flash. This drops the timer modules so that it does.
+
+
+  Commit: 3195763d16df2087f35730e30fca542ca6726782
+      <A HREF="https://github.com/elua/elua/commit/3195763d16df2087f35730e30fca542ca6726782">https://github.com/elua/elua/commit/3195763d16df2087f35730e30fca542ca6726782</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-11 (Sun, 11 Dec 2011)
+
+  Changed paths:
+    M doc/eluadoc/refman_gen_tmr.lua
+
+  Log Message:
+  -----------
+  Fix typo in tmr doc
+
+
+  Commit: a0ecdc124b9b3dbfc8d15e7224d6c79613513b19
+      <A HREF="https://github.com/elua/elua/commit/a0ecdc124b9b3dbfc8d15e7224d6c79613513b19">https://github.com/elua/elua/commit/a0ecdc124b9b3dbfc8d15e7224d6c79613513b19</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-12-15 (Thu, 15 Dec 2011)
+
+  Changed paths:
+    M rfs_server_src/serial_posix.c
+
+  Log Message:
+  -----------
+  RFS server fix
+
+Read from the UART file descriptor until no data can be read
+anymore (POSIX only). This is needed because sometimes the
+RFS server didn't read all the available data and signaled errors.
+
+
+  Commit: e823c8d3fcedf6908bfc5a1e92f9139849667355
+      <A HREF="https://github.com/elua/elua/commit/e823c8d3fcedf6908bfc5a1e92f9139849667355">https://github.com/elua/elua/commit/e823c8d3fcedf6908bfc5a1e92f9139849667355</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-12-17 (Sat, 17 Dec 2011)
+
+  Changed paths:
+    M rfs_server_src/serial_posix.c
+
+  Log Message:
+  -----------
+  RFS server fix for serial connections
+
+On Linux, the serial connection was not setup properly, which led to
+weird errors in the RFS server. This fix disables any input processing
+in the termios layer, thus fixing the problem. Thanks to Markus Korber
+for reporting and fixing the issue.
+
+
+  Commit: e7ec5a84fd22ad2b9b747402c888e391f948b06e
+      <A HREF="https://github.com/elua/elua/commit/e7ec5a84fd22ad2b9b747402c888e391f948b06e">https://github.com/elua/elua/commit/e7ec5a84fd22ad2b9b747402c888e391f948b06e</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-18 (Sun, 18 Dec 2011)
+
+  Changed paths:
+    M src/lua/lvm.c
+
+  Log Message:
+  -----------
+  Apply fix to Lua 5.1.4 bug #10
+
+See <A HREF="http://www.lua.org/bugs.html">http://www.lua.org/bugs.html</A> -&gt; Lua 5.1.4 -&gt; bug 10
+Repeat-by:
+  meta={}
+  setmetatable(meta, meta)
+  meta.__newindex = function(t, key, value) print(&quot;set&quot;) end
+  o = setmetatable({}, meta)
+  o.x = 10    -- should print 'set'
+Lua 5.1.4 fix adapted to eLua's rotable mods
+
+
+  Commit: c9c4311f159b2fc98a5c96947929d062384b42ed
+      <A HREF="https://github.com/elua/elua/commit/c9c4311f159b2fc98a5c96947929d062384b42ed">https://github.com/elua/elua/commit/c9c4311f159b2fc98a5c96947929d062384b42ed</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-12-18 (Sun, 18 Dec 2011)
+
+  Changed paths:
+    M src/lua/lparser.c
+
+  Log Message:
+  -----------
+  Apply fix to Lua 5.1.4 bug #11
+
+See <A HREF="http://www.lua.org/bugs.html">http://www.lua.org/bugs.html</A> -&gt; Lua 5.1.4 -&gt; bug 11
+&quot;Parser may collect a prototype while building it.&quot;
+
+
+  Commit: 6d26eed80ff39a4d00c3c4ed9a8baa64771c417c
+      <A HREF="https://github.com/elua/elua/commit/6d26eed80ff39a4d00c3c4ed9a8baa64771c417c">https://github.com/elua/elua/commit/6d26eed80ff39a4d00c3c4ed9a8baa64771c417c</A>
+  Author: Robert G. Jakabosky &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bobby at sharedrealm.com</A>&gt;
+  Date:   2011-12-28 (Wed, 28 Dec 2011)
+
+  Changed paths:
+    M src/lua/lauxlib.c
+  M src/lua/lgc.c
+  M src/lua/lgc.h
+  M src/lua/lparser.c
+  M src/lua/lstring.c
+  M src/lua/luaconf.h
+
+  Log Message:
+  -----------
+  Update EGC to r6 from r4
+
+
+  Commit: 89b78f288a9723ec4e227408ec83faccb9e0c36c
+      <A HREF="https://github.com/elua/elua/commit/89b78f288a9723ec4e227408ec83faccb9e0c36c">https://github.com/elua/elua/commit/89b78f288a9723ec4e227408ec83faccb9e0c36c</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-01 (Sun, 01 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/i2c.c
+  M src/platform/avr32/sdramc.c
+
+  Log Message:
+  -----------
+  Fix random 60-second pause bug in AVR32 I2C code
+
+The I2C delay routine would very occasionally pause execution for
+60 seconds then continue. This was due to an Atmel delay routine
+that claimed to handle the 32-bit counter register overflowing
+but didn't. Specifically, in the old code, when delay_end_cycle was
+very close to 2^32, the counter register could wrap to 0 before it
+was compared for being &gt; delay_end_cycle, resulting in a 2^32-cycle
+pause, about a minute.  If the end_cycle were exactly 2^32-1,
+the delay might have takes several minute-long cycles to finish.
+
+This commit also fixes the bug in the SDRAM init code where the
+delay code was copied from. In that case the odds of the bug biting
+were very small indeed, since it was immediately after system startup
+and in SDRAM init code there are no interrupt routines running.
+However, the correct code is also shorter.
+
+
+  Commit: ffe0338b898abd9163b1a2f1ed6812b8733e6c37
+      <A HREF="https://github.com/elua/elua/commit/ffe0338b898abd9163b1a2f1ed6812b8733e6c37">https://github.com/elua/elua/commit/ffe0338b898abd9163b1a2f1ed6812b8733e6c37</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-02 (Mon, 02 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/i2c.c
+  M src/platform/avr32/sdramc.c
+
+  Log Message:
+  -----------
+  Fix commentary in previous commit
+
+The new AVR32 delay code doesn't just handle up to 30 second delays;
+it handles the whole range.
+
+
+  Commit: a5a20783a947cfa4fd71ac3cdd5a741fdb022dc9
+      <A HREF="https://github.com/elua/elua/commit/a5a20783a947cfa4fd71ac3cdd5a741fdb022dc9">https://github.com/elua/elua/commit/a5a20783a947cfa4fd71ac3cdd5a741fdb022dc9</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M inc/platform.h
+
+  Log Message:
+  -----------
+  Fix tmr.getmaxdelay() with virtual and system timers when LUA_NUMBER_INTEGRAL
+
+tmr.getmaxdelay() used to return -1 for the system timer and -2 for
+virtual timers in the integer build due to Lua integers being signed.
+This makes them return 2147483647 and 2147483646 resectively.
+
+
+  Commit: 4019718521e935b227bedf59b5544ebd3eaa471d
+      <A HREF="https://github.com/elua/elua/commit/4019718521e935b227bedf59b5544ebd3eaa471d">https://github.com/elua/elua/commit/4019718521e935b227bedf59b5544ebd3eaa471d</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/EVK1100/evk1100_conf.h
+  M src/platform/avr32/EVK1101/evk1101_conf.h
+  M src/platform/avr32/MIZAR32/mizar32_conf.h
+  M src/platform/avr32/platform.c
+  M src/platform/avr32/platform_int.c
+
+  Log Message:
+  -----------
+  AVR32: Move virtual timer channel definition to platform conf file
+
+Instead of defining the virtual timer channel twice in two .c files,
+define it once in each board's platform_conf.h file. Although all the
+currently-supported UC3 parts (A &amp; B) have 3 timers, the UC3C parts have 6.
+
+
+  Commit: dbf721b0cd6d9b77cc54a65eb26e9373a8a63c4a
+      <A HREF="https://github.com/elua/elua/commit/dbf721b0cd6d9b77cc54a65eb26e9373a8a63c4a">https://github.com/elua/elua/commit/dbf721b0cd6d9b77cc54a65eb26e9373a8a63c4a</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-15 (Sun, 15 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/platform_int.c
+
+  Log Message:
+  -----------
+  jaFix typo in previous commit
+
+
+  Commit: 98d85709a94fc783601aefb062a26f7a09a4a0f0
+      <A HREF="https://github.com/elua/elua/commit/98d85709a94fc783601aefb062a26f7a09a4a0f0">https://github.com/elua/elua/commit/98d85709a94fc783601aefb062a26f7a09a4a0f0</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-15 (Sun, 15 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/MIZAR32/mizar32_conf.h
+
+  Log Message:
+  -----------
+  Mizar32 conf: enable DHCP client by default
+
+
+  Commit: c8a82fa8bf9ace84dbac6af3a6b59df6a6344f85
+      <A HREF="https://github.com/elua/elua/commit/c8a82fa8bf9ace84dbac6af3a6b59df6a6344f85">https://github.com/elua/elua/commit/c8a82fa8bf9ace84dbac6af3a6b59df6a6344f85</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-16 (Mon, 16 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/MIZAR32/mizar32.h
+
+  Log Message:
+  -----------
+  Include 32768Hz crystal on Mizar32 - now it will be there.
+
+
+  Commit: a77fc80604500c7391d701187aa8e0c1ba5875f0
+      <A HREF="https://github.com/elua/elua/commit/a77fc80604500c7391d701187aa8e0c1ba5875f0">https://github.com/elua/elua/commit/a77fc80604500c7391d701187aa8e0c1ba5875f0</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-17 (Tue, 17 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  Tiny optimization in AVR32 UART code
+
+The values for the stopbit defines happen to be the same in eLua
+headers and avr32 headers, so check for this and when true replace
+a no-op switch statement with an =
+
+
+  Commit: 879642e1e1848f7da0f79a0863188f8089c2a6e0
+      <A HREF="https://github.com/elua/elua/commit/879642e1e1848f7da0f79a0863188f8089c2a6e0">https://github.com/elua/elua/commit/879642e1e1848f7da0f79a0863188f8089c2a6e0</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2012-01-18 (Wed, 18 Jan 2012)
+
+  Changed paths:
+    M src/platform/stm32/core_cm3.c
+
+  Log Message:
+  -----------
+  Workaround for strexh/strexb same register error: <A HREF="http://lists.gnu.org/archive/html/bug-binutils/2011-12/msg00112.html">http://lists.gnu.org/archive/html/bug-binutils/2011-12/msg00112.html</A>
+
+
+  Commit: d608453878cf974072c87010b43f7b9a5a418bf5
+      <A HREF="https://github.com/elua/elua/commit/d608453878cf974072c87010b43f7b9a5a418bf5">https://github.com/elua/elua/commit/d608453878cf974072c87010b43f7b9a5a418bf5</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2012-01-20 (Fri, 20 Jan 2012)
+
+  Changed paths:
+    M src/platform/lpc17xx/core_cm3.c
+  M src/platform/stm32/core_cm3.c
+
+  Log Message:
+  -----------
+  Apply strexh/strexb fix to lpc17xx as well
+
+
+  Commit: 8060e0e2c9f2fd7828ba352babcbb1c8411af997
+      <A HREF="https://github.com/elua/elua/commit/8060e0e2c9f2fd7828ba352babcbb1c8411af997">https://github.com/elua/elua/commit/8060e0e2c9f2fd7828ba352babcbb1c8411af997</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2012-01-20 (Fri, 20 Jan 2012)
+
+  Changed paths:
+    M README.asciidoc
+  M doc/eluadoc/refman_gen_tmr.lua
+  M doc/eluadoc/refman_ps_mizar32_lcd.lua
+  M doc/en/installing_at91sam7x.html
+  M doc/en/inthandlers.txt
+  M inc/platform.h
+  M rfs_server_src/serial_posix.c
+  M src/lua/lauxlib.c
+  M src/lua/lgc.c
+  M src/lua/lgc.h
+  M src/lua/lparser.c
+  M src/lua/lstring.c
+  M src/lua/luaconf.h
+  M src/lua/lvm.c
+  M src/modules/tmr.c
+  M src/newlib/stubs.c
+  M src/platform/avr32/EVK1100/evk1100_conf.h
+  M src/platform/avr32/EVK1101/evk1101_conf.h
+  M src/platform/avr32/MIZAR32/mizar32.h
+  M src/platform/avr32/MIZAR32/mizar32_conf.h
+  M src/platform/avr32/i2c.c
+  M src/platform/avr32/lcd.c
+  M src/platform/avr32/lcd.h
+  M src/platform/avr32/platform.c
+  M src/platform/avr32/platform_int.c
+  M src/platform/avr32/sdramc.c
+  M src/platform/lpc17xx/core_cm3.c
+  M src/platform/stm32/core_cm3.c
+  M src/platform/stm32/platform.c
+  M src/platform/str9/platform.c
+
+  Log Message:
+  -----------
+  Merge branch 'master' into include_git_rev
+
+
+  Commit: ed9793a42e96cd08843ebc179d51a97a8f3c5306
+      <A HREF="https://github.com/elua/elua/commit/ed9793a42e96cd08843ebc179d51a97a8f3c5306">https://github.com/elua/elua/commit/ed9793a42e96cd08843ebc179d51a97a8f3c5306</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2012-01-20 (Fri, 20 Jan 2012)
+
+  Changed paths:
+    M SConstruct
+  M build_elua.lua
+  M src/modules/elua.c
+
+  Log Message:
+  -----------
+  Add support for git version determination to SCons build system
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/011d90f...ed9793a">https://github.com/elua/elua/compare/011d90f...ed9793a</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001177.html">[eLua-svn] [elua/elua] d60845: Apply strexh/strexb fix to lpc17xx	as well
+</A></li>
+	<LI>Next message: <A HREF="001179.html">[eLua-svn] [elua/elua] 34c634: AVR32: Configure ADC within spec and at optimal va...
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1178">[ date ]</a>
+              <a href="thread.html#1178">[ thread ]</a>
+              <a href="subject.html#1178">[ subject ]</a>
+              <a href="author.html#1178">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

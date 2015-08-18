@@ -1,0 +1,389 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r524 - in branches/ints: . inc romfs src src/lua	src/modules src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r524%20-%20in%20branches/ints%3A%20.%20inc%20romfs%20src%20src/lua%0A%09src/modules%20src/platform/lm3s&In-Reply-To=%3C200911060012.nA60CNrt023522%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000479.html">
+   <LINK REL="Next"  HREF="000481.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r524 - in branches/ints: . inc romfs src src/lua	src/modules src/platform/lm3s</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r524%20-%20in%20branches/ints%3A%20.%20inc%20romfs%20src%20src/lua%0A%09src/modules%20src/platform/lm3s&In-Reply-To=%3C200911060012.nA60CNrt023522%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r524 - in branches/ints: . inc romfs src src/lua	src/modules src/platform/lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Nov  6 01:12:23 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000479.html">[Elua-svn] r523 - branches
+</A></li>
+        <LI>Next message: <A HREF="000481.html">[Elua-svn] r525 - branches/eagle_mmc/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#480">[ date ]</a>
+              <a href="thread.html#480">[ thread ]</a>
+              <a href="subject.html#480">[ subject ]</a>
+              <a href="author.html#480">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-11-06 01:12:14 +0100 (Fri, 06 Nov 2009)
+New Revision: 524
+
+Added:
+   branches/ints/inc/elua_int.h
+   branches/ints/src/elua_int.c
+Modified:
+   branches/ints/SConstruct
+   branches/ints/romfs/info.lua
+   branches/ints/src/lua/lstate.c
+   branches/ints/src/lua/lua.h
+   branches/ints/src/modules/cpu.c
+   branches/ints/src/platform/lm3s/platform.c
+   branches/ints/src/platform/lm3s/platform_conf.h
+Log:
+working on interrupt support
+
+Modified: branches/ints/SConstruct
+===================================================================
+--- branches/ints/SConstruct	2009-11-05 21:12:47 UTC (rev 523)
++++ branches/ints/SConstruct	2009-11-06 00:12:14 UTC (rev 524)
+@@ -260,7 +260,7 @@
+ local_libs = ''
+ 
+ # Application files
+-app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua_uart.c &quot;
++app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua_uart.c src/elua_int.c &quot;
+ 
+ # Newlib related files
+ newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+
+Added: branches/ints/inc/elua_int.h
+===================================================================
+--- branches/ints/inc/elua_int.h	2009-11-05 21:12:47 UTC (rev 523)
++++ branches/ints/inc/elua_int.h	2009-11-06 00:12:14 UTC (rev 524)
+@@ -0,0 +1,17 @@
++// eLua interrupt handlers support
++
++#ifndef __ELUA_INT_H__
++#define __ELUA_INT_H__
++
++#include &quot;type.h&quot;
++
++typedef u8 elua_int_id;
++
++// Handler key in the registry
++#define LUA_INT_HANDLER_KEY   ( int )&amp;elua_int_add
++
++// Function prototypes
++int elua_int_add( elua_int_id inttype );
++
++#endif
++
+
+Modified: branches/ints/romfs/info.lua
+===================================================================
+--- branches/ints/romfs/info.lua	2009-11-05 21:12:47 UTC (rev 523)
++++ branches/ints/romfs/info.lua	2009-11-06 00:12:14 UTC (rev 524)
+@@ -1,3 +1,14 @@
++-- [TODO] remove this!
++
++local function int_handler( type )
++  print &quot;Fired!&quot;
++end
++
++cpu.set_int_handler( int_handler )
++
+ print( &quot;I'm running on platform &quot; .. pd.platform() )
+ print( &quot;The CPU is a &quot; .. pd.cpu() )
+ print( &quot;The board name is &quot; .. pd.board() )
++
++while true do end
++
+
+Added: branches/ints/src/elua_int.c
+===================================================================
+--- branches/ints/src/elua_int.c	2009-11-05 21:12:47 UTC (rev 523)
++++ branches/ints/src/elua_int.c	2009-11-06 00:12:14 UTC (rev 524)
+@@ -0,0 +1,77 @@
++// eLua interrupt support
++
++#include &quot;elua_int.h&quot;
++#include &quot;lua.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;type.h&quot;
++#include &quot;ldebug.h&quot;
++
++#ifdef BUILD_LUA_INT_HANDLERS
++
++// 1 if the interrupt queue has overflowed, 0 otherwise
++static u8 elua_int_overflow_flag;
++// Interrupt queue read and write indexes
++static volatile u8 elua_int_read_idx, elua_int_write_idx;
++// Number of interrupts in queue
++static volatile u8 elua_int_queue_size;
++// The interrupt queue
++static elua_int_id elua_int_queue[ PLATFORM_INT_QUEUE_SIZE ];
++
++extern u8 cpu_is_int_handler_active();
++
++// Our hook function (called by the Lua VM)
++static void elua_int_hook( lua_State *L, lua_Debug *ar )
++{
++  elua_int_id crt;
++
++  // Get interrupt (and remove from queue)
++  crt = elua_int_queue[ elua_int_read_idx ];
++  elua_int_read_idx = ( elua_int_read_idx + 1 ) % PLATFORM_INT_QUEUE_SIZE;
++  // [TODO] is it right to enable/disable interrupts like this? What if they are already disabled somewher else?
++  // A store/restore sequence is more adequate
++  platform_cpu_disable_interrupts();
++  elua_int_queue_size --;
++  platform_cpu_enable_interrupts();
++
++  // Call Lua handler
++  if( cpu_is_int_handler_active() )
++  {
++    lua_rawgeti( L, LUA_REGISTRYINDEX, LUA_INT_HANDLER_KEY );
++    lua_pushinteger( L, crt );
++    lua_call( L, 1, 0 );
++  }
++
++  // Unset hook if needed
++  platform_cpu_disable_interrupts();
++  if( elua_int_queue_size == 0 )
++    lua_sethook( L, elua_int_hook, 0, 0 );
++  platform_cpu_enable_interrupts();
++}
++
++// Queue an interrupt and set the Lua hook
++// Returns PLATFORM_OK or PLATFORM_ERR
++int elua_int_add( elua_int_id inttype )
++{
++  // If Lua is not running (no Lua state) or not interrupt handler is set, don't do anything
++  if( lua_getstate() == NULL || !cpu_is_int_handler_active() )
++    return PLATFORM_ERR;
++  // If we don't have a Lua state, we can't queue the interrupt
++  // If there's no more room in the queue, set the overflow flag and return
++  if( elua_int_queue_size == PLATFORM_INT_QUEUE_SIZE )
++  {
++    elua_int_overflow_flag = 1;
++    return PLATFORM_ERR;
++  }
++  // Queue the interrupt
++  elua_int_queue[ elua_int_write_idx ] = inttype;
++  elua_int_write_idx = ( elua_int_write_idx + 1 ) % PLATFORM_INT_QUEUE_SIZE;
++  elua_int_queue_size ++;
++  // Set the Lua hook (it's OK to set it even if it's already set)
++  // [TODO] is it safe to call lua_sethook here ? If not, set a &quot;trap&quot; in lvm.c
++  lua_sethook( lua_getstate(), elua_int_hook, LUA_MASKCALL | LUA_MASKRET | LUA_MASKLINE | LUA_MASKCOUNT, 2 ); 
++  // All OK
++  return PLATFORM_OK;
++}
++
++#endif // #ifdef BUILD_LUA_INT_HANDLERS
+
+Modified: branches/ints/src/lua/lstate.c
+===================================================================
+--- branches/ints/src/lua/lstate.c	2009-11-05 21:12:47 UTC (rev 523)
++++ branches/ints/src/lua/lstate.c	2009-11-06 00:12:14 UTC (rev 524)
+@@ -201,7 +201,19 @@
+   luaC_callGCTM(L);  /* call GC metamethods for all udata */
+ }
+ 
++// BogdanM: modified for eLua interrupt support
++extern lua_State *luaL_newstate (void);
++static lua_State *lua_crtstate;
+ 
++lua_State *lua_open(void) {
++  lua_crtstate = luaL_newstate(); 
++  return lua_crtstate;
++}
++
++lua_State *lua_getstate(void) {
++  return lua_crtstate;
++}
++
+ LUA_API void lua_close (lua_State *L) {
+   L = G(L)-&gt;mainthread;  /* only the main thread can be closed */
+   lua_lock(L);
+@@ -216,5 +228,9 @@
+   lua_assert(G(L)-&gt;tmudata == NULL);
+   luai_userstateclose(L);
+   close_state(L);
++  // BogdanM: modified for eLua interrupt support
++  lua_crtstate = NULL;
+ }
+ 
++
++
+
+Modified: branches/ints/src/lua/lua.h
+===================================================================
+--- branches/ints/src/lua/lua.h	2009-11-05 21:12:47 UTC (rev 523)
++++ branches/ints/src/lua/lua.h	2009-11-06 00:12:14 UTC (rev 524)
+@@ -290,7 +290,10 @@
+ ** compatibility macros and functions
+ */
+ 
+-#define lua_open()	luaL_newstate()
++// BogdanM: modified for eLua interrupt support
++//#define lua_open()	luaL_newstate()
++lua_State* lua_open(void);
++lua_State* lua_getstate(void);
+ 
+ #define lua_getregistry(L)	lua_pushvalue(L, LUA_REGISTRYINDEX)
+ 
+
+Modified: branches/ints/src/modules/cpu.c
+===================================================================
+--- branches/ints/src/modules/cpu.c	2009-11-05 21:12:47 UTC (rev 523)
++++ branches/ints/src/modules/cpu.c	2009-11-06 00:12:14 UTC (rev 524)
+@@ -6,6 +6,7 @@
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
+ #include &quot;lrotable.h&quot;
++#include &quot;elua_int.h&quot;
+ #include &lt;string.h&gt; 
+ 
+ #define _C( x ) { #x, x }
+@@ -121,6 +122,31 @@
+ }
+ #endif
+ 
++#ifdef BUILD_LUA_INT_HANDLERS
++static u8 cpu_int_handler_active;
++
++u8 cpu_is_int_handler_active()
++{
++  return cpu_int_handler_active;
++}
++
++// lua: cpu.set_int_handler( f )
++static int cpu_set_int_handler( lua_State *L )
++{
++  if( lua_type( L, 1 ) == LUA_TNIL )
++    cpu_int_handler_active = 0;
++  else if( lua_type( L, 1 ) == LUA_TFUNCTION || lua_type( L, 1 ) == LUA_TLIGHTFUNCTION )
++  {
++    lua_settop( L, 1 );
++    lua_rawseti( L, LUA_REGISTRYINDEX, LUA_INT_HANDLER_KEY );
++    cpu_int_handler_active = 1;
++  }
++  else
++    return luaL_error( L, &quot;invalid argument (must be a function or nil)&quot; );
++  return 0;
++}
++#endif
++
+ // Module function map
+ #define MIN_OPT_LEVEL 2
+ #include &quot;lrodefs.h&quot;
+@@ -135,6 +161,9 @@
+   { LSTRKEY( &quot;cli&quot; ), LFUNCVAL( cpu_cli ) },
+   { LSTRKEY( &quot;sei&quot; ), LFUNCVAL( cpu_sei ) },
+   { LSTRKEY( &quot;clock&quot; ), LFUNCVAL( cpu_clock ) },
++#ifdef BUILD_LUA_INT_HANDLERS
++  { LSTRKEY( &quot;set_int_handler&quot; ), LFUNCVAL( cpu_set_int_handler ) },
++#endif
+ #if defined( PLATFORM_CPU_CONSTANTS ) &amp;&amp; LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;__metatable&quot; ), LROVAL( cpu_map ) },
+ #endif
+@@ -146,6 +175,9 @@
+ 
+ LUALIB_API int luaopen_cpu( lua_State *L )
+ {
++#ifdef BUILD_LUA_INT_HANDLERS
++  cpu_int_handler_active = 0;
++#endif
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   return 0;
+ #else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+@@ -161,3 +193,4 @@
+   return 1;
+ #endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
+ }
++
+
+Modified: branches/ints/src/platform/lm3s/platform.c
+===================================================================
+--- branches/ints/src/platform/lm3s/platform.c	2009-11-05 21:12:47 UTC (rev 523)
++++ branches/ints/src/platform/lm3s/platform.c	2009-11-06 00:12:14 UTC (rev 524)
+@@ -19,6 +19,7 @@
+ #include &quot;lua.h&quot;
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lrotable.h&quot;
++#include &quot;elua_int.h&quot; 
+ 
+ // Platform specific includes
+ #include &quot;hw_ints.h&quot;
+@@ -918,6 +919,12 @@
+   // Generate a fake Ethernet interrupt.  This will perform the actual work
+   // of incrementing the timers and taking the appropriate actions.
+   platform_eth_force_interrupt();
++
++  // [TODO] testing only! remove this!
++  static int i = 0;
++  i ++;
++  if( ( i &amp; 3 ) == 0 )
++    elua_int_add( 12 );
+ }
+ 
+ void EthernetIntHandler()
+
+Modified: branches/ints/src/platform/lm3s/platform_conf.h
+===================================================================
+--- branches/ints/src/platform/lm3s/platform_conf.h	2009-11-05 21:12:47 UTC (rev 523)
++++ branches/ints/src/platform/lm3s/platform_conf.h	2009-11-06 00:12:14 UTC (rev 524)
+@@ -23,6 +23,7 @@
+ #define BUILD_ADC
+ #define BUILD_LUARPC
+ //#define BUILD_CON_TCP
++#define BUILD_LUA_INT_HANDLERS
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -145,6 +146,8 @@
+ #define ADC_TIMER_FIRST_ID    0
+ #define ADC_NUM_TIMERS        NUM_TIMER  
+ 
++// Interrupt queue size (in entries)
++#define PLATFORM_INT_QUEUE_SIZE   32
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         SysCtlClockGet()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000479.html">[Elua-svn] r523 - branches
+</A></li>
+	<LI>Next message: <A HREF="000481.html">[Elua-svn] r525 - branches/eagle_mmc/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#480">[ date ]</a>
+              <a href="thread.html#480">[ thread ]</a>
+              <a href="subject.html#480">[ subject ]</a>
+              <a href="author.html#480">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,1586 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r543 - trunk/romfs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r543%20-%20trunk/romfs&In-Reply-To=%3C200911201212.nAKCCLbP015584%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000498.html">
+   <LINK REL="Next"  HREF="000500.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r543 - trunk/romfs</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r543%20-%20trunk/romfs&In-Reply-To=%3C200911201212.nAKCCLbP015584%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r543 - trunk/romfs">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Fri Nov 20 13:12:21 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000498.html">[Elua-svn] r542 - trunk/src/modules
+</A></li>
+        <LI>Next message: <A HREF="000500.html">[Elua-svn] r544 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#499">[ date ]</a>
+              <a href="thread.html#499">[ thread ]</a>
+              <a href="subject.html#499">[ subject ]</a>
+              <a href="author.html#499">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2009-11-20 13:12:20 +0100 (Fri, 20 Nov 2009)
+New Revision: 543
+
+Added:
+   trunk/romfs/snake.lua
+Modified:
+   trunk/romfs/pong.lua
+Log:
+New game added to eLua ROMFS. Snake runs on LM3S boards with RIT OLED Display.
+Small changes on Pong, another game for the same platform above.
+
+
+
+Modified: trunk/romfs/pong.lua
+===================================================================
+--- trunk/romfs/pong.lua	2009-11-20 12:09:40 UTC (rev 542)
++++ trunk/romfs/pong.lua	2009-11-20 12:12:20 UTC (rev 543)
+@@ -14,7 +14,7 @@
+ --    This had only the ball bouncing on walls, paddle and paddle movement
+ --
+ -- Greatly enhanced by Teo Benjamin in Aug/Sep 2009, adding:
+---    Score, resizeable paddles, levels/speeds, items
++--    Score, resizeable paddles, levels/speeds, falling items, ...
+ --
+ --
+ -------------------------------------------------------------------------------
+@@ -27,7 +27,7 @@
+ -- paddle.size                  -- Actual Paddle size = ( 6 * ( paddle.size + 1 ) ) + 2
+ -- paddle.max_size              -- Max paddle.size value -&gt; Constant
+ -- paddle.min_size              -- Min paddle.size value -&gt; Constant
+--- paddle.y                            -- Paddle's Y position ( X position not needed, always 0 )
++-- paddle.y                     -- Paddle's Y position ( X position not needed, always 0 )
+ 
+ local ball = {}
+ -- ball.x                       -- Ball's X position
+@@ -40,7 +40,7 @@
+ -- item.x                       -- Item's X position
+ -- item.y                       -- Item's Y position ( fix for each item )
+ -- item.char                    -- This is the char that represents the item ( if false, there is no item )
+--- item.all_chars                     -- A table that contains all the possibles item chars. Initialized by upload_items() function
++-- item.all_chars               -- A table that contains all the possibles item chars. Initialized by upload_items() function
+ 
+ -- Define all constants
+ local tmr_id = 1
+
+Added: trunk/romfs/snake.lua
+===================================================================
+--- trunk/romfs/snake.lua	2009-11-20 12:09:40 UTC (rev 542)
++++ trunk/romfs/snake.lua	2009-11-20 12:12:20 UTC (rev 543)
+@@ -0,0 +1,1473 @@
++
++
++
++&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD HTML 4.01 Transitional//EN&quot; &quot;<A HREF="http://www.w3.org/TR/html4/loose.dtd">http://www.w3.org/TR/html4/loose.dtd</A>&quot;&gt;
++&lt;html&gt;
++&lt;head&gt;
++ &lt;script type=&quot;text/javascript&quot;&gt;
++ 
++ 
++ 
++ var codesite_token = null;
++ 
++ 
++ var logged_in_user_email = null;
++ 
++ &lt;/script&gt;
++ 
++ 
++ &lt;title&gt;snake.lua - 
++ eluaexamples -
++ 
++ Project Hosting on Google Code&lt;/title&gt;
++ &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot; &gt;
++ 
++ &lt;link type=&quot;text/css&quot; rel=&quot;stylesheet&quot; href=&quot;<A HREF="http://www.gstatic.com/codesite/ph/2429932258724909799/css/ph_core.css">http://www.gstatic.com/codesite/ph/2429932258724909799/css/ph_core.css</A>&quot;&gt;
++ 
++ &lt;link type=&quot;text/css&quot; rel=&quot;stylesheet&quot; href=&quot;<A HREF="http://www.gstatic.com/codesite/ph/2429932258724909799/css/ph_detail.css">http://www.gstatic.com/codesite/ph/2429932258724909799/css/ph_detail.css</A>&quot; &gt;
++ 
++ 
++ &lt;link type=&quot;text/css&quot; rel=&quot;stylesheet&quot; href=&quot;<A HREF="http://www.gstatic.com/codesite/ph/2429932258724909799/css/d_sb_20080522.css">http://www.gstatic.com/codesite/ph/2429932258724909799/css/d_sb_20080522.css</A>&quot; &gt;
++ 
++ 
++ 
++&lt;!--[if IE]&gt;
++ &lt;link type=&quot;text/css&quot; rel=&quot;stylesheet&quot; href=&quot;<A HREF="http://www.gstatic.com/codesite/ph/2429932258724909799/css/d_ie.css">http://www.gstatic.com/codesite/ph/2429932258724909799/css/d_ie.css</A>&quot; &gt;
++&lt;![endif]--&gt;
++ &lt;style type=&quot;text/css&quot;&gt;
++ .menuIcon.off { background: no-repeat url(<A HREF="http://www.gstatic.com/codesite/ph/images/dropdown_sprite.gif">http://www.gstatic.com/codesite/ph/images/dropdown_sprite.gif</A>) 0 -42px }
++ .menuIcon.on { background: no-repeat url(<A HREF="http://www.gstatic.com/codesite/ph/images/dropdown_sprite.gif">http://www.gstatic.com/codesite/ph/images/dropdown_sprite.gif</A>) 0 -28px }
++ .menuIcon.down { background: no-repeat url(<A HREF="http://www.gstatic.com/codesite/ph/images/dropdown_sprite.gif">http://www.gstatic.com/codesite/ph/images/dropdown_sprite.gif</A>) 0 0; }
++ .results th a, .results th a:visited { background: url(<A HREF="http://www.gstatic.com/codesite/ph/images/downarrow.gif">http://www.gstatic.com/codesite/ph/images/downarrow.gif</A>) no-repeat top right }
++ &lt;/style&gt;
++&lt;/head&gt;
++&lt;body class=&quot;t4&quot;&gt;
++ &lt;div id=&quot;gaia&quot;&gt;
++ 
++ &lt;span&gt;
++ 
++ 
++ &lt;a href=&quot;#&quot; id=&quot;projects-dropdown&quot; onclick=&quot;return false;&quot;&gt;My favorites&lt;/a&gt;
++ 
++ | &lt;a href=&quot;<A HREF="https://www.google.com/accounts/ServiceLogin?service=code&amp;ltmpl=phosting&amp;continue=http%3A%2F%2Fcode.google.com%2Fp%2Feluaexamples%2Fsource%2Fbrowse%2Ftrunk%2Fsnake%2Fsnake.lua&amp;amp;followup=http%3A%2F%2Fcode.google.com%2Fp%2Feluaexamples%2Fsource%2Fbrowse%2Ftrunk%2Fsnake%2Fsnake.lua">https://www.google.com/accounts/ServiceLogin?service=code&amp;ltmpl=phosting&amp;continue=http%3A%2F%2Fcode.google.com%2Fp%2Feluaexamples%2Fsource%2Fbrowse%2Ftrunk%2Fsnake%2Fsnake.lua&amp;followup=http%3A%2F%2Fcode.google.com%2Fp%2Feluaexamples%2Fsource%2Fbrowse%2Ftrunk%2Fsnake%2Fsnake.lua</A>&quot; onclick=&quot;_CS_click('/gb/ph/signin');&quot;&gt;Sign in&lt;/a&gt;
++ 
++ &lt;/span&gt;
++
++ &lt;/div&gt;
++ &lt;div class=&quot;gbh&quot; style=&quot;left: 0pt;&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;gbh&quot; style=&quot;right: 0pt;&quot;&gt;&lt;/div&gt;
++ 
++ 
++ &lt;div style=&quot;height: 1px&quot;&gt;&lt;/div&gt;
++&lt;!--[if IE 6]&gt;
++&lt;div style=&quot;text-align:center;&quot;&gt;
++Support browsers that contribute to open source, try &lt;a href=&quot;<A HREF="http://www.firefox.com">http://www.firefox.com</A>&quot;&gt;Firefox&lt;/a&gt; or &lt;a href=&quot;<A HREF="http://www.google.com/chrome">http://www.google.com/chrome</A>&quot;&gt;Google Chrome&lt;/a&gt;.
++&lt;/div&gt;
++&lt;![endif]--&gt;
++ &lt;table style=&quot;padding:0px; margin: 20px 0px 0px 0px; width:100%&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;
++ &lt;tr style=&quot;height: 58px;&quot;&gt;
++ 
++ &lt;td style=&quot;width: 55px; text-align:center;&quot;&gt;
++ &lt;a href=&quot;/p/eluaexamples/&quot;&gt;
++ 
++ 
++ 
++ &lt;img src=&quot;/p/eluaexamples/logo?logo_id=1254241294&quot; alt=&quot;Logo&quot;&gt;
++ 
++ 
++ &lt;/a&gt;
++ &lt;/td&gt;
++ 
++ &lt;td style=&quot;padding-left: 0.8em&quot;&gt;
++ 
++ &lt;div id=&quot;pname&quot; style=&quot;margin: 0px 0px -3px 0px&quot;&gt;
++ &lt;a href=&quot;/p/eluaexamples/&quot; style=&quot;text-decoration:none; color:#000&quot;&gt;eluaexamples&lt;/a&gt;
++ &lt;/div&gt;
++ 
++ &lt;div id=&quot;psum&quot;&gt;
++ &lt;i&gt;&lt;a id=&quot;project_summary_link&quot; href=&quot;/p/eluaexamples/&quot; style=&quot;text-decoration:none; color:#000&quot;&gt;Code examples for the many platforms supported by eLua (www.eluaproject.net)&lt;/a&gt;&lt;/i&gt;
++ &lt;/div&gt;
++ 
++ &lt;/td&gt;
++ &lt;td style=&quot;white-space:nowrap; text-align:right&quot;&gt;
++ 
++ &lt;form action=&quot;/hosting/search&quot;&gt;
++ &lt;input size=&quot;30&quot; name=&quot;q&quot; value=&quot;&quot;&gt;
++ &lt;input type=&quot;submit&quot; name=&quot;projectsearch&quot; value=&quot;Search projects&quot; &gt;
++ &lt;/form&gt;
++ 
++ &lt;/tr&gt;
++ &lt;/table&gt;
++
++
++
++ 
++&lt;table id=&quot;mt&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot; width=&quot;100%&quot; border=&quot;0&quot;&gt;
++ &lt;tr&gt;
++ &lt;th onclick=&quot;if (!cancelBubble) _go('/p/eluaexamples/');&quot;&gt;
++ &lt;div class=&quot;tab inactive&quot;&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;box-inner&quot;&gt;
++ &lt;a onclick=&quot;cancelBubble=true;&quot; href=&quot;/p/eluaexamples/&quot;&gt;Project&nbsp;Home&lt;/a&gt;
++ &lt;/div&gt;
++ &lt;/div&gt;
++ &lt;/th&gt;&lt;td&gt;&nbsp;&nbsp;&lt;/td&gt;
++ 
++ 
++ 
++ 
++ &lt;th onclick=&quot;if (!cancelBubble) _go('/p/eluaexamples/downloads/list');&quot;&gt;
++ &lt;div class=&quot;tab inactive&quot;&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;box-inner&quot;&gt;
++ &lt;a onclick=&quot;cancelBubble=true;&quot; href=&quot;/p/eluaexamples/downloads/list&quot;&gt;Downloads&lt;/a&gt;
++ &lt;/div&gt;
++ &lt;/div&gt;
++ &lt;/th&gt;&lt;td&gt;&nbsp;&nbsp;&lt;/td&gt;
++ 
++ 
++ 
++ 
++ 
++ &lt;th onclick=&quot;if (!cancelBubble) _go('/p/eluaexamples/w/list');&quot;&gt;
++ &lt;div class=&quot;tab inactive&quot;&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;box-inner&quot;&gt;
++ &lt;a onclick=&quot;cancelBubble=true;&quot; href=&quot;/p/eluaexamples/w/list&quot;&gt;Wiki&lt;/a&gt;
++ &lt;/div&gt;
++ &lt;/div&gt;
++ &lt;/th&gt;&lt;td&gt;&nbsp;&nbsp;&lt;/td&gt;
++ 
++ 
++ 
++ 
++ 
++ &lt;th onclick=&quot;if (!cancelBubble) _go('/p/eluaexamples/issues/list');&quot;&gt;
++ &lt;div class=&quot;tab inactive&quot;&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;box-inner&quot;&gt;
++ &lt;a onclick=&quot;cancelBubble=true;&quot; href=&quot;/p/eluaexamples/issues/list&quot;&gt;Issues&lt;/a&gt;
++ &lt;/div&gt;
++ &lt;/div&gt;
++ &lt;/th&gt;&lt;td&gt;&nbsp;&nbsp;&lt;/td&gt;
++ 
++ 
++ 
++ 
++ 
++ &lt;th onclick=&quot;if (!cancelBubble) _go('/p/eluaexamples/source/checkout');&quot;&gt;
++ &lt;div class=&quot;tab active&quot;&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;box-inner&quot;&gt;
++ &lt;a onclick=&quot;cancelBubble=true;&quot; href=&quot;/p/eluaexamples/source/checkout&quot;&gt;Source&lt;/a&gt;
++ &lt;/div&gt;
++ &lt;/div&gt;
++ &lt;/th&gt;&lt;td&gt;&nbsp;&nbsp;&lt;/td&gt;
++ 
++ 
++ &lt;td width=&quot;100%&quot;&gt;&nbsp;&lt;/td&gt;
++ &lt;/tr&gt;
++&lt;/table&gt;
++&lt;table cellspacing=&quot;0&quot; cellpadding=&quot;0&quot; width=&quot;100%&quot; align=&quot;center&quot; border=&quot;0&quot; class=&quot;st&quot;&gt;
++ &lt;tr&gt;
++ 
++ 
++ 
++ 
++ 
++ 
++ &lt;td&gt;
++ &lt;div class=&quot;st2&quot;&gt;
++ &lt;div class=&quot;isf&quot;&gt;
++ 
++ 
++ 
++ &lt;span class=&quot;inst1&quot;&gt;&lt;a href=&quot;/p/eluaexamples/source/checkout&quot;&gt;Checkout&lt;/a&gt;&lt;/span&gt; |
++ &lt;span class=&quot;inst2&quot;&gt;&lt;a href=&quot;/p/eluaexamples/source/browse/&quot;&gt;Browse&lt;/a&gt;&lt;/span&gt; |
++ &lt;span class=&quot;inst3&quot;&gt;&lt;a href=&quot;/p/eluaexamples/source/list&quot;&gt;Changes&lt;/a&gt;&lt;/span&gt; |
++ 
++ &lt;form action=&quot;<A HREF="http://www.google.com/codesearch">http://www.google.com/codesearch</A>&quot; method=&quot;get&quot; style=&quot;display:inline&quot;
++ onsubmit=&quot;document.getElementById('codesearchq').value = document.getElementById('origq').value + ' package:<A HREF="http://eluaexamples\\.googlecode\\.com">http://eluaexamples\\.googlecode\\.com</A>'&quot;&gt;
++ &lt;input type=&quot;hidden&quot; name=&quot;q&quot; id=&quot;codesearchq&quot; value=&quot;&quot;&gt;
++ &lt;input maxlength=&quot;2048&quot; size=&quot;35&quot; id=&quot;origq&quot; name=&quot;origq&quot; value=&quot;&quot; title=&quot;Google Code Search&quot; style=&quot;font-size:92%&quot;&gt;&nbsp;&lt;input type=&quot;submit&quot; value=&quot;Search Trunk&quot; name=&quot;btnG&quot; style=&quot;font-size:92%&quot;&gt;
++ 
++ 
++ 
++ &lt;/form&gt;
++ &lt;/div&gt;
++&lt;/div&gt;
++
++ &lt;/td&gt;
++ 
++ 
++ 
++ 
++ 
++ &lt;td height=&quot;4&quot; align=&quot;right&quot; valign=&quot;top&quot; class=&quot;bevel-right&quot;&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;/td&gt;
++ &lt;/tr&gt;
++&lt;/table&gt;
++&lt;script type=&quot;text/javascript&quot;&gt;
++ var cancelBubble = false;
++ function _go(url) { document.location = url; }
++&lt;/script&gt;
++
++
++&lt;div id=&quot;maincol&quot;
++ 
++&gt;
++
++ 
++&lt;!-- IE --&gt;
++
++
++
++&lt;div class=&quot;expand&quot;&gt;
++
++
++&lt;style type=&quot;text/css&quot;&gt;
++ #file_flipper { display: inline; float: right; white-space: nowrap; }
++ #file_flipper.hidden { display: none; }
++ #file_flipper .pagelink { color: #0000CC; text-decoration: underline; }
++ #file_flipper #visiblefiles { padding-left: 0.5em; padding-right: 0.5em; }
++&lt;/style&gt;
++&lt;div id=&quot;nav_and_rev&quot; class=&quot;heading&quot;&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;box-inner&quot; id=&quot;bub&quot;&gt;
++ &lt;div class=&quot;bub-top&quot;&gt;
++ &lt;div class=&quot;pagination&quot; style=&quot;margin-left: 2em&quot;&gt;
++ &lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; class=&quot;flipper&quot;&gt;
++ &lt;tbody&gt;
++ &lt;tr&gt;
++ 
++ &lt;td&gt;&lt;b&gt;r28&lt;/b&gt;&lt;/td&gt;
++ 
++ &lt;/tr&gt;
++ &lt;/tbody&gt;
++ &lt;/table&gt;
++ &lt;/div&gt;
++ 
++ &lt;div class=&quot;&quot; style=&quot;vertical-align: top&quot;&gt;
++ &lt;div class=&quot;src_crumbs src_nav&quot;&gt;
++ &lt;strong class=&quot;src_nav&quot;&gt;Source path:&nbsp;&lt;/strong&gt;
++ &lt;span id=&quot;crumb_root&quot;&gt;
++ 
++ &lt;a href=&quot;/p/eluaexamples/source/browse/&quot;&gt;svn&lt;/a&gt;/&nbsp;&lt;/span&gt;
++ &lt;span id=&quot;crumb_links&quot; class=&quot;ifClosed&quot;&gt;&lt;a href=&quot;/p/eluaexamples/source/browse/trunk/&quot;&gt;trunk&lt;/a&gt;&lt;span class=&quot;sp&quot;&gt;/&nbsp;&lt;/span&gt;&lt;a href=&quot;/p/eluaexamples/source/browse/trunk/snake/&quot;&gt;snake&lt;/a&gt;&lt;span class=&quot;sp&quot;&gt;/&nbsp;&lt;/span&gt;snake.lua&lt;/span&gt;
++ 
++ 
++ &lt;/div&gt;
++ 
++ &lt;/div&gt;
++ &lt;div style=&quot;clear:both&quot;&gt;&lt;/div&gt;
++ &lt;/div&gt;
++ &lt;/div&gt;
++&lt;/div&gt;
++
++&lt;style type=&quot;text/css&quot;&gt;
++ 
++  tr.inline_comment {
++ background: #fff;
++ vertical-align: top;
++ }
++ div.draft, div.published {
++ padding: .3em;
++ border: 1px solid #999; 
++ margin-bottom: .1em;
++ font-family: arial, sans-serif;
++ max-width: 60em;
++ }
++ div.draft {
++ background: #ffa;
++ } 
++ div.published {
++ background: #e5ecf9;
++ }
++ div.published .body, div.draft .body {
++ padding: .5em .1em .1em .1em;
++ max-width: 60em;
++ white-space: pre-wrap;
++ white-space: -moz-pre-wrap;
++ white-space: -pre-wrap;
++ white-space: -o-pre-wrap;
++ word-wrap: break-word;
++ }
++ div.draft .actions {
++ margin-left: 1em;
++ font-size: 90%;
++ }
++ div.draft form {
++ padding: .5em .5em .5em 0;
++ }
++ div.draft textarea, div.published textarea {
++ width: 95%;
++ height: 10em;
++ font-family: arial, sans-serif;
++ margin-bottom: .5em;
++ }
++
++
++ 
++ .nocursor, .nocursor td, .cursor_hidden, .cursor_hidden td {
++ background-color: white;
++ height: 2px;
++ }
++ .cursor, .cursor td {
++ background-color: darkblue;
++ height: 2px;
++ display: '';
++ }
++
++&lt;/style&gt;
++&lt;div class=&quot;fc&quot;&gt;
++ 
++
++
++&lt;table class=&quot;opened&quot; id=&quot;review_comment_area&quot;&gt;&lt;tr&gt;
++&lt;td id=&quot;nums&quot;&gt;
++&lt;pre&gt;&lt;table width=&quot;100%&quot;&gt;&lt;tr class=&quot;nocursor&quot;&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/pre&gt;
++
++&lt;pre&gt;&lt;table width=&quot;100%&quot;&gt;&lt;tr id=&quot;gr_svn28_1&quot;&gt;&lt;td id=&quot;1&quot;&gt;&lt;a href=&quot;#1&quot;&gt;1&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_2&quot;&gt;&lt;td id=&quot;2&quot;&gt;&lt;a href=&quot;#2&quot;&gt;2&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_3&quot;&gt;&lt;td id=&quot;3&quot;&gt;&lt;a href=&quot;#3&quot;&gt;3&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_4&quot;&gt;&lt;td id=&quot;4&quot;&gt;&lt;a href=&quot;#4&quot;&gt;4&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_5&quot;&gt;&lt;td id=&quot;5&quot;&gt;&lt;a href=&quot;#5&quot;&gt;5&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_6&quot;&gt;&lt;td id=&quot;6&quot;&gt;&lt;a href=&quot;#6&quot;&gt;6&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_7&quot;&gt;&lt;td id=&quot;7&quot;&gt;&lt;a href=&quot;#7&quot;&gt;7&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_8&quot;&gt;&lt;td id=&quot;8&quot;&gt;&lt;a href=&quot;#8&quot;&gt;8&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_9&quot;&gt;&lt;td id=&quot;9&quot;&gt;&lt;a href=&quot;#9&quot;&gt;9&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_10&quot;&gt;&lt;td id=&quot;10&quot;&gt;&lt;a href=&quot;#10&quot;&gt;10&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_11&quot;&gt;&lt;td id=&quot;11&quot;&gt;&lt;a href=&quot;#11&quot;&gt;11&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_12&quot;&gt;&lt;td id=&quot;12&quot;&gt;&lt;a href=&quot;#12&quot;&gt;12&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_13&quot;&gt;&lt;td id=&quot;13&quot;&gt;&lt;a href=&quot;#13&quot;&gt;13&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_14&quot;&gt;&lt;td id=&quot;14&quot;&gt;&lt;a href=&quot;#14&quot;&gt;14&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_15&quot;&gt;&lt;td id=&quot;15&quot;&gt;&lt;a href=&quot;#15&quot;&gt;15&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_16&quot;&gt;&lt;td id=&quot;16&quot;&gt;&lt;a href=&quot;#16&quot;&gt;16&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_17&quot;&gt;&lt;td id=&quot;17&quot;&gt;&lt;a href=&quot;#17&quot;&gt;17&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_18&quot;&gt;&lt;td id=&quot;18&quot;&gt;&lt;a href=&quot;#18&quot;&gt;18&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_19&quot;&gt;&lt;td id=&quot;19&quot;&gt;&lt;a href=&quot;#19&quot;&gt;19&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_20&quot;&gt;&lt;td id=&quot;20&quot;&gt;&lt;a href=&quot;#20&quot;&gt;20&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_21&quot;&gt;&lt;td id=&quot;21&quot;&gt;&lt;a href=&quot;#21&quot;&gt;21&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_22&quot;&gt;&lt;td id=&quot;22&quot;&gt;&lt;a href=&quot;#22&quot;&gt;22&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_23&quot;&gt;&lt;td id=&quot;23&quot;&gt;&lt;a href=&quot;#23&quot;&gt;23&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_24&quot;&gt;&lt;td id=&quot;24&quot;&gt;&lt;a href=&quot;#24&quot;&gt;24&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_25&quot;&gt;&lt;td id=&quot;25&quot;&gt;&lt;a href=&quot;#25&quot;&gt;25&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_26&quot;&gt;&lt;td id=&quot;26&quot;&gt;&lt;a href=&quot;#26&quot;&gt;26&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_27&quot;&gt;&lt;td id=&quot;27&quot;&gt;&lt;a href=&quot;#27&quot;&gt;27&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_28&quot;&gt;&lt;td id=&quot;28&quot;&gt;&lt;a href=&quot;#28&quot;&gt;28&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_29&quot;&gt;&lt;td id=&quot;29&quot;&gt;&lt;a href=&quot;#29&quot;&gt;29&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_30&quot;&gt;&lt;td id=&quot;30&quot;&gt;&lt;a href=&quot;#30&quot;&gt;30&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_31&quot;&gt;&lt;td id=&quot;31&quot;&gt;&lt;a href=&quot;#31&quot;&gt;31&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_32&quot;&gt;&lt;td id=&quot;32&quot;&gt;&lt;a href=&quot;#32&quot;&gt;32&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_33&quot;&gt;&lt;td id=&quot;33&quot;&gt;&lt;a href=&quot;#33&quot;&gt;33&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_34&quot;&gt;&lt;td id=&quot;34&quot;&gt;&lt;a href=&quot;#34&quot;&gt;34&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_35&quot;&gt;&lt;td id=&quot;35&quot;&gt;&lt;a href=&quot;#35&quot;&gt;35&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_36&quot;&gt;&lt;td id=&quot;36&quot;&gt;&lt;a href=&quot;#36&quot;&gt;36&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_37&quot;&gt;&lt;td id=&quot;37&quot;&gt;&lt;a href=&quot;#37&quot;&gt;37&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_38&quot;&gt;&lt;td id=&quot;38&quot;&gt;&lt;a href=&quot;#38&quot;&gt;38&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_39&quot;&gt;&lt;td id=&quot;39&quot;&gt;&lt;a href=&quot;#39&quot;&gt;39&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_40&quot;&gt;&lt;td id=&quot;40&quot;&gt;&lt;a href=&quot;#40&quot;&gt;40&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_41&quot;&gt;&lt;td id=&quot;41&quot;&gt;&lt;a href=&quot;#41&quot;&gt;41&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_42&quot;&gt;&lt;td id=&quot;42&quot;&gt;&lt;a href=&quot;#42&quot;&gt;42&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_43&quot;&gt;&lt;td id=&quot;43&quot;&gt;&lt;a href=&quot;#43&quot;&gt;43&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_44&quot;&gt;&lt;td id=&quot;44&quot;&gt;&lt;a href=&quot;#44&quot;&gt;44&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_45&quot;&gt;&lt;td id=&quot;45&quot;&gt;&lt;a href=&quot;#45&quot;&gt;45&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_46&quot;&gt;&lt;td id=&quot;46&quot;&gt;&lt;a href=&quot;#46&quot;&gt;46&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_47&quot;&gt;&lt;td id=&quot;47&quot;&gt;&lt;a href=&quot;#47&quot;&gt;47&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_48&quot;&gt;&lt;td id=&quot;48&quot;&gt;&lt;a href=&quot;#48&quot;&gt;48&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_49&quot;&gt;&lt;td id=&quot;49&quot;&gt;&lt;a href=&quot;#49&quot;&gt;49&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_50&quot;&gt;&lt;td id=&quot;50&quot;&gt;&lt;a href=&quot;#50&quot;&gt;50&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_51&quot;&gt;&lt;td id=&quot;51&quot;&gt;&lt;a href=&quot;#51&quot;&gt;51&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_52&quot;&gt;&lt;td id=&quot;52&quot;&gt;&lt;a href=&quot;#52&quot;&gt;52&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_53&quot;&gt;&lt;td id=&quot;53&quot;&gt;&lt;a href=&quot;#53&quot;&gt;53&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_54&quot;&gt;&lt;td id=&quot;54&quot;&gt;&lt;a href=&quot;#54&quot;&gt;54&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_55&quot;&gt;&lt;td id=&quot;55&quot;&gt;&lt;a href=&quot;#55&quot;&gt;55&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_56&quot;&gt;&lt;td id=&quot;56&quot;&gt;&lt;a href=&quot;#56&quot;&gt;56&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_57&quot;&gt;&lt;td id=&quot;57&quot;&gt;&lt;a href=&quot;#57&quot;&gt;57&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_58&quot;&gt;&lt;td id=&quot;58&quot;&gt;&lt;a href=&quot;#58&quot;&gt;58&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_59&quot;&gt;&lt;td id=&quot;59&quot;&gt;&lt;a href=&quot;#59&quot;&gt;59&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_60&quot;&gt;&lt;td id=&quot;60&quot;&gt;&lt;a href=&quot;#60&quot;&gt;60&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_61&quot;&gt;&lt;td id=&quot;61&quot;&gt;&lt;a href=&quot;#61&quot;&gt;61&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_62&quot;&gt;&lt;td id=&quot;62&quot;&gt;&lt;a href=&quot;#62&quot;&gt;62&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_63&quot;&gt;&lt;td id=&quot;63&quot;&gt;&lt;a href=&quot;#63&quot;&gt;63&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_64&quot;&gt;&lt;td id=&quot;64&quot;&gt;&lt;a href=&quot;#64&quot;&gt;64&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_65&quot;&gt;&lt;td id=&quot;65&quot;&gt;&lt;a href=&quot;#65&quot;&gt;65&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_66&quot;&gt;&lt;td id=&quot;66&quot;&gt;&lt;a href=&quot;#66&quot;&gt;66&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_67&quot;&gt;&lt;td id=&quot;67&quot;&gt;&lt;a href=&quot;#67&quot;&gt;67&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_68&quot;&gt;&lt;td id=&quot;68&quot;&gt;&lt;a href=&quot;#68&quot;&gt;68&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_69&quot;&gt;&lt;td id=&quot;69&quot;&gt;&lt;a href=&quot;#69&quot;&gt;69&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_70&quot;&gt;&lt;td id=&quot;70&quot;&gt;&lt;a href=&quot;#70&quot;&gt;70&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_71&quot;&gt;&lt;td id=&quot;71&quot;&gt;&lt;a href=&quot;#71&quot;&gt;71&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_72&quot;&gt;&lt;td id=&quot;72&quot;&gt;&lt;a href=&quot;#72&quot;&gt;72&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_73&quot;&gt;&lt;td id=&quot;73&quot;&gt;&lt;a href=&quot;#73&quot;&gt;73&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_74&quot;&gt;&lt;td id=&quot;74&quot;&gt;&lt;a href=&quot;#74&quot;&gt;74&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_75&quot;&gt;&lt;td id=&quot;75&quot;&gt;&lt;a href=&quot;#75&quot;&gt;75&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_76&quot;&gt;&lt;td id=&quot;76&quot;&gt;&lt;a href=&quot;#76&quot;&gt;76&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_77&quot;&gt;&lt;td id=&quot;77&quot;&gt;&lt;a href=&quot;#77&quot;&gt;77&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_78&quot;&gt;&lt;td id=&quot;78&quot;&gt;&lt;a href=&quot;#78&quot;&gt;78&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_79&quot;&gt;&lt;td id=&quot;79&quot;&gt;&lt;a href=&quot;#79&quot;&gt;79&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_80&quot;&gt;&lt;td id=&quot;80&quot;&gt;&lt;a href=&quot;#80&quot;&gt;80&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_81&quot;&gt;&lt;td id=&quot;81&quot;&gt;&lt;a href=&quot;#81&quot;&gt;81&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_82&quot;&gt;&lt;td id=&quot;82&quot;&gt;&lt;a href=&quot;#82&quot;&gt;82&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_83&quot;&gt;&lt;td id=&quot;83&quot;&gt;&lt;a href=&quot;#83&quot;&gt;83&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_84&quot;&gt;&lt;td id=&quot;84&quot;&gt;&lt;a href=&quot;#84&quot;&gt;84&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_85&quot;&gt;&lt;td id=&quot;85&quot;&gt;&lt;a href=&quot;#85&quot;&gt;85&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_86&quot;&gt;&lt;td id=&quot;86&quot;&gt;&lt;a href=&quot;#86&quot;&gt;86&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_87&quot;&gt;&lt;td id=&quot;87&quot;&gt;&lt;a href=&quot;#87&quot;&gt;87&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_88&quot;&gt;&lt;td id=&quot;88&quot;&gt;&lt;a href=&quot;#88&quot;&gt;88&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_89&quot;&gt;&lt;td id=&quot;89&quot;&gt;&lt;a href=&quot;#89&quot;&gt;89&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_90&quot;&gt;&lt;td id=&quot;90&quot;&gt;&lt;a href=&quot;#90&quot;&gt;90&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_91&quot;&gt;&lt;td id=&quot;91&quot;&gt;&lt;a href=&quot;#91&quot;&gt;91&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_92&quot;&gt;&lt;td id=&quot;92&quot;&gt;&lt;a href=&quot;#92&quot;&gt;92&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_93&quot;&gt;&lt;td id=&quot;93&quot;&gt;&lt;a href=&quot;#93&quot;&gt;93&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_94&quot;&gt;&lt;td id=&quot;94&quot;&gt;&lt;a href=&quot;#94&quot;&gt;94&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_95&quot;&gt;&lt;td id=&quot;95&quot;&gt;&lt;a href=&quot;#95&quot;&gt;95&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_96&quot;&gt;&lt;td id=&quot;96&quot;&gt;&lt;a href=&quot;#96&quot;&gt;96&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_97&quot;&gt;&lt;td id=&quot;97&quot;&gt;&lt;a href=&quot;#97&quot;&gt;97&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_98&quot;&gt;&lt;td id=&quot;98&quot;&gt;&lt;a href=&quot;#98&quot;&gt;98&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_99&quot;&gt;&lt;td id=&quot;99&quot;&gt;&lt;a href=&quot;#99&quot;&gt;99&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_100&quot;&gt;&lt;td id=&quot;100&quot;&gt;&lt;a href=&quot;#100&quot;&gt;100&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_101&quot;&gt;&lt;td id=&quot;101&quot;&gt;&lt;a href=&quot;#101&quot;&gt;101&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_102&quot;&gt;&lt;td id=&quot;102&quot;&gt;&lt;a href=&quot;#102&quot;&gt;102&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_103&quot;&gt;&lt;td id=&quot;103&quot;&gt;&lt;a href=&quot;#103&quot;&gt;103&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_104&quot;&gt;&lt;td id=&quot;104&quot;&gt;&lt;a href=&quot;#104&quot;&gt;104&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_105&quot;&gt;&lt;td id=&quot;105&quot;&gt;&lt;a href=&quot;#105&quot;&gt;105&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_106&quot;&gt;&lt;td id=&quot;106&quot;&gt;&lt;a href=&quot;#106&quot;&gt;106&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_107&quot;&gt;&lt;td id=&quot;107&quot;&gt;&lt;a href=&quot;#107&quot;&gt;107&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_108&quot;&gt;&lt;td id=&quot;108&quot;&gt;&lt;a href=&quot;#108&quot;&gt;108&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_109&quot;&gt;&lt;td id=&quot;109&quot;&gt;&lt;a href=&quot;#109&quot;&gt;109&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_110&quot;&gt;&lt;td id=&quot;110&quot;&gt;&lt;a href=&quot;#110&quot;&gt;110&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_111&quot;&gt;&lt;td id=&quot;111&quot;&gt;&lt;a href=&quot;#111&quot;&gt;111&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_112&quot;&gt;&lt;td id=&quot;112&quot;&gt;&lt;a href=&quot;#112&quot;&gt;112&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_113&quot;&gt;&lt;td id=&quot;113&quot;&gt;&lt;a href=&quot;#113&quot;&gt;113&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_114&quot;&gt;&lt;td id=&quot;114&quot;&gt;&lt;a href=&quot;#114&quot;&gt;114&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_115&quot;&gt;&lt;td id=&quot;115&quot;&gt;&lt;a href=&quot;#115&quot;&gt;115&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_116&quot;&gt;&lt;td id=&quot;116&quot;&gt;&lt;a href=&quot;#116&quot;&gt;116&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_117&quot;&gt;&lt;td id=&quot;117&quot;&gt;&lt;a href=&quot;#117&quot;&gt;117&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_118&quot;&gt;&lt;td id=&quot;118&quot;&gt;&lt;a href=&quot;#118&quot;&gt;118&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_119&quot;&gt;&lt;td id=&quot;119&quot;&gt;&lt;a href=&quot;#119&quot;&gt;119&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_120&quot;&gt;&lt;td id=&quot;120&quot;&gt;&lt;a href=&quot;#120&quot;&gt;120&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_121&quot;&gt;&lt;td id=&quot;121&quot;&gt;&lt;a href=&quot;#121&quot;&gt;121&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_122&quot;&gt;&lt;td id=&quot;122&quot;&gt;&lt;a href=&quot;#122&quot;&gt;122&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_123&quot;&gt;&lt;td id=&quot;123&quot;&gt;&lt;a href=&quot;#123&quot;&gt;123&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_124&quot;&gt;&lt;td id=&quot;124&quot;&gt;&lt;a href=&quot;#124&quot;&gt;124&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_125&quot;&gt;&lt;td id=&quot;125&quot;&gt;&lt;a href=&quot;#125&quot;&gt;125&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_126&quot;&gt;&lt;td id=&quot;126&quot;&gt;&lt;a href=&quot;#126&quot;&gt;126&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_127&quot;&gt;&lt;td id=&quot;127&quot;&gt;&lt;a href=&quot;#127&quot;&gt;127&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_128&quot;&gt;&lt;td id=&quot;128&quot;&gt;&lt;a href=&quot;#128&quot;&gt;128&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_129&quot;&gt;&lt;td id=&quot;129&quot;&gt;&lt;a href=&quot;#129&quot;&gt;129&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_130&quot;&gt;&lt;td id=&quot;130&quot;&gt;&lt;a href=&quot;#130&quot;&gt;130&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_131&quot;&gt;&lt;td id=&quot;131&quot;&gt;&lt;a href=&quot;#131&quot;&gt;131&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_132&quot;&gt;&lt;td id=&quot;132&quot;&gt;&lt;a href=&quot;#132&quot;&gt;132&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_133&quot;&gt;&lt;td id=&quot;133&quot;&gt;&lt;a href=&quot;#133&quot;&gt;133&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_134&quot;&gt;&lt;td id=&quot;134&quot;&gt;&lt;a href=&quot;#134&quot;&gt;134&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_135&quot;&gt;&lt;td id=&quot;135&quot;&gt;&lt;a href=&quot;#135&quot;&gt;135&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_136&quot;&gt;&lt;td id=&quot;136&quot;&gt;&lt;a href=&quot;#136&quot;&gt;136&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_137&quot;&gt;&lt;td id=&quot;137&quot;&gt;&lt;a href=&quot;#137&quot;&gt;137&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_138&quot;&gt;&lt;td id=&quot;138&quot;&gt;&lt;a href=&quot;#138&quot;&gt;138&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_139&quot;&gt;&lt;td id=&quot;139&quot;&gt;&lt;a href=&quot;#139&quot;&gt;139&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_140&quot;&gt;&lt;td id=&quot;140&quot;&gt;&lt;a href=&quot;#140&quot;&gt;140&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_141&quot;&gt;&lt;td id=&quot;141&quot;&gt;&lt;a href=&quot;#141&quot;&gt;141&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_142&quot;&gt;&lt;td id=&quot;142&quot;&gt;&lt;a href=&quot;#142&quot;&gt;142&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_143&quot;&gt;&lt;td id=&quot;143&quot;&gt;&lt;a href=&quot;#143&quot;&gt;143&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_144&quot;&gt;&lt;td id=&quot;144&quot;&gt;&lt;a href=&quot;#144&quot;&gt;144&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_145&quot;&gt;&lt;td id=&quot;145&quot;&gt;&lt;a href=&quot;#145&quot;&gt;145&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_146&quot;&gt;&lt;td id=&quot;146&quot;&gt;&lt;a href=&quot;#146&quot;&gt;146&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_147&quot;&gt;&lt;td id=&quot;147&quot;&gt;&lt;a href=&quot;#147&quot;&gt;147&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_148&quot;&gt;&lt;td id=&quot;148&quot;&gt;&lt;a href=&quot;#148&quot;&gt;148&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_149&quot;&gt;&lt;td id=&quot;149&quot;&gt;&lt;a href=&quot;#149&quot;&gt;149&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_150&quot;&gt;&lt;td id=&quot;150&quot;&gt;&lt;a href=&quot;#150&quot;&gt;150&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_151&quot;&gt;&lt;td id=&quot;151&quot;&gt;&lt;a href=&quot;#151&quot;&gt;151&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_152&quot;&gt;&lt;td id=&quot;152&quot;&gt;&lt;a href=&quot;#152&quot;&gt;152&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_153&quot;&gt;&lt;td id=&quot;153&quot;&gt;&lt;a href=&quot;#153&quot;&gt;153&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_154&quot;&gt;&lt;td id=&quot;154&quot;&gt;&lt;a href=&quot;#154&quot;&gt;154&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_155&quot;&gt;&lt;td id=&quot;155&quot;&gt;&lt;a href=&quot;#155&quot;&gt;155&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_156&quot;&gt;&lt;td id=&quot;156&quot;&gt;&lt;a href=&quot;#156&quot;&gt;156&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_157&quot;&gt;&lt;td id=&quot;157&quot;&gt;&lt;a href=&quot;#157&quot;&gt;157&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_158&quot;&gt;&lt;td id=&quot;158&quot;&gt;&lt;a href=&quot;#158&quot;&gt;158&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_159&quot;&gt;&lt;td id=&quot;159&quot;&gt;&lt;a href=&quot;#159&quot;&gt;159&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_160&quot;&gt;&lt;td id=&quot;160&quot;&gt;&lt;a href=&quot;#160&quot;&gt;160&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_161&quot;&gt;&lt;td id=&quot;161&quot;&gt;&lt;a href=&quot;#161&quot;&gt;161&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_162&quot;&gt;&lt;td id=&quot;162&quot;&gt;&lt;a href=&quot;#162&quot;&gt;162&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_163&quot;&gt;&lt;td id=&quot;163&quot;&gt;&lt;a href=&quot;#163&quot;&gt;163&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_164&quot;&gt;&lt;td id=&quot;164&quot;&gt;&lt;a href=&quot;#164&quot;&gt;164&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_165&quot;&gt;&lt;td id=&quot;165&quot;&gt;&lt;a href=&quot;#165&quot;&gt;165&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_166&quot;&gt;&lt;td id=&quot;166&quot;&gt;&lt;a href=&quot;#166&quot;&gt;166&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_167&quot;&gt;&lt;td id=&quot;167&quot;&gt;&lt;a href=&quot;#167&quot;&gt;167&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_168&quot;&gt;&lt;td id=&quot;168&quot;&gt;&lt;a href=&quot;#168&quot;&gt;168&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_169&quot;&gt;&lt;td id=&quot;169&quot;&gt;&lt;a href=&quot;#169&quot;&gt;169&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_170&quot;&gt;&lt;td id=&quot;170&quot;&gt;&lt;a href=&quot;#170&quot;&gt;170&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_171&quot;&gt;&lt;td id=&quot;171&quot;&gt;&lt;a href=&quot;#171&quot;&gt;171&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_172&quot;&gt;&lt;td id=&quot;172&quot;&gt;&lt;a href=&quot;#172&quot;&gt;172&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_173&quot;&gt;&lt;td id=&quot;173&quot;&gt;&lt;a href=&quot;#173&quot;&gt;173&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_174&quot;&gt;&lt;td id=&quot;174&quot;&gt;&lt;a href=&quot;#174&quot;&gt;174&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_175&quot;&gt;&lt;td id=&quot;175&quot;&gt;&lt;a href=&quot;#175&quot;&gt;175&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_176&quot;&gt;&lt;td id=&quot;176&quot;&gt;&lt;a href=&quot;#176&quot;&gt;176&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_177&quot;&gt;&lt;td id=&quot;177&quot;&gt;&lt;a href=&quot;#177&quot;&gt;177&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_178&quot;&gt;&lt;td id=&quot;178&quot;&gt;&lt;a href=&quot;#178&quot;&gt;178&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_179&quot;&gt;&lt;td id=&quot;179&quot;&gt;&lt;a href=&quot;#179&quot;&gt;179&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_180&quot;&gt;&lt;td id=&quot;180&quot;&gt;&lt;a href=&quot;#180&quot;&gt;180&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_181&quot;&gt;&lt;td id=&quot;181&quot;&gt;&lt;a href=&quot;#181&quot;&gt;181&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_182&quot;&gt;&lt;td id=&quot;182&quot;&gt;&lt;a href=&quot;#182&quot;&gt;182&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_183&quot;&gt;&lt;td id=&quot;183&quot;&gt;&lt;a href=&quot;#183&quot;&gt;183&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_184&quot;&gt;&lt;td id=&quot;184&quot;&gt;&lt;a href=&quot;#184&quot;&gt;184&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_185&quot;&gt;&lt;td id=&quot;185&quot;&gt;&lt;a href=&quot;#185&quot;&gt;185&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_186&quot;&gt;&lt;td id=&quot;186&quot;&gt;&lt;a href=&quot;#186&quot;&gt;186&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_187&quot;&gt;&lt;td id=&quot;187&quot;&gt;&lt;a href=&quot;#187&quot;&gt;187&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_188&quot;&gt;&lt;td id=&quot;188&quot;&gt;&lt;a href=&quot;#188&quot;&gt;188&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_189&quot;&gt;&lt;td id=&quot;189&quot;&gt;&lt;a href=&quot;#189&quot;&gt;189&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_190&quot;&gt;&lt;td id=&quot;190&quot;&gt;&lt;a href=&quot;#190&quot;&gt;190&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_191&quot;&gt;&lt;td id=&quot;191&quot;&gt;&lt;a href=&quot;#191&quot;&gt;191&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_192&quot;&gt;&lt;td id=&quot;192&quot;&gt;&lt;a href=&quot;#192&quot;&gt;192&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_193&quot;&gt;&lt;td id=&quot;193&quot;&gt;&lt;a href=&quot;#193&quot;&gt;193&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_194&quot;&gt;&lt;td id=&quot;194&quot;&gt;&lt;a href=&quot;#194&quot;&gt;194&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_195&quot;&gt;&lt;td id=&quot;195&quot;&gt;&lt;a href=&quot;#195&quot;&gt;195&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_196&quot;&gt;&lt;td id=&quot;196&quot;&gt;&lt;a href=&quot;#196&quot;&gt;196&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_197&quot;&gt;&lt;td id=&quot;197&quot;&gt;&lt;a href=&quot;#197&quot;&gt;197&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_198&quot;&gt;&lt;td id=&quot;198&quot;&gt;&lt;a href=&quot;#198&quot;&gt;198&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_199&quot;&gt;&lt;td id=&quot;199&quot;&gt;&lt;a href=&quot;#199&quot;&gt;199&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_200&quot;&gt;&lt;td id=&quot;200&quot;&gt;&lt;a href=&quot;#200&quot;&gt;200&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_201&quot;&gt;&lt;td id=&quot;201&quot;&gt;&lt;a href=&quot;#201&quot;&gt;201&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_202&quot;&gt;&lt;td id=&quot;202&quot;&gt;&lt;a href=&quot;#202&quot;&gt;202&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_203&quot;&gt;&lt;td id=&quot;203&quot;&gt;&lt;a href=&quot;#203&quot;&gt;203&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_204&quot;&gt;&lt;td id=&quot;204&quot;&gt;&lt;a href=&quot;#204&quot;&gt;204&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_205&quot;&gt;&lt;td id=&quot;205&quot;&gt;&lt;a href=&quot;#205&quot;&gt;205&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_206&quot;&gt;&lt;td id=&quot;206&quot;&gt;&lt;a href=&quot;#206&quot;&gt;206&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_207&quot;&gt;&lt;td id=&quot;207&quot;&gt;&lt;a href=&quot;#207&quot;&gt;207&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_208&quot;&gt;&lt;td id=&quot;208&quot;&gt;&lt;a href=&quot;#208&quot;&gt;208&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_209&quot;&gt;&lt;td id=&quot;209&quot;&gt;&lt;a href=&quot;#209&quot;&gt;209&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_210&quot;&gt;&lt;td id=&quot;210&quot;&gt;&lt;a href=&quot;#210&quot;&gt;210&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_211&quot;&gt;&lt;td id=&quot;211&quot;&gt;&lt;a href=&quot;#211&quot;&gt;211&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_212&quot;&gt;&lt;td id=&quot;212&quot;&gt;&lt;a href=&quot;#212&quot;&gt;212&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_213&quot;&gt;&lt;td id=&quot;213&quot;&gt;&lt;a href=&quot;#213&quot;&gt;213&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_214&quot;&gt;&lt;td id=&quot;214&quot;&gt;&lt;a href=&quot;#214&quot;&gt;214&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_215&quot;&gt;&lt;td id=&quot;215&quot;&gt;&lt;a href=&quot;#215&quot;&gt;215&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_216&quot;&gt;&lt;td id=&quot;216&quot;&gt;&lt;a href=&quot;#216&quot;&gt;216&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_217&quot;&gt;&lt;td id=&quot;217&quot;&gt;&lt;a href=&quot;#217&quot;&gt;217&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_218&quot;&gt;&lt;td id=&quot;218&quot;&gt;&lt;a href=&quot;#218&quot;&gt;218&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_219&quot;&gt;&lt;td id=&quot;219&quot;&gt;&lt;a href=&quot;#219&quot;&gt;219&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_220&quot;&gt;&lt;td id=&quot;220&quot;&gt;&lt;a href=&quot;#220&quot;&gt;220&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_221&quot;&gt;&lt;td id=&quot;221&quot;&gt;&lt;a href=&quot;#221&quot;&gt;221&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_222&quot;&gt;&lt;td id=&quot;222&quot;&gt;&lt;a href=&quot;#222&quot;&gt;222&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_223&quot;&gt;&lt;td id=&quot;223&quot;&gt;&lt;a href=&quot;#223&quot;&gt;223&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_224&quot;&gt;&lt;td id=&quot;224&quot;&gt;&lt;a href=&quot;#224&quot;&gt;224&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_225&quot;&gt;&lt;td id=&quot;225&quot;&gt;&lt;a href=&quot;#225&quot;&gt;225&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_226&quot;&gt;&lt;td id=&quot;226&quot;&gt;&lt;a href=&quot;#226&quot;&gt;226&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_227&quot;&gt;&lt;td id=&quot;227&quot;&gt;&lt;a href=&quot;#227&quot;&gt;227&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_228&quot;&gt;&lt;td id=&quot;228&quot;&gt;&lt;a href=&quot;#228&quot;&gt;228&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_229&quot;&gt;&lt;td id=&quot;229&quot;&gt;&lt;a href=&quot;#229&quot;&gt;229&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_230&quot;&gt;&lt;td id=&quot;230&quot;&gt;&lt;a href=&quot;#230&quot;&gt;230&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr id=&quot;gr_svn28_231&quot;&gt;&lt;td id=&quot;231&quot;&gt;&lt;a href=&quot;#231&quot;&gt;231&lt;/a&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;/table&gt;&lt;/pre&gt;
++
++&lt;pre&gt;&lt;table width=&quot;100%&quot;&gt;&lt;tr class=&quot;nocursor&quot;&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/pre&gt;
++&lt;/td&gt;
++&lt;td id=&quot;lines&quot;&gt;
++&lt;pre class=&quot;prettyprint&quot;&gt;&lt;table width=&quot;100%&quot;&gt;&lt;tr class=&quot;cursor_stop cursor_hidden&quot;&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/pre&gt;
++
++&lt;pre class=&quot;prettyprint lang-lua&quot;&gt;&lt;table&gt;&lt;tr
++id=sl_svn28_1&gt;&lt;td class=&quot;source&quot;&gt;local xMax = math.floor( 128 / 6 ) - 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_2&gt;&lt;td class=&quot;source&quot;&gt;local yMax = math.floor( 96 / 8 ) - 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_3&gt;&lt;td class=&quot;source&quot;&gt;local game_map = {}&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_4&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_5&gt;&lt;td class=&quot;source&quot;&gt;local Head = {}&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_6&gt;&lt;td class=&quot;source&quot;&gt;local Tail = {}&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_7&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_8&gt;&lt;td class=&quot;source&quot;&gt;local highscore = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_9&gt;&lt;td class=&quot;source&quot;&gt;local size = 3&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_10&gt;&lt;td class=&quot;source&quot;&gt;Tail.x = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_11&gt;&lt;td class=&quot;source&quot;&gt;Tail.y = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_12&gt;&lt;td class=&quot;source&quot;&gt;Head.x = Tail.x + ( size - 1 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_13&gt;&lt;td class=&quot;source&quot;&gt;Head.y = Tail.y&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_14&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_15&gt;&lt;td class=&quot;source&quot;&gt;local Food = {}&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_16&gt;&lt;td class=&quot;source&quot;&gt;Food.x = false&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_17&gt;&lt;td class=&quot;source&quot;&gt;Food.y = false&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_18&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_19&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_20&gt;&lt;td class=&quot;source&quot;&gt;Head.dx = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_21&gt;&lt;td class=&quot;source&quot;&gt;Head.dy = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_22&gt;&lt;td class=&quot;source&quot;&gt;Tail.dx = Head.dx&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_23&gt;&lt;td class=&quot;source&quot;&gt;Tail.dy = Head.dy&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_24&gt;&lt;td class=&quot;source&quot;&gt;local direction = &quot;right&quot;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_25&gt;&lt;td class=&quot;source&quot;&gt;local level = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_26&gt;&lt;td class=&quot;source&quot;&gt;local score = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_27&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_28&gt;&lt;td class=&quot;source&quot;&gt;lm3s.disp.init( 1000000 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_29&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_30&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_31&gt;&lt;td class=&quot;source&quot;&gt;local kit = require( pd.board() )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_32&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_33&gt;&lt;td class=&quot;source&quot;&gt;local pressed = {}&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_34&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_35&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_36&gt;&lt;td class=&quot;source&quot;&gt;local function create_food()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_37&gt;&lt;td class=&quot;source&quot;&gt;--	if not food then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_38&gt;&lt;td class=&quot;source&quot;&gt;	    print&quot;comida!!!&quot;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_39&gt;&lt;td class=&quot;source&quot;&gt;			Food.x, Food.y = math.random( xMax - 1), math.random( yMax - 1)&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_40&gt;&lt;td class=&quot;source&quot;&gt;			while game_map[ Food.x ][ Food.y ] do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_41&gt;&lt;td class=&quot;source&quot;&gt;			  Food.x, Food.y = math.random( xMax - 1 ), math.random( yMax - 1 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_42&gt;&lt;td class=&quot;source&quot;&gt;			end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_43&gt;&lt;td class=&quot;source&quot;&gt;			game_map[ Food.x ][ Food.y ] = &quot;food&quot;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_44&gt;&lt;td class=&quot;source&quot;&gt;			print(Food.x, Food.y)&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_45&gt;&lt;td class=&quot;source&quot;&gt;			lm3s.disp.print( &quot;@&quot;, Food.x * 6, Food.y * 8, 10 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_46&gt;&lt;td class=&quot;source&quot;&gt;--	end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_47&gt;&lt;td class=&quot;source&quot;&gt;end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_48&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_49&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_50&gt;&lt;td class=&quot;source&quot;&gt;local function eat_food()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_51&gt;&lt;td class=&quot;source&quot;&gt;  print&quot;comi&quot;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_52&gt;&lt;td class=&quot;source&quot;&gt;	lm3s.disp.print( &quot;@&quot;, Head.x * 6, Head.y * 8, 0 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_53&gt;&lt;td class=&quot;source&quot;&gt;	game_map[ Head.x ][ Head.y ] = nil&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_54&gt;&lt;td class=&quot;source&quot;&gt;	create_food()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_55&gt;&lt;td class=&quot;source&quot;&gt;	score = score + level&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_56&gt;&lt;td class=&quot;source&quot;&gt;end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_57&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_58&gt;&lt;td class=&quot;source&quot;&gt;local function check_collision()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_59&gt;&lt;td class=&quot;source&quot;&gt;	if Head.x &lt;= 0 or Head.x &gt;= xMax then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_60&gt;&lt;td class=&quot;source&quot;&gt;    return true&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_61&gt;&lt;td class=&quot;source&quot;&gt;  elseif Head.y &lt;= 0 or Head.y &gt;= yMax then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_62&gt;&lt;td class=&quot;source&quot;&gt;    return true&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_63&gt;&lt;td class=&quot;source&quot;&gt;  elseif ( ( game_map[ Head.x ][ Head.y ] ) and ( game_map[ Head.x ][ Head.y ] ~= &quot;food&quot; ) ) then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_64&gt;&lt;td class=&quot;source&quot;&gt;  	return true&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_65&gt;&lt;td class=&quot;source&quot;&gt;  end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_66&gt;&lt;td class=&quot;source&quot;&gt;	  return false&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_67&gt;&lt;td class=&quot;source&quot;&gt;end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_68&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_69&gt;&lt;td class=&quot;source&quot;&gt;local function move()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_70&gt;&lt;td class=&quot;source&quot;&gt;	if game_map[ Tail.x ][ Tail.y ] == &quot;right&quot; then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_71&gt;&lt;td class=&quot;source&quot;&gt;		Tail.dx = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_72&gt;&lt;td class=&quot;source&quot;&gt;		Tail.dy = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_73&gt;&lt;td class=&quot;source&quot;&gt;	elseif game_map[ Tail.x ][ Tail.y ] == &quot;left&quot; then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_74&gt;&lt;td class=&quot;source&quot;&gt;		Tail.dx = -1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_75&gt;&lt;td class=&quot;source&quot;&gt;		Tail.dy = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_76&gt;&lt;td class=&quot;source&quot;&gt;	elseif game_map[ Tail.x ][ Tail.y ] == &quot;up&quot; then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_77&gt;&lt;td class=&quot;source&quot;&gt;		Tail.dx = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_78&gt;&lt;td class=&quot;source&quot;&gt;		Tail.dy = -1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_79&gt;&lt;td class=&quot;source&quot;&gt;	elseif game_map[ Tail.x ][ Tail.y ] == &quot;down&quot; then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_80&gt;&lt;td class=&quot;source&quot;&gt;		Tail.dx = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_81&gt;&lt;td class=&quot;source&quot;&gt;		Tail.dy = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_82&gt;&lt;td class=&quot;source&quot;&gt;	end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_83&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_84&gt;&lt;td class=&quot;source&quot;&gt;	game_map[ Head.x ][ Head.y ] = direction&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_85&gt;&lt;td class=&quot;source&quot;&gt;	Head.x = Head.x + Head.dx&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_86&gt;&lt;td class=&quot;source&quot;&gt;	Head.y = Head.y + Head.dy&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_87&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_88&gt;&lt;td class=&quot;source&quot;&gt;	if game_map[ Head.x ][ Head.y ] == &quot;food&quot; then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_89&gt;&lt;td class=&quot;source&quot;&gt;		eat_food()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_90&gt;&lt;td class=&quot;source&quot;&gt;	else&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_91&gt;&lt;td class=&quot;source&quot;&gt;		lm3s.disp.print( &quot;*&quot;, Tail.x * 6, Tail.y * 8, 0 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_92&gt;&lt;td class=&quot;source&quot;&gt;		game_map[ Tail.x ][ Tail.y ] = nil&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_93&gt;&lt;td class=&quot;source&quot;&gt;		Tail.x = Tail.x + Tail.dx&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_94&gt;&lt;td class=&quot;source&quot;&gt;		Tail.y = Tail.y + Tail.dy&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_95&gt;&lt;td class=&quot;source&quot;&gt;	end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_96&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_97&gt;&lt;td class=&quot;source&quot;&gt;	lm3s.disp.print( &quot;*&quot;, Head.x * 6, Head.y * 8, 10 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_98&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_99&gt;&lt;td class=&quot;source&quot;&gt;end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_100&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_101&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_102&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_103&gt;&lt;td class=&quot;source&quot;&gt;local function draw_walls()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_104&gt;&lt;td class=&quot;source&quot;&gt;print&quot;desenhando&quot;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_105&gt;&lt;td class=&quot;source&quot;&gt;	for i = 0, xMax*2, 1 do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_106&gt;&lt;td class=&quot;source&quot;&gt;    lm3s.disp.print( &quot;_&quot;, i * 3, yMax * 8 - 6, 11 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_107&gt;&lt;td class=&quot;source&quot;&gt;		lm3s.disp.print( &quot;_&quot;, i * 3, 0, 11 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_108&gt;&lt;td class=&quot;source&quot;&gt;	end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_109&gt;&lt;td class=&quot;source&quot;&gt;  for i = 0, yMax*2, 1 do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_110&gt;&lt;td class=&quot;source&quot;&gt;    lm3s.disp.print( &quot;|&quot;, xMax * 6, i * 4, 11 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_111&gt;&lt;td class=&quot;source&quot;&gt;		lm3s.disp.print( &quot;|&quot;, 0, i * 4, 11 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_112&gt;&lt;td class=&quot;source&quot;&gt;	end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_113&gt;&lt;td class=&quot;source&quot;&gt;end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_114&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_115&gt;&lt;td class=&quot;source&quot;&gt;local function button_clicked( button )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_116&gt;&lt;td class=&quot;source&quot;&gt;  if kit.btn_pressed( button ) then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_117&gt;&lt;td class=&quot;source&quot;&gt;    pressed[ button ] = true&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_118&gt;&lt;td class=&quot;source&quot;&gt;  else&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_119&gt;&lt;td class=&quot;source&quot;&gt;    if pressed[ button ] then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_120&gt;&lt;td class=&quot;source&quot;&gt;      pressed[ button ] = nil&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_121&gt;&lt;td class=&quot;source&quot;&gt;      return true&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_122&gt;&lt;td class=&quot;source&quot;&gt;    end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_123&gt;&lt;td class=&quot;source&quot;&gt;  end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_124&gt;&lt;td class=&quot;source&quot;&gt;  return false&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_125&gt;&lt;td class=&quot;source&quot;&gt;end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_126&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_127&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_128&gt;&lt;td class=&quot;source&quot;&gt;function init()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_129&gt;&lt;td class=&quot;source&quot;&gt;  food = false&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_130&gt;&lt;td class=&quot;source&quot;&gt;  lm3s.disp.clear()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_131&gt;&lt;td class=&quot;source&quot;&gt;	draw_walls()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_132&gt;&lt;td class=&quot;source&quot;&gt;  size = 3&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_133&gt;&lt;td class=&quot;source&quot;&gt;	score = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_134&gt;&lt;td class=&quot;source&quot;&gt;	level = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_135&gt;&lt;td class=&quot;source&quot;&gt;  Tail.x = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_136&gt;&lt;td class=&quot;source&quot;&gt;  Tail.y = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_137&gt;&lt;td class=&quot;source&quot;&gt;  Head.x = Tail.x + ( size - 1 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_138&gt;&lt;td class=&quot;source&quot;&gt;  Head.y = Tail.y&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_139&gt;&lt;td class=&quot;source&quot;&gt;  Head.dx = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_140&gt;&lt;td class=&quot;source&quot;&gt;  Head.dy = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_141&gt;&lt;td class=&quot;source&quot;&gt;  Tail.dx = Head.dx&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_142&gt;&lt;td class=&quot;source&quot;&gt;  Tail.dy = Head.dy&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_143&gt;&lt;td class=&quot;source&quot;&gt;	direction = &quot;right&quot;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_144&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_145&gt;&lt;td class=&quot;source&quot;&gt;	for i = 0, xMax, 1 do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_146&gt;&lt;td class=&quot;source&quot;&gt;		game_map[ i ] = {}&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_147&gt;&lt;td class=&quot;source&quot;&gt;	end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_148&gt;&lt;td class=&quot;source&quot;&gt;  for i = 0, size - 1, 1 do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_149&gt;&lt;td class=&quot;source&quot;&gt;	  game_map[ Tail.x + ( i * Tail.dx ) ][ Tail.y + ( i * Tail.dy ) ] = direction&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_150&gt;&lt;td class=&quot;source&quot;&gt;	  lm3s.disp.print( &quot;*&quot;, ( Tail.x + ( i * Tail.dx ) ) * 6, ( Tail.y + ( i * Tail.dy ) ) * 8, 10 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_151&gt;&lt;td class=&quot;source&quot;&gt;  end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_152&gt;&lt;td class=&quot;source&quot;&gt;	create_food()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_153&gt;&lt;td class=&quot;source&quot;&gt;end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_154&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_155&gt;&lt;td class=&quot;source&quot;&gt;--init()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_156&gt;&lt;td class=&quot;source&quot;&gt;--create_food()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_157&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_158&gt;&lt;td class=&quot;source&quot;&gt;repeat&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_159&gt;&lt;td class=&quot;source&quot;&gt;	init()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_160&gt;&lt;td class=&quot;source&quot;&gt;  while true do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_161&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_162&gt;&lt;td class=&quot;source&quot;&gt;		for i = 1, 1000 - ( 100 * level ), 1 do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_163&gt;&lt;td class=&quot;source&quot;&gt;			if kit.btn_pressed( kit.BTN_RIGHT ) and direction ~= &quot;left&quot; then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_164&gt;&lt;td class=&quot;source&quot;&gt;				direction = &quot;right&quot;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_165&gt;&lt;td class=&quot;source&quot;&gt;				Head.dx = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_166&gt;&lt;td class=&quot;source&quot;&gt;				Head.dy = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_167&gt;&lt;td class=&quot;source&quot;&gt;			end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_168&gt;&lt;td class=&quot;source&quot;&gt;			if kit.btn_pressed( kit.BTN_LEFT ) and direction ~= &quot;right&quot; then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_169&gt;&lt;td class=&quot;source&quot;&gt;				direction = &quot;left&quot;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_170&gt;&lt;td class=&quot;source&quot;&gt;				Head.dx = -1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_171&gt;&lt;td class=&quot;source&quot;&gt;				Head.dy = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_172&gt;&lt;td class=&quot;source&quot;&gt;			end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_173&gt;&lt;td class=&quot;source&quot;&gt;			if kit.btn_pressed( kit.BTN_UP ) and direction ~= &quot;down&quot; then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_174&gt;&lt;td class=&quot;source&quot;&gt;				direction = &quot;up&quot;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_175&gt;&lt;td class=&quot;source&quot;&gt;				Head.dx = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_176&gt;&lt;td class=&quot;source&quot;&gt;				Head.dy = -1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_177&gt;&lt;td class=&quot;source&quot;&gt;			end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_178&gt;&lt;td class=&quot;source&quot;&gt;			if kit.btn_pressed( kit.BTN_DOWN ) and direction ~= &quot;up&quot; then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_179&gt;&lt;td class=&quot;source&quot;&gt;				direction = &quot;down&quot;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_180&gt;&lt;td class=&quot;source&quot;&gt;				Head.dx = 0&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_181&gt;&lt;td class=&quot;source&quot;&gt;				Head.dy = 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_182&gt;&lt;td class=&quot;source&quot;&gt;			end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_183&gt;&lt;td class=&quot;source&quot;&gt;			if button_clicked( kit.BTN_SELECT ) and level &lt; 10 then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_184&gt;&lt;td class=&quot;source&quot;&gt;				level = level + 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_185&gt;&lt;td class=&quot;source&quot;&gt;			end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_186&gt;&lt;td class=&quot;source&quot;&gt;		end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_187&gt;&lt;td class=&quot;source&quot;&gt;		move()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_188&gt;&lt;td class=&quot;source&quot;&gt;		if check_collision() then break end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_189&gt;&lt;td class=&quot;source&quot;&gt;	  --tmr.delay( 0, 400000 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_190&gt;&lt;td class=&quot;source&quot;&gt;  	--[[&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_191&gt;&lt;td class=&quot;source&quot;&gt;	  game_map[ Head.x ][ Head.y ] = nil&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_192&gt;&lt;td class=&quot;source&quot;&gt;  	if Head.x &lt; xMax then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_193&gt;&lt;td class=&quot;source&quot;&gt;	  	Head.x = Head.x + 1&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_194&gt;&lt;td class=&quot;source&quot;&gt;  	end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_195&gt;&lt;td class=&quot;source&quot;&gt;  	game_map[ Head.x ][ Head.y ] = true&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_196&gt;&lt;td class=&quot;source&quot;&gt;    ]]--&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_197&gt;&lt;td class=&quot;source&quot;&gt;		collectgarbage( &quot;collect&quot; )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_198&gt;&lt;td class=&quot;source&quot;&gt;	end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_199&gt;&lt;td class=&quot;source&quot;&gt;&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_200&gt;&lt;td class=&quot;source&quot;&gt;	if score &gt; highscore then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_201&gt;&lt;td class=&quot;source&quot;&gt;    highscore = score&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_202&gt;&lt;td class=&quot;source&quot;&gt;  end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_203&gt;&lt;td class=&quot;source&quot;&gt;    lm3s.disp.clear()                         -- This statements displays the game over screen&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_204&gt;&lt;td class=&quot;source&quot;&gt;    lm3s.disp.print( &quot;Game Over :(&quot;, 30, 20, 11 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_205&gt;&lt;td class=&quot;source&quot;&gt;    lm3s.disp.print( &quot;Your score was &quot;..tostring( score ), 0, 40, 11 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_206&gt;&lt;td class=&quot;source&quot;&gt;    lm3s.disp.print( &quot;Highscore: &quot;..tostring( highscore ), 15, 50, 11 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_207&gt;&lt;td class=&quot;source&quot;&gt;    lm3s.disp.print( &quot;SELECT to restart&quot;, 6, 70, 11 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_208&gt;&lt;td class=&quot;source&quot;&gt;  enough = true                        -- If the player presses select before the time reach 1000000ms, then restart the game&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_209&gt;&lt;td class=&quot;source&quot;&gt;  for i=1, 1000000 do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_210&gt;&lt;td class=&quot;source&quot;&gt;    if kit.btn_pressed( kit.BTN_SELECT ) then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_211&gt;&lt;td class=&quot;source&quot;&gt;      enough = false&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_212&gt;&lt;td class=&quot;source&quot;&gt;      break&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_213&gt;&lt;td class=&quot;source&quot;&gt;    end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_214&gt;&lt;td class=&quot;source&quot;&gt;  end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_215&gt;&lt;td class=&quot;source&quot;&gt;  lm3s.disp.clear()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_216&gt;&lt;td class=&quot;source&quot;&gt;until ( enough )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_217&gt;&lt;td class=&quot;source&quot;&gt;lm3s.disp.off()&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_218&gt;&lt;td class=&quot;source&quot;&gt;--[[&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_219&gt;&lt;td class=&quot;source&quot;&gt;	for i in ipairs( game_map ) do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_220&gt;&lt;td class=&quot;source&quot;&gt;		for j = 1, yMax, 1 do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_221&gt;&lt;td class=&quot;source&quot;&gt;		  if game_map[ i ][ j ] then&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_222&gt;&lt;td class=&quot;source&quot;&gt;			  lm3s.disp.print( &quot;*&quot;, i * 6, j * 8, 10 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_223&gt;&lt;td class=&quot;source&quot;&gt;			else&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_224&gt;&lt;td class=&quot;source&quot;&gt;			  lm3s.disp.print( &quot;*&quot;, i * 6, j * 8, 0 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_225&gt;&lt;td class=&quot;source&quot;&gt;			end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_226&gt;&lt;td class=&quot;source&quot;&gt;		end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_227&gt;&lt;td class=&quot;source&quot;&gt;		--for j in ipairs ( game_map[ i ] ) do&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_228&gt;&lt;td class=&quot;source&quot;&gt;			--lm3s.disp.print( &quot;*&quot;, i * 6, j * 8, 10 )&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_229&gt;&lt;td class=&quot;source&quot;&gt;		--end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_230&gt;&lt;td class=&quot;source&quot;&gt;	end&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;tr
++id=sl_svn28_231&gt;&lt;td class=&quot;source&quot;&gt;	--]]&lt;br&gt;&lt;/td&gt;&lt;/tr
++&gt;&lt;/table&gt;&lt;/pre&gt;
++
++&lt;pre class=&quot;prettyprint&quot;&gt;&lt;table width=&quot;100%&quot;&gt;&lt;tr class=&quot;cursor_stop cursor_hidden&quot;&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/pre&gt;
++&lt;/td&gt;
++&lt;/tr&gt;&lt;/table&gt;
++
++
++
++ &lt;div id=&quot;log&quot;&gt;
++ &lt;div style=&quot;text-align:right&quot;&gt;
++ &lt;a class=&quot;ifCollapse&quot; href=&quot;#&quot; onclick=&quot;_toggleMeta('p', 'eluaexamples', this)&quot;&gt;Show details&lt;/a&gt;
++ &lt;a class=&quot;ifExpand&quot; href=&quot;#&quot; onclick=&quot;_toggleMeta('p', 'eluaexamples', this)&quot;&gt;Hide details&lt;/a&gt;
++ &lt;/div&gt;
++ &lt;div class=&quot;ifExpand&quot;&gt;
++ 
++ &lt;div class=&quot;pmeta_bubble_bg&quot; style=&quot;border:1px solid white&quot;&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;box-inner&quot;&gt;
++ &lt;div id=&quot;changelog&quot;&gt;
++ &lt;p&gt;Change log&lt;/p&gt;
++ &lt;div&gt;
++ &lt;a href=&quot;/p/eluaexamples/source/detail?spec=svn28&amp;r=28&quot;&gt;r28&lt;/a&gt;
++ by teo.benjamin
++ on Nov 17 (2 days ago)
++ &nbsp; &lt;a href=&quot;/p/eluaexamples/source/diff?spec=svn28&amp;r=28&amp;format=side&amp;path=/trunk/snake/snake.lua&amp;old_path=/trunk/snake/snake.lua&amp;old=&quot;&gt;Diff&lt;/a&gt;
++ &lt;/div&gt;
++ &lt;pre&gt;Adding the snake game.&lt;/pre&gt;
++ &lt;/div&gt;
++ 
++ 
++ 
++ 
++ 
++ 
++ &lt;script type=&quot;text/javascript&quot;&gt;
++ var detail_url = '/p/eluaexamples/source/detail?r=28&amp;spec=svn28';
++ var publish_url = '/p/eluaexamples/source/detail?r=28&amp;spec=svn28#publish';
++ // describe the paths of this revision in javascript.
++ var changed_paths = [];
++ var changed_urls = [];
++ 
++ changed_paths.push('/trunk/snake');
++ changed_urls.push('/p/eluaexamples/source/browse/trunk/snake?r=28&amp;spec=svn28');
++ 
++ 
++ changed_paths.push('/trunk/snake/EK-LM3S8962.lua');
++ changed_urls.push('/p/eluaexamples/source/browse/trunk/snake/EK-LM3S8962.lua?r=28&amp;spec=svn28');
++ 
++ 
++ changed_paths.push('/trunk/snake/snake.lua');
++ changed_urls.push('/p/eluaexamples/source/browse/trunk/snake/snake.lua?r=28&amp;spec=svn28');
++ 
++ var selected_path = '/trunk/snake/snake.lua';
++ 
++ 
++ function getCurrentPageIndex() {
++ for (var i = 0; i &lt; changed_paths.length; i++) {
++ if (selected_path == changed_paths[i]) {
++ return i;
++ }
++ }
++ }
++ function getNextPage() {
++ var i = getCurrentPageIndex();
++ if (i &lt; changed_paths.length - 1) {
++ return changed_urls[i + 1];
++ }
++ return null;
++ }
++ function getPreviousPage() {
++ var i = getCurrentPageIndex();
++ if (i &gt; 0) {
++ return changed_urls[i - 1];
++ }
++ return null;
++ }
++ function gotoNextPage() {
++ var page = getNextPage();
++ if (!page) {
++ page = detail_url;
++ }
++ window.location = page;
++ }
++ function gotoPreviousPage() {
++ var page = getPreviousPage();
++ if (!page) {
++ page = detail_url;
++ }
++ window.location = page;
++ }
++ function gotoDetailPage() {
++ window.location = detail_url;
++ }
++ function gotoPublishPage() {
++ window.location = publish_url;
++ }
++&lt;/script&gt;
++ 
++ &lt;style type=&quot;text/css&quot;&gt;
++ #review_nav {
++ border-top: 3px solid white;
++ padding-top: 6px;
++ margin-top: 1em;
++ }
++ #review_nav td {
++ vertical-align: middle;
++ }
++ #review_nav select {
++ margin: .5em 0;
++ }
++ &lt;/style&gt;
++ &lt;div id=&quot;review_nav&quot;&gt;
++ &lt;table&gt;&lt;tr&gt;&lt;td&gt;Go to:&nbsp;&lt;/td&gt;&lt;td&gt;
++ &lt;select name=&quot;files_in_rev&quot; onchange=&quot;window.location=this.value&quot;&gt;
++ 
++ &lt;option value=&quot;/p/eluaexamples/source/browse/trunk/snake?r=28&amp;spec=svn28&quot;
++ 
++ &gt;/trunk/snake&lt;/option&gt;
++ 
++ &lt;option value=&quot;/p/eluaexamples/source/browse/trunk/snake/EK-LM3S8962.lua?r=28&amp;spec=svn28&quot;
++ 
++ &gt;/trunk/snake/EK-LM3S8962.lua&lt;/option&gt;
++ 
++ &lt;option value=&quot;/p/eluaexamples/source/browse/trunk/snake/snake.lua?r=28&amp;spec=svn28&quot;
++ selected=&quot;selected&quot;
++ &gt;/trunk/snake/snake.lua&lt;/option&gt;
++ 
++ &lt;/select&gt;
++ &lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
++ 
++ 
++ 
++
++
++
++
++ &lt;div style=&quot;white-space:nowrap&quot;&gt;
++ Project members,
++ &lt;a href=&quot;<A HREF="https://www.google.com/accounts/ServiceLogin?service=code&amp;ltmpl=phosting&amp;continue=http%3A%2F%2Fcode.google.com%2Fp%2Feluaexamples%2Fsource%2Fbrowse%2Ftrunk%2Fsnake%2Fsnake.lua&amp;amp;followup=http%3A%2F%2Fcode.google.com%2Fp%2Feluaexamples%2Fsource%2Fbrowse%2Ftrunk%2Fsnake%2Fsnake.lua">https://www.google.com/accounts/ServiceLogin?service=code&amp;ltmpl=phosting&amp;continue=http%3A%2F%2Fcode.google.com%2Fp%2Feluaexamples%2Fsource%2Fbrowse%2Ftrunk%2Fsnake%2Fsnake.lua&amp;followup=http%3A%2F%2Fcode.google.com%2Fp%2Feluaexamples%2Fsource%2Fbrowse%2Ftrunk%2Fsnake%2Fsnake.lua</A>&quot;
++ &gt;sign in&lt;/a&gt; to write a code review&lt;/div&gt;
++
++
++ 
++ &lt;/div&gt;
++ 
++ 
++ &lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;/div&gt;
++ &lt;div class=&quot;pmeta_bubble_bg&quot; style=&quot;border:1px solid white&quot;&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;box-inner&quot;&gt;
++ &lt;div id=&quot;older_bubble&quot;&gt;
++ &lt;p&gt;Older revisions&lt;/p&gt;
++ 
++ &lt;a href=&quot;/p/eluaexamples/source/list?path=/trunk/snake/snake.lua&amp;start=28&quot;&gt;All revisions of this file&lt;/a&gt;
++ &lt;/div&gt;
++ &lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;/div&gt;
++ &lt;div class=&quot;pmeta_bubble_bg&quot; style=&quot;border:1px solid white&quot;&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;box-inner&quot;&gt;
++ &lt;div id=&quot;fileinfo_bubble&quot;&gt;
++ &lt;p&gt;File info&lt;/p&gt;
++ 
++ &lt;div&gt;Size: 5087 bytes,
++ 231 lines&lt;/div&gt;
++ 
++ &lt;div&gt;&lt;a href=&quot;<A HREF="http://eluaexamples.googlecode.com/svn/trunk/snake/snake.lua">http://eluaexamples.googlecode.com/svn/trunk/snake/snake.lua</A>&quot;&gt;View raw file&lt;/a&gt;&lt;/div&gt;
++ &lt;/div&gt;
++ 
++ &lt;div id=&quot;props&quot;&gt;
++ &lt;p&gt;File properties&lt;/p&gt;
++ &lt;dl&gt;
++ 
++ &lt;dt&gt;svn:eol-style&lt;/dt&gt;
++ &lt;dd&gt;native&lt;/dd&gt;
++ 
++ &lt;/dl&gt;
++ &lt;/div&gt;
++ 
++ &lt;/div&gt;
++ &lt;div class=&quot;round1&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round2&quot;&gt;&lt;/div&gt;
++ &lt;div class=&quot;round4&quot;&gt;&lt;/div&gt;
++ &lt;/div&gt;
++ &lt;/div&gt;
++ &lt;/div&gt;
++
++
++&lt;/div&gt;
++&lt;/div&gt;
++
++ &lt;script src=&quot;<A HREF="http://www.gstatic.com/codesite/ph/2429932258724909799/js/prettify/prettify.js">http://www.gstatic.com/codesite/ph/2429932258724909799/js/prettify/prettify.js</A>&quot;&gt;&lt;/script&gt;
++
++ &lt;script src=&quot;<A HREF="http://www.gstatic.com/codesite/ph/2429932258724909799/js/prettify/lang-lua.js">http://www.gstatic.com/codesite/ph/2429932258724909799/js/prettify/lang-lua.js</A>&quot;&gt;&lt;/script&gt;
++
++&lt;script type=&quot;text/javascript&quot;&gt;prettyPrint();&lt;/script&gt;
++
++&lt;script src=&quot;<A HREF="http://www.gstatic.com/codesite/ph/2429932258724909799/js/source_file_scripts_20080115.js">http://www.gstatic.com/codesite/ph/2429932258724909799/js/source_file_scripts_20080115.js</A>&quot;&gt;&lt;/script&gt;
++
++ &lt;script type=&quot;text/javascript&quot; src=&quot;<A HREF="http://kibbles.googlecode.com/files/kibbles-1.3.1.comp.js">http://kibbles.googlecode.com/files/kibbles-1.3.1.comp.js</A>&quot;&gt;&lt;/script&gt;
++ &lt;script type=&quot;text/javascript&quot;&gt;
++ var lastStop = null;
++ var initilized = false;
++ 
++ function updateCursor(next, prev) {
++ if (prev &amp;&amp; prev.element) {
++ prev.element.className = 'cursor_stop cursor_hidden';
++ }
++ if (next &amp;&amp; next.element) {
++ next.element.className = 'cursor_stop cursor';
++ lastStop = next.index;
++ }
++ }
++ 
++ function pubRevealed(data) {
++ updateCursorForCell(data.cellId, 'cursor_stop cursor_hidden');
++ if (initilized) {
++ reloadCursors();
++ }
++ }
++ 
++ function draftRevealed(data) {
++ updateCursorForCell(data.cellId, 'cursor_stop cursor_hidden');
++ if (initilized) {
++ reloadCursors();
++ }
++ }
++ 
++ function draftDestroyed(data) {
++ updateCursorForCell(data.cellId, 'nocursor');
++ if (initilized) {
++ reloadCursors();
++ }
++ }
++ function reloadCursors() {
++ kibbles.skipper.reset();
++ loadCursors();
++ if (lastStop != null) {
++ kibbles.skipper.setCurrentStop(lastStop);
++ }
++ }
++ // possibly the simplest way to insert any newly added comments
++ // is to update the class of the corresponding cursor row,
++ // then refresh the entire list of rows.
++ function updateCursorForCell(cellId, className) {
++ var cell = document.getElementById(cellId);
++ // we have to go two rows back to find the cursor location
++ var row = getPreviousElement(cell.parentNode);
++ row.className = className;
++ }
++ // returns the previous element, ignores text nodes.
++ function getPreviousElement(e) {
++ var element = e.previousSibling;
++ if (element.nodeType == 3) {
++ element = element.previousSibling;
++ }
++ if (element &amp;&amp; element.tagName) {
++ return element;
++ }
++ }
++ function loadCursors() {
++ // register our elements with skipper
++ var elements = CR_getElements('*', 'cursor_stop');
++ var len = elements.length;
++ for (var i = 0; i &lt; len; i++) {
++ var element = elements[i]; 
++ element.className = 'cursor_stop cursor_hidden';
++ kibbles.skipper.append(element);
++ }
++ }
++ function toggleComments() {
++ CR_toggleCommentDisplay();
++ reloadCursors();
++ }
++ function keysOnLoadHandler() {
++ // setup skipper
++ kibbles.skipper.addStopListener(
++ kibbles.skipper.LISTENER_TYPE.PRE, updateCursor);
++ // Set the 'offset' option to return the middle of the client area
++ // an option can be a static value, or a callback
++ kibbles.skipper.setOption('padding_top', 50);
++ // Set the 'offset' option to return the middle of the client area
++ // an option can be a static value, or a callback
++ kibbles.skipper.setOption('padding_bottom', 100);
++ // Register our keys
++ kibbles.skipper.addFwdKey(&quot;n&quot;);
++ kibbles.skipper.addRevKey(&quot;p&quot;);
++ kibbles.keys.addKeyPressListener(
++ 'u', function() { window.location = detail_url; });
++ kibbles.keys.addKeyPressListener(
++ 'r', function() { window.location = detail_url + '#publish'; });
++ 
++ kibbles.keys.addKeyPressListener('j', gotoNextPage);
++ kibbles.keys.addKeyPressListener('k', gotoPreviousPage);
++ 
++ 
++ }
++ window.onload = function() {keysOnLoadHandler();};
++ &lt;/script&gt;
++
++
++&lt;!-- code review support --&gt;
++&lt;script src=&quot;<A HREF="http://www.gstatic.com/codesite/ph/2429932258724909799/js/code_review_scripts_20081023.js">http://www.gstatic.com/codesite/ph/2429932258724909799/js/code_review_scripts_20081023.js</A>&quot;&gt;&lt;/script&gt;
++&lt;script type=&quot;text/javascript&quot;&gt;
++ 
++ // the comment form template
++ var form = '&lt;div class=&quot;draft&quot;&gt;&lt;div class=&quot;header&quot;&gt;&lt;span class=&quot;title&quot;&gt;Draft comment:&lt;/span&gt;&lt;/div&gt;' +
++ '&lt;div class=&quot;body&quot;&gt;&lt;form onsubmit=&quot;return false;&quot;&gt;&lt;textarea id=&quot;$ID&quot;&gt;$BODY&lt;/textarea&gt;&lt;br&gt;$ACTIONS&lt;/form&gt;&lt;/div&gt;' +
++ '&lt;/div&gt;';
++ // the comment &quot;plate&quot; template used for both draft and published comment &quot;plates&quot;.
++ var draft_comment = '&lt;div class=&quot;draft&quot; ondblclick=&quot;$ONDBLCLICK&quot;&gt;' +
++ '&lt;div class=&quot;header&quot;&gt;&lt;span class=&quot;title&quot;&gt;Draft comment:&lt;/span&gt;&lt;span class=&quot;actions&quot;&gt;$ACTIONS&lt;/span&gt;&lt;/div&gt;' +
++ '&lt;pre id=&quot;$ID&quot; class=&quot;body&quot;&gt;$BODY&lt;/pre&gt;' +
++ '&lt;/div&gt;';
++ var published_comment = '&lt;div class=&quot;published&quot;&gt;' +
++ '&lt;div class=&quot;header&quot;&gt;&lt;span class=&quot;title&quot;&gt;&lt;a href=&quot;$PROFILE_URL&quot;&gt;$AUTHOR:&lt;/a&gt;&lt;/span&gt;&lt;div&gt;' +
++ '&lt;pre id=&quot;$ID&quot; class=&quot;body&quot;&gt;$BODY&lt;/pre&gt;' +
++ '&lt;/div&gt;';
++
++ function showPublishInstructions() {
++ var element = document.getElementById('review_instr');
++ if (element) {
++ element.className = 'opened';
++ }
++ }
++ function revsOnLoadHandler() {
++ // register our source container with the commenting code
++ var paths = {'svn28': '/trunk/snake/snake.lua'}
++ CR_setup('p', 'eluaexamples', '', 'svn28', paths,
++ '', CR_BrowseIntegrationFactory);
++ // register our hidden ui elements with the code commenting code ui builder.
++ CR_registerLayoutElement('form', form);
++ CR_registerLayoutElement('draft_comment', draft_comment);
++ CR_registerLayoutElement('published_comment', published_comment);
++ 
++ CR_registerActivityListener(CR_ACTIVITY_TYPE.REVEAL_DRAFT_PLATE, showPublishInstructions);
++ 
++ CR_registerActivityListener(CR_ACTIVITY_TYPE.REVEAL_PUB_PLATE, pubRevealed);
++ CR_registerActivityListener(CR_ACTIVITY_TYPE.REVEAL_DRAFT_PLATE, draftRevealed);
++ CR_registerActivityListener(CR_ACTIVITY_TYPE.DISCARD_DRAFT_COMMENT, draftDestroyed);
++ 
++ 
++ 
++ 
++ 
++ 
++ 
++ 
++ 
++ var initilized = true;
++ reloadCursors();
++ }
++ window.onload = function() {keysOnLoadHandler(); revsOnLoadHandler();};
++&lt;/script&gt;
++
++&lt;script type=&quot;text/javascript&quot; src=&quot;<A HREF="http://www.gstatic.com/codesite/ph/2429932258724909799/js/dit_scripts_20081013.js">http://www.gstatic.com/codesite/ph/2429932258724909799/js/dit_scripts_20081013.js</A>&quot;&gt;&lt;/script&gt;
++
++ 
++ &lt;script type=&quot;text/javascript&quot; src=&quot;<A HREF="http://www.gstatic.com/codesite/ph/2429932258724909799/js/core_scripts_20081103.js">http://www.gstatic.com/codesite/ph/2429932258724909799/js/core_scripts_20081103.js</A>&quot;&gt;&lt;/script&gt;
++ &lt;script type=&quot;text/javascript&quot; src=&quot;/js/codesite_product_dictionary_ph.pack.04102009.js&quot;&gt;&lt;/script&gt;
++ 
++ 
++ 
++ &lt;/div&gt;
++&lt;div id=&quot;footer&quot; dir=&quot;ltr&quot;&gt;
++ 
++ &lt;div class=&quot;text&quot;&gt;
++ 
++ &copy;2009 Google -
++ &lt;a href=&quot;/&quot;&gt;Code Home&lt;/a&gt; -
++ &lt;a href=&quot;/projecthosting/terms.html&quot;&gt;Terms of Service&lt;/a&gt; -
++ &lt;a href=&quot;<A HREF="http://www.google.com/privacy.html">http://www.google.com/privacy.html</A>&quot;&gt;Privacy Policy&lt;/a&gt; -
++ &lt;a href=&quot;/more/&quot;&gt;Site Directory&lt;/a&gt; -
++ &lt;a href=&quot;/p/support/&quot;&gt;Project Hosting Help&lt;/a&gt;
++ 
++ &lt;/div&gt;
++&lt;/div&gt;
++&lt;script type=&quot;text/javascript&quot;&gt;
++/**
++ * Reports analytics.
++ * It checks for the analytics functionality (window._gat) every 100ms
++ * until the analytics script is fully loaded in order to invoke siteTracker.
++ */
++function _CS_reportAnalytics() {
++ window.setTimeout(function() {
++ if (window._gat) {
++ try {
++ siteTracker = _gat._getTracker(CS_ANALYTICS_ACCOUNT);
++ siteTracker._trackPageview();
++ } catch (e) {}
++ 
++ } else {
++ _CS_reportAnalytics();
++ }
++ }, 100);
++}
++&lt;/script&gt;
++
++ 
++ 
++ &lt;div class=&quot;hostedBy&quot; style=&quot;margin-top: -20px;&quot;&gt;
++ &lt;span style=&quot;vertical-align: top;&quot;&gt;Hosted by&lt;/span&gt;
++ &lt;a href=&quot;/hosting/&quot;&gt;
++ &lt;img src=&quot;<A HREF="http://www.gstatic.com/codesite/ph/images/google_code_tiny.png">http://www.gstatic.com/codesite/ph/images/google_code_tiny.png</A>&quot; width=&quot;107&quot; height=&quot;24&quot; alt=&quot;Google Code&quot;&gt;
++ &lt;/a&gt;
++ &lt;/div&gt;
++ 
++ 
++ 
++ 
++
++
++ 
++ &lt;/body&gt;
++&lt;/html&gt;
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000498.html">[Elua-svn] r542 - trunk/src/modules
+</A></li>
+	<LI>Next message: <A HREF="000500.html">[Elua-svn] r544 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#499">[ date ]</a>
+              <a href="thread.html#499">[ thread ]</a>
+              <a href="subject.html#499">[ subject ]</a>
+              <a href="author.html#499">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

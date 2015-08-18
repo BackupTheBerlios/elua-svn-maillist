@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r732 - in trunk: doc/en src
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r732%20-%20in%20trunk%3A%20doc/en%20src&In-Reply-To=%3C201003160018.o2G0IZtY015160%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000684.html">
+   <LINK REL="Next"  HREF="000686.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r732 - in trunk: doc/en src</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r732%20-%20in%20trunk%3A%20doc/en%20src&In-Reply-To=%3C201003160018.o2G0IZtY015160%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r732 - in trunk: doc/en src">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Tue Mar 16 01:18:35 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000684.html">[Elua-svn] r731 - trunk/src
+</A></li>
+        <LI>Next message: <A HREF="000686.html">[Elua-svn] r733 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#685">[ date ]</a>
+              <a href="thread.html#685">[ thread ]</a>
+              <a href="subject.html#685">[ subject ]</a>
+              <a href="author.html#685">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2010-03-16 01:18:33 +0100 (Tue, 16 Mar 2010)
+New Revision: 732
+
+Modified:
+   trunk/doc/en/status.html
+   trunk/src/main.c
+Log:
+- Fixed autorun feature for all file systems and all file formats
+  (it did not autorun if sd/mmc was built and autorun.lua was in romfs)
+  (it did not autorun .lc {Lua compiled} files)
+  Thanks to Marcelo Politzer for the help with the fix too.
+
+- Minor doc refinement
+
+
+
+Modified: trunk/doc/en/status.html
+===================================================================
+--- trunk/doc/en/status.html	2010-03-08 23:42:54 UTC (rev 731)
++++ trunk/doc/en/status.html	2010-03-16 00:18:33 UTC (rev 732)
+@@ -106,7 +106,7 @@
+   href=&quot;<A HREF="http://www.nxp.com/#/pip/pip=[pip=LPC2468_4">http://www.nxp.com/#/pip/pip=[pip=LPC2468_4</A>]|pp=[t=pip,i=LPC2468_4]&quot;&gt;LPC2468&lt;/a&gt;&lt;/td&gt;
+   &lt;td&gt;ARM7TDMI&lt;/td&gt;
+   &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LPC24xx&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.giga.puc-rio.br/site/embedded/eluademoboard">http://www.giga.puc-rio.br/site/embedded/eluademoboard</A>&quot;&gt;PUC-Rio Demo Board&lt;/a&gt;&lt;/td&gt;  
++  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.giga.puc-rio.br/site/embedded/eluademoboard">http://www.giga.puc-rio.br/site/embedded/eluademoboard</A>&quot;&gt;PUC-Rio Demo&lt;/a&gt;&lt;/td&gt;  
+   &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2010-03-08 23:42:54 UTC (rev 731)
++++ trunk/src/main.c	2010-03-16 00:18:33 UTC (rev 732)
+@@ -23,12 +23,19 @@
+ 
+ #include &quot;mmcfs.h&quot;
+ #include &quot;romfs.h&quot;
++
++// Define here your autorun/boot files, 
++// in the order you want eLua to search for them
++char *boot_order[] = {
+ #if defined(BUILD_MMCFS)
+-  #define FS_AUTORUN          &quot;/mmc/autorun.lua&quot;
++	&quot;/mmc/autorun.lua&quot;,
++	&quot;/mmc/autorun.lc&quot;,
+ #endif
+-#if defined(BUILD_ROMFS) &amp;&amp; !defined(FS_AUTORUN)
+-  #define FS_AUTORUN          &quot;/rom/autorun.lua&quot;
++#if defined(BUILD_ROMFS)
++	&quot;/rom/autorun.lua&quot;,
++	&quot;/rom/autorun.lc&quot;,
+ #endif
++};
+ 
+ extern char etext[];
+ 
+@@ -69,6 +76,7 @@
+ 
+ int main( void )
+ {
++  int i;
+   FILE* fp;
+ 
+   // Initialize platform first
+@@ -93,14 +101,17 @@
+   // Register the remote filesystem
+   dm_register( remotefs_init() );
+ 
+-  // Autorun: if &quot;autorun.lua&quot; is found in the file system, run it first
+-  if( ( fp = fopen( FS_AUTORUN, &quot;r&quot; ) ) != NULL )
+-  {
+-    fclose( fp );
+-    char* lua_argv[] = { &quot;lua&quot;, FS_AUTORUN, NULL };
+-    lua_main( 2, lua_argv );
++  // Search for autorun files in the defined order and execute the 1st if found
++  for( i = 0; i &lt; sizeof( boot_order )/sizeof( *boot_order ); i++ ){
++    if( ( fp = fopen( boot_order[i], &quot;r&quot; ) ) != NULL )
++	{
++	  fclose( fp );
++	  char* lua_argv[] = { &quot;lua&quot;, boot_order[i], NULL };
++	  lua_main( 2, lua_argv );
++	  break; // autoruns only the first found
++	}
+   }
+-  
++
+ #ifdef ELUA_BOOT_RPC
+   boot_rpc();
+ #else
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000684.html">[Elua-svn] r731 - trunk/src
+</A></li>
+	<LI>Next message: <A HREF="000686.html">[Elua-svn] r733 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#685">[ date ]</a>
+              <a href="thread.html#685">[ thread ]</a>
+              <a href="subject.html#685">[ subject ]</a>
+              <a href="author.html#685">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

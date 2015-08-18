@@ -1,0 +1,505 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r178 - in trunk: inc src src/platform/at91sam7x	src/platform/avr32 src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r178%20-%20in%20trunk%3A%20inc%20src%20src/platform/at91sam7x%0A%09src/platform/avr32%20src/platform/lm3s&In-Reply-To=%3C200902090343.n193hmnw009969%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000133.html">
+   <LINK REL="Next"  HREF="000135.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r178 - in trunk: inc src src/platform/at91sam7x	src/platform/avr32 src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r178%20-%20in%20trunk%3A%20inc%20src%20src/platform/at91sam7x%0A%09src/platform/avr32%20src/platform/lm3s&In-Reply-To=%3C200902090343.n193hmnw009969%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r178 - in trunk: inc src src/platform/at91sam7x	src/platform/avr32 src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Feb  9 04:43:48 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000133.html">[Elua-svn] r177 - in trunk/doc: en pt
+</A></li>
+        <LI>Next message: <A HREF="000135.html">[Elua-svn] r179 - in trunk: inc src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#134">[ date ]</a>
+              <a href="thread.html#134">[ thread ]</a>
+              <a href="subject.html#134">[ subject ]</a>
+              <a href="author.html#134">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-02-09 04:43:47 +0100 (Mon, 09 Feb 2009)
+New Revision: 178
+
+Modified:
+   trunk/inc/buf.h
+   trunk/inc/platform.h
+   trunk/src/buf.c
+   trunk/src/common.c
+   trunk/src/platform/at91sam7x/platform.c
+   trunk/src/platform/avr32/platform.c
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/platform_conf.h
+   trunk/src/platform/lm3s/startup_gcc.c
+Log:
+- Buffer refactored to handle multibyte data.
+  Code which was previously using buffer has been updated to work with the
+  changes.
+  API has also changed in accordance:
+
+  int buf_set(unsigned resid, unsigned resnum, u8 logsize, size_t dsize);
+  int buf_is_enabled( unsigned resid, unsigned resnum );
+  unsigned buf_get_size( unsigned resid, unsigned resnum );
+  unsigned buf_get_count( unsigned resid, unsigned resnum );
+  int buf_write( unsigned resid, unsigned resnum, t_buf_data *data, size_t dsize );
+  int buf_read( unsigned resid, unsigned resnum, t_buf_data *data, size_t dsize  );
+
+  Essentially buf_rx_cb and buf_get_char have been renamed to buf_write and
+  buf_read.  For these, one now passes a pointer to where the data is coming
+  from or going to, and a dsize parameter indicating how many bytes should be
+  copied.  Also, buf_set takes this same dsize parameter, and keeps it in the
+  struct.  This allows us to ensure that when data is read or written the
+  number of bytes matches the buffer element size.
+
+  I thought about maintaining compatibility functions to provide the original
+  buf_rx_cb and buf_get_byte API calls, however there weren't a large number
+  of uses of buf, so it wasn't hard to convert things.
+
+  One caveat: BUF_MOD_INCR assumes that byte counts for alternate type sizes
+  will be powers of 2.
+
+  Also, BUF_SIZE_xx's are assumed to refer to element counts.
+
+- UART buffering enabled on LM3S
+
+This doesn't include switching the ADC code over to using these buffers quite
+yet.
+
+I'm open to comments on these modifications if theres a better or simpler
+approach.  I've checked to make sure buffers work on LM3S, but I don't own any
+other platforms to make sure there aren't unintended side-effects.
+
+Modified: trunk/inc/buf.h
+===================================================================
+--- trunk/inc/buf.h	2009-02-04 03:22:49 UTC (rev 177)
++++ trunk/inc/buf.h	2009-02-09 03:43:47 UTC (rev 178)
+@@ -7,13 +7,15 @@
+ 
+ // [TODO] the buffer data type is currently u8, is this OK?
+ typedef u8 t_buf_data;
++typedef u16 t_buf_data_u16;
+ 
+ // IDs of &quot;bufferable&quot; devices
+ enum
+ {
+   BUF_ID_UART = 0,
++  BUF_ID_ADC = 1,
+   BUF_ID_FIRST = BUF_ID_UART,
+-  BUF_ID_LAST = BUF_ID_UART,
++  BUF_ID_LAST = BUF_ID_ADC,
+   BUF_ID_TOTAL = BUF_ID_LAST - BUF_ID_FIRST + 1
+ };
+ 
+@@ -23,6 +25,7 @@
+   u8 logsize;
+   volatile u16 wptr, rptr, count;
+   t_buf_data *buf;
++  size_t dsize;
+ } buf_desc;
+ 
+ // Buffer sizes (there are power of 2 to speed up modulo operations)
+@@ -43,12 +46,16 @@
+   BUF_SIZE_32768
+ };
+ 
++
++
++
+ // Buffer API
+-int buf_set( unsigned resid, unsigned resnum, u8 logsize );
++int buf_set(unsigned resid, unsigned resnum, u8 logsize, size_t dsize);
+ int buf_is_enabled( unsigned resid, unsigned resnum );
+ unsigned buf_get_size( unsigned resid, unsigned resnum );
+ unsigned buf_get_count( unsigned resid, unsigned resnum );
+-int buf_get_char( unsigned resid, unsigned resnum );
+-void buf_rx_cb( unsigned resid, unsigned resnum, t_buf_data data );
++int buf_write( unsigned resid, unsigned resnum, t_buf_data *data, size_t dsize );
++int buf_read( unsigned resid, unsigned resnum, t_buf_data *data, size_t dsize  );
+ 
++
+ #endif
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2009-02-04 03:22:49 UTC (rev 177)
++++ trunk/inc/platform.h	2009-02-09 03:43:47 UTC (rev 178)
+@@ -6,11 +6,12 @@
+ #include &quot;devman.h&quot;
+ #include &quot;type.h&quot;
+ 
+-// Error codes
++// Error / status codes
+ enum
+ {
+   PLATFORM_ERR,
+-  PLATFORM_OK
++  PLATFORM_OK,
++  PLATFORM_UNDERFLOW
+ };
+ 
+ // Platform initialization
+
+Modified: trunk/src/buf.c
+===================================================================
+--- trunk/src/buf.c	2009-02-04 03:22:49 UTC (rev 177)
++++ trunk/src/buf.c	2009-02-09 03:43:47 UTC (rev 178)
+@@ -13,6 +13,7 @@
+ #include &quot;platform.h&quot;
+ #include &quot;utils.h&quot;
+ #include &lt;stdlib.h&gt;
++#include &lt;string.h&gt;
+ 
+ // [TODO]? Following code might need a C99 compiler (for 0-sized arrays)
+ #ifdef BUF_ENABLE_UART
+@@ -21,15 +22,18 @@
+   static buf_desc buf_desc_uart[ 0 ];
+ #endif
+ 
++static buf_desc buf_desc_adc [ NUM_ADC ];
++
+ // NOTE: the order of descriptors here MUST match the order of the BUF_ID_xx
+ // enum in inc/buf.h
+ static const buf_desc* buf_desc_array[ BUF_ID_TOTAL ] = 
+ {
+-  buf_desc_uart
++  buf_desc_uart,
++  buf_desc_adc
+ };
+ 
+ // Helper macros
+-#define BUF_MOD_INCR( p, m ) p-&gt;m = ( p-&gt;m + 1 ) &amp; ( ( ( u16 )1 &lt;&lt; p-&gt;logsize ) - 1 )
++#define BUF_MOD_INCR( p, m ) p-&gt;m = ( p-&gt;m + p-&gt;dsize ) &amp; ( ( ( u16 )1 &lt;&lt; ( p-&gt;logsize + ( p-&gt;dsize - 1 ) ) ) - 1 )
+ #define BUF_REALSIZE( p ) ( ( u16 )1 &lt;&lt; p-&gt;logsize )
+ #define BUF_GETPTR( resid, resnum ) buf_desc *pbuf = ( buf_desc* )buf_desc_array[ resid ] + resnum
+ 
+@@ -38,18 +42,23 @@
+ #define READ16( p )     p
+ #define WRITE16( p, x ) p = x
+ 
++
++
+ // Initialize the buffer of the specified resource
+ // resid - resource ID (BUF_ID_UART ...)
+ // resnum - resource number (0, 1, 2...)
+ // bufsize - new size of the buffer (one of the BUF_SIZE_xxx constants from
++// dsize - number of bytes held by each element
+ //   buf.h, or BUF_SIZE_NONE to disable buffering
+ // Returns 1 on success, 0 on failure
+-int buf_set( unsigned resid, unsigned resnum, u8 logsize )
++int buf_set( unsigned resid, unsigned resnum, u8 logsize, size_t dsize )
+ {
+   BUF_GETPTR( resid, resnum );
+   
+   pbuf-&gt;logsize = logsize;
+-  if( ( pbuf-&gt;buf = ( t_buf_data* )realloc( pbuf-&gt;buf, BUF_REALSIZE( pbuf ) * sizeof( t_buf_data ) ) ) == NULL )
++  pbuf-&gt;dsize = dsize;
++  
++  if( ( pbuf-&gt;buf = ( t_buf_data* )realloc( pbuf-&gt;buf, BUF_REALSIZE( pbuf ) * pbuf-&gt;dsize ) ) == NULL )
+   {
+     pbuf-&gt;logsize = BUF_SIZE_NONE;
+     pbuf-&gt;rptr = pbuf-&gt;wptr = pbuf-&gt;count = 0;
+@@ -59,22 +68,31 @@
+   return PLATFORM_OK;
+ }
+ 
+-// Callback for RX buffer
++// Write to buffer
+ // resid - resource ID (BUF_ID_UART ...)
+ // resnum - resource number (0, 1, 2...)
+-// data - the new data
+-// Returns 1 on success, 0 on failure
++// data - pointer for where data will come from
++// dsize - length of data to get
++// Returns PLATFORM_OK on success, PLATFORM_ERR on failure
+ // [TODO] maybe add a buffer overflow flag
+-void buf_rx_cb( unsigned resid, unsigned resnum, t_buf_data data )
++int buf_write( unsigned resid, unsigned resnum, t_buf_data *data, size_t dsize )
+ {
+   BUF_GETPTR( resid, resnum );
+-    
+-  pbuf-&gt;buf[ pbuf-&gt;wptr ] = data;
++  
++  // Make sure we only add more of same type
++  if (pbuf-&gt;dsize != dsize)
++    return PLATFORM_ERR;
++  
++  memcpy(&amp;pbuf-&gt;buf[ pbuf-&gt;wptr ], data, dsize);
++  
+   BUF_MOD_INCR( pbuf, wptr );
++  
+   if( pbuf-&gt;count == BUF_REALSIZE( pbuf ) )
+     BUF_MOD_INCR( pbuf, rptr );
+   else
+     pbuf-&gt;count ++;
++    
++  return PLATFORM_OK;
+ }
+ 
+ // Returns 1 if the specified device is buffered, 0 otherwise
+@@ -87,7 +105,7 @@
+   return pbuf-&gt;logsize != BUF_SIZE_NONE;
+ }
+ 
+-// Return the size of the buffer 
++// Return the size of the buffer in number
+ unsigned buf_get_size( unsigned resid, unsigned resnum )
+ {
+   BUF_GETPTR( resid, resnum );
+@@ -103,20 +121,32 @@
+   return READ16( pbuf-&gt;count );  
+ }
+ 
+-// Returns a char from the RX buffer (-1 if not available)
+-int buf_get_char( unsigned resid, unsigned resnum )
++// Get data from buffer of size dsize
++// resid - resource ID (BUF_ID_UART ...)
++// resnum - resource number (0, 1, 2...)
++// data - pointer for where data should go
++// dsize - length of data to get
++// Returns PLATFORM_OK on success, PLATFORM_ERR on failure, 
++//   PLATFORM_UNDERFLOW on buffer empty
++int buf_read( unsigned resid, unsigned resnum, t_buf_data *data, size_t dsize  )
+ {
+   BUF_GETPTR( resid, resnum );
+-  t_buf_data data;
++
++  // Make sure buffer contains right type
++  if (pbuf-&gt;dsize != dsize)
++    return PLATFORM_ERR;
+   
+   if( READ16( pbuf-&gt;count ) == 0 )
+-    return -1;
+-  data = pbuf-&gt;buf[ pbuf-&gt;rptr ];
++    return PLATFORM_UNDERFLOW;
++    
++  memcpy(data, &amp;pbuf-&gt;buf[ pbuf-&gt;rptr ], dsize);
++  
+   platform_cpu_disable_interrupts();
+   pbuf-&gt;count --;
+   BUF_MOD_INCR( pbuf, rptr );
+   platform_cpu_enable_interrupts();
+-  return ( int )data;  
++  
++  return PLATFORM_OK;  
+ }
+ 
+ #endif // #ifdef BUF_ENALE
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2009-02-04 03:22:49 UTC (rev 177)
++++ trunk/src/common.c	2009-02-09 03:43:47 UTC (rev 178)
+@@ -70,16 +70,21 @@
+ static int cmn_recv_helper( unsigned id, s32 timeout )
+ {
+ #ifdef BUF_ENABLE_UART
++  t_buf_data data;
+   int res;
++  
+   if( buf_is_enabled( BUF_ID_UART, id ) )
+   {
+     if( timeout == 0 )
+-      return buf_get_char( BUF_ID_UART, id );
++    {
++      if ( ( buf_read( BUF_ID_UART, id, &amp;data, sizeof( t_buf_data ) ) ) == PLATFORM_UNDERFLOW )
++        return -1;
++    }
+     else
+     {
+-      while( ( res = buf_get_char( BUF_ID_UART, id ) ) == -1 );
+-      return res;
++      while( ( buf_read( BUF_ID_UART, id, &amp;data, sizeof( t_buf_data ) ) ) == PLATFORM_UNDERFLOW );
+     }
++    return ( int )data;
+   }
+   else
+ #endif
+
+Modified: trunk/src/platform/at91sam7x/platform.c
+===================================================================
+--- trunk/src/platform/at91sam7x/platform.c	2009-02-04 03:22:49 UTC (rev 177)
++++ trunk/src/platform/at91sam7x/platform.c	2009-02-09 03:43:47 UTC (rev 178)
+@@ -50,7 +50,7 @@
+   AT91S_USART* base = CON_UART_ID == 0 ? AT91C_BASE_US0 : AT91C_BASE_US1;    
+   
+   c = USART_Read( base, 0 );
+-  buf_rx_cb( BUF_ID_UART, CON_UART_ID, ( t_buf_data )c );
++  buf_write( BUF_ID_UART, CON_UART_ID, ( t_buf_data* )&amp;c, sizeof ( t_buf_data ) );
+   asm( &quot;pop {r0}&quot;:: );  
+   asm( &quot;bx  r0&quot;:: );  
+ }
+@@ -82,7 +82,7 @@
+   USART_SetReceiverEnabled(AT91C_BASE_US0, 1);  
+ #if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+   // Enable buffering on the console UART
+-  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE );
++  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, sizeof ( t_buf_data ) );
+   // Set interrupt handler and interrupt flag on UART
+   unsigned uart_id = CON_UART_ID == 0 ? AT91C_ID_US0 : AT91C_ID_US1;
+   AT91S_USART* base = CON_UART_ID == 0 ? AT91C_BASE_US0 : AT91C_BASE_US1;        
+
+Modified: trunk/src/platform/avr32/platform.c
+===================================================================
+--- trunk/src/platform/avr32/platform.c	2009-02-04 03:22:49 UTC (rev 177)
++++ trunk/src/platform/avr32/platform.c	2009-02-09 03:43:47 UTC (rev 178)
+@@ -55,7 +55,7 @@
+   volatile avr32_usart_t *pusart = ( volatile avr32_usart_t* )uart_base_addr[ CON_UART_ID ];    
+   
+   usart_read_char( pusart, &amp;c );
+-  buf_rx_cb( BUF_ID_UART, CON_UART_ID, ( t_buf_data )c );
++  buf_write( BUF_ID_UART, CON_UART_ID, ( t_buf_data* )&amp;c, sizeof ( t_buf_data ) );
+ }
+ #endif
+ 
+@@ -116,7 +116,7 @@
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );  
+ #if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+   // Enable buffering on the console UART
+-  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE );
++  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, sizeof ( t_buf_data ) );
+   // Set interrupt handler and interrupt flag on UART
+   INTC_register_interrupt( &amp;uart_rx_handler, CON_UART_IRQ, AVR32_INTC_INT0 );  
+   volatile avr32_usart_t *pusart = ( volatile avr32_usart_t* )uart_base_addr[ CON_UART_ID ];      
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-02-04 03:22:49 UTC (rev 177)
++++ trunk/src/platform/lm3s/platform.c	2009-02-09 03:43:47 UTC (rev 178)
+@@ -38,6 +38,7 @@
+ #include &quot;interrupt.h&quot;
+ #include &quot;elua_net.h&quot;
+ #include &quot;dhcpc.h&quot;
++#include &quot;buf.h&quot;
+ #include &quot;rit128x96x4.h&quot;
+ #include &quot;disp.h&quot;
+ #include &quot;adc.h&quot;
+@@ -242,6 +243,23 @@
+ static const u32 uart_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTD_BASE, GPIO_PORTG_BASE };
+ static const u8 uart_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_0 | GPIO_PIN_1 };
+ 
++#ifdef BUF_ENABLE_UART
++void UARTIntHandler()
++{
++  u32 temp;
++  int c;
++
++  temp = UARTIntStatus(uart_base[ CON_UART_ID ], true);
++  UARTIntClear(uart_base[ CON_UART_ID ], temp);
++  while( UARTCharsAvail( uart_base[ CON_UART_ID ] ) )
++  {
++    c = UARTCharGetNonBlocking( uart_base[ CON_UART_ID ] );
++    buf_write( BUF_ID_UART, CON_UART_ID, ( t_buf_data* )&amp;c, sizeof ( t_buf_data ) );
++  }
++}
++#endif
++
++
+ static void uarts_init()
+ {
+   unsigned i;
+@@ -255,6 +273,17 @@
+   UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), CON_UART_SPEED,
+                      (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+                       UART_CONFIG_PAR_NONE));
++                      
++                      
++#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
++  // Enable buffering on the console UART
++  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, sizeof ( t_buf_data ) );
++  // Set interrupt handler and interrupt flag on UART
++  
++  IntEnable(INT_UART0);
++
++  UARTIntEnable( uart_base[ CON_UART_ID ], UART_INT_RX | UART_INT_RT );
++#endif
+ }
+ 
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2009-02-04 03:22:49 UTC (rev 177)
++++ trunk/src/platform/lm3s/platform_conf.h	2009-02-09 03:43:47 UTC (rev 178)
+@@ -98,6 +98,10 @@
+ #define NUM_PWM               6
+ #define NUM_ADC               4
+ 
++// Enable RX buffering on UART
++#define BUF_ENABLE_UART
++#define CON_BUF_SIZE          BUF_SIZE_128
++
+ // ADC Bit Depth for Built-in ADCs
+ #define ADC_BIT_RESOLUTION    10
+ 
+
+Modified: trunk/src/platform/lm3s/startup_gcc.c
+===================================================================
+--- trunk/src/platform/lm3s/startup_gcc.c	2009-02-04 03:22:49 UTC (rev 177)
++++ trunk/src/platform/lm3s/startup_gcc.c	2009-02-09 03:43:47 UTC (rev 178)
+@@ -40,8 +40,10 @@
+ extern void EthernetIntHandler();
+ extern void SysTickIntHandler();
+ extern void ADCIntHandler();
++extern void UARTIntHandler();
+ 
+ #include &quot;hw_memmap.h&quot;
++#include &quot;platform_conf.h&quot;
+ 
+ //*****************************************************************************
+ //
+@@ -82,7 +84,11 @@
+     IntDefaultHandler,                      // GPIO Port C
+     IntDefaultHandler,                      // GPIO Port D
+     IntDefaultHandler,                      // GPIO Port E
+-    IntDefaultHandler,                      // UART0 Rx and Tx
++#ifdef BUF_ENABLE_UART
++    UARTIntHandler,                         // UART0 Rx and Tx
++#else
++    IntDefaultHandler,
++#endif
+     IntDefaultHandler,                      // UART1 Rx and Tx
+     IntDefaultHandler,                      // SSI0 Rx and Tx
+     IntDefaultHandler,                      // I2C0 Master and Slave
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000133.html">[Elua-svn] r177 - in trunk/doc: en pt
+</A></li>
+	<LI>Next message: <A HREF="000135.html">[Elua-svn] r179 - in trunk: inc src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#134">[ date ]</a>
+              <a href="thread.html#134">[ thread ]</a>
+              <a href="subject.html#134">[ subject ]</a>
+              <a href="author.html#134">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

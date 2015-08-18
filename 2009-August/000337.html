@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r382 - in trunk: . src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r382%20-%20in%20trunk%3A%20.%20src/platform/lm3s&In-Reply-To=%3C200908031839.n73Id6uD011344%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000336.html">
+   <LINK REL="Next"  HREF="000338.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r382 - in trunk: . src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r382%20-%20in%20trunk%3A%20.%20src/platform/lm3s&In-Reply-To=%3C200908031839.n73Id6uD011344%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r382 - in trunk: . src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Aug  3 20:39:06 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000336.html">[Elua-svn] r381 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000338.html">[Elua-svn] r383 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#337">[ date ]</a>
+              <a href="thread.html#337">[ thread ]</a>
+              <a href="subject.html#337">[ subject ]</a>
+              <a href="author.html#337">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-08-03 20:39:06 +0200 (Mon, 03 Aug 2009)
+New Revision: 382
+
+Modified:
+   trunk/SConstruct
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/platform_conf.h
+Log:
+eLua now running on LM3S9B92.  Some kinks and bugs to work out remain
+- ADC always returns zero
+- many modules remain untested
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-08-03 18:38:56 UTC (rev 381)
++++ trunk/SConstruct	2009-08-03 18:39:06 UTC (rev 382)
+@@ -105,7 +105,7 @@
+ file_list = { 'SAM7-EX256' : [ 'bisect', 'hangman' , 'led', 'piano', 'hello', 'info', 'morse' ],
+               'EK-LM3S8962' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope','adcpoll' ],
+               'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope','adcpoll' ],
+-              'EK-LM3S9B92' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info', 'adcscope','adcpoll' ],
++              'EK-LM3S9B92' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'pwmled', 'hello', 'info', 'adcscope','adcpoll', 'life' ],
+               'STR9-COMSTICK' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'PC' : [ 'bisect', 'hello', 'info', 'life', 'hangman' ],
+               'SIM' : [ 'bisect', 'hello', 'info', 'life', 'hangman' ],
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2009-08-03 18:38:56 UTC (rev 381)
++++ trunk/src/platform/lm3s/conf.py	2009-08-03 18:39:06 UTC (rev 382)
+@@ -13,7 +13,10 @@
+ else:
+   linkopts = &quot;&quot;
+ 
+-ldscript = &quot;lm3s.ld&quot;
++if boardname == 'EK-LM3S9B92':
++  ldscript = &quot;lm3s-9b92.ld&quot;
++else:
++  ldscript = &quot;lm3s.ld&quot;
+ 
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-08-03 18:38:56 UTC (rev 381)
++++ trunk/src/platform/lm3s/platform.c	2009-08-03 18:39:06 UTC (rev 382)
+@@ -74,7 +74,11 @@
+ int platform_init()
+ {
+   // Set the clocking to run from PLL
++#ifdef FORLM3S9B92
++  SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
++#else
+   SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_8MHZ);
++#endif
+ 
+   // Setup PIO
+   pios_init();
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2009-08-03 18:38:56 UTC (rev 381)
++++ trunk/src/platform/lm3s/platform_conf.h	2009-08-03 18:39:06 UTC (rev 382)
+@@ -106,13 +106,15 @@
+ 
+ // Number of resources (0 if not available/not implemented)
+ #ifdef FORLM3S9B92
+-  #define NUM_PIO             8
++  #define NUM_PIO             7
+ #else
+   #define NUM_PIO             7
+ #endif
+ #define NUM_SPI               1
+ #ifdef FORLM3S6965
+   #define NUM_UART            3
++#elif FORLM3S9B92
++  #define NUM_UART            3
+ #else
+   #define NUM_UART            2
+ #endif
+@@ -148,12 +150,21 @@
+ // #define PIO_PINS_PER_PORT (n) if each port has the same number of pins, or
+ // #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array 
+ // Use #define PIO_PINS_PER_PORT 0 if this isn't needed
+-#define PIO_PIN_ARRAY         { 8, 8, 8, 8, 4, 4, 2 }
++#ifdef FORLM3S9B92
++  #define PIO_PIN_ARRAY         { 8, 8, 8, 8, 8, 6, 8, 8, 8 }
++#else
++  #define PIO_PIN_ARRAY         { 8, 8, 8, 8, 4, 4, 2 }
++#endif
++//                                A, B, C, D, E, F, G, H, J
+ 
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+ #define MEM_START_ADDRESS     { ( void* )end }
+-#define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + 0x10000 - STACK_SIZE_TOTAL - 1 ) }
++#ifdef FORLM3S9B92
++  #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + 0x10000 - STACK_SIZE_TOTAL - 1 ) }
++#else
++  #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + 0x18000 - STACK_SIZE_TOTAL - 1 ) }
++#endif
+ 
+ // *****************************************************************************
+ // CPU constants that should be exposed to the eLua &quot;cpu&quot; module
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000336.html">[Elua-svn] r381 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000338.html">[Elua-svn] r383 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#337">[ date ]</a>
+              <a href="thread.html#337">[ thread ]</a>
+              <a href="subject.html#337">[ subject ]</a>
+              <a href="author.html#337">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

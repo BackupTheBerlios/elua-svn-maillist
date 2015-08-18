@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r511 - in trunk: . romfs src/platform/lpc24xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r511%20-%20in%20trunk%3A%20.%20romfs%20src/platform/lpc24xx&In-Reply-To=%3C200910311652.n9VGqgKq028687%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000466.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r511 - in trunk: . romfs src/platform/lpc24xx</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r511%20-%20in%20trunk%3A%20.%20romfs%20src/platform/lpc24xx&In-Reply-To=%3C200910311652.n9VGqgKq028687%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r511 - in trunk: . romfs src/platform/lpc24xx">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Oct 31 17:52:42 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000466.html">[Elua-svn] r510 - trunk/src/platform/lpc24xx
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#467">[ date ]</a>
+              <a href="thread.html#467">[ thread ]</a>
+              <a href="subject.html#467">[ subject ]</a>
+              <a href="author.html#467">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-10-31 17:52:40 +0100 (Sat, 31 Oct 2009)
+New Revision: 511
+
+Modified:
+   trunk/SConstruct
+   trunk/romfs/pwmled.lua
+   trunk/src/platform/lpc24xx/platform.c
+   trunk/src/platform/lpc24xx/platform_conf.h
+Log:
+added PWM to the LPC24xx platform (and also pwmled.lua)
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-10-31 14:06:29 UTC (rev 510)
++++ trunk/SConstruct	2009-10-31 16:52:40 UTC (rev 511)
+@@ -129,7 +129,7 @@
+               'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect','adcscope','adcpoll', 'dualpwm', 'pwmled' ],
+               'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ],
+-              'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ]
++              'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'pwmled' ]
+             }
+ 
+ # Variants: board = &lt;boardname&gt;
+
+Modified: trunk/romfs/pwmled.lua
+===================================================================
+--- trunk/romfs/pwmled.lua	2009-10-31 14:06:29 UTC (rev 510)
++++ trunk/romfs/pwmled.lua	2009-10-31 16:52:40 UTC (rev 511)
+@@ -4,6 +4,11 @@
+ if pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' or pd.board() == 'ET-STM32' then
+   pwmid, tmrid = 0, 1
+   pwm.setclock( pwmid, 25000000 )
++elseif pd.board() == 'ELUA-PUC' then
++  pwmid, tmrid = 7, 0
++  local psel = cpu.r32( cpu.IO_PINSEL3 )
++  psel = bit.bor( bit.band( psel, 0xFFFFFCFF ), 0x00000200 )
++  cpu.w32( cpu.IO_PINSEL3, psel )
+ else
+   print( pd.board() .. &quot; not supported by this example&quot; )
+   return
+
+Modified: trunk/src/platform/lpc24xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc24xx/platform.c	2009-10-31 14:06:29 UTC (rev 510)
++++ trunk/src/platform/lpc24xx/platform.c	2009-10-31 16:52:40 UTC (rev 511)
+@@ -27,6 +27,7 @@
+ // Platform initialization
+ 
+ static void platform_setup_timers();
++static void platform_setup_pwm();
+ 
+ // Power management definitions
+ enum
+@@ -38,7 +39,7 @@
+ };
+ 
+ // CPU initialization
+-static void platform_cpu_setup()
++static void platform_setup_cpu()
+ {
+   // Enable clock for UART2 and UART3
+   PCONP |= PCUART2 | PCUART3;
+@@ -57,12 +58,13 @@
+ int platform_init()
+ {
+   // Complete CPU initialization
+-  platform_cpu_setup();
++  platform_setup_cpu();
+ 
+-  // Setup timers
++  // Setup peripherals
+   platform_setup_timers();
++  platform_setup_pwm();
+ 
+-  // Initialize UART
++  // Initialize console UART
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+ 
+   // Common platform initialization code
+@@ -373,3 +375,124 @@
+   disable_ints();
+ }
+ 
++// ****************************************************************************
++// PWM functions
++
++static const u32 pwm_tcr[] = { ( u32 )&amp;PWM0TCR, ( u32 )&amp;PWM1TCR };
++static const u32 pwm_pr[] = { ( u32 )&amp;PWM0PR, ( u32 )&amp;PWM1PR };
++static const u32 pwm_pc[] = { ( u32 )&amp;PWM0PC, ( u32 )&amp;PWM1PC };
++static const u32 pwm_pcr[] = { ( u32 )&amp;PWM0PCR, ( u32 )&amp;PWM1PCR };
++static const u32 pwm_mcr[] = { ( u32 )&amp;PWM0MCR, ( u32 )&amp;PWM1MCR };
++static const u32 pwm_ler[] = { ( u32 )&amp;PWM0LER, ( u32 )&amp;PWM1LER };
++static const u32 pwm_channels[ 2 ][ 6 ] = 
++{
++  { ( u32 )&amp;PWM0MR1, ( u32 )&amp;PWM0MR2, ( u32 )&amp;PWM0MR3, ( u32 )&amp;PWM0MR4, ( u32 )&amp;PWM0MR5, ( u32 )&amp;PWM0MR6 },
++  { ( u32 )&amp;PWM1MR1, ( u32 )&amp;PWM1MR2, ( u32 )&amp;PWM1MR3, ( u32 )&amp;PWM1MR4, ( u32 )&amp;PWM1MR5, ( u32 )&amp;PWM1MR6 }, 
++};
++
++// Timer register definitions
++enum
++{
++  PWM_ENABLE = 1,
++  PWM_RESET = 2,
++  PWM_MODE = 8,
++  PWM_ENABLE_1 = 1 &lt;&lt; 9,
++  PWM_ENABLE_2 = 1 &lt;&lt; 10,
++  PWM_ENABLE_3 = 1 &lt;&lt; 11,
++  PWM_ENABLE_4 = 1 &lt;&lt; 12,
++  PWM_ENABLE_5 = 1 &lt;&lt; 13,
++  PWM_ENABLE_6 = 1 &lt;&lt; 14,
++};
++
++// Helper function: get timer clock
++static u32 platform_pwm_get_clock( unsigned id )
++{
++  unsigned pwmid = id / 6;
++  PREG PWMxPR = ( PREG )pwm_pr[ pwmid ];
++
++  return Fpclk / ( *PWMxPR + 1 );
++}
++
++// Helper function: set timer clock
++static u32 platform_pwm_set_clock( unsigned id, u32 clock )
++{
++  u32 div = Fpclk / clock, prevtc;
++  unsigned pwmid = id / 6;
++  PREG PWMxPR = ( PREG )pwm_pr[ pwmid ];  
++  PREG PWMxPC = ( PREG )pwm_pc[ pwmid ];
++  PREG PWMxTCR = ( PREG )pwm_tcr[ pwmid ]; 
++  
++  prevtc = *PWMxTCR;
++  *PWMxTCR = 0;
++  *PWMxPC = 0; 
++  *PWMxPR = div - 1;
++  *PWMxTCR = prevtc;
++  return Fpclk / div;
++}
++
++// Setup all PWM channels
++static void platform_setup_pwm()
++{
++  unsigned i;
++  PREG temp;
++
++  for( i = 0; i &lt; 2; i ++ )
++  {
++    // Keep clock in reset, set PWM code
++    temp = ( PREG )pwm_tcr[ i ];
++    *temp = PWM_RESET;
++    // Set match mode (reset on MR0 match)
++    temp = ( PREG )pwm_mcr[ i ];
++    *temp = 0x02; 
++    // Set base frequency to 1MHz
++    platform_pwm_set_clock( i * 6, 1000000 );
++  }
++}
++
++u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
++{
++  unsigned pwmid = id / 6, chid = id % 6;
++  PREG PWMxMR0 = pwmid == 0 ? ( PREG )&amp;PWM0MR0 : ( PREG )&amp;PWM1MR0;
++  PREG PWMxMRc = ( PREG )pwm_channels[ pwmid ][ chid ];
++  PREG PWMxLER = ( PREG )pwm_ler[ pwmid ];
++  u32 divisor;
++
++  divisor = platform_pwm_get_clock( id ) / frequency - 1;
++  *PWMxMR0 = divisor;
++  *PWMxMRc = ( divisor * duty ) / 100;
++  *PWMxLER = 1 | ( 1 &lt;&lt; ( chid + 1 ) );
++
++  return platform_pwm_get_clock( id ) / divisor;
++}
++
++u32 platform_pwm_op( unsigned id, int op, u32 data )
++{
++  u32 res = 0;
++  unsigned pwmid = id / 6;
++  PREG PWMxTCR = ( PREG )pwm_tcr[ pwmid ];
++  PREG PWMxPCR = ( PREG )pwm_pcr[ pwmid ];
++
++  switch( op )
++  {
++    case PLATFORM_PWM_OP_START:
++      *PWMxPCR = PWM_ENABLE_1 | PWM_ENABLE_2 | PWM_ENABLE_3 | PWM_ENABLE_4 | PWM_ENABLE_5 | PWM_ENABLE_6;
++      *PWMxTCR = PWM_ENABLE | PWM_MODE;
++      break;
++
++    case PLATFORM_PWM_OP_STOP:
++      *PWMxPCR = 0;   
++      *PWMxTCR = PWM_RESET;
++      break;
++
++    case PLATFORM_PWM_OP_SET_CLOCK:
++      res = platform_pwm_set_clock( id, data );
++      break;
++
++    case PLATFORM_PWM_OP_GET_CLOCK:
++      res = platform_pwm_get_clock( id );
++      break;
++  }
++
++  return res;
++}
++
+
+Modified: trunk/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc24xx/platform_conf.h	2009-10-31 14:06:29 UTC (rev 510)
++++ trunk/src/platform/lpc24xx/platform_conf.h	2009-10-31 16:52:40 UTC (rev 511)
+@@ -38,6 +38,7 @@
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 
+ // *****************************************************************************
+@@ -51,7 +52,7 @@
+ #define NUM_PIO               5
+ #define NUM_SPI               0
+ #define NUM_UART              4
+-#define NUM_PWM               0
++#define NUM_PWM               12
+ #define NUM_ADC               0
+ #define NUM_CAN               0
+ // If virtual timers are enabled, the last timer will be used only for them
+@@ -84,5 +85,34 @@
+ #define MEM_START_ADDRESS     { ( void* )end }
+ #define MEM_END_ADDRESS       { ( void* )( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ) }
+ 
++// *****************************************************************************
++// CPU constants that should be exposed to the eLua &quot;cpu&quot; module
++
++#define PINSEL_BASE_ADDR	0xE002C000
++#define IO_PINSEL0           ( PINSEL_BASE_ADDR + 0x00 )
++#define IO_PINSEL1           ( PINSEL_BASE_ADDR + 0x04 )
++#define IO_PINSEL2           ( PINSEL_BASE_ADDR + 0x08 )
++#define IO_PINSEL3           ( PINSEL_BASE_ADDR + 0x0C )
++#define IO_PINSEL4           ( PINSEL_BASE_ADDR + 0x10 )
++#define IO_PINSEL5           ( PINSEL_BASE_ADDR + 0x14 )
++#define IO_PINSEL6           ( PINSEL_BASE_ADDR + 0x18 )
++#define IO_PINSEL7           ( PINSEL_BASE_ADDR + 0x1C )
++#define IO_PINSEL8           ( PINSEL_BASE_ADDR + 0x20 )
++#define IO_PINSEL9           ( PINSEL_BASE_ADDR + 0x24 )
++#define IO_PINSEL10          ( PINSEL_BASE_ADDR + 0x28 )
++
++#define PLATFORM_CPU_CONSTANTS\
++ _C( IO_PINSEL0 ),\
++ _C( IO_PINSEL1 ),\
++ _C( IO_PINSEL2 ),\
++ _C( IO_PINSEL3 ),\
++ _C( IO_PINSEL4 ),\
++ _C( IO_PINSEL5 ),\
++ _C( IO_PINSEL6 ),\
++ _C( IO_PINSEL7 ),\
++ _C( IO_PINSEL8 ),\
++ _C( IO_PINSEL9 ),\
++ _C( IO_PINSEL10 )
++ 
+ #endif // #ifndef __PLATFORM_CONF_H__
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000466.html">[Elua-svn] r510 - trunk/src/platform/lpc24xx
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#467">[ date ]</a>
+              <a href="thread.html#467">[ thread ]</a>
+              <a href="subject.html#467">[ subject ]</a>
+              <a href="author.html#467">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

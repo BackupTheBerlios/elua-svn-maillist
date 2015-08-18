@@ -1,0 +1,2808 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r879 - trunk/romfs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r879%20-%20trunk/romfs&In-Reply-To=%3C20110109233158.2CE3E480D97%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000831.html">
+   <LINK REL="Next"  HREF="000833.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r879 - trunk/romfs</H1>
+    <B>dadosutter at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r879%20-%20trunk/romfs&In-Reply-To=%3C20110109233158.2CE3E480D97%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r879 - trunk/romfs">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Mon Jan 10 00:31:57 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000831.html">[Elua-svn] r878 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000833.html">[Elua-svn] r880 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#832">[ date ]</a>
+              <a href="thread.html#832">[ thread ]</a>
+              <a href="subject.html#832">[ subject ]</a>
+              <a href="author.html#832">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2011-01-10 00:31:57 +0100 (Mon, 10 Jan 2011)
+New Revision: 879
+
+Removed:
+   trunk/romfs/EK-LM3S1968.lua
+   trunk/romfs/EK-LM3S6965.lua
+   trunk/romfs/EK-LM3S8962.lua
+   trunk/romfs/MBED.lua
+   trunk/romfs/adcpoll.lua
+   trunk/romfs/adcscope.lua
+   trunk/romfs/bisect.lua
+   trunk/romfs/codes.bin
+   trunk/romfs/dataflash.lua
+   trunk/romfs/dualpwm.lua
+   trunk/romfs/hangman.lua
+   trunk/romfs/hello.lua
+   trunk/romfs/index.pht
+   trunk/romfs/info.lua
+   trunk/romfs/inttest.lua
+   trunk/romfs/led.lua
+   trunk/romfs/lhttpd.lua
+   trunk/romfs/life.lua
+   trunk/romfs/logo.bin
+   trunk/romfs/logo.lua
+   trunk/romfs/morse.lua
+   trunk/romfs/piano.lua
+   trunk/romfs/pong.lua
+   trunk/romfs/pwmled.lua
+   trunk/romfs/snake.lua
+   trunk/romfs/spaceship.lua
+   trunk/romfs/test.lua
+   trunk/romfs/tetrives.lua
+   trunk/romfs/tvbgone.lua
+Log:
+- Removing eLua exemples from the official distro's ROMFS
+
+
+
+Deleted: trunk/romfs/EK-LM3S1968.lua
+===================================================================
+--- trunk/romfs/EK-LM3S1968.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/EK-LM3S1968.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,34 +0,0 @@
+---   This auxiliar platform dependent module defines some hardware devices
+--- available in the specific development kit.
+---   It will be automatically require()d when eLua detects it is running on the
+--- respective platform, exposing auxiliar constants and functions to facilitate
+--- and keep portable the access to the underlying hardware.
+---   The code configures the MCU to interface with the platform devices and
+--- exposes the following  objects, constants and fuctions:
+--- Onboard Buttons:
+---    BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT
+--- Onboard LED:
+--- Auxiliar Function:
+---    btn_pressed( button )
+---    returns true if the arg button is pressed, false otherwise
+-
+-local pio = pio
+-  
+-module(...)
+-
+-BTN_UP      = pio.PG_3
+-BTN_DOWN    = pio.PG_4
+-BTN_LEFT    = pio.PG_5
+-BTN_RIGHT   = pio.PG_6
+-BTN_SELECT  = pio.PG_7
+-
+-btn_pressed = function( button )
+-  return pio.pin.getval( button ) == 0
+-end
+-
+-LED_1 = pio.PG_2
+-
+-pio.pin.setdir( pio.INPUT, BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT )
+-pio.pin.setpull( pio.PULLUP, BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT )
+-pio.pin.setdir( pio.OUTPUT, LED_1 )
+-
+
+Deleted: trunk/romfs/EK-LM3S6965.lua
+===================================================================
+--- trunk/romfs/EK-LM3S6965.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/EK-LM3S6965.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,37 +0,0 @@
+---   This auxiliary platform dependent module defines some hardware devices
+--- available in the specific development kit.
+---   It will be automatically require()d when eLua detects it is running on the
+--- respective platform, exposing auxiliary constants and functions to facilitate
+--- and keep portable the access to the underlying hardware.
+---   The code configures the MCU to interface with the platform devices and
+--- exposes the following  objects, constants and functions:
+--- On-board buttons:
+---    BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT
+--- On-board LED:
+---    LED_1  
+--- On-board LED:
+--- Auxiliary Function:
+---    btn_pressed( button )
+---    returns true if the arg button is pressed, false otherwise
+-
+-local pio = pio
+-local lm3s = lm3s 
+-  
+-module(...)
+-
+-BTN_UP      = pio.PE_0
+-BTN_DOWN    = pio.PE_1
+-BTN_LEFT    = pio.PE_2
+-BTN_RIGHT   = pio.PE_3
+-BTN_SELECT  = pio.PF_1
+-
+-btn_pressed = function( button )
+-  return pio.pin.getval( button ) == 0
+-end
+-
+-LED_1 = pio.PF_0
+-
+-pio.pin.setdir( pio.INPUT, BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT )
+-pio.pin.setpull( pio.PULLUP, BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT )
+-pio.pin.setdir( pio.OUTPUT, LED_1 )
+-
+
+Deleted: trunk/romfs/EK-LM3S8962.lua
+===================================================================
+--- trunk/romfs/EK-LM3S8962.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/EK-LM3S8962.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,37 +0,0 @@
+---   This auxiliary platform dependent module defines some hardware devices
+--- available in the specific development kit.
+---   It will be automatically require()d when eLua detects it is running on the
+--- respective platform, exposing auxiliary constants and functions to facilitate
+--- and keep portable the access to the underlying hardware.
+---   The code configures the MCU to interface with the platform devices and
+--- exposes the following  objects, constants and functions:
+--- On-board buttons:
+---    BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT
+--- On-board LED:
+---    LED_1  
+--- On-board LED:
+--- Auxiliary Function:
+---    btn_pressed( button )
+---    returns true if the arg button is pressed, false otherwise
+-
+-local pio = pio
+-local lm3s = lm3s
+-
+-module(...)
+-
+-BTN_UP      = pio.PE_0
+-BTN_DOWN    = pio.PE_1
+-BTN_LEFT    = pio.PE_2
+-BTN_RIGHT   = pio.PE_3
+-BTN_SELECT  = pio.PF_1
+-
+-btn_pressed = function( button )
+-  return pio.pin.getval( button ) == 0
+-end
+-
+-LED_1 = pio.PF_0
+-
+-pio.pin.setdir( pio.INPUT, BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT )
+-pio.pin.setpull( pio.PULLUP, BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT )
+-pio.pin.setdir( pio.OUTPUT, LED_1 )
+-
+
+Deleted: trunk/romfs/MBED.lua
+===================================================================
+--- trunk/romfs/MBED.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/MBED.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,23 +0,0 @@
+---   This auxiliary platform dependent module defines some hardware devices
+--- available in the specific development kit.
+---   It will be automatically require()d when eLua detects it is running on the
+--- respective platform, exposing auxiliary constants and functions to facilitate
+--- and keep portable the access to the underlying hardware.
+---   The code configures the MCU to interface with the platform devices and
+--- exposes the following  objects, constants and functions:
+--- On-board LEDs:
+---  Led1, Led2, Led3 and Led4
+-
+-local pio = pio
+-  
+-module(...)
+-
+-LED_1 = mbed.pio.LED1
+-LED_2 = mbed.pio.LED2
+-LED_3 = mbed.pio.LED3
+-LED_4 = mbed.pio.LED4
+-
+-pio.pin.setdir( pio.OUTPUT, LED_1 )
+-pio.pin.setdir( pio.OUTPUT, LED_2 )
+-pio.pin.setdir( pio.OUTPUT, LED_3 )
+-pio.pin.setdir( pio.OUTPUT, LED_4 )
+
+Deleted: trunk/romfs/adcpoll.lua
+===================================================================
+--- trunk/romfs/adcpoll.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/adcpoll.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,53 +0,0 @@
+--- Acquire ADC samples using a timer with polling for available samples
+-
+-if pd.board() == &quot;ET-STM32&quot; then
+-  timer = 2
+-  adcchannels = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}
+-  adcsmoothing = {4, 4, 4, 4, 16, 16, 16, 16, 32, 32, 32, 32, 64, 128, 64, 128}
+-elseif pd.board() == &quot;MBED&quot; or pd.board() == &quot;ELUA-PUC&quot; then
+-  timer = 1
+-  adcchannels = {0,1,2,3,4,5}
+-  adcsmoothing = {4, 4, 16, 16, 32, 32}
+-else
+-  timer = 0
+-  adcchannels = {0,1,2,3}
+-  adcsmoothing = {4, 64, 32, 16}
+-end
+-
+--- Setup ADC and start sampling
+-for i, v in ipairs(adcchannels) do
+-  adc.setblocking(v,0) -- no blocking on any channels
+-  adc.setsmoothing(v,adcsmoothing[i]) -- set smoothing from adcsmoothing table
+-  adc.setclock(v, 4 ,timer) -- get 4 samples per second, per channel
+-end
+-
+--- Draw static text on terminal
+-term.clrscr()
+-term.print(1,1,&quot;ADC Status:&quot;)
+-term.print(1,3,&quot; CH   SLEN   RES&quot;)
+-term.print(1,#adcchannels+5,&quot;Press ESC to exit.&quot;)
+-
+--- start sampling on all channels at the same time 
+-adc.sample(adcchannels,128) 
+-
+-while true do
+-  for i, v in ipairs(adcchannels) do
+-    -- If samples are not being collected, start
+-    if adc.isdone(v) == 1 then adc.sample(v,128) end 
+-    
+-    -- Try and get a sample
+-    tsample = adc.getsample(v)
+-    
+-    -- If we have a new sample, then update display
+-    if not (tsample == nil) then 
+-    	term.print(1,i+3,string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i], tsample))
+-    end
+-  end
+-  
+-  -- Exit if user hits Escape
+-  key = term.getchar( term.NOWAIT )
+-  if key == term.KC_ESC then break end 
+-end
+-
+-term.clrscr()
+-term.moveto(1, 1)
+
+Deleted: trunk/romfs/adcscope.lua
+===================================================================
+--- trunk/romfs/adcscope.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/adcscope.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,66 +0,0 @@
+--- Acquire ADC samples as quickly as possible, without the use of a timer
+---  provides statistics on time and memory usage while running
+-
+-if pd.board() == &quot;ET-STM32&quot; then
+-  adcchannels = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}
+-  adcsmoothing = {4, 4, 4, 4, 16, 16, 16, 16, 32, 32, 32, 32, 64, 128, 64, 128}
+-  numiter = 50
+-elseif pd.board() == &quot;MBED&quot; or pd.board() == &quot;ELUA-PUC&quot; then
+-  adcchannels = {0,1,2,3,4,5}
+-  adcsmoothing = {4, 4, 16, 16, 32, 32}
+-  numiter = 2
+-else
+-  adcchannels = {0,1,2,3}
+-  adcsmoothing = {4, 16, 64, 128}
+-  numiter = 200
+-end
+-
+--- Setup ADC
+-for i, v in ipairs(adcchannels) do
+-  adc.setblocking(v,1) -- block, waiting for samples when an adc.get* function is used
+-  adc.setclock(v,0) -- set clock to zero: no timer, acquire samples as fast as possible
+-  adc.setsmoothing(v,adcsmoothing[i]) -- apply moving average filter using lengths from adcsmoothing
+-end
+-
+--- Draw static text on terminal
+-term.clrscr()
+-term.print(1,1,&quot;ADC Status:&quot;)
+-term.print(1,3,&quot; CH   SLEN   RES&quot;)
+-term.print(1,#adcchannels+7,&quot;Press ESC to exit.&quot;)
+-
+--- Use some locals for speed
+-local adcvals = {}
+-local key, stime, etime, dtime, i, v
+-local sample = adc.sample
+-local insertsamples = adc.insertsamples
+-local tread = tmr.read
+-local tstart = tmr.start
+-
+-while true do
+-  stime = tstart(0) -- start timer
+-  for j=1,numiter do -- acuire numiter samples
+-    sample(adcchannels, 1)
+-    for i, v in ipairs(adcchannels) do
+-      insertsamples(v,adcvals,i,1) -- for each iteration j, get samples and put them in adcvals
+-    end
+-  end
+-  etime = tread(0) -- get cycle end time
+-  dtime = tmr.gettimediff(0,etime,stime)/numiter -- compute average acquisition time per cycle
+-  
+-  -- draw last acquired samples on the console
+-  term.moveto(1,4)
+-  for i, v in ipairs(adcchannels) do
+-    term.print(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
+-    term.moveto(1,i+4)
+-  end
+-  
+-  -- draw acquisition statistics
+-  term.print(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
+-	term.print(1,#adcchannels+5,string.format(&quot;Mem:  %03.2f (kB)\n&quot;,collectgarbage(&quot;count&quot;)))
+-
+-  key = term.getchar( term.NOWAIT )
+-  if key == term.KC_ESC then break end -- exit if user hits Escape
+-end
+-
+-term.clrscr()
+-term.moveto( 1 , 1 )
+
+Deleted: trunk/romfs/bisect.lua
+===================================================================
+--- trunk/romfs/bisect.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/bisect.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,27 +0,0 @@
+--- bisection method for solving non-linear equations
+-
+-delta=1e-6  -- tolerance
+-
+-function bisect(f,a,b,fa,fb)
+- local c=(a+b)/2
+- io.write(n,&quot; c=&quot;,c,&quot; a=&quot;,a,&quot; b=&quot;,b,&quot;\n&quot;)
+- if c==a or c==b or math.abs(a-b)&lt;delta then return c,b-a end
+- n=n+1
+- local fc=f(c)
+- if fa*fc&lt;0 then return bisect(f,a,c,fa,fc) else return bisect(f,c,b,fc,fb) end
+-end
+-
+--- find root of f in the inverval [a,b]. needs f(a)*f(b)&lt;0
+-function solve(f,a,b)
+- n=0
+- local z,e=bisect(f,a,b,f(a),f(b))
+- io.write(string.format(&quot;after %d steps, root is %.17g with error %.1e, f=%.1e\n&quot;,n,z,e,f(z)))
+-end
+-
+--- our function
+-function f(x)
+- return x*x*x-x-1
+-end
+-
+--- find zero in [1,2]
+-solve(f,1,2)
+
+Deleted: trunk/romfs/codes.bin
+===================================================================
+(Binary files differ)
+
+Deleted: trunk/romfs/dataflash.lua
+===================================================================
+--- trunk/romfs/dataflash.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/dataflash.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,34 +0,0 @@
+--- eLua test 
+-
+-local cspin, id
+-
+-if pd.board() == &quot;ATEVK1101&quot; then
+-  cspin = pio.PA_16
+-  id = 0
+-elseif pd.board() == &quot;ATEVK1100&quot; then
+-  cspin = pio.PA_14
+-  id = 4
+-else
+-  print( &quot;\nError: Unknown board &quot; .. pd.board() .. &quot; !&quot; )
+-  return
+-end
+-
+-function select()
+-    pio.pin.setlow( cspin ) 
+-end
+-
+-function unselect()    
+-    pio.pin.sethigh( cspin ) 
+-end
+-
+-
+-pio.pin.setdir( pio.OUTPUT, cspin )
+-spi.setup( id, spi.MASTER, 1000000, 0, 0, 8 )
+-
+-print( &quot;&quot; )
+-
+-select()
+-spi.write( id, 0x9F )
+-print( &quot;JEDEC Manufacturer ID : &quot;, spi.readwrite( id, 0 )[1] )
+-unselect()
+-
+
+Deleted: trunk/romfs/dualpwm.lua
+===================================================================
+--- trunk/romfs/dualpwm.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/dualpwm.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,39 +0,0 @@
+--- Control LED intensity with PWM on two channels
+-
+-local pwmid1, pwmid2, tmrid
+-
+-if pd.board() == 'MOD711' or pd.board() == 'ET-STM32' then
+-  pwmid1, pwmid2, tmrid = 0, 1, 3
+-elseif pd.board() == 'MBED' then
+-  pwmid1, pwmid2, tmrid = 1, 2, 0
+-  mbed.pio.configpin(mbed.pio.LED1, 2, 0, 0)
+-  mbed.pio.configpin(mbed.pio.LED2, 2, 0, 0)
+-else
+-  print( pd.board() .. &quot; not supported by this example&quot; )
+-  return
+-end
+- 
+-print &quot;Control LED with PWM (fade up/down)&quot;
+-print &quot;Press any key to exit&quot;
+-local crtduty, incr = 10, 5
+-tmr.start( tmrid )
+-
+-pwm.setup( pwmid1, 50000, crtduty )
+-pwm.setup( pwmid2, 50000, 100 - crtduty )
+-
+-pwm.start( pwmid1 )
+-pwm.start( pwmid2 )
+-
+-while uart.getchar( 1, 0 ) == &quot;&quot; do
+-  if crtduty == 95 or crtduty == 5 then
+-    incr = -incr
+-  end
+-  crtduty = crtduty + incr
+-  pwm.setup( pwmid1, 50000, crtduty )
+-  pwm.setup( pwmid2, 50000, 100 - crtduty )  
+-  tmr.delay( tmrid, 50000 )
+-end
+-
+-pwm.stop( pwmid1 )
+-pwm.stop( pwmid2 )
+-
+
+Deleted: trunk/romfs/hangman.lua
+===================================================================
+--- trunk/romfs/hangman.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/hangman.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,136 +0,0 @@
+--- Hangman in eLua using the 'term' module
+--- Inspired by the original 'hangman' from the bsdgames package
+-
+--- we need a random function
+--- using math.random for now, which implies target=lua, not lualong
+-if not math then
+-  print &quot;\nError: Hangman needs the math module (disabled when target=lualong) !&quot;
+-  return
+-end
+-
+-local h, w = term.getlines(), term.getcols()
+-local tries = 0
+-
+--- &quot;Database&quot; with our words
+-local words = { &quot;simple&quot;, &quot;hangman&quot;, &quot;guess&quot;, &quot;elua&quot;, &quot;inane&quot;, &quot;serial&quot;, 
+-  &quot;stupenduous&quot;, &quot;software&quot; }
+-
+--- Build our hanging site :)
+-function hang()
+-  if tries == 0 then
+-    -- Build the basic structure
+-    term.print( 5, 1, string.rep( '_', 6 ) )
+-    term.print( 5, 2, '|    |')
+-    for i = 3, 6 do
+-      term.print( 5, i, '|' )
+-    end
+-    term.print( 3, 7, '__|_____')
+-    term.print( 3, 8, '|      |___')
+-    term.print( 3, 9, '|__________|') 
+-    
+-  elseif tries == 1 then
+-    -- Draw the head
+-    term.print( 10, 3, &quot;O&quot; )
+-    
+-  elseif tries == 2 or tries == 3 then
+-    -- First or second part of body
+-    term.print( 10, tries + 2, &quot;|&quot; )
+-    
+-  elseif tries == 4 or tries == 5 then
+-    -- First leg / first hand
+-    term.print( 9, tries == 4 and 6 or 4, &quot;/&quot; )
+-  
+-  elseif tries == 6 or tries == 7 then
+-    -- Second hand / second leg
+-    term.print( 11, tries == 7 and 6 or 4, &quot;\\&quot; )
+-  end  
+-end
+-
+-local total, guessed = 0, 0
+-
+--- Show the game statistics
+-function stats()
+-  term.print( w - 20, 5, &quot;Total words: &quot;, tostring( total ) )
+-  term.print( w - 20, 6, &quot;Guessed words: &quot;, tostring( guessed ) )
+-end
+-
+-while true do
+-  term.clrscr()
+-  term.print( 3, 12, &quot;eLua hangman&quot; )
+-  term.print( 3, 13, &quot;ESC to exit&quot; )
+-  stats()
+-  
+-  -- Draw the hanging site
+-  tries = 0
+-  hang()
+-    
+-  -- Then write the &quot;Guess&quot; line
+-  term.print( 2, h - 3, &quot;Word: &quot; )
+-  local lword = words[ math.random( #words ) ]:lower()
+-  term.print( string.rep( &quot;-&quot;, #lword ) )
+-  term.print( 2, h - 2, &quot;Guess: &quot; )
+-  
+-  local nguess = 0
+-  local tried = {}
+-  local key
+-  while tries &lt; 7 and nguess &lt; #lword do     
+-    key = term.getchar()
+-    if key == term.KC_ESC then break end
+-    if key &gt; 0 and key &lt; 255 then
+-      key = string.char( key ):lower()
+-      term.moveto( 2, h - 1 )
+-      term.clreol()       
+-      if not key:find( '%l' ) then
+-        term.print( &quot;Invalid character&quot; )
+-      else
+-        key = key:byte()
+-        if tried[ key ] ~= nil then
+-          term.print( &quot;Already tried this key&quot; )
+-        else
+-          tried[ key ] = true
+-          local i
+-          local ok = false
+-          for i = 1, #lword do
+-            if key == lword:byte( i ) then
+-              ok = true
+-              term.print( 7 + i, h - 3, string.char( key ) )
+-              nguess = nguess + 1
+-            end
+-          end
+-          if not ok then
+-            tries = tries + 1
+-            hang()
+-          end
+-        end
+-      end
+-      term.moveto( 9, h - 2 )
+-    end
+-  end
+-  if key == term.KC_ESC then break end 
+-  
+-  term.moveto( 2, h - 1 )
+-  total = total + 1
+-  if nguess == #lword then
+-    term.print( &quot;Congratulations! Another game? (y/n)&quot; )
+-    guessed = guessed + 1
+-  else
+-    term.print( 8, h - 3, lword )
+-    term.print( 2, h - 1, &quot;Game over. Another game? (y/n)&quot; )
+-  end
+-  
+-  -- Show statistics again
+-  stats()
+-  
+-  repeat
+-    key = string.char( term.getchar() ):lower()
+-  until key == 'y' or key == 'n'
+-    
+-  if key == 'n' then 
+-    break
+-  end
+-  
+-end
+-
+-term.clrscr()
+-term.moveto( 1 , 1 )
+-
+
+Deleted: trunk/romfs/hello.lua
+===================================================================
+--- trunk/romfs/hello.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/hello.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1 +0,0 @@
+-print(&quot;Hello, World!&quot;)
+
+Deleted: trunk/romfs/index.pht
+===================================================================
+--- trunk/romfs/index.pht	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/index.pht	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,50 +0,0 @@
+-&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD HTML 4.01//EN&quot; &quot;<A HREF="http://www.w3.org/TR/html4/strict.dtd">http://www.w3.org/TR/html4/strict.dtd</A>&quot;&gt;
+-&lt;html&gt;&lt;head&gt;&lt;title&gt;eLua webserver test&lt;/title&gt;
+-&lt;/head&gt;&lt;body&gt;
+-&lt;p align=&quot;center&quot;&gt;&lt;big&gt;Welcome to the &lt;b&gt;eLua&lt;/b&gt; web server!&lt;/big&gt;&lt;br&gt;&lt;/p&gt;
+-&lt;br&gt;
+-&lt;div style=&quot;text-align: left;&quot;&gt;The right column of the following table is generated by embedded Lua code:&lt;br&gt;
+-&lt;br&gt;
+-&lt;table width=&quot;400&quot; border=&quot;1&quot; cellpadding=&quot;2&quot; cellspacing=&quot;2&quot;&gt;
+-&lt;tbody&gt;
+-&lt;tr&gt;
+-&lt;td&gt;&lt;b&gt;eLua CPU&lt;/b&gt;&lt;/td&gt;
+-&lt;td&gt;&lt;?lua print(pd.cpu()) ?&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td&gt;&lt;b&gt;eLua board&lt;/b&gt;&lt;/td&gt;
+-&lt;td&gt;&lt;?lua print(pd.board()) ?&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;/tbody&gt;
+-&lt;/table&gt;
+-&lt;br&gt;
+-And now let's test CGI. Use the form below to control the on-board LED.&lt;br&gt;&lt;br&gt;
+-&lt;form method=&quot;get&quot; action=&quot;/index.pht&quot; name=&quot;led&quot;&gt;
+-&lt;table width=&quot;400&quot; border=&quot;0&quot; cellpadding=&quot;2&quot; cellspacing=&quot;2&quot;&gt;
+-&lt;tbody&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;center&quot;&gt;&lt;input type=&quot;submit&quot; value=&quot;Led ON&quot; name=&quot;ledon&quot;&gt;&lt;/td&gt;
+-&lt;td style=&quot;center&quot;&gt;&lt;input type=&quot;submit&quot; value=&quot;Led OFF&quot; name=&quot;ledoff&quot;&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;/tbody&gt;
+-&lt;/table&gt;
+-&lt;/form&gt;
+-&lt;?lua
+-  pio.pin.setdir( pio.OUTPUT, pio.PF_0 )
+-  if reqdata['ledon'] then
+-    pio.pin.sethigh( pio.PF_0 )
+-    print '&lt;br&gt;&lt;font color=&quot;blue&quot;&gt;&lt;b&gt;The LED is now ON&lt;/b&gt;&lt;/font&gt;&lt;br&gt;'
+-  elseif reqdata['ledoff'] then
+-    pio.pin.setlow( pio.PF_0 )
+-    print '&lt;br&gt;&lt;font color=&quot;blue&quot;&gt;&lt;b&gt;The LED is now OFF&lt;/b&gt;&lt;/font&gt;&lt;br&gt;'    
+-  elseif next(reqdata) ~= nil then
+-    print '&lt;br&gt;&lt;font color=&quot;red&quot;&gt;&lt;b&gt;Invalid CGI request!&lt;/b&gt;&lt;/font&gt;&lt;br&gt;'    
+-  end
+-?&gt;
+-&lt;br&gt;
+-
+-Press &lt;a href=&quot;/test.lua&quot;&gt;here&lt;/a&gt; to go to a test page generated completely by a Lua script.&lt;br&gt;
+-&lt;br&gt;
+-&lt;span style=&quot;font-weight: bold;&quot;&gt;AND MOST IMPORTANTLY... remember to have fun with eLua! :)&lt;/span&gt;&lt;br&gt;
+-&lt;/div&gt;
+-&lt;/body&gt;&lt;/html&gt;
+
+Deleted: trunk/romfs/info.lua
+===================================================================
+--- trunk/romfs/info.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/info.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,3 +0,0 @@
+-print( &quot;I'm running on platform &quot; .. pd.platform() )
+-print( &quot;The CPU is a &quot; .. pd.cpu() )
+-print( &quot;The board name is &quot; .. pd.board() )
+
+Deleted: trunk/romfs/inttest.lua
+===================================================================
+--- trunk/romfs/inttest.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/inttest.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,45 +0,0 @@
+-local vtmrid = tmr.VIRT0
+-local to = 1500000
+-local uartid = 0 
+-local new_prev_tmr, prev_tmr, prev_gpio
+-
+-local function tmr_handler( resnum )
+-  print( string.format( &quot;Timer interrupt for timer %d&quot;, resnum ) )
+-  if prev_tmr then prev_tmr( resnum ) end
+-end
+-
+-local function new_tmr_handler( resnum )
+-  print( string.format( &quot;NEW HANDLER: timer interrupt for timer %d&quot;, resnum ) )
+-  if new_prev_tmr then new_prev_tmr( resnum ) end
+-end
+-
+-local function gpio_negedge_handler( resnum )
+-  local port, pin = pio.decode( resnum )
+-  print( string.format( &quot;Port is %d, pin is %d&quot;, port, pin ) )
+-  if prev_gpio then prev_gpio( resnum ) end
+-end
+-
+-prev_tmr = cpu.set_int_handler( cpu.INT_TMR_MATCH, tmr_handler )
+-prev_gpio = cpu.set_int_handler( cpu.INT_GPIO_NEGEDGE, gpio_negedge_handler )
+-tmr.set_match_int( vtmrid, to, tmr.INT_CYCLIC )
+-cpu.sei( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )
+-cpu.sei( cpu.INT_TMR_MATCH, vtmrid )
+-
+-local tmrid, count = 0, 0
+-while true do
+-  print &quot;Outside interrupt&quot; 
+-  for i = 1, 1000 do tmr.delay( tmrid, 1000 ) end
+-  if uart.getchar( uartid, 0 ) ~= &quot;&quot; then break end 
+-  count = count + 1
+-  if count == 5 then
+-    print &quot;Changing timer interrupt handler&quot;
+-    new_prev_tmr = cpu.set_int_handler( cpu.INT_TMR_MATCH, new_tmr_handler )
+-  end
+-end
+-
+-tmr.set_match_int( vtmrid, 0, tmr.INT_CYCLIC );
+-cpu.cli( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )
+-cpu.cli( cpu.INT_TMR_MATCH, vtmrid )
+-cpu.set_int_handler( cpu.INT_TMR_MATCH, nil );
+-cpu.set_int_handler( cpu.INT_GPIO_NEGEDGE, nil );
+-
+
+Deleted: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/led.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,64 +0,0 @@
+--- eLua test 
+-
+-local uartid, invert, ledpin = 0, false
+-if pd.board() == &quot;SAM7-EX256&quot; then
+-  ledpin = pio.PB_20
+-elseif pd.board() == &quot;EK-LM3S1968&quot; then
+-  ledpin = pio.PG_2
+-elseif pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+-  ledpin = pio.PF_0
+-elseif pd.board() == &quot;EAGLE-100&quot; then
+-  ledpin = pio.PE_1
+-elseif pd.board() == &quot;STR9-COMSTICK&quot; then
+-  ledpin = pio.P9_0
+-elseif pd.board() == &quot;LPC-H2888&quot; then
+-  ledpin = pio.P2_1
+-elseif pd.board() == &quot;MOD711&quot; then
+-  ledpin = pio.P1_7
+-  uartid = 1
+-elseif pd.board() == &quot;ATEVK1100&quot; then
+-  ledpin = pio.PB_27
+-  invert = true
+-elseif pd.board() == &quot;ATEVK1101&quot; then
+-  ledpin = pio.PA_8
+-  invert = true  
+-  uartid = 1
+-elseif pd.board() == &quot;MIZAR32&quot; then
+-  ledpin = pio.PB_29
+-  invert = true
+-elseif pd.board() == &quot;STR-E912&quot; then
+-  ledpin = pio.P6_4
+-elseif pd.board() == &quot;ELUA-PUC&quot; then
+-  ledpin = pio.P1_20
+-elseif pd.board() == &quot;MBED&quot; then
+-  ledpin = mbed.pio.LED1
+-  mbed.pio.configpin( ledpin, 0, 0, 0 )
+-else
+-  print( &quot;\nError: Unknown board &quot; .. pd.board() .. &quot; !&quot; )
+-  return
+-end
+-
+-function cycle()
+-  if not invert then 
+-    pio.pin.sethigh( ledpin ) 
+-  else 
+-    pio.pin.setlow( ledpin ) 
+-  end
+-  tmr.delay( 0, 500000 )
+-  if not invert then 
+-    pio.pin.setlow( ledpin ) 
+-  else 
+-    pio.pin.sethigh( ledpin ) 
+-  end
+-  tmr.delay( 0, 500000 )
+-end
+-
+-pio.pin.setdir( pio.OUTPUT, ledpin )
+-print( &quot;Hello from eLua on &quot; .. pd.board() )
+-print &quot;Watch your LED blinking :)&quot;
+-print &quot;Press any key to end this demo.\n&quot;
+-
+-while uart.getchar( uartid, 0 ) == &quot;&quot; do
+-  cycle()
+-end
+-
+
+Deleted: trunk/romfs/lhttpd.lua
+===================================================================
+--- trunk/romfs/lhttpd.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/lhttpd.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,122 +0,0 @@
+--- Check platform
+-if pd.board() ~= 'EK-LM3S8962' and pd.board() ~= 'EK-LM3S6965' and pd.board() ~= 'EAGLE-100' and pd.board() ~= 'EK-LM3S9B92' then
+-  print( pd.board() .. &quot; not supported by this example&quot; )
+-  return
+-end
+-
+--- Mapping between file extension (and request) and HTTP response
+-local extmap = {
+-  txt = &quot;text/plain&quot;,
+-  htm = &quot;text/html&quot;,
+-  pht = &quot;text/html&quot;,
+-  gif = &quot;image/gif&quot;,
+-  jpg = &quot;imge/jpeg&quot;,
+-  png = &quot;image/png&quot;,
+-  lua = &quot;text/html&quot;
+-}
+-
+-local basedir = &quot;/rom/&quot;
+-reqdata = {}
+-
+--- Auxiliary function: execute the given code with a substituted &quot;print&quot;
+--- that prints everything to a string, return the code output
+-local function docode(thecode)
+-  local strbuf = {}
+-  local oldprint, newprint =  print, function(...)
+-    local total, idx = select('#', ...)
+-    for idx = 1, total do
+-      strbuf[#strbuf + 1] = tostring(select(idx, ...)) .. (idx == total and '\n' or '\t')
+-    end
+-  end
+-  print = newprint
+-  local f = loadstring(thecode)
+-  if f then
+-    f()
+-  else
+-    print &quot;&gt;&gt;&gt; Invalid Lua code &lt;&lt;&lt;&quot;
+-  end
+-  print = oldprint
+-  collectgarbage('collect')
+-  return table.concat(strbuf)
+-end
+-
+-function process(header)
+-    -- look for first line
+-	local s, e = header:find(&quot;[^\n]+\n&quot;)
+-	local reqstr = header:sub(s, e)
+-  local respheader, respdata = '', ''
+-  
+-  reqdata = {}
+-	-- check if the request is valid, also keep the actual request
+-	local i, valid, req = 0, false
+-	for w in reqstr:gmatch(&quot;%S+&quot;) do
+-	  valid = ( i == 0 and w == &quot;GET&quot; ) or valid
+-	  req = ( i == 1 and w ) or req
+-	  i = i + 1
+-	end
+-
+-    -- valid is true if the request is valid, req has the request string
+-	if valid then
+-    -- now look for all parameters in this request (if any)
+-    local fname = &quot;&quot;
+-    if req:find(&quot;%?&quot;) then
+-      local rest
+-      _, _, fname, rest = req:find(&quot;(.*)%?(.*)&quot;)
+-      -- small trick: end &quot;rest&quot; with a &quot;&amp;&quot; for easier processing
+-      -- now look for &quot;var=value&quot; pairs in the request (GET encoding)
+-      rest = rest .. &quot;&amp;&quot;
+-      for crtpair in rest:gmatch(&quot;[^&amp;]+&quot;) do
+-        local _, __, k, v = crtpair:find(&quot;(.*)=(.*)&quot;)
+-        -- replace all &quot;%xx&quot; characters with their actual value
+-        v = v:gsub(&quot;(%%%x%x)&quot;, function(s) return string.char(tonumber(s:sub(2, -1), 16)) end)
+-        reqdata[k] = v
+-      end
+-    else
+-      fname = req
+-    end
+-    fname = ( fname == &quot;/&quot; ) and &quot;index.pht&quot; or fname:sub(2, -1)
+-    s, e = fname:find(&quot;%.[%a%d]+$&quot;)
+-    local ftype = fname:sub(s+1, e):lower()
+-    ftype = (#ftype &gt; 0 and ftype) or &quot;txt&quot;
+-    fname = basedir .. fname
+-    
+-    -- now &quot;fname&quot; has the name of the requested file, and &quot;reqdata&quot; the actual request data
+-    -- also &quot;ftype&quot; holds the file type (actually its extension)
+-    local tf = io.open(fname, &quot;r&quot;)
+-    if tf then
+-      respheader = &quot;HTTP/1.1 200 OK\r\nConnection: close\r\nServer: eLua-miniweb\r\nContent-Type: &quot; .. extmap[ftype or &quot;txt&quot;] .. &quot;\r\n\r\n&quot;
+-      -- Preprocess &quot;lua&quot; and &quot;pht&quot; files: run the Lua ones, parse the .htm ones for &quot;&lt;?lua ... ?&gt;&quot; sequences
+-      if ftype == &quot;pht&quot; or ftype == &quot;lua&quot; then
+-        local fdata = tf:read(&quot;*a&quot;)
+-        if ftype == &quot;lua&quot; then
+-          respdata = docode(fdata)
+-        else
+-          -- Look for &lt;?lua ... lua&gt; patterns and execute them accordingly
+-          respdata = fdata:gsub(&quot;&lt;%?lua(.-)%?&gt;&quot;, docode)
+-        end
+-      else
+-        respdata = tf:read(&quot;*a&quot;)
+-      end
+-      tf:close()
+-    else
+-      respheader = &quot;HTTP/1.1 404 Not Found\r\nConnection: close\r\nServer: eLua-miniweb\r\nContent-Type: text/html\r\n\r\nPage not found&quot;
+-    end
+-  end
+-  return respheader .. respdata
+-end
+-
+-while true do
+-  local sock, remoteip, err = net.accept( 80 )
+-  print( &quot;Got connection on socket&quot;, sock )
+-  print( &quot;Remote ip: &quot; .. net.unpackip( remoteip, &quot;*s&quot; ) )
+-  local response, err2 = net.recv( sock, 1024 )
+-  print &quot;Got request&quot;
+-  local httpdata = process( response )
+-  if #httpdata &gt; 0 then
+-    print &quot;Sending response&quot;
+-    net.send( sock, httpdata )
+-  end
+-  net.close( sock )
+-  reqdata = {}
+-  collectgarbage('collect')
+-end
+
+Deleted: trunk/romfs/life.lua
+===================================================================
+--- trunk/romfs/life.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/life.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,108 +0,0 @@
+--- life.lua
+--- original by Dave Bollinger &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">DBollinger at compuserve.com</A>&gt; posted to lua-l
+--- modified to use ANSI terminal escape sequences
+--- modified to use for instead of while
+-
+-local write=io.write
+-
+-ALIVE=&quot;O&quot;	DEAD=&quot;-&quot;
+-
+-function delay() -- NOTE: SYSTEM-DEPENDENT, adjust as necessary
+-end
+-
+-function ARRAY2D(w,h)
+-  local t = {w=w,h=h}
+-  for y=1,h do
+-    t[y] = {}
+-    for x=1,w do
+-      t[y][x]=0
+-    end
+-  end
+-  return t
+-end
+-
+-_CELLS = {}
+-
+--- give birth to a &quot;shape&quot; within the cell array
+-function _CELLS:spawn(shape,left,top)
+-  for y=0,shape.h-1 do
+-    for x=0,shape.w-1 do
+-      self[top+y][left+x] = shape[y*shape.w+x+1]
+-    end
+-  end
+-end
+-
+--- run the CA and produce the next generation
+-function _CELLS:evolve(next)
+-  local ym1,y,yp1,yi=self.h-1,self.h,1,self.h
+-  while yi &gt; 0 do
+-    local xm1,x,xp1,xi=self.w-1,self.w,1,self.w
+-    while xi &gt; 0 do
+-      local sum = self[ym1][xm1] + self[ym1][x] + self[ym1][xp1] +
+-                  self[y][xm1] + self[y][xp1] +
+-                  self[yp1][xm1] + self[yp1][x] + self[yp1][xp1]
+-      next[y][x] = ((sum==2) and self[y][x]) or ((sum==3) and 1) or 0
+-      xm1,x,xp1,xi = x,xp1,xp1+1,xi-1
+-    end
+-    ym1,y,yp1,yi = y,yp1,yp1+1,yi-1
+-  end
+-end
+-
+--- output the array to screen
+-function _CELLS:draw()
+-  local out=&quot;&quot; -- accumulate to reduce flicker
+-  for y=1,self.h do
+-   for x=1,self.w do
+-      out=out..(((self[y][x]&gt;0) and ALIVE) or DEAD)
+-    end
+-    out=out..&quot;\n&quot;
+-  end
+-  write(out)
+-end
+-
+--- constructor
+-function CELLS(w,h)
+-  local c = ARRAY2D(w,h)
+-  c.spawn = _CELLS.spawn
+-  c.evolve = _CELLS.evolve
+-  c.draw = _CELLS.draw
+-  return c
+-end
+-
+---
+--- shapes suitable for use with spawn() above
+---
+-HEART = { 1,0,1,1,0,1,1,1,1; w=3,h=3 }
+-GLIDER = { 0,0,1,1,0,1,0,1,1; w=3,h=3 }
+-EXPLODE = { 0,1,0,1,1,1,1,0,1,0,1,0; w=3,h=4 }
+-FISH = { 0,1,1,1,1,1,0,0,0,1,0,0,0,0,1,1,0,0,1,0; w=5,h=4 }
+-BUTTERFLY = { 1,0,0,0,1,0,1,1,1,0,1,0,0,0,1,1,0,1,0,1,1,0,0,0,1; w=5,h=5 }
+-
+--- the main routine
+-function LIFE(w,h)
+-  -- create two arrays
+-  local thisgen = CELLS(w,h)
+-  local nextgen = CELLS(w,h)
+-
+-  -- create some life
+-  -- about 1000 generations of fun, then a glider steady-state
+-  thisgen:spawn(GLIDER,5,4)
+-  thisgen:spawn(EXPLODE,25,10)
+-  thisgen:spawn(FISH,4,12)
+-
+-  -- run until break
+-  local gen=1
+-  write(&quot;\027[2J&quot;)	-- ANSI clear screen
+-  while 1 do
+-    thisgen:evolve(nextgen)
+-    thisgen,nextgen = nextgen,thisgen
+-    write(&quot;\027[H&quot;)	-- ANSI home cursor
+-    thisgen:draw()
+-    write(&quot;Life - generation &quot;,gen,&quot;, mem &quot;, string.format(&quot;%3.1f&quot;,collectgarbage('count')), &quot; kB\n&quot;)
+-    gen=gen+1
+-    if gen&gt;2000 then break end
+-    --delay()		-- no delay
+-  end
+-end
+-
+-LIFE(32,16)
+
+Deleted: trunk/romfs/logo.bin
+===================================================================
+(Binary files differ)
+
+Deleted: trunk/romfs/logo.lua
+===================================================================
+--- trunk/romfs/logo.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/logo.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,81 +0,0 @@
+-local disp = lm3s.disp
+-
+-disp.init( 1000000 )
+-disp.clear()
+-
+-local math = math
+-local floor = math.floor
+-local pi = math.pi
+-
+-local img = io.open( &quot;/rom/logo.bin&quot;, &quot;rb&quot;)
+-if img == nil then
+-  print &quot;Unable to load image&quot;
+-  return 0
+-end
+-local imgdata = img:read( &quot;*a&quot; )
+-img:close()
+-
+-local maxx , maxy = 64, 64 
+-local xf, yf = maxx / 2 - 1, maxy / 2 - 1
+-local ct = yf * maxx + xf + 1
+-
+-local function rotate( imgdata, angle )
+-  local c = math.cos( angle )
+-  local s = math.sin( angle )
+-  local newdata = bitarray.new( maxx * maxy, 4 )
+-  local xc, ys = -xf * c, -yf * s
+-  local xs, yc = -xf * s, -yf * c
+-  local p1, p2 = xc - ys, xs + yc
+-  local p3, p4 = -xc - ys, -xs + yc
+-  local xx1, yy1, xx2, yy2
+-  local widx1, widx2 = 1, 2*xf + 1
+-  local widx3, widx4 = 2 * yf * maxx + 1, 2 * yf * maxx + 2 * xf + 1
+-  local w1, w2, w3, w4
+-  for y = -yf, 0 do
+-    xx1, yy1, xx2, yy2 = p1, p2, p3, p4
+-    w1, w2, w3, w4 = widx1, widx2, widx3, widx4
+-    for x = -xf, 0 do      
+-      if ( xx1 &gt;= -xf ) and ( xx1 &lt;= xf ) and ( yy1 &gt;= -yf ) and ( yy1 &lt;= yf ) then 
+-        newdata[ w1 ] = imgdata[ floor( yy1 ) * maxx + floor( xx1 ) + ct ] 
+-      end
+-      if ( xx2 &gt;= -xf ) and ( xx2 &lt;= xf ) and ( yy2 &gt;= -yf ) and ( yy2 &lt;= yf ) then 
+-        newdata[ w2 ] = imgdata[ floor( yy2 ) * maxx + floor( xx2 ) + ct ] 
+-      end
+-      if ( -xx2 &gt;= -xf ) and ( -xx2 &lt;= xf ) and ( -yy2 &gt;= -yf ) and ( -yy2 &lt;= yf ) then 
+-        newdata[ w3 ] = imgdata[ floor( -yy2 ) * maxx + floor( -xx2 ) + ct ] 
+-      end
+-      if ( -xx1 &gt;= -xf ) and ( -xx1 &lt;= xf ) and ( -yy1 &gt;= -yf ) and ( -yy1 &lt;= yf ) then 
+-        newdata[ w4 ] = imgdata[ floor( -yy1 ) * maxx + floor( -xx1 ) + ct ]
+-      end
+-      xx1 = xx1 + c ; yy1 = yy1 + s ; xx2 = xx2 - c ; yy2 = yy2 - s
+-      w1 = w1 + 1 ; w2 = w2 - 1 ; w3 = w3 + 1 ; w4 = w4 - 1       
+-    end
+-    p1 = p1 - s ; p2 = p2 + c  ; p3 = p3 - s ; p4 = p4 + c
+-    widx1 = widx1 + maxx ; widx2 = widx2 + maxx ; widx3 = widx3 - maxx ; widx4 = widx4 - maxx
+-  end
+-  return bitarray.tostring( newdata, &quot;raw&quot; )
+-end
+-
+-local origx = ( 128 - maxx ) / 2
+-local origy = ( 96 - maxy ) / 2
+-disp.draw( imgdata, origx, origy, maxx, maxy )
+-local imgd = bitarray.new( imgdata, 4 )
+-imgdata = nil
+-collectgarbage()
+-
+-local delta = pi / 8
+-local angles = { 0, delta, pi / 4, 3 * delta, pi / 2, 5 * delta, 3 * pi / 4, 7 * delta, pi, 
+-                 9 * delta, 5 * pi / 4, 11 * delta, 3 * pi / 2, 13 * delta, 7 * pi / 4, 15 * delta }
+-local index = 2
+-
+-while uart.getchar( 0, uart.NO_TIMEOUT ) == &quot;&quot; do
+-  local newimg = rotate( imgd, angles[ index ] )
+-  disp.draw( newimg, origx, origy, maxx, maxy )
+-  newimg = nil
+-  collectgarbage()
+-  index = index + 1
+-  index = index &gt; #angles and 1 or index
+-end
+-
+-disp.clear()
+-
+
+Deleted: trunk/romfs/morse.lua
+===================================================================
+--- trunk/romfs/morse.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/morse.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,136 +0,0 @@
+--------------------------------------------------------------------------------
+--- eLua Morse Demo
+---
+--- Dado Sutter         sep 2008
+--------------------------------------------------------------------------------
+-
+-local pwmid, tmrid, ledpin
+-if pd.board() == &quot;EK-LM3S1968&quot; then
+-  pwmid, tmrid, ledpin = 2, 1, pio.PG_2
+-elseif pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+-  pwmid, tmrid, ledpin = 1, 1, pio.PF_0
+-elseif pd.board() == &quot;EAGLE-100&quot; then
+-  wmid, tmrid, ledpin = 1, 1, pio.PE_1
+-elseif pd.board() == &quot;SAM7-EX256&quot; then
+-  pwmid, tmrid, ledpin = 0, 1, pio.PB_20
+-  tmr.setclock( 1, 100000 )
+-else
+-  print( pd.board() .. &quot; not supported with this example&quot; )
+-  return
+-end
+-
+------------- User Adjusted Variables ------------
+-
+-local dotDelay, playFreq, playFreqSave = 90000, 880, 880
+-local freqStep, dotDelayStep = 220, 10000
+-
+--- Morse Alphabet
+-local Morse = {
+-  A='.-',
+-  B='-...',
+-  C='-.-.',
+-  D='-..',
+-  E='.',
+-  F='..-.',
+-  G='--.',
+-  H='....',
+-  I='..',
+-  J='.---',
+-  K='-.-',
+-  L='.-..',
+-  M='--',
+-  N='-.',
+-  O='---',
+-  P='.--.',
+-  Q='--.-',
+-  R='.-.',
+-  S='...',
+-  T='-',
+-  U='..-',
+-  V='...-',
+-  W='.--',
+-  X='-..-',
+-  Y='-.--',
+-  Z='--..'
+-}
+-
+------------- Auxiliar Functions ------------
+-
+-local function play(m)
+-  term.print(m)
+-  if m == ' ' then
+-    tmr.delay(tmrid, 2 * dotDelay)
+-  else
+-    pio.pin.sethigh( ledpin )
+-    pwm.start(pwmid)
+-    tmr.delay(tmrid, m == '.' and dotDelay or 3 * dotDelay)
+-    pwm.stop(pwmid)
+-    pio.pin.setlow( ledpin )
+-    tmr.delay(tmrid, dotDelay)
+-  end
+-end
+-
+-local function HandleKbd(k)
+-  if k == term.KC_ESC then
+-    return true
+-  elseif k == term.KC_UP then                 -- Speed up
+-    dotDelay = dotDelay + dotDelayStep
+-  elseif k == term.KC_DOWN then               -- Speed down
+-    dotDelay = dotDelay - dotDelayStep
+-  elseif k &gt; 0 and k &lt; 256 then
+-    if string.char(k) == '+' then             -- Frequency up
+-      playFreq = playFreq + freqStep
+-    elseif string.char(k) == '-' then         -- Frequency down
+-      playFreq = playFreq - freqStep
+-    elseif string.char(k) == 's' then         -- Sound on/off
+-      if playFreq == 0 then
+-        playFreq = playFreqSave
+-      else
+-        playFreqSave = playFreq
+-        playFreq = 0
+-      end
+-    end
+-  end
+-  pwm.setup(pwmid, playFreq, 50)
+-end
+-
+------------- Main Program ------------
+-pio.pin.setdir( pio.OUTPUT, ledpin )
+-pwm.setup( pwmid, playFreq, 50 )
+-
+-while true do
+-  term.clrscr()
+-  term.moveto(1, 1)
+-  print(&quot;Welcome to eLua Morse Playing on &quot; .. pd.board())
+-  io.write(&quot;Enter phrase (empty phrase to exit): &quot;)
+-  local msg, enabled = io.read(), true
+-  if #msg == 0 then break end
+-
+-  term.print('   ')
+-  while term.getchar(term.NOWAIT) ~= -1 do end        -- flush
+-
+-  while enabled do                                  -- Main Loop
+-    for i = 1, #msg do                              -- msg loop
+-      local ch = msg:sub(i, i):upper()
+-      term.print(ch)                               -- show what will be played
+-      if ch ~= ' ' and Morse[ch] then
+-        for j = 1, #Morse[ch] do                    -- Morse symbol loop
+-          play(Morse[ch]:sub(j,j))                  -- play each morse symbol
+-        end
+-      else
+-        play(' ') play(' ')                         -- Between words
+-      end
+-      play(' ')                                     -- Extra between words &amp; lett
+-      key = term.getchar(term.NOWAIT)                 -- Handle UI actions
+-      if key ~= -1 then
+-        if HandleKbd(key) then
+-          enabled = false
+-          break
+-        end
+-      end
+-    end
+-    if not enabled then break end
+-    print()
+-    play(' ') play(' ') play(' ')                  -- Between sentences
+-  end
+-end
+
+Deleted: trunk/romfs/piano.lua
+===================================================================
+--- trunk/romfs/piano.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/piano.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,108 +0,0 @@
+--- &quot;Piano&quot; in eLua, showing yet another use for the PWM module :)
+-
+-local pwmid, tmrid
+-
+-if not math then
+-  print &quot;This example required floating point Lua (integer Lua not supported)&quot; 
+-  return
+-end
+-  
+-if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; or pd.board() == &quot;EAGLE-100&quot; then
+-  pwmid, tmrid = 1, 1
+-elseif pd.board() == &quot;EK-LM3S1968&quot; then
+-  pwmid, tmrid = 2, 1
+-elseif pd.board() == &quot;SAM7-EX256&quot; then
+-  pwmid, tmrid = 0, 1
+-  tmr.setclock( 1, 1000000 )
+-elseif pd.board() == &quot;STR-E912&quot; then
+-  local g = str9.pio
+-  g.setpin( pio.P4_6, g.OUTPUT, g.OUTPUT_PUSHPULL, false, g.ALT_OUTPUT2 )
+-  pwmid, tmrid = 3, 1
+-else
+-  print( pd.board() .. &quot; not supported with this example&quot; )
+-  return
+-end
+-
+-local oct, pause = 4, 0
+-
+--- Mapping between keys and note offsets
+-local offsets = { a = 0, w = 1, s = 2, d = 3, r = 4, f = 5, t = 6, g = 7, h = 8,
+-  u = 9, j = 10, i = 11, k = 12, o = 13, l = 14, [&quot;;&quot;] = 15, [&quot;[&quot;] = 16, [&quot;'&quot;] = 17,
+-  [&quot;]&quot;] = 18, [&quot;\\&quot;] = 19 }
+-  
+--- Write the curent octave
+-function show_octave()
+-  term.print( 2, 4, &quot;Oct: &quot; .. tostring( oct ) .. &quot;(+/-)&quot; )
+-  term.moveto( 2, 19 )  
+-end
+-
+--- Write the current pause between notes
+-function show_pause()
+-  term.moveto( 2, 5 )
+-  term.clreol()
+-  term.print( 2, 5, &quot;Pause between notes: &quot; .. tostring( pause ) .. &quot;ms (&lt;/&gt;)&quot; )
+-  term.moveto( 2, 19 )  
+-end
+-
+--- Show the main interface
+-function show_all()
+-  term.print( 2, 2, &quot;eLua piano demo&quot; )  
+-  show_octave()
+-  show_pause()
+-  term.print( 4,  7, &quot; w   r  t   u  i  o   [  ]  &quot; )
+-  term.print( 4,  8, &quot; |   |  |   |  |  |   |  |  &quot; )
+-  term.print( 4,  9, &quot; A#  C# D#  F# G# A#  C# D# &quot; )
+-  term.print( 4, 10, &quot;A  BC  D  EF  G  A  BC  D  E&quot; )
+-  term.print( 4, 11, &quot;|  ||  |  ||  |  |  ||  |  |&quot; )
+-  term.print( 4, 12, &quot;a  sd  f  gh  j  k  l;  '  \\&quot; )  
+-  term.print( 2, 14, &quot;Use above keys to play notes.&quot; )
+-  term.print( 2, 15, &quot;+/- to change octave.&quot; )
+-  term.print( 2, 16, &quot;&lt;/&gt; to change pause between notes.&quot; )
+-  term.print( 2, 17, &quot;Space to stop playing.&quot; ) 
+-  term.print( 2, 18, &quot;ESC to exit.&quot; ) 
+-  term.moveto( 2, 19 )
+-end
+-
+--- Conversion of note to frequency
+-function note_to_freq( index )
+-  return 55 * 2 ^ ( ( index + ( oct - 1 ) * 12 ) / 12 )
+-end
+-
+--- Entry point
+-term.clrscr()
+-pwm.setclock( pwmid, 1000000 )
+-show_all()
+-while true do
+-  local key = term.getchar()
+-  if key == term.KC_ESC then break end
+-  local res, strkey = pcall( string.char, key )
+-  if res then     
+-    if offsets[ strkey ] ~= nil then
+-      local freq = note_to_freq( offsets[ strkey ] )
+-      pwm.stop( pwmid )
+-      if pause &gt; 0 then
+-        tmr.delay( tmrid, pause * 1000 )
+-      end
+-      pwm.setup( pwmid, freq, 50 )
+-      pwm.start( pwmid )
+-    elseif strkey == &quot;&gt;&quot; then
+-      pause = pause &lt; 1000 and pause + 10 or pause
+-      show_pause()
+-    elseif strkey == &quot;&lt;&quot; then
+-      pause = pause &gt; 0 and pause - 10 or pause
+-      show_pause() 
+-    elseif strkey == &quot;+&quot; then
+-      oct = oct &lt; 7 and oct + 1 or oct
+-      show_octave()
+-    elseif strkey == &quot;-&quot; then
+-      oct = oct &gt; 1 and oct - 1 or oct
+-      show_octave()
+-    elseif strkey == &quot; &quot; then
+-      pwm.stop( pwmid )
+-    end
+-  end  
+-end
+-
+-pwm.stop( pwmid )
+-term.clrscr()
+-term.moveto( 1, 1 )
+
+Deleted: trunk/romfs/pong.lua
+===================================================================
+--- trunk/romfs/pong.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/pong.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,339 +0,0 @@
+--------------------------------------------------------------------------------
+---
+---		eLua Pong Game
+---
+--- LED Lab @ PUC-Rio - 2009
+---   Dado Sutter
+---   Ives Negreiros
+---   Ricardo Rosa
+---   Pedro Bittencourt
+---   Teo Benjamin
+---
+-
+--- Initial Version by Dado Sutter, Fev 2009
+---    This had only the ball bouncing on walls, paddle and paddle movement
+---
+--- Greatly enhanced by Teo Benjamin in Aug/Sep 2009, adding:
+---    Score, resizeable paddles, levels/speeds, items
+---
+---
+--------------------------------------------------------------------------------
+-
+-local canvas = {}
+--- canvas.x                     -- Horizontal display size
+--- canvas.y                     -- Vertical display size
+-
+-local paddle = {}
+--- paddle.size                  -- Actual Paddle size = ( 6 * ( paddle.size + 1 ) ) + 2
+--- paddle.max_size              -- Max paddle.size value -&gt; Constant
+--- paddle.min_size              -- Min paddle.size value -&gt; Constant
+--- paddle.y                            -- Paddle's Y position ( X position not needed, always 0 )
+-
+-local ball = {}
+--- ball.x                       -- Ball's X position
+--- ball.y                       -- Ball's Y position -&gt; starts at a random position
+--- ball.dx                      -- Ball's X movement ( 1 = moving right; -1 = moving left )
+--- ball.dy                      -- Ball's Y movement ( 1 = moving down; -1 = moving up )
+--- ball.char                    -- The char that is printed for the ball -&gt; Constant
+-
+-local item = {}
+--- item.x                       -- Item's X position
+--- item.y                       -- Item's Y position ( fix for each item )
+--- item.char                    -- This is the char that represents the item ( if false, there is no item )
+--- item.all_chars                     -- A table that contains all the possibles item chars. Initialized by upload_items() function
+-
+--- Define all constants
+-local tmr_id = 1
+-paddle.max_size = 4
+-paddle.min_size = 0
+-ball.char = &quot;*&quot;
+-local delay_incr = 2000
+-
+-
+--- Define all &quot;global&quot; variables as program local ones.
+--- The values are initialized at the main loop.
+-
+-local score                    -- Player's score
+-local dscore                   -- How many points for each paddle hit
+-local delay_time               -- This value is used for the main delay, to make the game speed faster or slower
+-local paddle_hits              -- Counts the number of hits on paddle
+-local highscore                -- Current Highscore
+-
+-item.all_chars = {}
+-local pressed = {}             -- pressed[ button ] is true if the corresponding button was pressed, or nil if not
+-
+-local kit = require( pd.board() )  -- This variable is used as a pin assignments for the specific board
+-
+-local itemFunction = {
+-[&quot;L&quot;] = function ()
+-    draw_paddle( paddle.y, 0, 0 )
+-    if paddle.size &lt; paddle.max_size then
+-      paddle.size = paddle.size + 1
+-    end
+-    draw_paddle( paddle.y, 11, 0 )
+-  end,
+-[&quot;S&quot;] = function ()
+-    draw_paddle( paddle.y, 0, 0 )
+-    if paddle.size &gt; paddle.min_size then
+-      paddle.size = paddle.size - 1
+-    end
+-    draw_paddle( paddle.y, 11, 0 )
+-  end,
+-
+-[&quot;?&quot;] = function ()
+-    item.char = item.all_chars[ math.random( #item.all_chars ) ]
+-    use_item()
+-  end,
+-
+-[&quot;*&quot;] = function ()
+-  end,
+-
+-[&quot;P&quot;] = function ()
+-    score = score + dscore
+-  end,
+-
+-[&quot;D&quot;] = function ()
+-    score = score * 2
+-  end,
+-
+-[&quot;Z&quot;] = function ()
+-    lm3s.disp.print( tostring( score ), 111, 89, 0 )
+-    score = 0
+-  end,
+-
+-[&quot;T&quot;] = function ()
+-    lm3s.disp.print( ball.char, ball.x, ball.y, 0 )
+-    ball.y = math.random( 82 )
+-    lm3s.disp.print( ball.char, ball.x, ball.y, 15 )
+-  end,
+-[&quot;F&quot;] = function()
+-    if delay_time &gt;= 1000 then
+-      delay_time = delay_time - 1000
+-    end
+-  end,
+-}
+-
+--- Updates Y paddle position and draw it using the draw_paddle( ... ) function
+-function update_paddle_pos()
+-  if kit.btn_pressed( kit.BTN_UP ) then
+-    if ( paddle.y &gt; 0 ) then
+-      paddle.y = paddle.y - 1
+-      draw_paddle( paddle.y, 11, -1 )
+-    else
+-      tmr.delay( 1, 1700 )
+-    end
+-  elseif kit.btn_pressed( kit.BTN_DOWN ) then
+-    if ( paddle.y + ( paddle.size*6 ) + 1 &lt; 90 ) then
+-      paddle.y = paddle.y + 1
+-      draw_paddle( paddle.y, 11, 1 )
+-    else
+-      tmr.delay( 1, 1600 )
+-    end
+-  else
+-    draw_paddle( paddle.y, 11, 0 )
+-    tmr.delay( 1, 300 ) -- Maintain function processing time aprox the same
+-  end
+-end
+-
+--- Draw the paddle in the display. This function is used by update_paddle_pos() function
+-function draw_paddle( y, color, movement )
+-  if ( movement == 0 ) then
+-    for i = 0, paddle.size, 1 do
+-      lm3s.disp.print( &quot;|&quot;, 0, y + ( i * 6 ),  color )
+-    end
+-  elseif ( movement &gt; 0 ) then      -- Paddle moving Down
+-    if y &lt; 8 then
+-      lm3s.disp.print( &quot;|&quot;, 0, 0,  0 )
+-    else
+-      lm3s.disp.print( &quot;|&quot;, 0, y - 8 , 0 )
+-    end
+-    for i = 0, paddle.size, 1 do
+-      lm3s.disp.print( &quot;|&quot;, 0, y + ( i * 6 ),  color )
+-    end
+-  elseif ( movement &lt; 0 ) then    -- Paddle moving Up
+-    lm3s.disp.print( &quot;|&quot;, 0, y + ( ( paddle.size + 1 ) * 6 ) + 2 , 0 )
+-    for i = 0, paddle.size, 1 do
+-      lm3s.disp.print( &quot;|&quot;, 0, y + ( i * 6 ),  color )
+-    end
+-  end
+-end
+-
+--- Updates the ( X, Y ) ball position and prints the corresponding char
+-function update_ball_pos()
+-  if( ( ball.x + 5 &gt;= canvas.x ) or ( ball.x &lt;= 4 ) ) then
+-    ball.dx = -ball.dx;
+-    if ball.dx == -1 and item.char == false then
+-      createItem()
+-    end
+-  end
+-  if( ( ball.y &gt;= 90 - ball.dy ) or ( ball.y &lt;= 1 - ball.dy ) ) then
+-    ball.dy = -ball.dy;
+-  end
+-  lm3s.disp.print( ball.char, ball.x, ball.y, 0 )
+-  ball.x, ball.y = ( ball.x + ball.dx ), ( ball.y + ball.dy );
+-  lm3s.disp.print( ball.char, ball.x, ball.y, 15 )
+-end
+-
+-
+--- Draw the top wall and erase the last one. Used to move it
+-function draw_wall( x )
+-  for i = 0, canvas.y, 7 do                    -- Erase the wall
+-    lm3s.disp.print( &quot;|&quot;, canvas.x + 1, i, 0 )
+-  end
+-  canvas.x = x
+-  for i = 0, canvas.y, 7 do                    -- Draw a new wall
+-    lm3s.disp.print( &quot;|&quot;, canvas.x + 1, i, 6 )
+-  end
+-end
+-
+--- Item Functions
+-function createItem()
+-  item.char = item.all_chars[ math.random( #item.all_chars ) ]
+-  item.x = canvas.x - 10
+-  item.y = ball.y
+-end
+-
+--- Upload the itens from table itemFunction into the table item.all_chars
+--- Must be used to initialize the items
+-function upload_items()
+-  for k,v in pairs( itemFunction ) do
+-    table.insert( item.all_chars, k )
+-  end
+-end
+-
+--- Updates the item X position
+-function update_item_pos()
+-  if item.char then
+-    if ( item.x &lt;= 4 ) then
+-      if ( ( item.y + 8 &lt; paddle.y ) or ( item.y &gt; paddle.y + ( paddle.size * 6 ) + 8 ) ) == false then
+-        use_item()
+-      end
+-      lm3s.disp.print( item.char, item.x, item.y, 0 )
+-      item.char = false
+-      return
+-    end
+-    lm3s.disp.print( item.char, item.x, item.y, 0 )
+-    item.x = item.x - 2
+-    lm3s.disp.print( item.char, item.x, item.y, 10 )
+-  end
+-end
+-
+--- Uses the item's function
+-function use_item()
+-  itemFunction[ item.char ]()
+-end
+-
+--- Checks if a button was clicked ( pressed and released )
+--- Returns true or false
+-function button_clicked( button )
+-  if kit.btn_pressed( button ) then
+-    pressed[ button ] = true
+-  else
+-    if pressed[ button ] then
+-      pressed[ button ] = nil
+-      return true
+-    end
+-    pressed[ button ] = nil
+-  end
+-  return false
+-end
+-
+------------- MAIN ------------
+-upload_items()
+-lm3s.disp.init( 1000000 )
+-
+-tmr.start( tmr_id )
+---menu()
+-math.randomseed( tmr.read( tmr_id ) )    -- If you use the menu function, the time will be used as a seed to the random function
+---tmr.stop( tmr_id )
+-
+-collectgarbage( &quot;collect&quot; )
+-
+-
+-
+-
+-
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+---                                                                                                     --
+---                                        GAME START                                                   --
+---                                                                                                     --
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+-
+-repeat
+-  canvas.x = 124
+-  canvas.y = 97
+-  ball.x = 5
+-  ball.y = math.random( ( canvas.y - 8 ) / 2 ) + ( canvas.y / 4 )
+-  ball.dx = 1
+-  ball.dy = 1
+-  paddle.y = ball.y - 4
+-  item.x = 0
+-  item.y = 0
+-  score = 0
+-  dscore = 1
+-  item.char = false
+-  paddle.size = 2
+-  delay_time = 10000
+-  paddle_hits = 0
+-
+-  lm3s.disp.clear()
+-
+-  draw_wall( canvas.x )
+-  draw_paddle( paddle.y, 11, 0 )
+-
+-  while ( true ) do
+-    for i = 0, 1 do
+-      update_paddle_pos()
+-    end
+-    tmr.delay ( 0, delay_time )
+-    update_ball_pos()
+-    update_item_pos()
+-    if ( ball.x &lt;= 4 ) then
+-      if ( ( ball.y + 8 &lt; paddle.y ) or ( ball.y &gt; paddle.y + ( paddle.size * 6 ) + 8 ) ) then  -- If this is true, you lose
+-        break
+-    else                                                                     -- Else, you score
+-        score = score + dscore
+-        paddle_hits = paddle_hits + 1
+-      end
+-    end
+-
+-    if button_clicked( kit.BTN_RIGHT ) and delay_time &gt; 0 then   -- If the right button is clicked, increase the level
+-      delay_time = delay_time - delay_incr
+-      dscore = dscore + 1
+-    end
+-    if button_clicked( kit.BTN_LEFT ) and dscore &gt; 0 then    -- If the left button is clicked, decrease the level
+-      delay_time = delay_time + delay_incr
+-      dscore = dscore - 1
+-    end
+-
+-    if ( paddle_hits == 5 ) and canvas.x &gt; 80 then  -- After 5 hits in a row, move the wall until canvas.x = 80
+-      paddle_hits = 0
+-      draw_wall( canvas.x - 5 )
+-    end
+-    lm3s.disp.print( tostring( dscore ), 118, 0, 6 )
+-    lm3s.disp.print( tostring( score ), 111, 89, 6 )
+-    collectgarbage( &quot;collect&quot; )
+-  end
+--------------------------------------------
+--- Game Over
+--------------------------------------------
+-  if score &gt;= ( highscore or 0 ) then
+-    highscore = score
+-  end
+-  lm3s.disp.clear()
+-  lm3s.disp.print( &quot;Game Over :(&quot;, 30, 20, 11 )
+-  lm3s.disp.print( &quot;Your score was &quot;..tostring( score ), 15, 40, 11 )
+-  lm3s.disp.print( &quot;Highscore: &quot;..tostring( highscore ), 15, 50, 11 )
+-  lm3s.disp.print( &quot;SELECT to restart&quot;, 6, 70, 11 )
+-  enough = true
+-  for i=1, 100000 do
+-    if kit.btn_pressed( kit.BTN_SELECT ) then
+-      enough = false
+-      break
+-    end
+-  end
+-until ( enough )
+-
+-lm3s.disp.off()
+
+Deleted: trunk/romfs/pwmled.lua
+===================================================================
+--- trunk/romfs/pwmled.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/pwmled.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,35 +0,0 @@
+--- Control LED intensity with PWM
+-
+-local pwmid, tmrid, ledpin
+-if pd.board() == 'EK-LM3S1968' or pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' or pd.board() == 'ET-STM32' or pd.board() == 'EAGLE-100' then
+-  pwmid, tmrid = 0, 1
+-  pwm.setclock( pwmid, 25000000 )
+-elseif pd.board() == 'ELUA-PUC' then
+-  pwmid, tmrid = 7, 0
+-  local psel = cpu.r32( cpu.IO_PINSEL3 )
+-  psel = bit.bor( bit.band( psel, 0xFFFFFCFF ), 0x00000200 )
+-  cpu.w32( cpu.IO_PINSEL3, psel )
+-elseif pd.board() == 'MBED' then
+-  pwmid, tmrid = 1, 0
+-  mbed.pio.configpin(mbed.pio.LED1, 2, 0, 0)
+-else
+-  print( pd.board() .. &quot; not supported by this example&quot; )
+-  return
+-end
+-
+-print &quot;Control LED with PWM (fade up/down)&quot;
+-print &quot;Press any key to exit&quot;
+-local crtduty, incr = 10, 5
+-tmr.start( tmrid )
+-pwm.setup( pwmid, 50000, crtduty )
+-pwm.start( pwmid )
+-while uart.getchar( 0, 0 ) == &quot;&quot; do
+-  if crtduty == 95 or crtduty == 5 then
+-    incr = -incr
+-  end
+-  crtduty = crtduty + incr
+-  pwm.setup( pwmid, 50000, crtduty )  
+-  tmr.delay( tmrid, 50000 )  
+-end
+-
+-pwm.stop( pwmid )
+
+Deleted: trunk/romfs/snake.lua
+===================================================================
+--- trunk/romfs/snake.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/snake.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,219 +0,0 @@
+----------------------------------------------------------------
+--- Classic snake game
+--- Still testing!
+---
+---                                      By Ives Negreiros and T&#233;o Benjamin
+----------------------------------------------------------------
+-
+-local xMax = math.floor( 128 / 6 ) - 1
+-local yMax = math.floor( 96 / 8 ) - 1
+-local game_map = {}
+-
+-local Head = {}
+-local Tail = {}
+-
+-local highscore = 0
+-local size = 3
+-Tail.x = 1
+-Tail.y = 1
+-Head.x = Tail.x + ( size - 1 )
+-Head.y = Tail.y
+-
+-local Food = {}
+-Food.x = false
+-Food.y = false
+-
+-Head.dx = 1
+-Head.dy = 0
+-Tail.dx = Head.dx
+-Tail.dy = Head.dy
+-local direction = &quot;right&quot;
+-local level = 1
+-local score = 0
+-
+-lm3s.disp.init( 1000000 )
+-
+-local kit = require( pd.board() )
+-local pressed = {}
+-
+-local function create_food()
+---      if not food then
+-                        Food.x, Food.y = math.random( xMax - 1), math.random( yMax - 1)
+-                        while game_map[ Food.x ][ Food.y ] do
+-                          Food.x, Food.y = math.random( xMax - 1 ), math.random( yMax - 1 )
+-                        end
+-                        game_map[ Food.x ][ Food.y ] = &quot;food&quot;
+-                        lm3s.disp.print( &quot;@&quot;, Food.x * 6, Food.y * 8, 10 )
+---      end
+-end
+-
+-local function eat_food()
+-        lm3s.disp.print( &quot;@&quot;, Head.x * 6, Head.y * 8, 0 )
+-        game_map[ Head.x ][ Head.y ] = nil
+-        create_food()
+-        score = score + level
+-end
+-
+-local function check_collision()
+-  if Head.x &lt;= 0 or Head.x &gt;= xMax then
+-    return true
+-  elseif Head.y &lt;= 0 or Head.y &gt;= yMax then
+-    return true
+-  elseif ( ( game_map[ Head.x ][ Head.y ] ) and ( game_map[ Head.x ][ Head.y ] ~= &quot;food&quot; ) ) then
+-        return true
+-  end
+-  return false
+-end
+-
+-local function move()
+-
+-        if game_map[ Tail.x ][ Tail.y ] == &quot;right&quot; then
+-                Tail.dx = 1
+-                Tail.dy = 0
+-        elseif game_map[ Tail.x ][ Tail.y ] == &quot;left&quot; then
+-                Tail.dx = -1
+-                Tail.dy = 0
+-        elseif game_map[ Tail.x ][ Tail.y ] == &quot;up&quot; then
+-                Tail.dx = 0
+-                Tail.dy = -1
+-        elseif game_map[ Tail.x ][ Tail.y ] == &quot;down&quot; then
+-                Tail.dx = 0
+-                Tail.dy = 1
+-        end
+-        game_map[ Head.x ][ Head.y ] = direction
+-        Head.x = Head.x + Head.dx
+-        Head.y = Head.y + Head.dy
+-
+-        if game_map[ Head.x ][ Head.y ] == &quot;food&quot; then
+-                eat_food()
+-        else
+-                lm3s.disp.print( &quot;*&quot;, Tail.x * 6, Tail.y * 8, 0 )
+-                game_map[ Tail.x ][ Tail.y ] = nil
+-                Tail.x = Tail.x + Tail.dx
+-                Tail.y = Tail.y + Tail.dy
+-        end
+-
+-        lm3s.disp.print( &quot;*&quot;, Head.x * 6, Head.y * 8, 10 )
+-
+-end
+-
+-
+-
+-local function draw_walls()
+-        for i = 0, xMax*2, 1 do
+-    lm3s.disp.print( &quot;_&quot;, i * 3, yMax * 8 - 6, 11 )
+-                lm3s.disp.print( &quot;_&quot;, i * 3, 0, 11 )
+-        end
+-  for i = 0, yMax*2, 1 do
+-    lm3s.disp.print( &quot;|&quot;, xMax * 6, i * 4, 11 )
+-                lm3s.disp.print( &quot;|&quot;, 0, i * 4, 11 )
+-        end
+-end
+-
+-local function button_clicked( button )
+-  if kit.btn_pressed( button ) then
+-    pressed[ button ] = true
+-  else
+-    if pressed[ button ] then
+-      pressed[ button ] = nil
+-      return true
+-    end
+-  end
+-  return false
+-end
+-
+-
+-function init()
+-  food = false
+-  lm3s.disp.clear()
+-  draw_walls()
+-  size = 3
+-  score = 0
+-  level = 1
+-  Tail.x = 1
+-  Tail.y = 1
+-  Head.x = Tail.x + ( size - 1 )
+-  Head.y = Tail.y
+-  Head.dx = 1
+-  Head.dy = 0
+-  Tail.dx = Head.dx
+-  Tail.dy = Head.dy
+-  direction = &quot;right&quot;
+-
+-        for i = 0, xMax, 1 do
+-                game_map[ i ] = {}
+-        end
+-  for i = 0, size - 1, 1 do
+-          game_map[ Tail.x + ( i * Tail.dx ) ][ Tail.y + ( i * Tail.dy ) ] = direction
+-          lm3s.disp.print( &quot;*&quot;, ( Tail.x + ( i * Tail.dx ) ) * 6, ( Tail.y + ( i * Tail.dy ) ) * 8, 10 )
+-  end
+-        create_food()
+-end
+-
+---init()
+---create_food()
+-
+-repeat
+-        init()
+-  while true do
+-                local dir = direction
+-                for i = 1, 1000 - ( 100 * level ), 1 do
+-
+-                        if kit.btn_pressed( kit.BTN_RIGHT ) and direction ~= &quot;left&quot; then
+-                                dir = &quot;right&quot;
+-                                Head.dx = 1
+-                                Head.dy = 0
+-                        end
+-                        if kit.btn_pressed( kit.BTN_LEFT ) and direction ~= &quot;right&quot; then
+-                                dir = &quot;left&quot;
+-                                Head.dx = -1
+-                                Head.dy = 0
+-                        end
+-                        if kit.btn_pressed( kit.BTN_UP ) and direction ~= &quot;down&quot; then
+-                                dir = &quot;up&quot;
+-                                Head.dx = 0
+-                                Head.dy = -1
+-                        end
+-                        if kit.btn_pressed( kit.BTN_DOWN ) and direction ~= &quot;up&quot; then
+-                                dir = &quot;down&quot;
+-                                Head.dx = 0
+-                                Head.dy = 1
+-                        end
+-                        if button_clicked( kit.BTN_SELECT ) and level &lt; 10 then
+-                                level = level + 1
+-                        end
+-                end
+-                direction = dir
+-                move()
+-                if check_collision() then print&quot;colidiu&quot; break end
+-          --tmr.delay( 0, 400000 )
+-        --[[
+-          game_map[ Head.x ][ Head.y ] = nil
+-        if Head.x &lt; xMax then
+-                Head.x = Head.x + 1
+-        end
+-        game_map[ Head.x ][ Head.y ] = true
+-    ]]--
+-                collectgarbage( &quot;collect&quot; )
+-        end
+-
+-
+-        if score &gt; highscore then
+-    highscore = score
+-  end
+-    lm3s.disp.clear()                         -- This statements displays the game over screen
+-    lm3s.disp.print( &quot;Game Over :(&quot;, 30, 20, 11 )
+-    lm3s.disp.print( &quot;Your score was &quot;..tostring( score ), 0, 40, 11 )
+-    lm3s.disp.print( &quot;Highscore: &quot;..tostring( highscore ), 15, 50, 11 )
+-    lm3s.disp.print( &quot;SELECT to restart&quot;, 6, 70, 11 )
+-  enough = true                        -- If the player presses select before the time reach 1000000ms, then restart the game
+-  for i=1, 1000000 do
+-    if kit.btn_pressed( kit.BTN_SELECT ) then
+-      enough = false
+-      break
+-    end
+-  end
+-  lm3s.disp.clear()
+-until ( enough )
+-lm3s.disp.off()
+-
+
+Deleted: trunk/romfs/spaceship.lua
+===================================================================
+--- trunk/romfs/spaceship.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/spaceship.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,274 +0,0 @@
+--------------------------------------------------------------------------------
+---
+---		eLua SpaceShip Game
+---
+--- LED Lab @ PUC-Rio - 2009
+---   Dado Sutter
+---   Ives Negreiros
+---   Ricardo Rosa
+---   Pedro Bittencourt
+---   Teo Benjamin
+---
+---
+--- Initial Version by T&#233;o Benjamin, Aug 2009
+---
+--------------------------------------------------------------------------------
+-
+-local xcanvas = 124						-- Real screen X size
+-local xcanvas = xcanvas - 12			-- Canvas size with wall
+-local ycanvas = 96						-- Screen Y size
+-local pressed = {}						-- This table is used to help the buttonClicked function. If the btn if pressed,
+-										--	pressed[ btn ] = true, when it is released, pressed[ btn ] = nil
+-local ShipChar = &quot;&gt;&quot;					-- This is the char that is printed to represent the SpaceShip
+-local shotChar = &quot;-&quot;					-- This char is printed to represent the shots
+-local enemyChar = &quot;@&quot;					-- This char is used to represent the enemies
+-local sy = 16							-- Ship's Y position
+-local sx = 0							-- Ship's X position
+-local bullets = 50						-- Number of bullets left
+-local score = 0							-- Player's score
+-local numOfEnemies = 5					-- Number of simultaneous enemies
+-local won = false						-- If the player won the game, this value is true. If not, it's false.
+--- Initialization
+-local kit = require( pd.board() )
+-
+-
+-local canvasMap = {}	-- canvasMap[ line ][ #shot ]
+--- canvasMap[ i ][ j ]: i represents the y position and j is a numeric index for each shot in that line. The value is the x position.
+--- canvasMap[ i ].e represents the x position of the enemy in that line, if any.
+--- Enemies can only appear in lines 5, 15, 25, 35, ..., 75 and 85
+-for i = 1, ycanvas, 1 do
+-	canvasMap[ i ] = {}
+-end
+-for i = 5, 85, 10 do
+-	canvasMap[ i ].e = false
+-end
+-
+-function drawWall( x, y )
+-	for i = 0, y, 7 do
+-  	lm3s.disp.print( &quot;|&quot;, xcanvas + 1, i, 0 )
+-  end
+-  xcanvas = x
+-  for i = 0, y, 7 do
+-  	lm3s.disp.print( &quot;|&quot;, xcanvas + 1, i, 6 )
+-  end
+-
+-end
+-
+-function drawShip( x, y, color, movement )
+-
+-	if ( movement == 0 ) then
+-  		lm3s.disp.print( ShipChar, x, y,  color )
+-	elseif ( movement &gt; 0 ) then -- Moving Down
+-		if y &lt; 8 then
+-			lm3s.disp.print( ShipChar, x, 0,  0 )
+-		else
+-			lm3s.disp.print( ShipChar, x, y - 8 , 0 )
+-		end
+-  	lm3s.disp.print( ShipChar, x, y,  color )
+-  elseif ( movement &lt; 0 ) then -- Moving Up
+-		lm3s.disp.print( ShipChar, x, y + 8, 0 )
+-  	lm3s.disp.print( ShipChar, x, y,  color )
+-  end
+-end
+-
+-
+-function updateShipPos()
+-  if kit.btn_pressed( kit.BTN_UP ) then
+-    if ( sy &gt; 1 ) then
+-      sy = sy - 1
+-      drawShip( sx, sy, 11, -1 )
+-    else
+-    	tmr.delay( 1, 1700 )
+-    end
+-  elseif kit.btn_pressed( kit.BTN_DOWN ) then
+-    if ( sy + 7 &lt; ycanvas ) then
+-      sy = sy + 1
+-      drawShip( sx, sy, 11, 1 )
+-    else
+-    	tmr.delay( 1, 1600 )
+-    end
+-  else
+-  	drawShip( sx, sy, 11, 0 )
+-    tmr.delay( 1, 300 ) -- Maintain function processing time aprox the same
+-  end
+-end
+-
+-
+-
+-function updateShots()
+-	for i in ipairs( canvasMap ) do
+-		for j in ipairs( canvasMap[ i ] ) do
+-			if canvasMap[ i ][ j ] then
+-				lm3s.disp.print( shotChar, canvasMap[ i ][ j ], i, 0 )
+-				canvasMap[ i ][ j ] = canvasMap[ i ][ j ] + 2
+-				lm3s.disp.print( shotChar, canvasMap[ i ][ j ], i, 13 )
+-				if canvasMap[ i ][ j ] + 4 &gt;= xcanvas then
+-					lm3s.disp.print( shotChar, canvasMap[ i ][ j ], i, 0 )
+-					table.remove( canvasMap[ i ], j )
+-					break
+-				end
+-				local en = math.floor( i / 10 ) * 10 + 5
+-				if canvasMap[ en ].e then
+-					if ( canvasMap[ i ][ j ] &lt;= canvasMap[ en ].e ) and ( canvasMap[ i ][ j ] + 4 &gt;= canvasMap[ en ].e ) then
+-						destroyEnemy( i, j, en )
+-						createEnemy()
+-					end
+-				end
+-			else
+-				tmr.delay( 1, 1200 )
+-			end
+-		end
+-	end
+-end
+-
+-function shot()
+-	if bullets &gt; 0 then
+-		table.insert( canvasMap[ sy ], sx + 6 )
+-		bullets = bullets - 1
+-	end
+-	sound()
+-end
+-
+-function buttonClicked( button )
+-	if kit.btn_pressed( button ) then
+-		pressed[ button ] = true
+-	else
+-		if pressed[ button ] then
+-			pressed[ button ] = false
+-			return true
+-		end
+-		pressed[ button ] = false
+-	end
+-	return false
+-end
+-
+-function printBulletsNum()
+-	lm3s.disp.print( string.format( &quot;%2d&quot;, bullets ), xcanvas + 4, 2, 6 )
+-end
+-
+-function printScore()
+-	lm3s.disp.print( string.format( &quot;%2d&quot;, score ), xcanvas + 4, ycanvas - 10, 6 )
+-end
+-
+-function sound()
+-	pwm.start( 1 )
+-	tmr.delay( 0, 20000 )
+-	pwm.stop( 1 )
+-end
+-
+-
+-function updateEnemiesPos()
+-	for i = 5, 85, 10 do
+-		if canvasMap[ i ].e then
+-			lm3s.disp.print( enemyChar, canvasMap[ i ].e, i, 0 )
+-			canvasMap[ i ].e = canvasMap[ i ].e - 1
+-			lm3s.disp.print( enemyChar, canvasMap[ i ].e, i, 11 )
+-			if canvasMap[ i ].e &lt;= 0 then
+-				lm3s.disp.print( enemyChar, canvasMap[ i ].e, i, 0 )
+-				canvasMap[ i ].e = nil
+-				createEnemy()
+-			end
+-		end
+-	end
+-end
+-
+-function createEnemy()
+-	while true do
+-		local en = ( math.random( 0, 8 ) )*10 + 5
+-		if not canvasMap[ en ].e then
+-			canvasMap[ en ].e = xcanvas - 5
+-			break
+-		end
+-	end
+-end
+-
+-function addEnemy()
+-	if numOfEnemies &lt; 9 then
+-		numOfEnemies = numOfEnemies + 1
+-		createEnemy()
+-	end
+-end
+-function destroyEnemy( i, j, en )
+-	lm3s.disp.print( shotChar, canvasMap[ i ][ j ], i, 0 )
+-	table.remove( canvasMap[ i ], j )
+-	lm3s.disp.print( enemyChar, canvasMap[ en ].e, en, 0 )
+-	canvasMap[ en ].e = nil
+-	score = score + 1
+-end
+-
+-function destroyAll()
+-	for i in ipairs( canvasMap ) do
+-		for j in ipairs( canvasMap[ i ] ) do
+-			lm3s.disp.print( shotChar, canvasMap[ i ][ j ], i, 0 )
+-			table.remove( canvasMap[ i ], j )
+-		end
+-		local en = math.floor( i / 10 ) * 10 + 5
+-		if canvasMap[ en ].e then
+-			lm3s.disp.print( enemyChar, canvasMap[ en ].e, en, 0 )
+-			canvasMap[ en ].e = nil
+-		end
+-	end
+-
+-end
+-
+-for i = 1, numOfEnemies, 1 do
+-	createEnemy()
+-end
+-
+-
+-lm3s.disp.init( 1000000 )
+-
+--- Initial information
+-lm3s.disp.print( &quot;eLua SpaceShip&quot;, 10, 10, 11 )
+-lm3s.disp.print( &quot;Press SELECT --&gt;&quot;, 10, 40, 11 )
+-local seed = 0
+-while not buttonClicked( kit.BTN_SELECT ) do
+-	seed = seed + 1
+-end
+-math.randomseed( seed )
+-lm3s.disp.clear()
+-
+--------------------------------------------------------------------------------
+---
+---				MAIN LOOP
+---
+--------------------------------------------------------------------------------
+-pwm.setclock( 1, 25000000 )
+-pwm.setup( 1, 1000, 70 )
+-
+-drawWall( xcanvas, ycanvas )
+-
+-while true do
+-	updateEnemiesPos()
+-	for i = 1, 3, 1 do
+-		updateShipPos()
+-		updateShots()
+-	end
+-	printBulletsNum()
+-	printScore()
+-	if buttonClicked( kit.BTN_SELECT ) then shot() end
+-	if buttonClicked( kit.BTN_RIGHT ) then
+-		destroyAll()
+-		for i = 1, numOfEnemies, 1 do
+-			createEnemy()
+-		end
+-	end
+-	if score &gt;= 50 then
+-	  won = true
+-	  break
+-	end
+-	if bullets &lt;= 0 then
+-	  won = false
+-	  break
+-	end
+-	tmr.delay(1, 12000)
+-	collectgarbage(&quot;collect&quot;)
+-end
+-if won then
+-  lm3s.disp.clear()
+-  lm3s.disp.print( &quot;You won!&quot;, 50, 30, 11 )
+-  lm3s.disp.print( &quot;Congratulations!&quot;, 70, 20, 11 )
+-else
+-  lm3s.disp.clear()
+-  lm3s.disp.print( &quot;Game Over! :(&quot;, 60, 20, 11 )
+-end
+
+Deleted: trunk/romfs/test.lua
+===================================================================
+--- trunk/romfs/test.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/test.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,5 +0,0 @@
+-print &quot;&lt;html&gt;&lt;body&gt;&quot;
+-print &quot;Hello from eLua!&lt;br&gt;&quot;
+-print 'Press &lt;a href=&quot;/&quot;&gt;here&lt;/a&gt; to return to the main page.'
+-print &quot;&lt;/body&gt;&lt;/html&gt;&quot;
+-
+
+Deleted: trunk/romfs/tetrives.lua
+===================================================================
+--- trunk/romfs/tetrives.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/tetrives.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,392 +0,0 @@
+--------------------------------------------------------------------------------
+---
+---          eLua Tetris Game
+---
+--- LED Lab @ PUC-Rio - 2009
+---   Dado Sutter
+---   Ives Negreiros
+---   Ricardo Rosa
+---   Pedro Bittencourt
+---   Rafael Barmak
+---   Teo Benjamin
+---
+--- Initial Version by Ives Negreiros, August 2009
+---
+----------------------------------------------------------------------------------
+-local Vmax = 22                        -- Number of pieces in vertical +1
+-local Hmax = 12                        -- Number of pieces horizontally + 2
+-local score = 0                        -- Player's score
+-local highscore = 0                    -- Player's highscore
+-local next_piece = 0                   -- Code for the next piece
+-local PieceV = 0                       -- Vertical position of the piece
+-local PieceH = 0                       -- Horizontal position of the piece
+-local level = 1                        -- Level
+-local rotate_type = 0                  -- Type of rotation for each piece
+-local total_lines = 0                  -- Total number of lines made by player
+-local seed = 0                         -- Variable used to make math.random return a diferent value each time
+-local game_map = {}                    -- Table for the game map
+-for i = 1, Vmax, 1 do
+-  game_map[ i ] = {}
+-end
+-
+-local pwmid
+-if pd.board() == &quot;EK-LM3S1968&quot; then
+-  pwmid = 2
+-else
+-  pwmid = 1
+-end
+-
+--- Initial information
+-local platform = require( pd.board() )
+-lm3s.disp.init( 1000000 )
+-
+-lm3s.disp.print( &quot;eLua Tetrives&quot;, 30, 10, 11 )
+-lm3s.disp.print( &quot;Press SELECT --&gt;&quot;, 30, 40, 11 )
+-while platform.btn_pressed( platform.BTN_SELECT ) == false do
+-  seed = seed + 1
+-end
+-
+-math.randomseed( seed )
+-lm3s.disp.clear()
+-
+-function scan_piece( next_piece )      -- This function selec the next piece based on return of math.random function
+-  if( next_piece == 1 ) then
+-    next_piece_map = { { 1, 1 }, { 1, 1 } }
+-    next_rotate_type = 0
+-
+-  elseif( next_piece == 2 ) then
+-    next_piece_map = { { 1, 1, 0 }, { 0, 1, 1 }, { 0, 0, 0 } }
+-    next_rotate_type = 1
+-
+-  elseif( next_piece == 3 ) then
+-    next_piece_map = { { 0, 1, 1 }, { 1, 1, 0 }, { 0, 0, 0 } }
+-    next_rotate_type = 1
+-
+-  elseif( next_piece == 4 ) then
+-    next_piece_map = { { 0, 0, 1 }, { 1, 1, 1 }, { 0, 0, 0 } }
+-    next_rotate_type = 2
+-
+-  elseif( next_piece == 5 ) then
+-    next_piece_map = { { 1, 0, 0 }, { 1, 1, 1 }, { 0, 0, 0 } }
+-    next_rotate_type = 2
+-
+-  elseif( next_piece == 6 ) then
+-    next_piece_map = { { 0, 1, 0 }, { 1, 1, 1 }, { 0, 0, 0 } }
+-    next_rotate_type = 2
+-
+-  elseif( next_piece == 7 ) then
+-    next_piece_map = { {0, 0, 0, 0 }, { 1, 1, 1, 1 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 } }
+-    next_rotate_type = 4
+-  end
+-end
+-
+-function draw_walls()                  -- This function draws the walls and the base of game piece screen
+-  for i = 6, 63, 3 do
+-    lm3s.disp.print( &quot;|&quot;, 3, i, 11 )
+-  end
+-  for i = 3, 118, 4 do
+-	lm3s.disp.print( &quot;-&quot;, i, 2, 11 )
+-	lm3s.disp.print( &quot;-&quot;, i, 65, 11 )
+-  end
+-end
+-
+-function sound()                       -- This function beeps
+-  pwm.start( pwmid )
+-  tmr.delay( 0, 20000 )
+-  pwm.stop( pwmid )
+-end
+-
+-function print_data()                  -- This function writes the score and level on screen
+-  lm3s.disp.print( &quot;Score:&quot;..tostring( score ), 0, 88, 8 )
+-  lm3s.disp.print( &quot;Level:&quot;..tostring( level ), 0, 80, 8 )
+-end
+-
+-function draw_piece()                  -- This function draws the piece on the screen
+-  for i in ipairs( piece_map ) do
+-    for j in ipairs( piece_map[ i ] ) do
+-      if( piece_map[ i ][ j ] == 1 ) then
+-        lm3s.disp.print( &quot;*&quot;, ( PieceV + i - 1 ) * 6, ( PieceH + j - 1 ) * 6, 11 )
+-      end
+-    end
+-  end
+-end
+-
+-function erase_piece()                 -- This function erases the piece on the screen
+-  for i in ipairs( piece_map ) do
+-    for j in ipairs( piece_map[ i ] ) do
+-      if( piece_map[ i ][ j ] == 1 ) then
+-        lm3s.disp.print( &quot;*&quot;, ( PieceV + i - 1 ) * 6, ( PieceH + j - 1 ) * 6, 0 )
+-      end
+-    end
+-  end
+-end
+-
+-function move_down()                   -- This function moves the piece down if there is no obstacle in the way, else create new piece
+-  free = 0                              -- It also test the lines (see function test_line for further explanation)
+-  for i in ipairs( piece_map ) do
+-    for j in ipairs( piece_map[ i ] ) do
+-      if( piece_map[ i ][ j ] == 1 ) then
+-        if( game_map[ PieceV + i - 1 ][ PieceH + j ] == 0 ) then
+-          free = free + 1
+-        end
+-      end
+-    end
+-  end
+-  if ( free == 4 ) then
+-    erase_piece()
+-    PieceV = PieceV - 1
+-    draw_piece()
+-  else
+-    for i in ipairs( piece_map ) do
+-      for j in ipairs( piece_map[ i ] ) do
+-        if( piece_map[ i ][ j ] == 1 ) then
+-          game_map[ PieceV + i ][ PieceH + j ] = 1
+-        end
+-      end
+-    end
+-    test_line()
+-    create_new_piece()
+-  end
+-end
+-
+-function move_left()                   -- This function moves the piece left if there is no obstacle in the way
+-  free = 0
+-  for i in ipairs( piece_map ) do
+-    for j in ipairs( piece_map[ i ] ) do
+-      if( piece_map[ i ][ j ] == 1 ) then
+-        if( game_map[ PieceV + i ][ PieceH + j - 1 ] == 0 ) then
+-          free = free + 1
+-        end
+-      end
+-    end
+-  end
+-  if ( free == 4 ) then
+-    erase_piece()
+-    PieceH = PieceH - 1
+-    draw_piece()
+-  end
+-end
+-
+-function move_right()                  -- This function moves the piece right if there is no obstacle in the way
+-  free = 0
+-  for i in ipairs( piece_map ) do
+-    for j in ipairs( piece_map[ i ] ) do
+-      if( piece_map[ i ][ j ] == 1 ) then
+-        if( game_map[ PieceV + i ][ PieceH + j + 1 ] == 0 ) then
+-          free = free + 1
+-        end
+-      end
+-    end
+-  end
+-  if ( free == 4 ) then
+-    erase_piece()
+-    PieceH = PieceH + 1
+-    draw_piece()
+-  end
+-end
+-
+-function rotate()                      -- This function rotate the pieces
+-  piecerot = {}
+-  for i = 1, 4, 1 do
+-    piecerot[ i ] = {}
+-  end
+-  free = 0
+-  erase_piece()
+-  if ( rotate_type == 1 or rotate_type == 2 ) then
+-    for i in ipairs( piece_map ) do              -- this loop test if each part of piece can rotate
+-      for j in ipairs( piece_map[ i ] ) do
+-        if( piece_map[ i ][ j ] == 1 ) then
+-          if( game_map[ PieceV + j ][ 4 - i + PieceH ] == 0 ) then
+-            free = free + 1
+-          end
+-        end
+-      end
+-    end
+-    if( free == 4 ) then               -- If all the parts of piece can rotate, then 'free' will be equals to four
+-      if( rotate_type == 2 ) then
+-        rotate_type = 1
+-      end
+-      for i in ipairs( piece_map ) do            -- This loop rotates the piece
+-        for j in ipairs( piece_map[ i ] ) do
+-          piecerot[ i ][ j ] = piece_map[ j ][ 4 - i ]     -- This is the equation of the rotation function for this type of rotation
+-        end
+-      end
+-      piece_map = piecerot
+-    end
+-
+-  elseif ( rotate_type == 3 ) then      -- This part works like the upper part, but for another type of rotation
+-    for i in ipairs( piece_map ) do
+-      for j in ipairs( piece_map[ i ] ) do
+-        if( piece_map[ i ][ j ] == 1 ) then
+-          if( game_map[ 4 - j + PieceV ][ PieceH + i ] == 0 ) then
+-            free = free + 1
+-          end
+-        end
+-      end
+-    end
+-    if( free == 4 ) then
+-      rotate_type =  2
+-      for i in ipairs( piece_map ) do
+-        for j in ipairs( piece_map[ i ] ) do
+-          piecerot[ i ][ j ] = piece_map[ 4 - j ][ i ]
+-        end
+-      end
+-      piece_map = piecerot
+-    end
+-
+-  elseif ( rotate_type == 4 ) then     -- This part works like the upper part, but for another type of rotation
+-    for i in ipairs( piece_map ) do
+-      for j in ipairs( piece_map[ i ] ) do
+-        if( piece_map[ i ][ j ] == 1 ) then
+-          if( game_map[ PieceV + j ][ PieceH + i ] == 0 ) then
+-            free = free + 1
+-          end
+-        end
+-      end
+-    end
+-    if(free == 4 ) then
+-      for i in ipairs( piece_map ) do
+-        for j in ipairs( piece_map [ i ] ) do
+-          piecerot[ i ][ j ] = piece_map[ j ][ i ]
+-        end
+-      end
+-      piece_map = piecerot
+-    end
+-  end
+-  draw_piece()
+-  sound()
+-end
+-
+-function remove_line( line )
+-  for i = line, Vmax - 2, 1 do
+-    for j = 2, Hmax - 1, 1 do
+-      lm3s.disp.print( &quot;*&quot;, ( i - 1 ) * 6, ( j - 1 ) * 6, 0 )
+-      game_map[ i ][ j ] = game_map[ i + 1 ][ j ]
+-      if( game_map[ i ][ j ] == 1 ) then
+-        lm3s.disp.print( &quot;*&quot;, ( i - 1 ) * 6, ( j - 1 ) * 6, 11 )
+-      end
+-    end
+-  end
+-end
+-
+-function test_line()                   -- This function tests the lines, if there is a full line, then this
+-  lines = 0                            -- function removes this line and move down everything that is upper to it
+-  i = 2
+-  while ( i&lt;Vmax ) do
+-    j = 2
+-    while ( j&lt;Hmax ) do
+-      if( game_map[i][j] == 0 ) then
+-        break
+-      elseif( j == Hmax - 1 ) then
+-        remove_line( i )
+-        lines = lines + 1
+-        i = i - 1
+-        break
+-      end
+-      j = j + 1
+-    end
+-    i = i + 1
+-  end
+-  total_lines = total_lines + lines
+-  score = score + 100 * level * lines * lines    -- This is the euqation for the score value
+-  if( total_lines &gt;= 8 and level &lt; 4 ) then
+-    level = level + 1
+-    total_lines = 0
+-  end
+-end
+-
+-function create_new_piece()            -- This Function creates a new piece
+-  piece_map = next_piece_map
+-  rotate_type = next_rotate_type
+-  PieceV = 18
+-  PieceH = 4
+-  next_piece = math.random( 7 )
+-  scan_piece ( next_piece )
+-  for i = 1, 2, 1 do
+-    for j = 1, 4, 1 do
+-      lm3s.disp.print( &quot;*&quot;, 94 + ( j * 6 ), 78 + ( i * 6 ), 0 )
+-    end
+-  end
+-  for i in ipairs( next_piece_map ) do
+-    if( i == 3 ) then
+-      break
+-    end
+-    for j in ipairs( next_piece_map[ i ] ) do
+-      if( next_piece_map[ i ][ j ] == 1 ) then
+-        lm3s.disp.print( &quot;*&quot;, 94 + ( j * 6 ), 78 + ( ( 3 - i ) * 6 ), 11 )
+-      end
+-    end
+-  end
+-  draw_piece()
+-end
+-
+----------------------------------------------------------------------------------
+---																			   --
+---				                 MAIN LOOP							           --
+---																			   --
+----------------------------------------------------------------------------------
+-repeat
+-
+-  for i in ipairs( game_map ) do       -- This loop create the border of game's map
+-    for j = 1, Hmax, 1 do
+-      if( j == 1 or j == Hmax or i == 1 or i == Vmax ) then
+-        game_map[ i ][ j ] = 1
+-      else
+-        game_map[ i ][ j ] = 0
+-      end
+-    end
+-  end
+-  level = 1                            -- This statements sets the level and score from the beginning
+-  score = 0
+-  pwm.setclock( pwmid, 25000000 )      -- This statements sets the PWM for the sound function
+-  pwm.setup( pwmid, 1000, 70 )
+-  draw_walls()
+-  next_piece = math.random(7)
+-  scan_piece ( next_piece )
+-  create_new_piece()
+-  collectgarbage( &quot;collect&quot; )
+-  while true do                        -- This loop refreshes the data and responds the player's input
+-    print_data ()
+-    Tmax = 11 - 2 * level              -- This statement raises the speed based on the level
+-    for i = 1, Tmax, 1 do
+-      if platform.btn_pressed( platform.BTN_UP ) then
+-        move_left()
+-      end
+-      if platform.btn_pressed( platform.BTN_DOWN ) then
+-        move_right()
+-      end
+-      if platform.btn_pressed( platform.BTN_RIGHT ) then
+-        rotate()
+-      end
+-      if platform.btn_pressed( platform.BTN_LEFT ) then   -- If the player presses &quot;down&quot;, the piece drops instantly and a point is added to score
+-        score = score + 1
+-        tmr.delay( 1, 30000 )
+-        break
+-      end
+-      tmr.delay( 1, 70000 )
+-    end
+-    move_down()
+-    if( game_map[ PieceV + 2 ][ PieceH + 2 ] == 1 ) then   -- If this condition is true then game over
+-      break
+-    end
+-    collectgarbage( &quot;collect&quot; )
+-  end
+-
+-  if score &gt; highscore then
+-    highscore = score
+-  end
+-  lm3s.disp.clear()                         -- This statements displays the game over screen
+-  lm3s.disp.print( &quot;Game Over :(&quot;, 30, 20, 11 )
+-  lm3s.disp.print( &quot;Your score was &quot;..tostring( score ), 0, 40, 11 )
+-  lm3s.disp.print( &quot;Highscore: &quot;..tostring( highscore ), 15, 50, 11 )
+-  lm3s.disp.print( &quot;SELECT to restart&quot;, 6, 70, 11 )
+-  enough = true                        -- If the player presses select before the time reach 1000000ms, then restart the game
+-  for i=1, 1000000 do
+-    if platform.btn_pressed( platform.BTN_SELECT ) then
+-      enough = false
+-      break
+-    end
+-  end
+-  lm3s.disp.clear()
+-until ( enough )
+-lm3s.disp.off()
+
+Deleted: trunk/romfs/tvbgone.lua
+===================================================================
+--- trunk/romfs/tvbgone.lua	2011-01-07 22:38:35 UTC (rev 878)
++++ trunk/romfs/tvbgone.lua	2011-01-09 23:31:57 UTC (rev 879)
+@@ -1,70 +0,0 @@
+--- TVBGone in eLua
+--- Adapted from LadyAda's TVBGone project
+-
+--- Check codes file
+-local codes = io.open( &quot;/rom/codes.bin&quot;, &quot;rb&quot; )
+-if codes == nil then
+-  print &quot;Unable to open TVBGone codes file&quot;
+-  return
+-end 
+-
+-local pwmid, tmrid
+-if pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' then
+-  pwmid, tmrid = 2, 1
+-  pwm.setclock( pwmid, 25000000 )
+-  led, startpin, exitpin = pio.PF_0, pio.PF_1, pio.PE_1
+-else
+-  print( pd.board() .. &quot; not supported with this example&quot; )
+-  return
+-end
+-
+--- Setup PIO
+-pio.pin.setdir( pio.OUTPUT, led )
+-pio.pin.setdir( pio.INPUT, startpin, exitpin )
+-pio.pin.setpull( pio.PULLUP, startpin, exitpin )
+-
+--- Local variables
+-local _, fstr, freq, timesstr, ontime, offtime, runme
+-
+--- Send all the codes in an infinite loop
+-collectgarbage( &quot;stop&quot; )
+-runme = true
+-while runme do
+-  while pio.pin.getval( startpin )  == 1 do 
+-    if pio.pin.getval( exitpin ) == 0 then
+-      runme = false 
+-      break 
+-    end
+-  end
+-  if not runme then break end
+-  pio.pin.sethigh( led )
+-  codes:seek( &quot;set&quot;, 0 )
+-  while true do
+-    fstr = codes:read( 4 )
+-    if fstr == nil then break end
+-    _, freq = pack.unpack( fstr, &quot;&lt;L&quot; )
+-    pwm.setup( pwmid, freq, 50 )
+-    while true do
+-      timesstr = codes:read( 4 )
+-      _, ontime = pack.unpack( timesstr, &quot;&lt;H&quot; )
+-      _, offtime = pack.unpack( timesstr, &quot;&lt;H&quot;, 3 )
+-      pwm.start( pwmid )
+-      tmr.delay( tmrid, ontime * 10 )
+-      pwm.stop( pwmid )
+-      if offtime == 0 then break end
+-      tmr.delay( tmrid, offtime * 10 )
+-      if pio.pin.getval( exitpin ) == 0 then
+-        runme = false
+-        break 
+-      end          
+-    end
+-    if not runme then break end
+-    tmr.delay( tmrid, 250000 )
+-  end
+-  pio.pin.setlow( led )
+-  if not runme then break end  
+-  tmr.delay( tmrid, 500000 )
+-end
+-
+-codes:close()
+-
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000831.html">[Elua-svn] r878 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000833.html">[Elua-svn] r880 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#832">[ date ]</a>
+              <a href="thread.html#832">[ thread ]</a>
+              <a href="subject.html#832">[ subject ]</a>
+              <a href="author.html#832">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

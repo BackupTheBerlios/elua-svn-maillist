@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r377 - in trunk: romfs src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r377%20-%20in%20trunk%3A%20romfs%20src/modules&In-Reply-To=%3C200907311156.n6VBuiK8017423%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000332.html">
+   <LINK REL="Next"  HREF="000334.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r377 - in trunk: romfs src/modules</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r377%20-%20in%20trunk%3A%20romfs%20src/modules&In-Reply-To=%3C200907311156.n6VBuiK8017423%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r377 - in trunk: romfs src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Jul 31 13:56:44 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000332.html">[Elua-svn] r376 - in tags/pre0.6: doc doc/luadoc romfs src/modules
+</A></li>
+        <LI>Next message: <A HREF="000334.html">[Elua-svn] r378 - tags/pre0.6/doc/wb_img
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#333">[ date ]</a>
+              <a href="thread.html#333">[ thread ]</a>
+              <a href="subject.html#333">[ subject ]</a>
+              <a href="author.html#333">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-07-31 13:56:43 +0200 (Fri, 31 Jul 2009)
+New Revision: 377
+
+Modified:
+   trunk/romfs/adcscope.lua
+   trunk/src/modules/tmr.c
+Log:
+syntax revision on tmr (merged to trunk)
+
+Modified: trunk/romfs/adcscope.lua
+===================================================================
+--- trunk/romfs/adcscope.lua	2009-07-31 11:56:22 UTC (rev 376)
++++ trunk/romfs/adcscope.lua	2009-07-31 11:56:43 UTC (rev 377)
+@@ -41,7 +41,7 @@
+     end
+   end
+   etime = tread(0) -- get cycle end time
+-  dtime = tmr.diff(0,etime,stime)/numiter -- compute average acquisition time per cycle
++  dtime = tmr.gettimediff(0,etime,stime)/numiter -- compute average acquisition time per cycle
+   
+   -- draw last acquired samples on the console
+   term.moveto(1,4)
+
+Modified: trunk/src/modules/tmr.c
+===================================================================
+--- trunk/src/modules/tmr.c	2009-07-31 11:56:22 UTC (rev 376)
++++ trunk/src/modules/tmr.c	2009-07-31 11:56:43 UTC (rev 377)
+@@ -51,8 +51,8 @@
+   return tmrh_timer_op( L, PLATFORM_TIMER_OP_START );
+ }
+ 
+-// Lua: time_us = diff( id, end, start )
+-static int tmr_diff( lua_State* L )
++// Lua: time_us = gettimediff( id, end, start )
++static int tmr_gettimediff( lua_State* L )
+ {
+   timer_data_type end, start;
+   u32 res;
+@@ -60,15 +60,15 @@
+     
+   id = luaL_checkinteger( L, 1 ); 
+   MOD_CHECK_ID( timer, id );
+-  end = luaL_checkinteger( L, 2 );
+-  start = luaL_checkinteger( L, 3 );  
++  end = ( timer_data_type )luaL_checkinteger( L, 2 );
++  start = ( timer_data_type )luaL_checkinteger( L, 3 );  
+   res = platform_timer_get_diff_us( id, end, start );
+   lua_pushinteger( L, res );
+   return 1;    
+ }
+ 
+-// Lua: res = mindelay( id )
+-static int tmr_mindelay( lua_State* L )
++// Lua: res = getmindelay( id )
++static int tmr_getmindelay( lua_State* L )
+ {
+   u32 res;
+   unsigned id;
+@@ -80,8 +80,8 @@
+   return 1;
+ }
+ 
+-// Lua: res = maxdelay( id )
+-static int tmr_maxdelay( lua_State* L )
++// Lua: res = getmaxdelay( id )
++static int tmr_getmaxdelay( lua_State* L )
+ {
+   u32 res;
+   unsigned id;
+@@ -101,7 +101,7 @@
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( timer, id );
+-  clock = luaL_checkinteger( L, 2 );
++  clock = ( u32 )luaL_checkinteger( L, 2 );
+   clock = platform_timer_op( id, PLATFORM_TIMER_OP_SET_CLOCK, clock );
+   lua_pushinteger( L, clock );
+   return 1;
+@@ -151,9 +151,9 @@
+   { LSTRKEY( &quot;delay&quot; ), LFUNCVAL( tmr_delay ) },
+   { LSTRKEY( &quot;read&quot; ), LFUNCVAL( tmr_read ) },
+   { LSTRKEY( &quot;start&quot; ), LFUNCVAL( tmr_start ) },
+-  { LSTRKEY( &quot;diff&quot; ), LFUNCVAL( tmr_diff ) },  
+-  { LSTRKEY( &quot;mindelay&quot; ), LFUNCVAL( tmr_mindelay ) },
+-  { LSTRKEY( &quot;maxdelay&quot; ), LFUNCVAL( tmr_maxdelay ) },
++  { LSTRKEY( &quot;gettimediff&quot; ), LFUNCVAL( tmr_gettimediff ) },  
++  { LSTRKEY( &quot;getmindelay&quot; ), LFUNCVAL( tmr_getmindelay ) },
++  { LSTRKEY( &quot;getmaxdelay&quot; ), LFUNCVAL( tmr_getmaxdelay ) },
+   { LSTRKEY( &quot;setclock&quot; ), LFUNCVAL( tmr_setclock ) },
+   { LSTRKEY( &quot;getclock&quot; ), LFUNCVAL( tmr_getclock ) },
+ #if LUA_OPTIMIZE_MEMORY &gt; 0 &amp;&amp; VTMR_NUM_TIMERS &gt; 0
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000332.html">[Elua-svn] r376 - in tags/pre0.6: doc doc/luadoc romfs src/modules
+</A></li>
+	<LI>Next message: <A HREF="000334.html">[Elua-svn] r378 - tags/pre0.6/doc/wb_img
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#333">[ date ]</a>
+              <a href="thread.html#333">[ thread ]</a>
+              <a href="subject.html#333">[ subject ]</a>
+              <a href="author.html#333">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

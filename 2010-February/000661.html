@@ -1,0 +1,261 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r708 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc24xx platform/lpc288x	platform/stm32 platform/str7 platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r708%20-%20in%20trunk/src%3A%20.%20modules%20platform/at91sam7x%0A%09platform/lm3s%20platform/lpc24xx%20platform/lpc288x%0A%09platform/stm32%20platform/str7%20platform/str9&In-Reply-To=%3C201002101758.o1AHwMB7002686%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000660.html">
+   <LINK REL="Next"  HREF="000662.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r708 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc24xx platform/lpc288x	platform/stm32 platform/str7 platform/str9</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r708%20-%20in%20trunk/src%3A%20.%20modules%20platform/at91sam7x%0A%09platform/lm3s%20platform/lpc24xx%20platform/lpc288x%0A%09platform/stm32%20platform/str7%20platform/str9&In-Reply-To=%3C201002101758.o1AHwMB7002686%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r708 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc24xx platform/lpc288x	platform/stm32 platform/str7 platform/str9">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Feb 10 18:58:22 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000660.html">[Elua-svn] r707 - trunk/src/modules
+</A></li>
+        <LI>Next message: <A HREF="000662.html">[Elua-svn] r709 - trunk/src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#661">[ date ]</a>
+              <a href="thread.html#661">[ thread ]</a>
+              <a href="subject.html#661">[ subject ]</a>
+              <a href="author.html#661">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-02-10 18:58:20 +0100 (Wed, 10 Feb 2010)
+New Revision: 708
+
+Modified:
+   trunk/src/luarpc_elua_uart.c
+   trunk/src/modules/luarpc.c
+   trunk/src/platform/at91sam7x/platform_conf.h
+   trunk/src/platform/lm3s/platform_conf.h
+   trunk/src/platform/lpc24xx/platform_conf.h
+   trunk/src/platform/lpc288x/platform_conf.h
+   trunk/src/platform/stm32/platform_conf.h
+   trunk/src/platform/str7/platform_conf.h
+   trunk/src/platform/str9/platform_conf.h
+Log:
+Turn on rpc if boot mode is set to luarpc, regardless of whether BUILD_RPC is
+set.
+
+Modified: trunk/src/luarpc_elua_uart.c
+===================================================================
+--- trunk/src/luarpc_elua_uart.c	2010-02-08 23:07:06 UTC (rev 707)
++++ trunk/src/luarpc_elua_uart.c	2010-02-10 17:58:20 UTC (rev 708)
+@@ -5,7 +5,7 @@
+ #include &quot;platform_conf.h&quot;
+ #include &quot;luarpc_rpc.h&quot;
+ 
+-#ifdef BUILD_RPC
++#if defined( BUILD_RPC )
+ 
+ // Setup Transport
+ void transport_init (Transport *tpt)
+@@ -135,4 +135,4 @@
+ 	tpt-&gt;fd = INVALID_TRANSPORT;
+ }
+ 
+-#endif
+\ No newline at end of file
++#endif
+
+Modified: trunk/src/modules/luarpc.c
+===================================================================
+--- trunk/src/modules/luarpc.c	2010-02-08 23:07:06 UTC (rev 707)
++++ trunk/src/modules/luarpc.c	2010-02-10 17:58:20 UTC (rev 708)
+@@ -40,7 +40,7 @@
+ #include &quot;luarpc_rpc.h&quot;
+ 
+ 
+-#ifdef BUILD_RPC
++#if defined( BUILD_RPC )
+ 
+ // Support for Compiling with &amp; without rotables 
+ #ifdef LUA_OPTIMIZE_MEMORY
+
+Modified: trunk/src/platform/at91sam7x/platform_conf.h
+===================================================================
+--- trunk/src/platform/at91sam7x/platform_conf.h	2010-02-08 23:07:06 UTC (rev 707)
++++ trunk/src/platform/at91sam7x/platform_conf.h	2010-02-10 17:58:20 UTC (rev 708)
+@@ -29,11 +29,14 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#ifdef BUILD_RPC
++#if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+ #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #else
+ #define RPCLINE
++#if !defined( BUILD_RPC )
++#define BUILD_RPC
+ #endif
++#endif
+ 
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2010-02-08 23:07:06 UTC (rev 707)
++++ trunk/src/platform/lm3s/platform_conf.h	2010-02-10 17:58:20 UTC (rev 708)
+@@ -61,11 +61,14 @@
+ #define ADCLINE
+ #endif
+ 
+-#ifdef BUILD_RPC
++#if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+ #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #else
+ #define RPCLINE
++#if !defined( BUILD_RPC )
++#define BUILD_RPC
+ #endif
++#endif
+ 
+ #ifdef PS_LIB_TABLE_NAME
+ #define PLATLINE _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
+
+Modified: trunk/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc24xx/platform_conf.h	2010-02-08 23:07:06 UTC (rev 707)
++++ trunk/src/platform/lpc24xx/platform_conf.h	2010-02-10 17:58:20 UTC (rev 708)
+@@ -29,11 +29,14 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#ifdef BUILD_RPC
++#if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+ #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #else
+ #define RPCLINE
++#if !defined( BUILD_RPC )
++#define BUILD_RPC
+ #endif
++#endif
+ 
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+
+Modified: trunk/src/platform/lpc288x/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc288x/platform_conf.h	2010-02-08 23:07:06 UTC (rev 707)
++++ trunk/src/platform/lpc288x/platform_conf.h	2010-02-10 17:58:20 UTC (rev 708)
+@@ -67,11 +67,14 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#ifdef BUILD_RPC
++#if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+ #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #else
+ #define RPCLINE
++#if !defined( BUILD_RPC )
++#define BUILD_RPC
+ #endif
++#endif
+ 
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2010-02-08 23:07:06 UTC (rev 707)
++++ trunk/src/platform/stm32/platform_conf.h	2010-02-10 17:58:20 UTC (rev 708)
+@@ -51,11 +51,14 @@
+ #define ADCLINE
+ #endif
+ 
+-#ifdef BUILD_RPC
++#if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+ #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #else
+ #define RPCLINE
++#if !defined( BUILD_RPC )
++#define BUILD_RPC
+ #endif
++#endif
+ 
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+
+Modified: trunk/src/platform/str7/platform_conf.h
+===================================================================
+--- trunk/src/platform/str7/platform_conf.h	2010-02-08 23:07:06 UTC (rev 707)
++++ trunk/src/platform/str7/platform_conf.h	2010-02-10 17:58:20 UTC (rev 708)
+@@ -28,11 +28,14 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#ifdef BUILD_RPC
++#if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+ #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #else
+ #define RPCLINE
++#if !defined( BUILD_RPC )
++#define BUILD_RPC
+ #endif
++#endif
+ 
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+
+Modified: trunk/src/platform/str9/platform_conf.h
+===================================================================
+--- trunk/src/platform/str9/platform_conf.h	2010-02-08 23:07:06 UTC (rev 707)
++++ trunk/src/platform/str9/platform_conf.h	2010-02-10 17:58:20 UTC (rev 708)
+@@ -77,11 +77,14 @@
+ // The name of the platform specific libs table
+ #define PS_LIB_TABLE_NAME   &quot;str9&quot;
+ 
+-#ifdef BUILD_RPC
++#if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+ #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #else
+ #define RPCLINE
++#if !defined( BUILD_RPC )
++#define BUILD_RPC
+ #endif
++#endif
+ 
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000660.html">[Elua-svn] r707 - trunk/src/modules
+</A></li>
+	<LI>Next message: <A HREF="000662.html">[Elua-svn] r709 - trunk/src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#661">[ date ]</a>
+              <a href="thread.html#661">[ thread ]</a>
+              <a href="subject.html#661">[ subject ]</a>
+              <a href="author.html#661">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

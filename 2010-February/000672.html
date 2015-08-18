@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r719 - in trunk: . romfs src/platform/lpc17xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r719%20-%20in%20trunk%3A%20.%20romfs%20src/platform/lpc17xx&In-Reply-To=%3C201002200115.o1K1FIbo006927%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000671.html">
+   <LINK REL="Next"  HREF="000673.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r719 - in trunk: . romfs src/platform/lpc17xx</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r719%20-%20in%20trunk%3A%20.%20romfs%20src/platform/lpc17xx&In-Reply-To=%3C201002200115.o1K1FIbo006927%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r719 - in trunk: . romfs src/platform/lpc17xx">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Feb 20 02:15:18 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000671.html">[Elua-svn] r718 - in trunk: . romfs src/platform/lpc17xx
+</A></li>
+        <LI>Next message: <A HREF="000673.html">[Elua-svn] r720 - in trunk: . src/modules src/platform/at91sam7x	src/platform/avr32 src/platform/lm3s src/platform/lpc24xx	src/platform/lpc288x src/platform/stm32 src/platform/str7	src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#672">[ date ]</a>
+              <a href="thread.html#672">[ thread ]</a>
+              <a href="subject.html#672">[ subject ]</a>
+              <a href="author.html#672">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-02-20 02:15:16 +0100 (Sat, 20 Feb 2010)
+New Revision: 719
+
+Modified:
+   trunk/SConstruct
+   trunk/romfs/life.lua
+   trunk/src/platform/lpc17xx/platform_conf.h
+Log:
+Use all RAM on mbed. Adjust life.lua to show memory usage information, and use
+a bit smaller grid.
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-02-20 00:27:33 UTC (rev 718)
++++ trunk/SConstruct	2010-02-20 01:15:16 UTC (rev 719)
+@@ -148,7 +148,7 @@
+               'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect','adcscope','adcpoll', 'dualpwm', 'pwmled' ],
+               'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ],
+               'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'pwmled' ],
+-              'MBED' : [ 'bisect', 'hello', 'info', 'led', 'pwmled', 'dualpwm' ],
++              'MBED' : [ 'bisect', 'hangman', 'hello', 'info', 'led', 'pwmled', 'dualpwm', 'life' ],
+ }
+ 
+ # Variants: board = &lt;boardname&gt;
+@@ -211,7 +211,7 @@
+ 
+ # CPU/allocator mapping (if allocator not specified)
+ if allocator == '':
+-  if boardname == 'LPC-H2888' or boardname == 'ATEVK1100':
++  if boardname in ['LPC-H2888', 'ATEVK1100', 'MBED']:
+     allocator = 'multiple'
+   else:
+     allocator = 'newlib'
+
+Modified: trunk/romfs/life.lua
+===================================================================
+--- trunk/romfs/life.lua	2010-02-20 00:27:33 UTC (rev 718)
++++ trunk/romfs/life.lua	2010-02-20 01:15:16 UTC (rev 719)
+@@ -98,11 +98,11 @@
+     thisgen,nextgen = nextgen,thisgen
+     write(&quot;\027[H&quot;)	-- ANSI home cursor
+     thisgen:draw()
+-    write(&quot;Life - generation &quot;,gen,&quot;\n&quot;)
++    write(&quot;Life - generation &quot;,gen,&quot;, mem &quot;, string.format(&quot;%3.1f&quot;,collectgarbage('count')), &quot; kB\n&quot;)
+     gen=gen+1
+     if gen&gt;2000 then break end
+     --delay()		-- no delay
+   end
+ end
+ 
+-LIFE(40,20)
++LIFE(32,16)
+
+Modified: trunk/src/platform/lpc17xx/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc17xx/platform_conf.h	2010-02-20 00:27:33 UTC (rev 718)
++++ trunk/src/platform/lpc17xx/platform_conf.h	2010-02-20 01:15:16 UTC (rev 719)
+@@ -42,11 +42,14 @@
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
++  _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
+   _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
+ 
+ // *****************************************************************************
+ // Configuration data
+ 
++#define EGC_INITIAL_MODE      1
++
+ // Virtual timers (0 if not used)
+ #define VTMR_NUM_TIMERS       0
+ #define VTMR_FREQ_HZ          4
+@@ -88,10 +91,12 @@
+ 
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+-#define SRAM_ORIGIN           0x40000000
+-#define SRAM_SIZE             0x10000 // [TODO]: make this 96k?
+-#define MEM_START_ADDRESS     { ( void* )end }
+-#define MEM_END_ADDRESS       { ( void* )( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ) }
++#define SRAM_ORIGIN           0x10000000
++#define SRAM_SIZE             0x8000
++#define SRAM2_ORIGIN          0x2007C000
++#define SRAM2_SIZE            0x8000
++#define MEM_START_ADDRESS     { ( void* )end, ( void* )SRAM2_ORIGIN }
++#define MEM_END_ADDRESS       { ( void* )( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ), ( void* )( SRAM2_ORIGIN + SRAM2_SIZE - 1 ) }
+  
+ #endif // #ifndef __PLATFORM_CONF_H__
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000671.html">[Elua-svn] r718 - in trunk: . romfs src/platform/lpc17xx
+</A></li>
+	<LI>Next message: <A HREF="000673.html">[Elua-svn] r720 - in trunk: . src/modules src/platform/at91sam7x	src/platform/avr32 src/platform/lm3s src/platform/lpc24xx	src/platform/lpc288x src/platform/stm32 src/platform/str7	src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#672">[ date ]</a>
+              <a href="thread.html#672">[ thread ]</a>
+              <a href="subject.html#672">[ subject ]</a>
+              <a href="author.html#672">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

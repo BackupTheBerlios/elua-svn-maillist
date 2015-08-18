@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r709 - trunk/src/platform/lpc17xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r709%20-%20trunk/src/platform/lpc17xx&In-Reply-To=%3C201002122303.o1CN3Eqq000507%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000661.html">
+   <LINK REL="Next"  HREF="000663.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r709 - trunk/src/platform/lpc17xx</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r709%20-%20trunk/src/platform/lpc17xx&In-Reply-To=%3C201002122303.o1CN3Eqq000507%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r709 - trunk/src/platform/lpc17xx">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Feb 13 00:03:14 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000661.html">[Elua-svn] r708 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc24xx platform/lpc288x	platform/stm32 platform/str7 platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000663.html">[Elua-svn] r710 - in trunk: romfs src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#662">[ date ]</a>
+              <a href="thread.html#662">[ thread ]</a>
+              <a href="subject.html#662">[ subject ]</a>
+              <a href="author.html#662">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-02-13 00:03:13 +0100 (Sat, 13 Feb 2010)
+New Revision: 709
+
+Modified:
+   trunk/src/platform/lpc17xx/platform.c
+Log:
+Beginnings for specialized GPIO on mbed.
+
+Modified: trunk/src/platform/lpc17xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc17xx/platform.c	2010-02-10 17:58:20 UTC (rev 708)
++++ trunk/src/platform/lpc17xx/platform.c	2010-02-12 23:03:13 UTC (rev 709)
+@@ -23,6 +23,9 @@
+ #include &quot;lpc17xx_timer.h&quot;
+ #include &quot;lpc17xx_clkpwr.h&quot;
+ 
++// mbed-specific includes
++#include &quot;PinNames.h&quot;
++
+ // ****************************************************************************
+ // Platform initialization
+ 
+@@ -66,7 +69,52 @@
+ 
+ // ****************************************************************************
+ // PIO section
++                 
++u32 pin_ports = {0,0,0,0,0,0,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,2,2,2,2,2,2,0 ,0,0, // mbed p5 - p30
++                 1 ,1 ,1 ,1 ,0,0}; // mbed LED1-4, USBTX, USBRX
++u32 pin_nums  = {9,8,7,6,0,1,18,17,15,16,23,24,25,26,30,31,5,4,3,2,1,0,11,5,4,
++                 18,20,21,23,2,3};
+ 
++inline PinName parse_pins(const char *str) {
++    const PinName pin_names[] = {p5, p6, p7, p8, p9, p10, p11, p12, p13, p14
++                                , p15, p16, p17, p18, p19, p20, p21, p22, p23
++                                , p24, p25, p26, p27, p28, p29, p30};
++
++    if(str[0] == 'P') { // Pn_n
++        uint32_t port = str[1] - '0';
++        uint32_t pin = str[3] - '0'; // Pn_n
++        uint32_t pin2 = str[4] - '0'; // Pn_nn
++        if(pin2 &lt;= 9) {
++            pin = pin * 10 + pin2;
++        }
++        return (PinName)(LPC_GPIO0_BASE + port * 32 + pin);
++    } else if(str[0] == 'p') {  // pn
++        uint32_t pin = str[1] - '0'; // pn
++        uint32_t pin2 = str[2] - '0'; // pnn
++        if(pin2 &lt;= 9) {
++                  pin = pin * 10 + pin2;
++        }
++        if(pin &lt; 5 || pin &gt; 30) {
++              return NC;
++        }
++        return pin_names[pin - 5];
++    } else if(str[0] == 'L') {  // LEDn
++        switch(str[3]) {
++            case '1' : return LED1;
++            case '2' : return LED2;
++            case '3' : return LED3;
++            case '4' : return LED4;
++        }
++    } else if(str[0] == 'U') {  // USB?X
++        switch(str[3]) {
++            case 'T' : return USBTX;
++            case 'R' : return USBRX;
++        }
++    }
++    return NC;
++}
++
++
+ // The platform I/O functions
+ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
+ {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000661.html">[Elua-svn] r708 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc24xx platform/lpc288x	platform/stm32 platform/str7 platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000663.html">[Elua-svn] r710 - in trunk: romfs src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#662">[ date ]</a>
+              <a href="thread.html#662">[ thread ]</a>
+              <a href="subject.html#662">[ subject ]</a>
+              <a href="author.html#662">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

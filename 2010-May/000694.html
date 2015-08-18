@@ -1,0 +1,193 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r741 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-May/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r741%20-%20trunk&In-Reply-To=%3C201005060109.o4619MPd004348%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000695.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r741 - trunk</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r741%20-%20trunk&In-Reply-To=%3C201005060109.o4619MPd004348%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r741 - trunk">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu May  6 03:09:22 CEST 2010</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000695.html">[Elua-svn] r742 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#694">[ date ]</a>
+              <a href="thread.html#694">[ thread ]</a>
+              <a href="subject.html#694">[ subject ]</a>
+              <a href="author.html#694">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-05-06 03:09:21 +0200 (Thu, 06 May 2010)
+New Revision: 741
+
+Modified:
+   trunk/SConstruct
+Log:
+Start of SConscript conversion
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-04-01 03:15:47 UTC (rev 740)
++++ trunk/SConstruct	2010-05-06 01:09:21 UTC (rev 741)
+@@ -1,7 +1,44 @@
+ import os, sys, shutil
+-target = ARGUMENTS.get( 'target', 'lua' ).lower()
++
++vars = Variables('build-setup.conf')
++
++AddOption( &quot;cpu&quot;,
++           dest=&quot;cputype&quot;,
++           type=&quot;string&quot;,
++           nargs=1,
++           action=&quot;store&quot;,
++           help=&quot;build for the specified CPU. A board name will be assigned by the build system automatically.&quot;)
++
++AddOption( &quot;target&quot;,
++           dest=&quot;target&quot;,
++           type=&quot;string&quot;,
++           nargs=1,
++           action=&quot;store&quot;,
++           default=&quot;lua&quot;,
++           help=&quot;lua | lualong: specify if you want to build 'regular' Lua (with floating point support) or integer only Lua (lualong). The default is 'lua'.&quot;)
++
++AddOption( &quot;cpumode&quot;,
++           dest=&quot;cpumode&quot;
++           type=&quot;string&quot;,
++           nargs=1,
++           action=&quot;store&quot;,
++           default=&quot;thumb&quot;,
++           help=&quot;arm | thumb: for ARM targets (not Cortex) this specifies the compilation mode.&quot;)
++           
++AddOption( &quot;allocator&quot;,
++           dest=&quot;allocator&quot;,
++           type=&quot;string&quot;,
++           nargs=1,
++           action=&quot;store&quot;,
++           default=&quot;newlib&quot;,
++           help=&quot;newlib | multiple | simple: choose between the default newlib allocator (newlib) which is an older version of dlmalloc, the multiple memory spaces allocator (multiple) which is a newer version of dlmalloc that can handle multiple memory spaces, and a very simple memory allocator (simple) that is slow and doesn't handle fragmentation very well, but it requires very few resources (Flash/RAM).&quot;)
++           
++
++
++
++#target = ARGUMENTS.get( 'target', 'lua' ).lower()
+ cputype = ARGUMENTS.get( 'cpu', '' ).upper()
+-allocator = ARGUMENTS.get( 'allocator', '' ).lower()
++#allocator = ARGUMENTS.get( 'allocator', '' ).lower()
+ boardname = ARGUMENTS.get( 'board' , '').upper()
+ toolchain = ARGUMENTS.get( 'toolchain', '')
+ optram = int( ARGUMENTS.get( 'optram', '1' ) )
+@@ -151,27 +188,31 @@
+               'MBED' : [ 'bisect', 'hangman', 'hello', 'info', 'led', 'pwmled', 'dualpwm', 'life' ],
+ }
+ 
++comp = Environment( OBJSUFFIX = &quot;.o&quot;, PROGSUFFIX = &quot;.elf&quot;, ENV = os.environ )
++
++conf = Configure(comp)
++
+ # Variants: board = &lt;boardname&gt;
+ #           cpu = &lt;cpuname&gt;
+ #           board = &lt;boardname&gt; cpu=&lt;cpuname&gt;
+ if boardname == '' and cputype == '':
+   print &quot;Must specifiy board, cpu, or both&quot;
+-  sys.exit( -1 )
++  Exit( -1 )
+ elif boardname != '' and cputype != '':
+   # board = &lt;boardname&gt; cpu=&lt;cpuname&gt;
+   # Check if the board, cpu pair is correct
+   if not board_list.has_key( boardname ):
+     print &quot;Unknown board&quot;, boardname
+-    sys.exit( -1 )
++    Exit( -1 )
+   if not cputype in board_list[ boardname ]:
+     print &quot;Invalid CPU %s for board %s&quot; % ( cputype, boardname )
+-    sys.exit( -1 )
++    Exit( -1 )
+ elif boardname != '':
+   # board = &lt;boardname&gt;
+   # Find CPU
+   if not board_list.has_key( boardname ):
+     print &quot;Unknown board&quot;, boardname
+-    sys.exit( -1 )
++    Exit( -1 )
+   cputype = board_list[ boardname ][ 0 ]
+ else:
+   # cpu = &lt;cputype&gt;
+@@ -335,6 +376,21 @@
+ # Complete file list
+ source_files = app_files + specific_files + newlib_files + uip_files + lua_full_files + module_files + rfs_files
+ 
++
++
++# Env for building the program
++comp['CCCOM'] = tools[ platform ][ 'cccom' ]
++comp['ASCOM'] = tools[ platform ][ 'ascom' ]
++comp['LINKCOM'] = tools[ platform ][ 'linkcom' ]
++comp['CPPPATH'] = local_include
++
++# Check our configuration further.
++if not conf.CheckCC():
++  print('Not able to find your compiler, please check that it is in your path.')
++  Exit(0)
++  
++comp = conf.Finish()
++
+ # Make ROM File System first
+ if not GetOption( 'clean' ):
+   print &quot;Building ROM File System...&quot;
+@@ -357,14 +413,6 @@
+   if os.path.exists( &quot;src/fs.o&quot; ): 
+     os.remove( &quot;src/fs.o&quot; )
+ 
+-# Env for building the program
+-comp = Environment( CCCOM = tools[ platform ][ 'cccom' ],
+-                    ASCOM = tools[ platform ][ 'ascom' ],
+-                    LINKCOM = tools[ platform ][ 'linkcom' ],
+-                    OBJSUFFIX = &quot;.o&quot;,
+-                    PROGSUFFIX = &quot;.elf&quot;,
+-                    CPPPATH = local_include,
+-                    ENV = os.environ )
+ # comp.TargetSignatures( 'content' )
+ # comp.SourceSignatures( 'MD5' )
+ comp[ 'INCPREFIX' ] = &quot;-I&quot;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000695.html">[Elua-svn] r742 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#694">[ date ]</a>
+              <a href="thread.html#694">[ thread ]</a>
+              <a href="subject.html#694">[ subject ]</a>
+              <a href="author.html#694">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

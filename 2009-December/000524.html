@@ -1,0 +1,1698 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r568 - in trunk: . doc/eluadoc doc/images inc src	src/lua src/modules src/platform/lm3s src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r568%20-%20in%20trunk%3A%20.%20doc/eluadoc%20doc/images%20inc%20src%0A%09src/lua%20src/modules%20src/platform/lm3s%20src/platform/stm32&In-Reply-To=%3C200912040146.nB41koYR007099%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000523.html">
+   <LINK REL="Next"  HREF="000525.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r568 - in trunk: . doc/eluadoc doc/images inc src	src/lua src/modules src/platform/lm3s src/platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r568%20-%20in%20trunk%3A%20.%20doc/eluadoc%20doc/images%20inc%20src%0A%09src/lua%20src/modules%20src/platform/lm3s%20src/platform/stm32&In-Reply-To=%3C200912040146.nB41koYR007099%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r568 - in trunk: . doc/eluadoc doc/images inc src	src/lua src/modules src/platform/lm3s src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Dec  4 02:46:50 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000523.html">[Elua-svn] r567 - trunk/src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000525.html">[Elua-svn] r569 - branches
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#524">[ date ]</a>
+              <a href="thread.html#524">[ thread ]</a>
+              <a href="subject.html#524">[ subject ]</a>
+              <a href="author.html#524">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-04 02:46:47 +0100 (Fri, 04 Dec 2009)
+New Revision: 568
+
+Added:
+   trunk/rpc-lua.py
+Removed:
+   trunk/remote-lua.py
+Modified:
+   trunk/SConstruct
+   trunk/doc/eluadoc/refman_gen_rpc.lua
+   trunk/doc/images/eLuaLogo.svg
+   trunk/inc/luarpc_rpc.h
+   trunk/src/lua/linit.c
+   trunk/src/lua/lua.c
+   trunk/src/lua/luaconf.h
+   trunk/src/luarpc_elua_uart.c
+   trunk/src/luarpc_posix_serial.c
+   trunk/src/main.c
+   trunk/src/modules/luarpc.c
+   trunk/src/platform/lm3s/platform_conf.h
+   trunk/src/platform/stm32/platform_conf.h
+Log:
+Starting Cleanup of LuaRPC for 0.7 release.
+- added some more documentation (not yet done)
+- alternate uarts can be selected (boot mode defaults to console uarts)
+- renamed &quot;remote&quot; references to &quot;rpc&quot; (may as well keep the original name)
+- switch default error handler to luaL_error (presumably wasn't available for
+  old 4.x LuaRPC)
+- tweaks to exception handling to make things more consistent (hopefully)
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/SConstruct	2009-12-04 01:46:47 UTC (rev 568)
+@@ -220,10 +220,10 @@
+ # Check boot mode selection
+ if boot == '':
+   boot = 'standard'
+-elif boot not in ['standard', 'luaremote']:
++elif boot not in ['standard', 'luarpc']:
+   print &quot;Unknown boot mode: &quot;, boot
+-  print &quot;Boot mode can be either 'standard' or 'luaremote'&quot;
+-  sys.exit( -1 )
++  print &quot;Boot mode can be either 'standard' or 'luarpc'&quot;
++  sys.exit( -1 );
+ 
+ # Check romfs mode
+ if romfsmode not in ['verbatim', 'compile', 'compress']:
+@@ -268,8 +268,8 @@
+ elif allocator == 'simple':
+   cdefs = cdefs + &quot; -DUSE_SIMPLE_ALLOCATOR&quot;
+ 
+-if boot == 'luaremote':
+-  cdefs += &quot; -DELUA_BOOT_REMOTE&quot;
++if boot == 'luarpc':
++  cdefs += &quot; -DELUA_BOOT_RPC&quot;
+ 
+ # Special macro definitions for the SYM target
+ if platform == 'sim':
+
+Modified: trunk/doc/eluadoc/refman_gen_rpc.lua
+===================================================================
+--- trunk/doc/eluadoc/refman_gen_rpc.lua	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/doc/eluadoc/refman_gen_rpc.lua	2009-12-04 01:46:47 UTC (rev 568)
+@@ -10,7 +10,13 @@
+   menu_name = &quot;rpc&quot;,
+ 
+   -- Overview
+-  overview = [[LuaRPC allows one to remotely control a lua state running on another machine.]],
++  overview = [[LuaRPC allows one to remotely control a lua state running on another machine or microcontroller.&lt;/p&gt;
++  &lt;p&gt;It works by providing a $handle$ to the client session which allows control over remote state. Functions can
++  be called in the remote environment and variables can be manipulated by treating the $handle$ (representing 
++  the remote global table) as if it were a local table.&lt;/p&gt;
++  &lt;p&gt;&lt;span class=&quot;warning&quot;&gt;IMPORTANT&lt;/span&gt;: This module is considered experimental. It currently works over a 
++  serial port with eLua targets and on desktop systems implementing POSIX serial communications (Linux, Mac OS X, etc).
++  ]],
+ 
+   -- Functions
+   funcs = 
+
+Modified: trunk/doc/images/eLuaLogo.svg
+===================================================================
+--- trunk/doc/images/eLuaLogo.svg	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/doc/images/eLuaLogo.svg	2009-12-04 01:46:47 UTC (rev 568)
+@@ -1,123 +1,928 @@
+ &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;
+-&lt;svg id=&quot;svg5414&quot; xmlns:inkscape=&quot;<A HREF="http://www.inkscape.org/namespaces/inkscape">http://www.inkscape.org/namespaces/inkscape</A>&quot; xmlns:rdf=&quot;<A HREF="http://www.w3.org/1999/02/22-rdf-syntax-ns#">http://www.w3.org/1999/02/22-rdf-syntax-ns#</A>&quot; xmlns=&quot;<A HREF="http://www.w3.org/2000/svg">http://www.w3.org/2000/svg</A>&quot; sodipodi:docname=&quot;eLuaLogo.svg&quot; xmlns:sodipodi=&quot;<A HREF="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd">http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd</A>&quot; viewBox=&quot;0 0 245 245&quot; sodipodi:version=&quot;0.32&quot; version=&quot;1.0&quot; inkscape:output_extension=&quot;org.inkscape.output.svg.inkscape&quot; xmlns:cc=&quot;<A HREF="http://creativecommons.org/ns#">http://creativecommons.org/ns#</A>&quot; xmlns:xlink=&quot;<A HREF="http://www.w3.org/1999/xlink">http://www.w3.org/1999/xlink</A>&quot; inkscape:version=&quot;0.47pre1 r21720&quot; xmlns:dc=&quot;<A HREF="http://purl.org/dc/elements/1.1/">http://purl.org/dc/elements/1.1/</A>&quot;&gt;
+-&lt;defs id=&quot;defs5416&quot;&gt;
+-&lt;linearGradient id=&quot;linearGradient4949&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,511.47206,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient4971&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,524.47206,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient4977&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,537.47206,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient4987&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,550.47206,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient4991&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,563.47206,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient4995&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,576.47206,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5011&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,589.53242,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5015&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,602.53242,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5019&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,615.53242,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5023&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,628.53242,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5027&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,641.53242,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5031&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,-1,1,0,654.53242,451.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5059&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,595.97374,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5063&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,582.97374,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5067&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,569.97374,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5071&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,556.97374,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5075&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,543.97374,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5079&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,530.97374,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5083&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,517.91338,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5087&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,504.91338,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5091&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,491.91338,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5095&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,478.91338,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5099&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,465.91338,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5103&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(0,1,-1,0,452.91338,703.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5131&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,535.67115)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5135&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,548.67115)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5139&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,561.67115)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5143&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,574.67115)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5147&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,587.67115)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5151&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,600.67115)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5155&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,613.73151)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5159&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,626.73151)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5163&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,639.73151)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5167&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,652.73151)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5171&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,665.73151)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5175&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;translate(680.47206,678.73151)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5247&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,477.11247)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5243&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,490.11247)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5239&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,503.11247)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5235&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,516.11247)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5231&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,529.11247)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5227&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,542.11247)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5223&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,555.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5219&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,568.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5215&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,581.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5211&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,594.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5207&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,607.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient5203&quot; y2=&quot;-29.3&quot; xlink:href=&quot;#linearGradient4941&quot; gradientUnits=&quot;userSpaceOnUse&quot; x2=&quot;-28.4&quot; gradientTransform=&quot;matrix(-1,0,0,-1,428.47206,620.17283)&quot; y1=&quot;-29.3&quot; x1=&quot;-43.6&quot; inkscape:collect=&quot;always&quot;/&gt;
+-&lt;linearGradient id=&quot;linearGradient4941&quot;&gt;
+-&lt;stop id=&quot;stop4943&quot; stop-color=&quot;#7f7f7f&quot; offset=&quot;0&quot;/&gt;
+-&lt;stop id=&quot;stop4951&quot; stop-color=&quot;#7f7f7f&quot; offset=&quot;0.771&quot;/&gt;
+-&lt;stop id=&quot;stop4945&quot; stop-color=&quot;#7f7f7f&quot; stop-opacity=&quot;0&quot; offset=&quot;1&quot;/&gt;
+-&lt;/linearGradient&gt;
+-&lt;/defs&gt;
+-&lt;sodipodi:namedview id=&quot;base&quot; inkscape:zoom=&quot;2.8284271&quot; borderopacity=&quot;1.0&quot; inkscape:current-layer=&quot;layer1&quot; inkscape:cx=&quot;91.620417&quot; inkscape:cy=&quot;163.52029&quot; inkscape:window-maximized=&quot;0&quot; showgrid=&quot;false&quot; inkscape:guide-bbox=&quot;true&quot; showguides=&quot;true&quot; bordercolor=&quot;#666666&quot; inkscape:window-x=&quot;0&quot; guidetolerance=&quot;10&quot; objecttolerance=&quot;10&quot; inkscape:window-y=&quot;0&quot; inkscape:window-width=&quot;1280&quot; inkscape:pageopacity=&quot;0.0&quot; inkscape:pageshadow=&quot;2&quot; pagecolor=&quot;#ffffff&quot; gridtolerance=&quot;10000&quot; inkscape:document-units=&quot;px&quot; inkscape:window-height=&quot;752&quot;/&gt;
+-&lt;metadata id=&quot;metadata5419&quot;&gt;
+-&lt;rdf:RDF&gt;
+-&lt;cc:Work rdf:about=&quot;&quot;&gt;
+-&lt;dc:format&gt;image/svg+xml&lt;/dc:format&gt;
+-&lt;dc:type rdf:resource=&quot;<A HREF="http://purl.org/dc/dcmitype/StillImage">http://purl.org/dc/dcmitype/StillImage</A>&quot;/&gt;
+-&lt;/cc:Work&gt;
+-&lt;/rdf:RDF&gt;
+-&lt;/metadata&gt;
+-&lt;g id=&quot;layer1&quot; inkscape:label=&quot;Layer 1&quot; inkscape:groupmode=&quot;layer&quot; transform=&quot;translate(-431.29956,-455.34533)&quot;&gt;
+-&lt;path id=&quot;path4931&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m479,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient4949)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient4949)&quot;/&gt;
+-&lt;path id=&quot;path4957&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m492,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient4971)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient4971)&quot;/&gt;
+-&lt;path id=&quot;path4973&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m505,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient4977)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient4977)&quot;/&gt;
+-&lt;path id=&quot;path4979&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m518,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient4987)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient4987)&quot;/&gt;
+-&lt;path id=&quot;path4981&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m531,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient4991)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient4991)&quot;/&gt;
+-&lt;path id=&quot;path4983&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m544,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient4995)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient4995)&quot;/&gt;
+-&lt;path id=&quot;path4997&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m557,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5011)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5011)&quot;/&gt;
+-&lt;path id=&quot;path4999&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m570,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5015)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5015)&quot;/&gt;
+-&lt;path id=&quot;path5001&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m583,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5019)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5019)&quot;/&gt;
+-&lt;path id=&quot;path5003&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m596,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5023)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5023)&quot;/&gt;
+-&lt;path id=&quot;path5005&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m609,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5027)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5027)&quot;/&gt;
+-&lt;path id=&quot;path5007&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m622,495,6.44,0v-10c0-3.74-0.0656-5-3.22-5-3.16,0-3.22,1.19-3.22,5v10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5031)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5031)&quot;/&gt;
+-&lt;path id=&quot;path5033&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m628,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5059)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5059)&quot;/&gt;
+-&lt;path id=&quot;path5035&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m615,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5063)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5063)&quot;/&gt;
+-&lt;path id=&quot;path5037&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m602,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5067)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5067)&quot;/&gt;
+-&lt;path id=&quot;path5039&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m589,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5071)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5071)&quot;/&gt;
+-&lt;path id=&quot;path5041&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m576,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5075)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5075)&quot;/&gt;
+-&lt;path id=&quot;path5043&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m563,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5079)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5079)&quot;/&gt;
+-&lt;path id=&quot;path5045&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m550,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5083)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5083)&quot;/&gt;
+-&lt;path id=&quot;path5047&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m537,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5087)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5087)&quot;/&gt;
+-&lt;path id=&quot;path5049&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m524,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5091)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5091)&quot;/&gt;
+-&lt;path id=&quot;path5051&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m511,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5095)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5095)&quot;/&gt;
+-&lt;path id=&quot;path5053&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m498,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5099)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5099)&quot;/&gt;
+-&lt;path id=&quot;path5055&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m485,660-6.44,0v10c0,3.74,0.0656,5,3.22,5,3.16,0,3.22-1.19,3.22-5v-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5103)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5103)&quot;/&gt;
+-&lt;path id=&quot;path5105&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,503,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5131)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5131)&quot;/&gt;
+-&lt;path id=&quot;path5107&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,516,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5135)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5135)&quot;/&gt;
+-&lt;path id=&quot;path5109&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,529,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5139)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5139)&quot;/&gt;
+-&lt;path id=&quot;path5111&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,542,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5143)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5143)&quot;/&gt;
+-&lt;path id=&quot;path5113&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,555,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5147)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5147)&quot;/&gt;
+-&lt;path id=&quot;path5115&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,568,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5151)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5151)&quot;/&gt;
+-&lt;path id=&quot;path5117&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,581,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5155)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5155)&quot;/&gt;
+-&lt;path id=&quot;path5119&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,594,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5159)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5159)&quot;/&gt;
+-&lt;path id=&quot;path5121&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,607,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5163)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5163)&quot;/&gt;
+-&lt;path id=&quot;path5123&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,620,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5167)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5167)&quot;/&gt;
+-&lt;path id=&quot;path5125&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,633,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5171)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5171)&quot;/&gt;
+-&lt;path id=&quot;path5127&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m637,646,0,6.44h10c3.74,0,5-0.0656,5-3.22,0-3.16-1.19-3.22-5-3.22h-10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5175)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5175)&quot;/&gt;
+-&lt;path id=&quot;path5199&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,510,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5247)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5247)&quot;/&gt;
+-&lt;path id=&quot;path5197&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,523,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5243)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5243)&quot;/&gt;
+-&lt;path id=&quot;path5195&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,536,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5239)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5239)&quot;/&gt;
+-&lt;path id=&quot;path5193&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,549,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5235)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5235)&quot;/&gt;
+-&lt;path id=&quot;path5191&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,562,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5231)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5231)&quot;/&gt;
+-&lt;path id=&quot;path5189&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,575,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5227)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5227)&quot;/&gt;
+-&lt;path id=&quot;path5187&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,588,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5223)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5223)&quot;/&gt;
+-&lt;path id=&quot;path5185&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,601,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5219)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5219)&quot;/&gt;
+-&lt;path id=&quot;path5183&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,614,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5215)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5215)&quot;/&gt;
+-&lt;path id=&quot;path5181&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,627,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5211)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5211)&quot;/&gt;
+-&lt;path id=&quot;path5179&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,640,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5207)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5207)&quot;/&gt;
+-&lt;path id=&quot;path5177&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:none;&quot; d=&quot;m472,653,0-6.44h-10c-3.74,0-5,0.0656-5,3.22,0,3.16,1.19,3.22,5,3.22h10z&quot; fill-rule=&quot;evenodd&quot; sodipodi:nodetypes=&quot;ccsssc&quot; stroke=&quot;url(#linearGradient5203)&quot; stroke-linecap=&quot;butt&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;0.09999997&quot; fill=&quot;url(#linearGradient5203)&quot;/&gt;
+-&lt;rect id=&quot;rect2451&quot; stroke-linejoin=&quot;round&quot; style=&quot;stroke-dasharray:none;&quot; fill-rule=&quot;evenodd&quot; stroke-dashoffset=&quot;0&quot; height=&quot;156&quot; width=&quot;154&quot; stroke=&quot;#00007f&quot; stroke-linecap=&quot;round&quot; stroke-miterlimit=&quot;4&quot; y=&quot;499&quot; x=&quot;477&quot; stroke-width=&quot;17.9&quot; fill=&quot;#00007f&quot;/&gt;
+-&lt;path id=&quot;path4788&quot; sodipodi:rx=&quot;18.106426&quot; sodipodi:ry=&quot;18.106426&quot; style=&quot;stroke-dasharray:none;&quot; sodipodi:type=&quot;arc&quot; d=&quot;m117-19.1c0,10-8.11,18.1-18.1,18.1-10,0-18.1-8.11-18.1-18.1,0-10,8.11-18.1,18.1-18.1,10,0,18.1,8.11,18.1,18.1z&quot; stroke-linejoin=&quot;round&quot; stroke-linecap=&quot;round&quot; transform=&quot;matrix(0.2668429,0,0,0.2668429,598.91761,511.49558)&quot; stroke=&quot;#FFF&quot; stroke-dashoffset=&quot;0&quot; sodipodi:cy=&quot;-19.126507&quot; sodipodi:cx=&quot;98.692772&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;20&quot; fill=&quot;#FFF&quot;/&gt;
+-&lt;path id=&quot;path4790&quot; sodipodi:rx=&quot;18.106426&quot; sodipodi:ry=&quot;18.106426&quot; style=&quot;stroke-dasharray:none;&quot; sodipodi:type=&quot;arc&quot; d=&quot;m117-19.1c0,10-8.11,18.1-18.1,18.1-10,0-18.1-8.11-18.1-18.1,0-10,8.11-18.1,18.1-18.1,10,0,18.1,8.11,18.1,18.1z&quot; stroke-linejoin=&quot;round&quot; stroke-linecap=&quot;round&quot; transform=&quot;matrix(0.53368578,0,0,0.53368578,607.62863,481.55287)&quot; stroke=&quot;#00007f&quot; stroke-dashoffset=&quot;0&quot; sodipodi:cy=&quot;-19.126507&quot; sodipodi:cx=&quot;98.692772&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;20&quot; fill=&quot;#00007f&quot;/&gt;
+-&lt;path id=&quot;path4887&quot; stroke-linejoin=&quot;miter&quot; style=&quot;stroke-dasharray:9.66, 9.66;&quot; d=&quot;m637,465h-165c-29.6,0-30,30.2-30,30.2v165c0,29.6,25.3,30,25.3,30h170c30.6,0,30-31.7,30-31.7v-163&quot; sodipodi:nodetypes=&quot;cscscscc&quot; stroke-dashoffset=&quot;0&quot; stroke=&quot;#7f7f7f&quot; stroke-linecap=&quot;round&quot; stroke-miterlimit=&quot;4&quot; stroke-width=&quot;3.22000003&quot; fill=&quot;none&quot;/&gt;
+-&lt;text id=&quot;text2966&quot; style=&quot;writing-mode:lr-tb;text-anchor:start;text-align:start;&quot; line-height=&quot;100%&quot; font-weight=&quot;normal&quot; xml:space=&quot;preserve&quot; font-size=&quot;64px&quot; font-style=&quot;normal&quot; font-stretch=&quot;normal&quot; font-variant=&quot;normal&quot; y=&quot;595.53284&quot; x=&quot;483.58081&quot; font-family=&quot;Helvetica&quot; sodipodi:linespacing=&quot;100%&quot; fill=&quot;#ffffff&quot;&gt;&lt;tspan id=&quot;tspan2968&quot; sodipodi:role=&quot;line&quot; font-weight=&quot;normal&quot; font-style=&quot;normal&quot; font-stretch=&quot;normal&quot; font-variant=&quot;normal&quot; y=&quot;595.53284&quot; x=&quot;483.58081&quot; font-family=&quot;Helvetica&quot;&gt;eLua&lt;/tspan&gt;
+-&lt;/text&gt;
+-&lt;/g&gt;
+-&lt;/svg&gt;
+\ No newline at end of file
++&lt;svg
++   xmlns:dc=&quot;<A HREF="http://purl.org/dc/elements/1.1/">http://purl.org/dc/elements/1.1/</A>&quot;
++   xmlns:cc=&quot;<A HREF="http://creativecommons.org/ns#">http://creativecommons.org/ns#</A>&quot;
++   xmlns:rdf=&quot;<A HREF="http://www.w3.org/1999/02/22-rdf-syntax-ns#">http://www.w3.org/1999/02/22-rdf-syntax-ns#</A>&quot;
++   xmlns:svg=&quot;<A HREF="http://www.w3.org/2000/svg">http://www.w3.org/2000/svg</A>&quot;
++   xmlns=&quot;<A HREF="http://www.w3.org/2000/svg">http://www.w3.org/2000/svg</A>&quot;
++   xmlns:xlink=&quot;<A HREF="http://www.w3.org/1999/xlink">http://www.w3.org/1999/xlink</A>&quot;
++   xmlns:sodipodi=&quot;<A HREF="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd">http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd</A>&quot;
++   xmlns:inkscape=&quot;<A HREF="http://www.inkscape.org/namespaces/inkscape">http://www.inkscape.org/namespaces/inkscape</A>&quot;
++   id=&quot;svg5414&quot;
++   sodipodi:docname=&quot;eLuaLogo.svg&quot;
++   viewBox=&quot;0 0 245 245&quot;
++   sodipodi:version=&quot;0.32&quot;
++   version=&quot;1.0&quot;
++   inkscape:output_extension=&quot;org.inkscape.output.svg.inkscape&quot;
++   inkscape:version=&quot;0.47 r22583&quot;
++   width=&quot;100%&quot;
++   height=&quot;100%&quot;&gt;
++  &lt;defs
++     id=&quot;defs5416&quot;&gt;
++    &lt;inkscape:perspective
++       sodipodi:type=&quot;inkscape:persp3d&quot;
++       inkscape:vp_x=&quot;0 : 122.5 : 1&quot;
++       inkscape:vp_y=&quot;0 : 1000 : 0&quot;
++       inkscape:vp_z=&quot;245 : 122.5 : 1&quot;
++       inkscape:persp3d-origin=&quot;122.5 : 81.666667 : 1&quot;
++       id=&quot;perspective2928&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient4949&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,512.19594,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient4971&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,525.19602,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient4977&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,538.1961,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient4987&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,551.19616,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient4991&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,564.19624,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient4995&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,577.19632,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5011&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,590.25674,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5015&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,603.25682,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5019&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,616.2569,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5023&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,629.25696,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5027&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,642.25704,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5031&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,-0.98340352,1.0000056,0,655.25712,452.46587)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5059&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,597.57786,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5063&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,584.57786,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5067&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,571.57786,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5071&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,558.57786,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5075&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,545.57786,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5079&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,532.57786,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5083&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,519.5175,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5087&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,506.5175,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5091&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,493.5175,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5095&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,480.5175,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5099&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,467.5175,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5103&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(0,1,-1,0,454.5175,701.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5131&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,535.35681)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5135&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,548.35681)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5139&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,561.35681)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5143&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,574.35681)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5147&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,587.35681)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5151&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,600.35681)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5155&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,613.41717)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5159&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,626.41717)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5163&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,639.41717)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5167&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,652.41717)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5171&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,665.41717)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5175&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;translate(679.19618,678.41717)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5247&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,475.67813)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5243&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,488.67813)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5239&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,501.67813)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5235&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,514.67813)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5231&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,527.67813)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5227&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,540.67813)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5223&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,553.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5219&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,566.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5215&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,579.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5211&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,592.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5207&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,605.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient5203&quot;
++       y2=&quot;-29.3&quot;
++       xlink:href=&quot;#linearGradient4941&quot;
++       gradientUnits=&quot;userSpaceOnUse&quot;
++       x2=&quot;-28.4&quot;
++       gradientTransform=&quot;matrix(-1,0,0,-1,429.19618,618.73849)&quot;
++       y1=&quot;-29.3&quot;
++       x1=&quot;-43.6&quot;
++       inkscape:collect=&quot;always&quot; /&gt;
++    &lt;linearGradient
++       id=&quot;linearGradient4941&quot;&gt;
++      &lt;stop
++         id=&quot;stop4943&quot;
++         stop-color=&quot;#7f7f7f&quot;
++         offset=&quot;0&quot; /&gt;
++      &lt;stop
++         id=&quot;stop4951&quot;
++         stop-color=&quot;#7f7f7f&quot;
++         offset=&quot;0.771&quot; /&gt;
++      &lt;stop
++         id=&quot;stop4945&quot;
++         stop-color=&quot;#7f7f7f&quot;
++         stop-opacity=&quot;0&quot;
++         offset=&quot;1&quot; /&gt;
++    &lt;/linearGradient&gt;
++  &lt;/defs&gt;
++  &lt;sodipodi:namedview
++     id=&quot;base&quot;
++     inkscape:zoom=&quot;4&quot;
++     borderopacity=&quot;1.0&quot;
++     inkscape:current-layer=&quot;layer1&quot;
++     inkscape:cx=&quot;82.806203&quot;
++     inkscape:cy=&quot;145.38337&quot;
++     inkscape:window-maximized=&quot;0&quot;
++     showgrid=&quot;true&quot;
++     inkscape:guide-bbox=&quot;true&quot;
++     showguides=&quot;true&quot;
++     bordercolor=&quot;#666666&quot;
++     inkscape:window-x=&quot;0&quot;
++     guidetolerance=&quot;10&quot;
++     objecttolerance=&quot;10&quot;
++     inkscape:window-y=&quot;0&quot;
++     inkscape:window-width=&quot;1280&quot;
++     inkscape:pageopacity=&quot;0.0&quot;
++     inkscape:pageshadow=&quot;2&quot;
++     pagecolor=&quot;#ffffff&quot;
++     gridtolerance=&quot;10000&quot;
++     inkscape:document-units=&quot;px&quot;
++     inkscape:window-height=&quot;752&quot;&gt;
++    &lt;inkscape:grid
++       type=&quot;xygrid&quot;
++       id=&quot;grid2929&quot; /&gt;
++  &lt;/sodipodi:namedview&gt;
++  &lt;metadata
++     id=&quot;metadata5419&quot;&gt;
++    &lt;rdf:RDF&gt;
++      &lt;cc:Work
++         rdf:about=&quot;&quot;&gt;
++        &lt;dc:format&gt;image/svg+xml&lt;/dc:format&gt;
++        &lt;dc:type
++           rdf:resource=&quot;<A HREF="http://purl.org/dc/dcmitype/StillImage">http://purl.org/dc/dcmitype/StillImage</A>&quot; /&gt;
++      &lt;/cc:Work&gt;
++    &lt;/rdf:RDF&gt;
++  &lt;/metadata&gt;
++  &lt;g
++     id=&quot;layer1&quot;
++     inkscape:label=&quot;Layer 1&quot;
++     inkscape:groupmode=&quot;layer&quot;
++     transform=&quot;translate(-431.29956,-455.34533)&quot;&gt;
++    &lt;path
++       id=&quot;path4931&quot;
++       style=&quot;fill:url(#linearGradient4949);fill-rule:evenodd;stroke:url(#linearGradient4949);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 479.36185,495.28283 6.44002,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path4957&quot;
++       style=&quot;fill:url(#linearGradient4971);fill-rule:evenodd;stroke:url(#linearGradient4971);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 492.36189,495.28283 6.44002,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path4973&quot;
++       style=&quot;fill:url(#linearGradient4977);fill-rule:evenodd;stroke:url(#linearGradient4977);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 505.36192,495.28283 6.44002,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path4979&quot;
++       style=&quot;fill:url(#linearGradient4987);fill-rule:evenodd;stroke:url(#linearGradient4987);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 518.36196,495.28283 6.44002,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path4981&quot;
++       style=&quot;fill:url(#linearGradient4991);fill-rule:evenodd;stroke:url(#linearGradient4991);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 531.362,495.28283 6.44001,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path4983&quot;
++       style=&quot;fill:url(#linearGradient4995);fill-rule:evenodd;stroke:url(#linearGradient4995);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 544.36203,495.28283 6.44002,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path4997&quot;
++       style=&quot;fill:url(#linearGradient5011);fill-rule:evenodd;stroke:url(#linearGradient5011);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 557.36207,495.28283 6.44002,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path4999&quot;
++       style=&quot;fill:url(#linearGradient5015);fill-rule:evenodd;stroke:url(#linearGradient5015);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 570.36211,495.28283 6.44001,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16,0 -3.22,1.18008 -3.22,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5001&quot;
++       style=&quot;fill:url(#linearGradient5019);fill-rule:evenodd;stroke:url(#linearGradient5019);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 583.36214,495.28283 6.44002,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5003&quot;
++       style=&quot;fill:url(#linearGradient5023);fill-rule:evenodd;stroke:url(#linearGradient5023);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 596.36218,495.28283 6.44002,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5005&quot;
++       style=&quot;fill:url(#linearGradient5027);fill-rule:evenodd;stroke:url(#linearGradient5027);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 609.36221,495.28283 6.44002,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5007&quot;
++       style=&quot;fill:url(#linearGradient5031);fill-rule:evenodd;stroke:url(#linearGradient5031);stroke-width:0.09958258;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 622.36225,495.28283 6.44002,0 0,-9.91667 c 0,-3.70883 -0.0656,-4.95833 -3.22001,-4.95833 -3.16001,0 -3.22001,1.18008 -3.22001,4.95833 l 0,9.91667 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5033&quot;
++       style=&quot;fill:url(#linearGradient5059);fill-rule:evenodd;stroke:url(#linearGradient5059);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 628.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5035&quot;
++       style=&quot;fill:url(#linearGradient5063);fill-rule:evenodd;stroke:url(#linearGradient5063);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 615.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5037&quot;
++       style=&quot;fill:url(#linearGradient5067);fill-rule:evenodd;stroke:url(#linearGradient5067);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 602.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5039&quot;
++       style=&quot;fill:url(#linearGradient5071);fill-rule:evenodd;stroke:url(#linearGradient5071);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 589.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5041&quot;
++       style=&quot;fill:url(#linearGradient5075);fill-rule:evenodd;stroke:url(#linearGradient5075);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 576.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5043&quot;
++       style=&quot;fill:url(#linearGradient5079);fill-rule:evenodd;stroke:url(#linearGradient5079);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 563.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5045&quot;
++       style=&quot;fill:url(#linearGradient5083);fill-rule:evenodd;stroke:url(#linearGradient5083);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 550.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5047&quot;
++       style=&quot;fill:url(#linearGradient5087);fill-rule:evenodd;stroke:url(#linearGradient5087);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 537.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5049&quot;
++       style=&quot;fill:url(#linearGradient5091);fill-rule:evenodd;stroke:url(#linearGradient5091);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 524.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5051&quot;
++       style=&quot;fill:url(#linearGradient5095);fill-rule:evenodd;stroke:url(#linearGradient5095);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 511.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5053&quot;
++       style=&quot;fill:url(#linearGradient5099);fill-rule:evenodd;stroke:url(#linearGradient5099);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 498.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5055&quot;
++       style=&quot;fill:url(#linearGradient5103);fill-rule:evenodd;stroke:url(#linearGradient5103);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 485.80206,659.28283 -6.44,0 v 10 c 0,3.74 0.0656,5 3.22,5 3.16,0 3.22,-1.19 3.22,-5 v -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5105&quot;
++       style=&quot;fill:url(#linearGradient5131);fill-rule:evenodd;stroke:url(#linearGradient5131);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,502.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5107&quot;
++       style=&quot;fill:url(#linearGradient5135);fill-rule:evenodd;stroke:url(#linearGradient5135);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,515.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5109&quot;
++       style=&quot;fill:url(#linearGradient5139);fill-rule:evenodd;stroke:url(#linearGradient5139);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,528.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5111&quot;
++       style=&quot;fill:url(#linearGradient5143);fill-rule:evenodd;stroke:url(#linearGradient5143);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,541.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5113&quot;
++       style=&quot;fill:url(#linearGradient5147);fill-rule:evenodd;stroke:url(#linearGradient5147);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,554.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5115&quot;
++       style=&quot;fill:url(#linearGradient5151);fill-rule:evenodd;stroke:url(#linearGradient5151);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,567.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5117&quot;
++       style=&quot;fill:url(#linearGradient5155);fill-rule:evenodd;stroke:url(#linearGradient5155);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,580.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5119&quot;
++       style=&quot;fill:url(#linearGradient5159);fill-rule:evenodd;stroke:url(#linearGradient5159);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,593.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5121&quot;
++       style=&quot;fill:url(#linearGradient5163);fill-rule:evenodd;stroke:url(#linearGradient5163);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,606.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5123&quot;
++       style=&quot;fill:url(#linearGradient5167);fill-rule:evenodd;stroke:url(#linearGradient5167);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,619.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5125&quot;
++       style=&quot;fill:url(#linearGradient5171);fill-rule:evenodd;stroke:url(#linearGradient5171);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,632.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5127&quot;
++       style=&quot;fill:url(#linearGradient5175);fill-rule:evenodd;stroke:url(#linearGradient5175);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 636.36206,645.84283 0,6.44 h 10 c 3.74,0 5,-0.0656 5,-3.22 0,-3.16 -1.19,-3.22 -5,-3.22 h -10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5199&quot;
++       style=&quot;fill:url(#linearGradient5247);fill-rule:evenodd;stroke:url(#linearGradient5247);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,509.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5197&quot;
++       style=&quot;fill:url(#linearGradient5243);fill-rule:evenodd;stroke:url(#linearGradient5243);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,522.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5195&quot;
++       style=&quot;fill:url(#linearGradient5239);fill-rule:evenodd;stroke:url(#linearGradient5239);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,535.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5193&quot;
++       style=&quot;fill:url(#linearGradient5235);fill-rule:evenodd;stroke:url(#linearGradient5235);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,548.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5191&quot;
++       style=&quot;fill:url(#linearGradient5231);fill-rule:evenodd;stroke:url(#linearGradient5231);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,561.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5189&quot;
++       style=&quot;fill:url(#linearGradient5227);fill-rule:evenodd;stroke:url(#linearGradient5227);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,574.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5187&quot;
++       style=&quot;fill:url(#linearGradient5223);fill-rule:evenodd;stroke:url(#linearGradient5223);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,587.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5185&quot;
++       style=&quot;fill:url(#linearGradient5219);fill-rule:evenodd;stroke:url(#linearGradient5219);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,600.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5183&quot;
++       style=&quot;fill:url(#linearGradient5215);fill-rule:evenodd;stroke:url(#linearGradient5215);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,613.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5181&quot;
++       style=&quot;fill:url(#linearGradient5211);fill-rule:evenodd;stroke:url(#linearGradient5211);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,626.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5179&quot;
++       style=&quot;fill:url(#linearGradient5207);fill-rule:evenodd;stroke:url(#linearGradient5207);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,639.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;path
++       id=&quot;path5177&quot;
++       style=&quot;fill:url(#linearGradient5203);fill-rule:evenodd;stroke:url(#linearGradient5203);stroke-width:0.09999997;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none&quot;
++       d=&quot;m 472.36206,652.28283 0,-6.44 h -10 c -3.74,0 -5,0.0656 -5,3.22 0,3.16 1.19,3.22 5,3.22 h 10 z&quot;
++       sodipodi:nodetypes=&quot;ccsssc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;rect
++       id=&quot;rect2451&quot;
++       style=&quot;fill:#00007f;fill-rule:evenodd;stroke:#00007f;stroke-width:17.80715561;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0&quot;
++       height=&quot;154.19284&quot;
++       width=&quot;154.19284&quot;
++       stroke-miterlimit=&quot;4&quot;
++       y=&quot;500.2489&quot;
++       x=&quot;477.20316&quot; /&gt;
++    &lt;path
++       id=&quot;path4788&quot;
++       sodipodi:rx=&quot;18.106426&quot;
++       sodipodi:ry=&quot;18.106426&quot;
++       style=&quot;stroke-dasharray:none;&quot;
++       sodipodi:type=&quot;arc&quot;
++       d=&quot;m 116.7992,-19.126507 c 0,9.9999033 -8.10653,18.1064264 -18.106428,18.1064264 -9.999903,0 -18.106426,-8.1065231 -18.106426,-18.1064264 0,-9.999903 8.106523,-18.106426 18.106426,-18.106426 9.999898,0 18.106428,8.106523 18.106428,18.106426 z&quot;
++       stroke-linejoin=&quot;round&quot;
++       stroke-linecap=&quot;round&quot;
++       transform=&quot;matrix(0.2668429,0,0,0.2668429,598.91761,511.49558)&quot;
++       stroke=&quot;#FFF&quot;
++       stroke-dashoffset=&quot;0&quot;
++       sodipodi:cy=&quot;-19.126507&quot;
++       sodipodi:cx=&quot;98.692772&quot;
++       stroke-miterlimit=&quot;4&quot;
++       stroke-width=&quot;20&quot;
++       fill=&quot;#FFF&quot; /&gt;
++    &lt;path
++       id=&quot;path4790&quot;
++       sodipodi:rx=&quot;18.106426&quot;
++       sodipodi:ry=&quot;18.106426&quot;
++       style=&quot;stroke-dasharray:none;&quot;
++       sodipodi:type=&quot;arc&quot;
++       d=&quot;m 116.7992,-19.126507 c 0,9.9999033 -8.10653,18.1064264 -18.106428,18.1064264 -9.999903,0 -18.106426,-8.1065231 -18.106426,-18.1064264 0,-9.999903 8.106523,-18.106426 18.106426,-18.106426 9.999898,0 18.106428,8.106523 18.106428,18.106426 z&quot;
++       stroke-linejoin=&quot;round&quot;
++       stroke-linecap=&quot;round&quot;
++       transform=&quot;matrix(0.53368578,0,0,0.53368578,607.62863,481.55287)&quot;
++       stroke=&quot;#00007f&quot;
++       stroke-dashoffset=&quot;0&quot;
++       sodipodi:cy=&quot;-19.126507&quot;
++       sodipodi:cx=&quot;98.692772&quot;
++       stroke-miterlimit=&quot;4&quot;
++       stroke-width=&quot;20&quot;
++       fill=&quot;#00007f&quot; /&gt;
++    &lt;path
++       id=&quot;path4887&quot;
++       style=&quot;fill:none;stroke:#7f7f7f;stroke-width:3.21337008;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:9.64010984, 9.64010984;stroke-dashoffset:0&quot;
++       d=&quot;m 636.46118,464.95202 -164.62341,0 c -29.53243,0 -29.93153,30.14457 -29.93153,30.14457 l 0,164.69713 c 0,29.54566 25.24226,29.94493 25.24226,29.94493 l 169.612,0 c 30.53016,0 29.93152,-31.64182 29.93152,-31.64182 l 0,-162.70079&quot;
++       sodipodi:nodetypes=&quot;cscscscc&quot;
++       stroke-miterlimit=&quot;4&quot; /&gt;
++    &lt;text
++       id=&quot;text2966&quot;
++       style=&quot;font-size:64px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;font-family:Helvetica&quot;
++       line-height=&quot;100%&quot;
++       font-weight=&quot;normal&quot;
++       xml:space=&quot;preserve&quot;
++       font-size=&quot;64px&quot;
++       font-style=&quot;normal&quot;
++       font-stretch=&quot;normal&quot;
++       font-variant=&quot;normal&quot;
++       y=&quot;595.53284&quot;
++       x=&quot;481.58081&quot;
++       sodipodi:linespacing=&quot;100%&quot;&gt;&lt;tspan
++   id=&quot;tspan2968&quot;
++   sodipodi:role=&quot;line&quot;
++   font-weight=&quot;normal&quot;
++   font-style=&quot;normal&quot;
++   font-stretch=&quot;normal&quot;
++   font-variant=&quot;normal&quot;
++   y=&quot;595.53284&quot;
++   x=&quot;481.58081&quot;
++   style=&quot;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Helvetica&quot;&gt;eLua&lt;/tspan&gt; &lt;/text&gt;
++  &lt;/g&gt;
++&lt;/svg&gt;
+
+Modified: trunk/inc/luarpc_rpc.h
+===================================================================
+--- trunk/inc/luarpc_rpc.h	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/inc/luarpc_rpc.h	2009-12-04 01:46:47 UTC (rev 568)
+@@ -1,7 +1,7 @@
+ #include &quot;cexcept.h&quot;
+ #include &lt;stdint.h&gt;
+ 
+-#ifdef LUA_REMOTE
++#ifdef LUA_RPC
+ /* signed and unsigned 8, 16 and 32 bit types */
+ typedef uint8_t u8;
+ typedef uint16_t u16;
+@@ -104,6 +104,7 @@
+ struct _Transport 
+ {
+   int fd;      /* INVALID_TRANSPORT if socket is closed */
++  unsigned tmr_id;
+   u8     loc_little: 1, // Local is little endian?
+          loc_armflt: 1, // local float representation is arm float?
+          loc_intnum: 1, // Local is integer only?
+
+Deleted: trunk/remote-lua.py
+===================================================================
+--- trunk/remote-lua.py	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/remote-lua.py	2009-12-04 01:46:47 UTC (rev 568)
+@@ -1,23 +0,0 @@
+-import os, sys 
+-
+-output = 'lua'
+-cdefs = '-DLUA_CROSS_COMPILER -DLUA_REMOTE -DLUA_USE_READLINE'
+-
+-# Lua source files and include path
+-lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
+-   lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
+-   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c print.c lrotable.c&quot;&quot;&quot;
+-lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
+-lua_full_files += &quot; src/modules/luarpc.c src/luarpc_posix_serial.c &quot;
+-local_include = &quot;-Isrc/lua -Iinc -Isrc/modules&quot;
+-
+-# Compiler/linker options
+-cccom = &quot;gcc -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+-linkcom = &quot;gcc -o $TARGET $SOURCES -lm -lreadline&quot;
+-
+-# Env for building the program
+-comp = Environment( CCCOM = cccom,
+-                    LINKCOM = linkcom,
+-                    ENV = os.environ )
+-Decider( 'MD5' )                  
+-Default( comp.Program( output, Split( lua_full_files ) ) )
+
+Copied: trunk/rpc-lua.py (from rev 567, trunk/remote-lua.py)
+===================================================================
+--- trunk/remote-lua.py	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/rpc-lua.py	2009-12-04 01:46:47 UTC (rev 568)
+@@ -0,0 +1,23 @@
++import os, sys 
++
++output = 'luarpc'
++cdefs = '-DLUA_CROSS_COMPILER -DLUA_RPC -DLUA_USE_READLINE'
++
++# Lua source files and include path
++lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
++   lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
++   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c print.c lrotable.c&quot;&quot;&quot;
++lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
++lua_full_files += &quot; src/modules/luarpc.c src/luarpc_posix_serial.c &quot;
++local_include = &quot;-Isrc/lua -Iinc -Isrc/modules&quot;
++
++# Compiler/linker options
++cccom = &quot;gcc -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++linkcom = &quot;gcc -o $TARGET $SOURCES -lm -lreadline&quot;
++
++# Env for building the program
++comp = Environment( CCCOM = cccom,
++                    LINKCOM = linkcom,
++                    ENV = os.environ )
++Decider( 'MD5' )                  
++Default( comp.Program( output, Split( lua_full_files ) ) )
+
+Modified: trunk/src/lua/linit.c
+===================================================================
+--- trunk/src/lua/linit.c	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/src/lua/linit.c	2009-12-04 01:46:47 UTC (rev 568)
+@@ -21,7 +21,7 @@
+ 
+ extern int luaopen_platform( lua_State *L );
+ 
+-#ifdef LUA_REMOTE
++#ifdef LUA_RPC
+ #include &quot;auxmods.h&quot;
+ #define LUA_PLATFORM_LIBS_ROM \
+   _ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )
+
+Modified: trunk/src/lua/lua.c
+===================================================================
+--- trunk/src/lua/lua.c	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/src/lua/lua.c	2009-12-04 01:46:47 UTC (rev 568)
+@@ -384,7 +384,7 @@
+   return 0;
+ }
+ 
+-#ifdef LUA_REMOTE
++#ifdef LUA_RPC
+ int main (int argc, char **argv) {
+ #else
+ int lua_main (int argc, char **argv) {
+
+Modified: trunk/src/lua/luaconf.h
+===================================================================
+--- trunk/src/lua/luaconf.h	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/src/lua/luaconf.h	2009-12-04 01:46:47 UTC (rev 568)
+@@ -89,7 +89,7 @@
+ 
+ //## Modified for eLua
+ //## Defaults search modules path to our ROM File System
+-#ifndef LUA_REMOTE
++#ifndef LUA_RPC
+ #define LUA_PATH_DEFAULT &quot;/rom/?.lua&quot;
+ #else
+ #define LUA_PATH_DEFAULT  \
+@@ -104,7 +104,7 @@
+ #define LUA_LDIR	LUA_ROOT &quot;share/lua/5.1/&quot;
+ #define LUA_CDIR	LUA_ROOT &quot;lib/lua/5.1/&quot;
+ 
+-#ifndef LUA_REMOTE
++#ifndef LUA_RPC
+ #define LUA_PATH_DEFAULT  &quot;/rom/?.lua&quot;
+ #else
+ 
+
+Modified: trunk/src/luarpc_elua_uart.c
+===================================================================
+--- trunk/src/luarpc_elua_uart.c	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/src/luarpc_elua_uart.c	2009-12-04 01:46:47 UTC (rev 568)
+@@ -7,30 +7,64 @@
+ 
+ #ifdef BUILD_LUARPC
+ 
+-int uart_timeout = PLATFORM_UART_INFINITE_TIMEOUT;
+-
+-/* Setup Transport */
++// Setup Transport
+ void transport_init (Transport *tpt)
+ {
+ 	tpt-&gt;fd = INVALID_TRANSPORT;
++  tpt-&gt;tmr_id = 0;
+ }
+ 
+-/* Open Listener / Server */
++// Open Listener / Server
+ void transport_open_listener(lua_State *L, ServerHandle *handle)
+ {
+-	/* Get args &amp; Set up connection */
+-	
+-	handle-&gt;ltpt.fd = CON_UART_ID;
++	// Get args &amp; Set up connection
++	unsigned uart_id, tmr_id;
++  
++  check_num_args( L,3 ); // 1st arg is uart num, 2nd arg is tmr_id, 3nd is handle
++  if ( !lua_isnumber( L, 1 ) ) 
++    luaL_error( L, &quot;1st arg must be uart num&quot; );
++    
++  if ( !lua_isnumber( L, 2 ) ) 
++    luaL_error( L, &quot;2nd arg must be timer num&quot; );
++
++  // @@@ Error handling could likely be better here
++  uart_id = lua_tonumber( L, 1 );
++  if( !platform_uart_exists( uart_id ) )
++    luaL_error( L, &quot;invalid uart id&quot; );
++  
++  tmr_id = lua_tonumber( L, 2 );
++  if( !platform_timer_exists( tmr_id ) )
++    luaL_error( L, &quot;invalid timer id&quot; );
++  
++	handle-&gt;ltpt.fd = ( int )uart_id;
++	handle-&gt;ltpt.tmr_id = tmr_id;
+ }
+ 
+-/* Open Connection / Client */
++// Open Connection / Client
+ int transport_open_connection(lua_State *L, Handle *handle)
+ {
+-	handle-&gt;tpt.fd = CON_UART_ID;
+-	return 0;
++	// Get args &amp; Set up connection
++	unsigned uart_id, tmr_id;
++  
++  check_num_args( L,3 ); // 1st arg is uart num, 2nd arg is tmr_id, 3nd is handle
++  if ( !lua_isnumber( L, 1 ) ) 
++    return luaL_error( L, &quot;1st arg must be uart num&quot; );
++    
++  if ( !lua_isnumber( L, 2 ) ) 
++    return luaL_error( L, &quot;2nd arg must be timer num&quot; );
++
++  uart_id = lua_tonumber( L, 1 );
++  MOD_CHECK_ID( uart, uart_id );
++  
++  tmr_id = lua_tonumber( L, 1 );
++  MOD_CHECK_ID( timer, tmr_id );
++  
++	handle-&gt;tpt.fd = ( int )uart_id;
++	handle-&gt;tpt.tmr_id = tmr_id;
++	return 1;
+ }
+ 
+-/* Accept Connection */
++// Accept Connection 
+ void transport_accept (Transport *tpt, Transport *atpt)
+ {
+ 	struct exception e;
+@@ -45,29 +79,30 @@
+ 	int n = 0;
+ 	int c;
+ 	struct exception e;
++	int uart_timeout = PLATFORM_UART_INFINITE_TIMEOUT; // not sure whether we should always follow this
+ 	
+ 	while( n &lt; length )
+ 	{
+ 		TRANSPORT_VERIFY_OPEN;
+-		c = platform_uart_recv( CON_UART_ID, CON_TIMER_ID, uart_timeout );
++		c = platform_uart_recv( tpt-&gt;fd, tpt-&gt;tmr_id, uart_timeout );
+ 				
+     if( c &lt; 0 )
+ 		{
+-		  uart_timeout = 1000000; /*  Reset and use timeout of 1s */
++		  // uart_timeout = 1000000;  // Reset and use timeout of 1s
+ 			e.errnum = ERR_NODATA;
+ 			e.type = nonfatal;
+ 			Throw( e );
+ 		}
+ 		else
+ 		{
+-			buffer[ n ] = ( u8 ) c;
++			buffer[ n ] = ( u8 )c;
+ 			n++;
+ 		}
+-		/* After getting one char of a read, remainder should follow within a timeout of 0.1 sec */
++		// After getting one char of a read remainder
++		//  should follow within a timeout of 0.1 sec
+ 		uart_timeout = 100000;
+   }
+ 	
+-	uart_timeout = PLATFORM_UART_INFINITE_TIMEOUT;
+ }
+ 
+ void transport_write_buffer( Transport *tpt, const u8 *buffer, int length )
+@@ -80,21 +115,21 @@
+     platform_uart_send( CON_UART_ID, buffer[ i ] );
+ }
+ 
+-/* Check if data is available on connection without reading:
+- 		- 1 = data available, 0 = no data available */
++// Check if data is available on connection without reading:
++// 		- 1 = data available, 0 = no data available
+ int transport_readable (Transport *tpt)
+ {
+-	return 1; /* no really easy way to check this unless platform support is added */
++	return 1; // no really easy way to check this unless platform support is added
+ }
+ 
+-/* Check if transport is open:
+-		- 1 = connection open, 0 = connection closed */
++// Check if transport is open:
++//		- 1 = connection open, 0 = connection closed
+ int transport_is_open (Transport *tpt)
+ {
+-	return (tpt-&gt;fd != INVALID_TRANSPORT);
++	return ( tpt-&gt;fd != INVALID_TRANSPORT );
+ }
+ 
+-/* Shut down connection */
++// Shut down connection
+ void transport_close (Transport *tpt)
+ {
+ 	tpt-&gt;fd = INVALID_TRANSPORT;
+
+Modified: trunk/src/luarpc_posix_serial.c
+===================================================================
+--- trunk/src/luarpc_posix_serial.c	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/src/luarpc_posix_serial.c	2009-12-04 01:46:47 UTC (rev 568)
+@@ -74,7 +74,7 @@
+ {
+   check_num_args (L,2); /* 1st arg is path, 2nd is handle */
+   if (!lua_isstring (L,1))
+-    my_lua_error (L,&quot;first argument must be serial serial port&quot;);
++    luaL_error(L,&quot;first argument must be serial serial port&quot;);
+ 
+   transport_open( &amp;handle-&gt;ltpt, lua_tostring (L,1) );
+     
+@@ -86,7 +86,7 @@
+ { 
+   check_num_args (L,2); /* 1st arg is path, 2nd is handle */
+   if (!lua_isstring (L,1))
+-    my_lua_error (L,&quot;first argument must be serial serial port&quot;);
++    luaL_error(L,&quot;first argument must be serial serial port&quot;);
+ 
+   transport_open( &amp;handle-&gt;tpt, lua_tostring (L,1) );
+   
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/src/main.c	2009-12-04 01:46:47 UTC (rev 568)
+@@ -22,14 +22,23 @@
+ 
+ extern char etext[];
+ 
++#ifndef RPC_UART_ID
++  #define RPC_UART_ID     CON_UART_ID
++#endif
+ 
++#ifndef RPC_TIMER_ID
++  #define RPC_TIMER_ID    CON_TIMER_ID
++#endif
++
+ void boot_remote( void )
+ {
+   lua_State *L = lua_open();
+   luaL_openlibs(L);  /* open libraries */
+   lua_getglobal( L, &quot;rpc&quot; );
+   lua_getfield( L, -1, &quot;server&quot; );
+-  lua_pcall( L, 0, 0, 0 );
++  lua_pushnumber( L, RPC_UART_ID );
++  lua_pushnumber( L, RPC_TIMER_ID );
++  lua_pcall( L, 2, 0, 0 );
+ }
+ 
+ // ****************************************************************************
+@@ -60,7 +69,7 @@
+     lua_main( 2, lua_argv );    
+   }
+   
+-#ifdef ELUA_BOOT_REMOTE
++#ifdef ELUA_BOOT_RPC
+   boot_remote();
+ #else
+   
+
+Modified: trunk/src/modules/luarpc.c
+===================================================================
+--- trunk/src/modules/luarpc.c	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/src/modules/luarpc.c	2009-12-04 01:46:47 UTC (rev 568)
+@@ -309,10 +309,8 @@
+   int n = lua_gettop( L );   // number of arguments on stack
+   if ( n != desired_n )
+   {
+-    char s[ 30 ];
+-    snprintf( s, 30, &quot;must have %d arg%c&quot;, desired_n,
++    return luaL_error( L, &quot;must have %d arg%c&quot;, desired_n,
+        ( desired_n == 1 ) ? '\0' : 's' );
+-    my_lua_error( L, s );
+   }
+   return n;
+ }
+@@ -447,15 +445,15 @@
+       break;
+ 
+     case LUA_TUSERDATA:
+-      my_lua_error( L, &quot;userdata transmission unsupported&quot; );
++      luaL_error( L, &quot;userdata transmission unsupported&quot; );
+       break;
+ 
+     case LUA_TTHREAD:
+-      my_lua_error( L, &quot;thread transmission unsupported&quot; );
++      luaL_error( L, &quot;thread transmission unsupported&quot; );
+       break;
+ 
+     case LUA_TLIGHTUSERDATA:
+-      my_lua_error( L, &quot;light userdata transmission unsupported&quot; );
++      luaL_error( L, &quot;light userdata transmission unsupported&quot; );
+       break;
+   }
+   MYASSERT( lua_gettop( L ) == stack_at_start );
+@@ -683,7 +681,7 @@
+     lua_pcall( L, 1, 0, 0 );
+   }
+   else
+-    my_lua_error( L, error_string );
++    luaL_error( L, error_string );
+ }
+ 
+ Handle *handle_create( lua_State *L )
+@@ -719,10 +717,10 @@
+   MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.handle&quot; ) );
+ 
+   if( lua_type( L, 2 ) != LUA_TSTRING )
+-    my_lua_error( L, &quot;can't index a handle with a non-string&quot; );
++    return luaL_error( L, &quot;can't index a handle with a non-string&quot; );
+   s = lua_tostring( L, 2 );
+   if ( strlen( s ) &gt; NUM_FUNCNAME_CHARS - 1 )
+-    my_lua_error( L, errorString( ERR_LONGFNAME ) );
++    return luaL_error( L, errorString( ERR_LONGFNAME ) );
+     
+   helper_create( L, ( Handle * )lua_touserdata( L, 1 ), s );
+ 
+@@ -741,10 +739,10 @@
+   MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.handle&quot; ) );
+ 
+   if( lua_type( L, 2 ) != LUA_TSTRING )
+-    my_lua_error( L, &quot;can't index handle with a non-string&quot; );
++    return luaL_error( L, &quot;can't index handle with a non-string&quot; );
+   s = lua_tostring( L, 2 );
+   if ( strlen( s ) &gt; NUM_FUNCNAME_CHARS - 1 )
+-    my_lua_error( L, errorString( ERR_LONGFNAME ) );
++    return luaL_error( L, errorString( ERR_LONGFNAME ) );
+   
+   helper_create( L, ( Handle * )lua_touserdata( L, 1 ), &quot;&quot; );
+   lua_replace(L, 1);
+@@ -1011,10 +1009,10 @@
+   MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.helper&quot; ) );
+ 
+   if( lua_type( L, 2 ) != LUA_TSTRING )
+-    my_lua_error( L, &quot;can't index handle with non-string&quot; );
++    return luaL_error( L, &quot;can't index handle with non-string&quot; );
+   s = lua_tostring( L, 2 );
+   if ( strlen( s ) &gt; NUM_FUNCNAME_CHARS - 1 )
+-    my_lua_error( L, errorString( ERR_LONGFNAME ) );
++    return luaL_error( L, errorString( ERR_LONGFNAME ) );
+   
+   helper_append( L, ( Helper * )lua_touserdata( L, 1 ), s );
+ 
+@@ -1105,8 +1103,7 @@
+     }
+   }
+ 
+-  my_lua_error(L,&quot;arg must be handle&quot;);
+-  return 0;
++  return luaL_error(L,&quot;arg must be handle&quot;);
+ }
+ 
+ 
+@@ -1335,7 +1332,7 @@
+ 
+   handle = rpc_listen_helper( L );
+   if ( handle == 0 )
+-    printf( &quot;bad Handle&quot; );
++    return luaL_error( L, &quot;bad handle&quot; );
+     
+   return 1;
+ }
+@@ -1348,7 +1345,7 @@
+ 
+   check_num_args( L, 1 );
+   if ( !( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.server_handle&quot; ) ) )
+-    my_lua_error( L, &quot;arg must be server handle&quot; );
++    return luaL_error( L, &quot;arg must be server handle&quot; );
+ 
+   handle = ( ServerHandle * )lua_touserdata( L, 1 );
+ 
+@@ -1482,7 +1479,7 @@
+   check_num_args( L, 1 );
+ 
+   if ( ! ( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.server_handle&quot; ) ) )
+-    my_lua_error( L, &quot;arg must be server handle&quot; );
++    return luaL_error( L, &quot;arg must be server handle&quot; );
+ 
+   handle = ( ServerHandle * )lua_touserdata( L, 1 );
+ 
+@@ -1534,7 +1531,7 @@
+   else if ( lua_isnil( L, 1 ) )
+     { ;; }
+   else
+-    my_lua_error( L, &quot;bad args&quot; );
++    return luaL_error( L, &quot;bad args&quot; );
+ 
+   // @@@ add option for handle 
+   // Handle *h = (Handle*) lua_touserdata (L,1); 
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/src/platform/lm3s/platform_conf.h	2009-12-04 01:46:47 UTC (rev 568)
+@@ -145,6 +145,9 @@
+ #define ADC_TIMER_FIRST_ID    0
+ #define ADC_NUM_TIMERS        NUM_TIMER  
+ 
++// RPC  
++#define RPC_UART_ID           CON_UART_ID
++#define RPC_TIMER_ID          CON_TIMER_ID
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         SysCtlClockGet()
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2009-12-03 22:08:28 UTC (rev 567)
++++ trunk/src/platform/stm32/platform_conf.h	2009-12-04 01:46:47 UTC (rev 568)
+@@ -113,6 +113,9 @@
+ #define ADC_TIMER_FIRST_ID    0
+ #define ADC_NUM_TIMERS        4
+ 
++// RPC  
++#define RPC_UART_ID           CON_UART_ID
++#define RPC_TIMER_ID          CON_TIMER_ID
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ u32 platform_s_cpu_get_frequency();
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000523.html">[Elua-svn] r567 - trunk/src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000525.html">[Elua-svn] r569 - branches
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#524">[ date ]</a>
+              <a href="thread.html#524">[ thread ]</a>
+              <a href="subject.html#524">[ subject ]</a>
+              <a href="author.html#524">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

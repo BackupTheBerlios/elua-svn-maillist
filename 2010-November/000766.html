@@ -1,0 +1,2765 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r813 - in branches/remotefs_int: . inc inc/remotefs	rfs_server src src/remotefs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r813%20-%20in%20branches/remotefs_int%3A%20.%20inc%20inc/remotefs%0A%09rfs_server%20src%20src/remotefs&In-Reply-To=%3C20101110160337.B30314806DB%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000765.html">
+   <LINK REL="Next"  HREF="000767.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r813 - in branches/remotefs_int: . inc inc/remotefs	rfs_server src src/remotefs</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r813%20-%20in%20branches/remotefs_int%3A%20.%20inc%20inc/remotefs%0A%09rfs_server%20src%20src/remotefs&In-Reply-To=%3C20101110160337.B30314806DB%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r813 - in branches/remotefs_int: . inc inc/remotefs	rfs_server src src/remotefs">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Nov 10 17:03:37 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000765.html">[Elua-svn] r812 - branches
+</A></li>
+        <LI>Next message: <A HREF="000767.html">[Elua-svn] r814 - in branches/remotefs_int: . rfs_server
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#766">[ date ]</a>
+              <a href="thread.html#766">[ thread ]</a>
+              <a href="subject.html#766">[ subject ]</a>
+              <a href="author.html#766">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-10 17:03:37 +0100 (Wed, 10 Nov 2010)
+New Revision: 813
+
+Added:
+   branches/remotefs_int/inc/eluarpc.h
+   branches/remotefs_int/inc/rtype.h
+   branches/remotefs_int/inc/sermux.h
+   branches/remotefs_int/rfs_server/pnet.h
+   branches/remotefs_int/src/eluarpc.c
+Removed:
+   branches/remotefs_int/inc/remotefs/rtype.h
+   branches/remotefs_int/rfs_server/client.c
+   branches/remotefs_int/rfs_server/client.h
+   branches/remotefs_int/rfs_server/rtype.h
+Modified:
+   branches/remotefs_int/SConstruct
+   branches/remotefs_int/inc/utils.h
+   branches/remotefs_int/rfs_server.py
+   branches/remotefs_int/rfs_server/log.c
+   branches/remotefs_int/rfs_server/log.h
+   branches/remotefs_int/rfs_server/main.c
+   branches/remotefs_int/rfs_server/os_io_posix.c
+   branches/remotefs_int/rfs_server/os_io_win32.c
+   branches/remotefs_int/rfs_server/serial.h
+   branches/remotefs_int/rfs_server/serial_posix.c
+   branches/remotefs_int/rfs_server/serial_win32.c
+   branches/remotefs_int/rfs_server/server.c
+   branches/remotefs_int/rfs_server/server.h
+   branches/remotefs_int/rfs_server/type.h
+   branches/remotefs_int/src/remotefs/client.c
+   branches/remotefs_int/src/remotefs/elua_os_io.c
+   branches/remotefs_int/src/remotefs/elua_rfs.c
+   branches/remotefs_int/src/remotefs/remotefs.c
+   branches/remotefs_int/src/shell.c
+Log:
+refactored RFS code; added eluarpc.c; modified the RFS server; add 'cp' command to the shell
+
+Modified: branches/remotefs_int/SConstruct
+===================================================================
+--- branches/remotefs_int/SConstruct	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/SConstruct	2010-11-10 16:03:37 UTC (rev 813)
+@@ -381,7 +381,7 @@
+ 
+   # Application files
+   app_files = &quot;&quot;&quot; src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/common_tmr.c src/buf.c src/elua_adc.c src/dlmalloc.c 
+-                  src/salloc.c src/luarpc_elua_uart.c src/elua_int.c &quot;&quot;&quot;
++                  src/salloc.c src/luarpc_elua_uart.c src/elua_int.c src/eluarpc.c &quot;&quot;&quot;
+ 
+   # Newlib related files
+   newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+
+Added: branches/remotefs_int/inc/eluarpc.h
+===================================================================
+--- branches/remotefs_int/inc/eluarpc.h	                        (rev 0)
++++ branches/remotefs_int/inc/eluarpc.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -0,0 +1,65 @@
++// Lightweight remote procedure call layer
++
++#ifndef __ELUARPC_H__
++#define __ELUARPC_H__
++
++#include &quot;type.h&quot;
++
++#define   PACKET_SIG          0x18AFC284UL
++
++// Error codes
++#define   ELUARPC_OK          0
++#define   ELUARPC_ERR         1
++
++#define   ELUARPC_OP_RES_MOD  0x80
++
++// Protocol constants
++#define   ELUARPC_START_OFFSET    4
++#define   ELUARPC_START_SIZE      6
++#define   ELUARPC_END_SIZE        6
++#define   ELUARPC_RESPONSE_SIZE   1
++#define   ELUARPC_PTR_HEADER_SIZE 6
++#define   ELUARPC_SMALL_PTR_HEADER_SIZE 4
++#define   ELUARPC_U32_SIZE        5
++#define   ELUARPC_U16_SIZE        3
++#define   ELUARPC_U8_SIZE         2
++#define   ELUARPC_OP_ID_SIZE      2
++#define   ELUARPC_READ_BUF_OFFSET ( ELUARPC_START_OFFSET + ELUARPC_START_SIZE + ELUARPC_RESPONSE_SIZE + ELUARPC_PTR_HEADER_SIZE )
++#define   ELUARPC_SMALL_READ_BUF_OFFSET ( ELUARPC_START_OFFSET + ELUARPC_START_SIZE + ELUARPC_RESPONSE_SIZE + ELUARPC_SMALL_PTR_HEADER_SIZE )
++#define   ELUARPC_WRITE_REQUEST_EXTRA ( ELUARPC_START_OFFSET + ELUARPC_START_SIZE + ELUARPC_OP_ID_SIZE + ELUARPC_U32_SIZE + ELUARPC_PTR_HEADER_SIZE + ELUARPC_END_SIZE )
++
++// Public interface
++// Get request ID
++int eluarpc_get_request_id( const u8 *p, u8 *pid );
++
++// Replace a flag with another flag
++u32 eluarpc_replace_flag( u32 val, u32 origflag, u32 newflag );
++
++// Get packet size
++int eluarpc_get_packet_size( const u8 *p, u16 *psize );
++
++// Generic write function
++// Specifiers: o - operation
++//             r - response
++//             c - u8
++//             h - u16
++//             l - u32
++//             i - int
++//             L - s32
++//             p - ptr (given as ptr, len, len is an u32)
++//             P - ptr (given as ptr, len, len is an u16)
++void eluarpc_gen_write( u8 *p, const char *fmt, ... );
++
++// Generic read function
++// Specifiers: o - operation
++//             r - response
++//             c - u8
++//             h - u16
++//             l - u32
++//             L - s32
++//             i - int
++//             p - ptr (returned as ptr, len, len is an u32)
++//             P - ptr (returned as ptr, len, len is an u16)
++int eluarpc_gen_read( const u8 *p, const char *fmt, ... );
++
++#endif
+
+Deleted: branches/remotefs_int/inc/remotefs/rtype.h
+===================================================================
+--- branches/remotefs_int/inc/remotefs/rtype.h	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/inc/remotefs/rtype.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -1,17 +0,0 @@
+-// Type definitions for the remote file system
+-
+-#ifndef __RTYPE_H__
+-#define __RTYPE_H__
+-
+-// Type codes
+-#define   TYPE_INT_8      0x01
+-#define   TYPE_INT_16     0x02
+-#define   TYPE_INT_32     0x03
+-#define   TYPE_PTR        0x04
+-#define   TYPE_START      0x05
+-#define   TYPE_END        0x06
+-#define   TYPE_OP_ID      0x07
+-#define   TYPE_PKT_SIZE   0xA5
+-                                    
+-#endif
+-
+
+Added: branches/remotefs_int/inc/rtype.h
+===================================================================
+--- branches/remotefs_int/inc/rtype.h	                        (rev 0)
++++ branches/remotefs_int/inc/rtype.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -0,0 +1,18 @@
++// Type definitions for the remote file system
++
++#ifndef __RTYPE_H__
++#define __RTYPE_H__
++
++// Type codes
++#define   TYPE_INT_8      0x01
++#define   TYPE_INT_16     0x02
++#define   TYPE_INT_32     0x03
++#define   TYPE_PTR        0x04
++#define   TYPE_START      0x05
++#define   TYPE_END        0x06
++#define   TYPE_OP_ID      0x07
++#define   TYPE_SMALL_PTR  0x08
++#define   TYPE_PKT_SIZE   0xA5
++                                    
++#endif
++
+
+Added: branches/remotefs_int/inc/sermux.h
+===================================================================
+--- branches/remotefs_int/inc/sermux.h	                        (rev 0)
++++ branches/remotefs_int/inc/sermux.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -0,0 +1,17 @@
++// Serial multiplexer definitions 
++
++#ifndef __SERMUX_H__
++#define __SERMUX_H__
++
++#define SERVICE_ID_FIRST  0xD0
++#define SERVICE_ID_LAST   0xD7
++#define SERVICE_MAX ( SERVICE_ID_LAST - SERVICE_ID_FIRST + 1 )
++
++#define ESCAPE_CHAR       0xC0
++#define FORCE_SID_CHAR    0xFF
++
++#define ESCAPE_XOR_MASK   0x20
++#define ESC_MASK          0x100
++
++#endif
++
+
+Modified: branches/remotefs_int/inc/utils.h
+===================================================================
+--- branches/remotefs_int/inc/utils.h	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/inc/utils.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -8,6 +8,12 @@
+ #define UMAX( x, y )      ( ( x ) &gt;= ( y ) ? ( x ) : ( y ) )
+ #define UABS( x )         ( ( x ) &gt;= 0 ? ( x ) : -( x ) )
+ 
++// Implement a very simple try-catch ike mechanism using setmp/longjmp,
++// mostly to avoid goto's :)
++#define EXC_DECLARE static jmp_buf exception_buf
++#define EXC_TRY if( setjmp( exception_buf ) == 0 )
++#define EXC_CATCH else
++#define EXC_THROW() longjmp( exception_buf, 1 )
+ 
+ // Macro version of Duff's device found in 
+ // &quot;A Reusable Duff Device&quot; by Ralf Holly
+
+Deleted: branches/remotefs_int/rfs_server/client.c
+===================================================================
+--- branches/remotefs_int/rfs_server/client.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/client.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -1,139 +0,0 @@
+-// Remote filesystem client
+-
+-#include &lt;string.h&gt;
+-#include &quot;remotefs.h&quot;
+-#include &quot;client.h&quot;
+-#include &quot;os_io.h&quot;
+-
+-// ****************************************************************************
+-// Client local data
+-
+-static u8 *rfsc_buffer;
+-static p_rfsc_send rfsc_send;
+-static p_rfsc_recv rfsc_recv;
+-static u32 rfsc_timeout;
+-
+-// ****************************************************************************
+-// Client helpers
+-
+-static int rfsch_send_request_read_response()
+-{
+-  u16 temp16;
+-
+-  // Send request
+-  if( remotefs_get_packet_size( rfsc_buffer, &amp;temp16 ) == REMOTEFS_ERR )
+-    return CLIENT_ERR;
+-  if( rfsc_send( rfsc_buffer, temp16 ) != temp16 )
+-    return CLIENT_ERR;
+-  
+-  // Get response
+-  // First the length, then the rest of the data
+-  if( rfsc_recv( rfsc_buffer, RFS_START_OFFSET, rfsc_timeout ) != RFS_START_OFFSET )
+-    return CLIENT_ERR;
+-  if( remotefs_get_packet_size( rfsc_buffer, &amp;temp16 ) == REMOTEFS_ERR )
+-    return CLIENT_ERR;
+-  if( rfsc_recv( rfsc_buffer + RFS_START_OFFSET, temp16 - RFS_START_OFFSET, rfsc_timeout ) != temp16 - RFS_START_OFFSET )
+-    return CLIENT_ERR;
+-  return CLIENT_OK;
+-}
+-
+-// ****************************************************************************
+-// Client public interface
+-
+-void rfsc_setup( u8 *pbuf, p_rfsc_send rfsc_send_func, p_rfsc_recv rfsc_recv_func, u32 timeout )
+-{
+-  rfsc_buffer = pbuf;
+-  rfsc_send = rfsc_send_func;
+-  rfsc_recv = rfsc_recv_func;
+-  rfsc_timeout = timeout;
+-}
+-
+-void rfsc_set_timeout( u32 timeout )
+-{
+-  rfsc_timeout = timeout;
+-}
+-
+-int rfsc_open( const char* pathname, int flags, int mode )
+-{
+-  int fd;
+-
+-  // Make the request
+-  remotefs_open_write_request( rfsc_buffer, pathname, os_open_sys_flags_to_rfs_flags( flags ), mode );
+-
+-  // Send the request / get the respone
+-  if( rfsch_send_request_read_response() == CLIENT_ERR )
+-    return -1;
+-
+-  // Interpret the response
+-  if( remotefs_open_read_response( rfsc_buffer, &amp;fd ) == REMOTEFS_ERR )
+-    return -1;
+-  return fd;
+-}
+-
+-s32 rfsc_write( int fd, const void *buf, u32 count )
+-{
+-  // Make the request
+-  remotefs_write_write_request( rfsc_buffer, fd, buf, count );
+-
+-  // Send the request / get the response
+-  if( rfsch_send_request_read_response() == CLIENT_ERR )
+-    return -1;
+-  
+-  // Interpret the response
+-  if( remotefs_write_read_response( rfsc_buffer, &amp;count ) == REMOTEFS_ERR )
+-    return -1;
+-  return ( s32 )count;
+-}
+-
+-s32 rfsc_read( int fd, void *buf, u32 count )
+-{
+-  const u8 *resbuf;
+-
+-  // Make the request
+-  remotefs_read_write_request( rfsc_buffer, fd, count );
+-
+-  // Send the request / get the response
+-  if( rfsch_send_request_read_response() == CLIENT_ERR )
+-    return -1;
+-
+-  // Interpret the response
+-  if( remotefs_read_read_response( rfsc_buffer, &amp;resbuf, &amp;count ) == REMOTEFS_ERR )
+-    return -1;
+-  memcpy( buf, resbuf, count );
+-  return ( s32 )count;
+-}
+-
+-s32 rfsc_lseek( int fd, s32 offset, int whence )
+-{
+-  s32 res;
+-
+-  // Make the request
+-  remotefs_lseek_write_request( rfsc_buffer, fd, offset, os_lseek_sys_whence_to_rfs_whence( whence ) );
+-
+-  // Send the request / get the response
+-  if( rfsch_send_request_read_response() == CLIENT_ERR )
+-    return -1;
+-
+-  // Interpret the response
+-  if( remotefs_lseek_read_response( rfsc_buffer, &amp;res ) == REMOTEFS_ERR )
+-    return -1;
+-  return res;
+-}
+-
+-int rfsc_close( int fd )
+-{
+-  int res;
+-
+-  // Make the request
+-  remotefs_close_write_request( rfsc_buffer, fd );
+-
+-  // Send the request / get the response
+-  if( rfsch_send_request_read_response() == CLIENT_ERR )
+-    return -1;
+-
+-  // Interpret the response
+-  if( remotefs_close_read_response( rfsc_buffer, &amp;res ) == REMOTEFS_ERR )
+-    return -1;
+-  return res;
+-}
+-
+
+Deleted: branches/remotefs_int/rfs_server/client.h
+===================================================================
+--- branches/remotefs_int/rfs_server/client.h	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/client.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -1,26 +0,0 @@
+-// Remote filesystem client
+-
+-#ifndef __CLIENT_H__
+-#define __CLIENT_H__
+-
+-#include &quot;type.h&quot;
+-
+-// Error codes
+-#define CLIENT_OK   0
+-#define CLIENT_ERR  1
+-
+-// RFS client send/receive functions
+-typedef u32 ( *p_rfsc_send )( const u8 *p, u32 size );
+-typedef u32 ( *p_rfsc_recv )( u8 *p, u32 size, u32 timeout );
+-
+-// Public interface
+-void rfsc_setup( u8 *pbuf, p_rfsc_send rfsc_send_func, p_rfsc_recv rfsc_recv_func, u32 timeout );
+-void rfsc_set_timeout( u32 timeout );
+-int rfsc_open( const char* pathname, int flags, int mode );
+-s32 rfsc_write( int fd, const void *buf, u32 count );
+-s32 rfsc_read( int fd, void *buf, u32 count );
+-s32 rfsc_lseek( int fd, s32 offset, int whence );
+-int rfsc_close( int fd );
+-
+-#endif
+-
+
+Modified: branches/remotefs_int/rfs_server/log.c
+===================================================================
+--- branches/remotefs_int/rfs_server/log.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/log.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -22,3 +22,14 @@
+     va_end( va );  
+   }
+ }
++
++void log_err( const char *msg, ... )
++{
++  va_list va;
++  
++  va_start( va, msg );
++  vfprintf( stderr, msg, va );
++  va_end( va );
++}
++
++
+
+Modified: branches/remotefs_int/rfs_server/log.h
+===================================================================
+--- branches/remotefs_int/rfs_server/log.h	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/log.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -9,5 +9,6 @@
+ 
+ void log_init( int level );
+ void log_msg( const char *msg, ... );
++void log_err( const char* msg, ... );
+ 
+ #endif
+
+Modified: branches/remotefs_int/rfs_server/main.c
+===================================================================
+--- branches/remotefs_int/rfs_server/main.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/main.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -1,6 +1,8 @@
+ // Remote FS server
+ 
++#include &quot;pnet.h&quot;
+ #include &quot;remotefs.h&quot;
++#include &quot;eluarpc.h&quot;
+ #include &quot;serial.h&quot;
+ #include &quot;server.h&quot;
+ #include &quot;type.h&quot;
+@@ -13,26 +15,38 @@
+ #include &lt;string.h&gt;
+ 
+ // ****************************************************************************
++// Local definitions
++
++typedef void ( *p_read_request )( void );
++typedef void ( *p_send_response )( void );
++typedef void ( *p_cleanup )( void );
++typedef struct
++{
++  p_read_request f_read_request;
++  p_send_response f_send_response;
++  p_cleanup f_cleanup;
++} RFS_TRANSPORT_DATA;
++
++// ****************************************************************************
+ // Local variables
+ 
+ #define   MAX_PACKET_SIZE     4096
++static u8 rfs_buffer[ MAX_PACKET_SIZE + ELUARPC_WRITE_REQUEST_EXTRA ];
++static const RFS_TRANSPORT_DATA *p_transport_data; 
+ 
+-static u8 rfs_buffer[ MAX_PACKET_SIZE + RFS_WRITE_REQUEST_EXTRA ]; 
++// ****************************************************************************
++// Serial transport implementation
++
+ static ser_handler ser;
+ 
+-// ****************************************************************************
+-// Helpers
+-
+ static void flush_serial()
+ {
+   // Flush all data in serial port
+-  ser_set_timeout_ms( ser, SER_NO_TIMEOUT );
+-  while( ser_read_byte( ser ) != -1 );
+-  ser_set_timeout_ms( ser, SER_INF_TIMEOUT );
++  while( ser_read_byte( ser, SER_NO_TIMEOUT ) != -1 );
+ }
+ 
+ // Read a packet from the serial port
+-static void read_request_packet()
++static void ser_read_request_packet()
+ {
+   u16 temp16;
+   u32 readbytes;
+@@ -40,14 +54,14 @@
+   while( 1 )
+   {
+     // First read the length
+-    if( ( readbytes = ser_read( ser, rfs_buffer, RFS_START_OFFSET ) ) != RFS_START_OFFSET )
++    if( ( readbytes = ser_read( ser, rfs_buffer, ELUARPC_START_OFFSET, SER_INF_TIMEOUT ) ) != ELUARPC_START_OFFSET )
+     {
+-      log_msg( &quot;read_request_packet: ERROR reading packet length. Requested %d bytes, got %d bytes\n&quot;, RFS_START_OFFSET, readbytes );
++      log_msg( &quot;read_request_packet: ERROR reading packet length. Requested %d bytes, got %d bytes\n&quot;, ELUARPC_START_OFFSET, readbytes );
+       flush_serial();
+       continue;
+     }
+ 
+-    if( remotefs_get_packet_size( rfs_buffer, &amp;temp16 ) == REMOTEFS_ERR )
++    if( eluarpc_get_packet_size( rfs_buffer, &amp;temp16 ) == ELUARPC_ERR )
+     {
+       log_msg( &quot;read_request_packet: ERROR getting packet size.\n&quot; );
+       flush_serial();
+@@ -55,9 +69,9 @@
+     }
+ 
+     // Then the rest of the data
+-    if( ( readbytes = ser_read( ser, rfs_buffer + RFS_START_OFFSET, temp16 - RFS_START_OFFSET ) ) != temp16 - RFS_START_OFFSET )
++    if( ( readbytes = ser_read( ser, rfs_buffer + ELUARPC_START_OFFSET, temp16 - ELUARPC_START_OFFSET, SER_INF_TIMEOUT ) ) != temp16 - ELUARPC_START_OFFSET )
+     {
+-      log_msg( &quot;read_request_packet: ERROR reading full packet, got %u bytes, expected %u bytes\n&quot;, ( unsigned )readbytes, ( unsigned )temp16 - RFS_START_OFFSET );
++      log_msg( &quot;read_request_packet: ERROR reading full packet, got %u bytes, expected %u bytes\n&quot;, ( unsigned )readbytes, ( unsigned )temp16 - ELUARPC_START_OFFSET );
+       flush_serial();
+       continue;
+     }
+@@ -67,18 +81,135 @@
+ }
+ 
+ // Send a packet to the serial port
+-static void send_response_packet()
++static void ser_send_response_packet()
+ {
+   u16 temp16;
+ 
+   // Send request
+-  if( remotefs_get_packet_size( rfs_buffer, &amp;temp16 ) != REMOTEFS_ERR )
++  if( eluarpc_get_packet_size( rfs_buffer, &amp;temp16 ) != ELUARPC_ERR )
+   {
+     log_msg( &quot;send_response_packet: sending response packet of %u bytes\n&quot;, ( unsigned )temp16 );
+     ser_write( ser, rfs_buffer, temp16 );
+   }
+ }
+ 
++static int ser_server_init( const char *portname, int serspeed )
++{
++  // Setup serial port
++  if( ( ser = ser_open( portname ) ) == ( ser_handler )-1 )
++  {
++    log_err( &quot;Cannot open port %s\n&quot;, portname );
++    return 0;
++  }
++  if( ser_setup( ser, ( u32 )serspeed, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++  {
++    log_err( &quot;Unable to initialize serial port\n&quot; );
++    return 0;
++  }
++  flush_serial();
++  
++  // User report
++  log_msg( &quot;Running RFS server on serial port %s (%u baud).\n&quot;, portname, ( unsigned )serspeed );
++  return 1; 
++}
++
++static void ser_cleanup()
++{
++  ser_close( ser );
++}
++
++static const RFS_TRANSPORT_DATA ser_transport_data = { ser_read_request_packet, ser_send_response_packet, ser_cleanup };
++
++// ****************************************************************************
++// UDP transport implementation
++
++static SOCKET trans_socket = INVALID_SOCKET_VALUE;
++static struct sockaddr_in trans_from;
++
++// Helper: read (blocking) the specified number of bytes
++
++static void udp_read_helper( u8 *dest, u32 size )
++{
++  socklen_t fromlen;
++  int readbytes;
++
++  while( size )
++  {
++    fromlen = sizeof( trans_from );
++    readbytes = recvfrom( trans_socket, ( char* )dest, size, 0, ( struct sockaddr* )&amp;trans_from, &amp;fromlen );
++    size -= readbytes;
++    if( size == 0 )
++      break;
++    dest += readbytes;
++  }
++}
++
++static void udp_read_request_packet()
++{
++  u16 temp16;
++ 
++  while( 1 )
++  {
++    // First read the length
++    udp_read_helper( rfs_buffer, ELUARPC_START_OFFSET );
++
++    if( eluarpc_get_packet_size( rfs_buffer, &amp;temp16 ) == ELUARPC_ERR )
++    {
++      log_msg( &quot;read_request_packet: ERROR getting packet size.\n&quot; );
++      continue;
++    }
++
++    // Then the rest of the data
++    udp_read_helper( rfs_buffer + ELUARPC_START_OFFSET, temp16 - ELUARPC_START_OFFSET );
++    break;
++  }
++}
++
++static void udp_send_response_packet()
++{
++  u16 temp16;
++  
++  // Send request
++  if( eluarpc_get_packet_size( rfs_buffer, &amp;temp16 ) != ELUARPC_ERR )
++  {
++    log_msg( &quot;send_response_packet: sending response packet of %u bytes\n&quot;, ( unsigned )temp16 );
++    sendto( trans_socket, ( char* )rfs_buffer, temp16, 0, ( struct sockaddr* )&amp;trans_from, sizeof( trans_from ) );
++  }  
++}
++
++static int udp_server_init( unsigned server_port )
++{
++  int length;
++  struct sockaddr_in server;
++     
++  if( ( trans_socket = socket( AF_INET, SOCK_DGRAM, 0 ) ) &lt; 0 )
++  {
++    log_err( &quot;Unable to create socket\n&quot; );
++    return 1;
++  }
++  length = sizeof( server );
++  memset( &amp;server, 0, sizeof( server ) );
++  server.sin_family = AF_INET;
++  server.sin_addr.s_addr = INADDR_ANY;
++  server.sin_port = htons( server_port );
++  if( bind( trans_socket, ( struct sockaddr * )&amp;server, length ) &lt; 0 )
++  {
++   log_err( &quot;Unable to bind socket\n&quot; );
++   return 0; 
++  }
++  log_msg( &quot;Running RFS server on UDP port %u.\n&quot;, ( unsigned )server_port );
++  return 1;    
++}
++
++static void udp_cleanup()
++{
++}
++
++static const RFS_TRANSPORT_DATA udp_transport_data = { udp_read_request_packet, udp_send_response_packet, udp_cleanup };
++
++// *****************************************************************************
++// Helper functions
++
+ // Secure atoi
+ static int secure_atoi( const char *str, long *pres )
+ {
+@@ -99,67 +230,111 @@
+   return 1;  
+ }
+ 
+-// ****************************************************************************
+-// Entry point
++// Local strndup function to compensate the lack of strndup in Windows
++static char* l_strndup( const char* s, size_t n )
++{
++  char* p;
++  
++  if( ( p = ( char* )malloc( n + 1 ) ) == NULL )
++    return NULL;
++  p [ 0 ] = p[ n ] = '\0';
++  strncpy( p, s, n );
++  return p;
++} 
+ 
+-#define PORT_ARG_IDX          1
+-#define SPEED_ARG_IDX         2
+-#define DIRNAME_ARG_IDX       3
+-#define VERBOSE_ARG_IDX       4
+-
+-int main( int argc, const char **argv )
++// Transport parser
++static int parse_transport_and_init( const char* s )
+ {
+-  long serspeed;
++  const char *c;
++  char *temps;
++  long tempi;
+   
+-  if( argc &lt; 4 )
++  if( strstr( s, &quot;ser:&quot; ) == s )
+   {
+-    fprintf( stderr, &quot;Usage: %s &lt;port&gt; &lt;speed&gt; &lt;dirname&gt; [-v]\n&quot;, argv[ 0 ] );
+-    fprintf( stderr, &quot;(use -v for verbose output).\n&quot;);
+-    return 1;
++    p_transport_data = &amp;ser_transport_data;
++    s += strlen( &quot;ser:&quot; );
++    if( ( c = strchr( s, ',' ) ) == NULL )
++    {
++      log_err( &quot;Invalid serial transport syntax\n&quot; );
++      return 0;
++    }
++    if( secure_atoi( c + 1, &amp;tempi ) == 0 )
++    {
++      log_err( &quot;Invalid port speed\n&quot; );
++      return 0;
++    }
++    temps = l_strndup( s, c - s );
++    tempi = ser_server_init( temps, tempi );
++    free( temps );    
++    return tempi;
+   }
+-  if( secure_atoi( argv[ SPEED_ARG_IDX ], &amp;serspeed ) == 0 )
++  else if( strstr( s, &quot;udp:&quot; ) == s )
+   {
+-    fprintf( stderr, &quot;Invalid speed\n&quot; );
+-    return 1;
+-  } 
+-  if( !os_isdir( argv[ DIRNAME_ARG_IDX ] ) )
+-  {
+-    fprintf( stderr, &quot;Invalid directory %s\n&quot;, argv[ DIRNAME_ARG_IDX ] );
+-    return 1;
++    p_transport_data = &amp;udp_transport_data;
++    s += strlen( &quot;udp:&quot; );
++    if( secure_atoi( s, &amp;tempi ) == 0 )
++    {
++      log_err( &quot;Invalid port number\n&quot; );
++      return 0;
++    }    
++    return udp_server_init( tempi );   
+   }
+-  if( ( argc &gt;= 5 ) &amp;&amp; !strcmp( argv[ VERBOSE_ARG_IDX ], &quot;-v&quot; ) )
+-    log_init( LOG_ALL );
+-  else
+-    log_init( LOG_NONE );
++  log_err( &quot;Error: unsupported transport\n&quot; );
++  return 0;
++}
+ 
+-  // Setup RFS server
+-  server_setup( argv[ DIRNAME_ARG_IDX ] );
++// *****************************************************************************
++// Entry point
+ 
+-  // Setup serial port
+-  if( ( ser = ser_open( argv[ PORT_ARG_IDX ] ) ) == ( ser_handler )-1 )
++#ifdef RFS_STANDALONE_MODE
++#define RFS_MAIN_FUNC_NAME    main
++#else
++#define RFS_MAIN_FUNC_NAME    rfs_main
++#endif
++
++#define TRANSPORT_ARG_IDX     1
++#define DIRNAME_ARG_IDX       2
++#define VERBOSE_ARG_IDX       3
++#define MIN_ARGC_COUNT        3
++#define VERBOSE_ARGC_COUNT    4
++
++int RFS_MAIN_FUNC_NAME( int argc, const char **argv )
++{  
++  if( argc &lt; MIN_ARGC_COUNT )
+   {
+-    fprintf( stderr, &quot;Cannot open port %s\n&quot;, argv[ PORT_ARG_IDX ] );
++    log_err( &quot;Usage: %s &lt;transport&gt; &lt;dirname&gt; [-v]\n&quot;, argv[ 0 ] );
++    log_err( &quot;  Serial transport: 'ser:&lt;sername&gt;,&lt;serspeed&gt;'&quot; );
++    log_err( &quot;  UDP transport: 'udp:&lt;port&gt;'&quot; );
++    log_err( &quot;Use -v for verbose output.\n&quot;);
+     return 1;
+   }
+-  if( ser_setup( ser, ( u32 )serspeed, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++  if( !os_isdir( argv[ DIRNAME_ARG_IDX ] ) )
+   {
+-    fprintf( stderr, &quot;Unable to initialize serial port\n&quot; );
++    log_err( &quot;Invalid directory %s\n&quot;, argv[ DIRNAME_ARG_IDX ] );
+     return 1;
+-  }
+-  flush_serial();
++  }  
++  if( !parse_transport_and_init( argv[ TRANSPORT_ARG_IDX ] ) == 0 )
++    return 1;
+   
+-  // User report
+-  printf( &quot;Running RFS server on port %s (%u baud) in directory %s\n&quot;, argv[ PORT_ARG_IDX ], ( unsigned )serspeed, argv[ DIRNAME_ARG_IDX ] );  
++    // Setup RFS server
++  server_setup( argv[ DIRNAME_ARG_IDX ] );   
++  log_msg( &quot;Running RFS server on directory %s\n&quot;, argv[ DIRNAME_ARG_IDX ] );
+ 
++  if( ( argc &gt;= VERBOSE_ARGC_COUNT ) &amp;&amp; !strcmp( argv[ VERBOSE_ARG_IDX ], &quot;-v&quot; ) )
++    log_init( LOG_ALL );
++  else
++    log_init( LOG_NONE );
++
+   // Enter the server endless loop
+   while( 1 )
+   {
+-    read_request_packet();
++    p_transport_data-&gt;f_read_request();
+     server_execute_request( rfs_buffer );
+-    send_response_packet();
++    p_transport_data-&gt;f_send_response();
+   }
+ 
+-  ser_close( ser );
++  p_transport_data-&gt;f_cleanup();
+   return 0;
+ }
+ 
++
+
+Modified: branches/remotefs_int/rfs_server/os_io_posix.c
+===================================================================
+--- branches/remotefs_int/rfs_server/os_io_posix.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/os_io_posix.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -9,20 +9,21 @@
+ #include &lt;string.h&gt;
+ #include &quot;os_io.h&quot;
+ #include &quot;remotefs.h&quot;
++#include &quot;eluarpc.h&quot;
+ 
+ int os_open( const char *pathname, int flags, int mode )
+ {
+   int realflags = 0;
+ 
+   // Translate RFS flags to POSIX flags
+-  realflags = remotefs_replace_flag( flags, RFS_OPEN_FLAG_APPEND, O_APPEND );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_CREAT, O_CREAT );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_EXCL, O_EXCL );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_TRUNC, O_TRUNC );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_SYNC, O_SYNC );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_RDONLY, O_RDONLY );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_WRONLY, O_WRONLY );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_RDWR, O_RDWR );
++  realflags = eluarpc_replace_flag( flags, RFS_OPEN_FLAG_APPEND, O_APPEND );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_CREAT, O_CREAT );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_EXCL, O_EXCL );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_TRUNC, O_TRUNC );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_SYNC, O_SYNC );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_RDONLY, O_RDONLY );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_WRONLY, O_WRONLY );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_RDWR, O_RDWR );
+   return open( pathname, realflags, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ); 
+ }
+ 
+@@ -31,14 +32,14 @@
+   int rfsflags = 0;
+ 
+   // Translate RFS flags to POSIX flags
+-  rfsflags = remotefs_replace_flag( sysflags, O_APPEND, RFS_OPEN_FLAG_APPEND );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_CREAT, RFS_OPEN_FLAG_CREAT );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_EXCL, RFS_OPEN_FLAG_EXCL );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_TRUNC, RFS_OPEN_FLAG_TRUNC );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_SYNC, RFS_OPEN_FLAG_SYNC );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_RDONLY, RFS_OPEN_FLAG_RDONLY );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_WRONLY, RFS_OPEN_FLAG_WRONLY );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_RDWR, RFS_OPEN_FLAG_RDWR );
++  rfsflags = eluarpc_replace_flag( sysflags, O_APPEND, RFS_OPEN_FLAG_APPEND );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_CREAT, RFS_OPEN_FLAG_CREAT );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_EXCL, RFS_OPEN_FLAG_EXCL );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_TRUNC, RFS_OPEN_FLAG_TRUNC );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_SYNC, RFS_OPEN_FLAG_SYNC );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_RDONLY, RFS_OPEN_FLAG_RDONLY );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_WRONLY, RFS_OPEN_FLAG_WRONLY );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_RDWR, RFS_OPEN_FLAG_RDWR );
+   return rfsflags;
+ }
+ 
+
+Modified: branches/remotefs_int/rfs_server/os_io_win32.c
+===================================================================
+--- branches/remotefs_int/rfs_server/os_io_win32.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/os_io_win32.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -7,22 +7,24 @@
+ #include &lt;share.h&gt;
+ #include &lt;windows.h&gt;
+ #include &lt;string.h&gt;
++#include &lt;stdio.h&gt;
+ #include &quot;os_io.h&quot;
+ #include &quot;remotefs.h&quot;
++#include &quot;eluarpc.h&quot;
+ 
+ int os_open( const char *pathname, int flags, int mode )
+ {
+   int realflags = 0;
+ 
+   // Translate RFS flags to POSIX flags                                                                                                     
+-  realflags = remotefs_replace_flag( flags, RFS_OPEN_FLAG_APPEND, _O_APPEND );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_CREAT, _O_CREAT );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_EXCL, _O_EXCL );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_TRUNC, _O_TRUNC );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_RDONLY, _O_RDONLY );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_WRONLY, _O_WRONLY );
+-  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_RDWR, _O_RDWR );
+-  return _sopen( pathname, realflags, _SH_DENYNO, _S_IREAD | _S_IWRITE ); 
++  realflags = eluarpc_replace_flag( flags, RFS_OPEN_FLAG_APPEND, _O_APPEND );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_CREAT, _O_CREAT );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_EXCL, _O_EXCL );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_TRUNC, _O_TRUNC );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_RDONLY, _O_RDONLY );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_WRONLY, _O_WRONLY );
++  realflags |= eluarpc_replace_flag( flags, RFS_OPEN_FLAG_RDWR, _O_RDWR );
++  return _sopen( pathname, realflags | _O_BINARY, _SH_DENYNO, _S_IREAD | _S_IWRITE ); 
+ }
+ 
+ u32 os_open_sys_flags_to_rfs_flags( int sysflags )
+@@ -30,13 +32,13 @@
+   int rfsflags = 0;
+ 
+   // Translate RFS flags to POSIX flags
+-  rfsflags = remotefs_replace_flag( sysflags, _O_APPEND, RFS_OPEN_FLAG_APPEND );
+-  rfsflags |= remotefs_replace_flag( sysflags, _O_CREAT, RFS_OPEN_FLAG_CREAT );
+-  rfsflags |= remotefs_replace_flag( sysflags, _O_EXCL, RFS_OPEN_FLAG_EXCL );
+-  rfsflags |= remotefs_replace_flag( sysflags, _O_TRUNC, RFS_OPEN_FLAG_TRUNC );
+-  rfsflags |= remotefs_replace_flag( sysflags, _O_RDONLY, RFS_OPEN_FLAG_RDONLY );
+-  rfsflags |= remotefs_replace_flag( sysflags, _O_WRONLY, RFS_OPEN_FLAG_WRONLY );
+-  rfsflags |= remotefs_replace_flag( sysflags, _O_RDWR, RFS_OPEN_FLAG_RDWR );
++  rfsflags = eluarpc_replace_flag( sysflags, _O_APPEND, RFS_OPEN_FLAG_APPEND );
++  rfsflags |= eluarpc_replace_flag( sysflags, _O_CREAT, RFS_OPEN_FLAG_CREAT );
++  rfsflags |= eluarpc_replace_flag( sysflags, _O_EXCL, RFS_OPEN_FLAG_EXCL );
++  rfsflags |= eluarpc_replace_flag( sysflags, _O_TRUNC, RFS_OPEN_FLAG_TRUNC );
++  rfsflags |= eluarpc_replace_flag( sysflags, _O_RDONLY, RFS_OPEN_FLAG_RDONLY );
++  rfsflags |= eluarpc_replace_flag( sysflags, _O_WRONLY, RFS_OPEN_FLAG_WRONLY );
++  rfsflags |= eluarpc_replace_flag( sysflags, _O_RDWR, RFS_OPEN_FLAG_RDWR );
+   return rfsflags;
+ }
+ 
+@@ -133,6 +135,7 @@
+   {
+     if( ( win32_dir_data.dwFileAttributes &amp; FILE_ATTRIBUTE_DIRECTORY ) == 0 )
+     {
++      realname[ 0 ] = realname[ RFS_MAX_FNAME_SIZE ] = '\0';    
+       if( win32_dir_data.cFileName[ 0 ] )
+         strncpy( realname, win32_dir_data.cFileName, RFS_MAX_FNAME_SIZE );
+       else
+
+Added: branches/remotefs_int/rfs_server/pnet.h
+===================================================================
+--- branches/remotefs_int/rfs_server/pnet.h	                        (rev 0)
++++ branches/remotefs_int/rfs_server/pnet.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -0,0 +1,27 @@
++// Platform dependent network definitions
++
++#ifndef __PNET_H__
++#define __PNET_H__
++
++#ifdef WIN32_BUILD
++
++#include &lt;winsock2.h&gt;
++#include &lt;windows.h&gt;
++typedef int socklen_t;
++#define socket_close  closesocket
++#define INVALID_SOCKET_VALUE  INVALID_SOCKET
++
++#else // #ifdef WIN32_BUILD
++
++#include &lt;sys/types.h&gt;
++#include &lt;sys/socket.h&gt;
++#include &lt;netinet/in.h&gt;
++#include &lt;netdb.h&gt;
++#include &lt;sys/select.h&gt;
++typedef int SOCKET;
++#define socket_close  close
++#define INVALID_SOCKET_VALUE  (-1)
++
++#endif // #ifdef WIN32_BUILD
++
++#endif // #ifndef __PNET_H__
+
+Deleted: branches/remotefs_int/rfs_server/rtype.h
+===================================================================
+--- branches/remotefs_int/rfs_server/rtype.h	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/rtype.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -1,17 +0,0 @@
+-// Type definitions for the remote file system
+-
+-#ifndef __RTYPE_H__
+-#define __RTYPE_H__
+-
+-// Type codes
+-#define   TYPE_INT_8      0x01
+-#define   TYPE_INT_16     0x02
+-#define   TYPE_INT_32     0x03
+-#define   TYPE_PTR        0x04
+-#define   TYPE_START      0x05
+-#define   TYPE_END        0x06
+-#define   TYPE_OP_ID      0x07
+-#define   TYPE_PKT_SIZE   0xA5
+-                                    
+-#endif
+-
+
+Modified: branches/remotefs_int/rfs_server/serial.h
+===================================================================
+--- branches/remotefs_int/rfs_server/serial.h	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/serial.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -32,10 +32,9 @@
+ ser_handler ser_open( const char *sername );
+ void ser_close( ser_handler id );
+ int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits );
+-u32 ser_read( ser_handler id, u8* dest, u32 maxsize );
+-int ser_read_byte( ser_handler id );
++u32 ser_read( ser_handler id, u8* dest, u32 maxsize, u32 timeout );
++int ser_read_byte( ser_handler id, u32 timeout );
+ u32 ser_write( ser_handler id, const u8 *src, u32 size );
+ u32 ser_write_byte( ser_handler id, u8 data );
+-void ser_set_timeout_ms( ser_handler id, u32 timeout );
+ 
+ #endif
+
+Modified: branches/remotefs_int/rfs_server/serial_posix.c
+===================================================================
+--- branches/remotefs_int/rfs_server/serial_posix.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/serial_posix.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -11,8 +11,6 @@
+ #include &lt;sys/time.h&gt;
+ #include &lt;sys/types.h&gt;
+ 
+-static u32 ser_timeout = SER_INF_TIMEOUT;
+-
+ // Open the serial port
+ ser_handler ser_open( const char* sername )
+ {
+@@ -132,12 +130,12 @@
+ }
+ 
+ // Read up to the specified number of bytes, return bytes actually read
+-u32 ser_read( ser_handler id, u8* dest, u32 maxsize )
++u32 ser_read( ser_handler id, u8* dest, u32 maxsize, u32 timeout )
+ {
+   struct termios termdata;
+ 
+   tcgetattr( id, &amp;termdata );
+-  if( ser_timeout == SER_INF_TIMEOUT )
++  if( timeout == SER_INF_TIMEOUT )
+   {
+     termdata.c_cc[ VMIN ] = maxsize;
+     termdata.c_cc[ VTIME ] = 0;
+@@ -155,8 +153,8 @@
+     tcsetattr( id, TCSANOW, &amp;termdata );
+     FD_ZERO( &amp;readfs );
+     FD_SET( ( int )id, &amp;readfs );
+-    tv.tv_sec = ser_timeout / 1000000;
+-    tv.tv_usec = ( ser_timeout % 1000000 ) * 1000;
++    tv.tv_sec = timeout / 1000000;
++    tv.tv_usec = ( timeout % 1000000 ) * 1000;
+     retval = select( ( int )id + 1, &amp;readfs, NULL, NULL, &amp;tv );
+     if( retval == -1 || retval == 0 )
+       return 0;
+@@ -166,10 +164,10 @@
+ }
+ 
+ // Read a single byte and return it (or -1 for error)
+-int ser_read_byte( ser_handler id )
++int ser_read_byte( ser_handler id, u32 timeout )
+ {
+   u8 data;
+-  int res = ser_read( id, &amp;data, 1 );
++  int res = ser_read( id, &amp;data, 1, timeout );
+ 
+   return res == 1 ? data : -1;
+ }
+@@ -189,9 +187,3 @@
+   return ( u32 )write( id, &amp;data, 1 );
+ }
+ 
+-// Set communication timeout
+-void ser_set_timeout_ms( ser_handler id, u32 timeout )
+-{
+-  ser_timeout = timeout;
+-}
+-
+
+Modified: branches/remotefs_int/rfs_server/serial_win32.c
+===================================================================
+--- branches/remotefs_int/rfs_server/serial_win32.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/serial_win32.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -3,6 +3,7 @@
+ #include &lt;windows.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
+ #include &quot;type.h&quot;
+ #include &quot;serial.h&quot;
+ 
+@@ -33,6 +34,17 @@
+   return SER_OK;
+ }
+ 
++// Helper: set communication timeout
++static int ser_set_timeout_ms( HANDLE hComm, u32 timeout )
++{ 
++  if( timeout == SER_NO_TIMEOUT )
++    return ser_win32_set_timeouts( hComm, MAXDWORD, 0, 0, 0, 0 );
++  else if( timeout == SER_INF_TIMEOUT )
++    return ser_win32_set_timeouts( hComm, 0, 0, 0, 0, 0 );
++  else
++    return ser_win32_set_timeouts( hComm, 0, 0, timeout, 0, 0 );
++}
++
+ // Open the serial port
+ ser_handler ser_open( const char* sername )
+ {
+@@ -41,18 +53,20 @@
+   
+   portname[ 0 ] = portname[ WIN_MAX_PORT_NAME ] = '\0';
+   _snprintf( portname, WIN_MAX_PORT_NAME, &quot;\\\\.\\%s&quot;, sername );
+-  hComm = CreateFile( portname, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0 );
++  hComm = CreateFile( portname, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0 );
+   if( hComm == INVALID_HANDLE_VALUE )
+     return WIN_ERROR;
+   if( !SetupComm( hComm, 2048, 2048 ) )
+     return WIN_ERROR;
+-  return hComm;
++  if( ser_set_timeout_ms( hComm, SER_INF_TIMEOUT ) != SER_OK )
++    return WIN_ERROR;
++  return ( ser_handler )hComm;
+ }
+ 
+ // Close the serial port
+ void ser_close( ser_handler id )
+ {
+-  CloseHandle( id );
++  CloseHandle( ( HANDLE )id );
+ }
+ 
+ int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits )
+@@ -100,23 +114,55 @@
+ }
+ 
+ // Read up to the specified number of bytes, return bytes actually read
+-u32 ser_read( ser_handler id, u8* dest, u32 maxsize )
++u32 ser_read( ser_handler id, u8* dest, u32 maxsize, u32 timeout )
+ {
+   HANDLE hComm = ( HANDLE )id;
+-  DWORD readbytes;
++  OVERLAPPED o = { 0 };
++  DWORD readbytes = 0;
++  BOOL fWaitingOnRead = FALSE;
+   
+-  if( ReadFile( hComm, dest, maxsize, &amp;readbytes, NULL ) == FALSE )
++  o.hEvent = CreateEvent( NULL, TRUE, FALSE, NULL );
++  if( ReadFile( hComm, dest, maxsize, &amp;readbytes, &amp;o ) == FALSE )
++  {
++    if( GetLastError() != ERROR_IO_PENDING )
++    {
++      CloseHandle( o.hEvent );      
+     return 0;
++    }
++    else
++      fWaitingOnRead = TRUE;
++  }
++  else
++  {
++    CloseHandle( o.hEvent );
++    return readbytes;
++  }
++    
++  if( fWaitingOnRead )
++  {
++    BOOL dwRes = WaitForSingleObject( o.hEvent, timeout == SER_INF_TIMEOUT ? INFINITE : timeout );
++    if( dwRes == WAIT_OBJECT_0 ) 
++    {
++      if( !GetOverlappedResult( hComm, &amp;o, &amp;readbytes, TRUE ) )
++        readbytes = 0;
++    }
++    else if( dwRes == WAIT_TIMEOUT )
++    {
++      CancelIo( hComm );
++      GetOverlappedResult( hComm, &amp;o, &amp;readbytes, TRUE );
++      readbytes = 0;
++    }
++  }  
++  CloseHandle( o.hEvent );
+   return readbytes;
+ }
+ 
+ // Read a single byte and return it (or -1 for error)
+-int ser_read_byte( ser_handler id )
++int ser_read_byte( ser_handler id, u32 timeout )
+ {
+   u8 data;
+-  int res = ser_read( id, &amp;data, 1 );
++  int res = ser_read( id, &amp;data, 1, timeout );
+ 
+-  //printf( &quot;READ %02X, res is %d\n&quot;, data, res );
+   return res == 1 ? data : -1;
+ }
+ 
+@@ -124,27 +170,41 @@
+ u32 ser_write( ser_handler id, const u8 *src, u32 size )
+ {
+   HANDLE hComm = ( HANDLE )id;
+-	DWORD written;
++  OVERLAPPED o = { 0 };
++  DWORD written = 0;
++  BOOL fWaitingOnWrite = FALSE;
+ 	
+-  if( WriteFile( hComm, src, size, &amp;written, NULL ) == FALSE )
++  o.hEvent = CreateEvent( NULL, TRUE, FALSE, NULL );
++  if( WriteFile( hComm, src, size, &amp;written, &amp;o ) == FALSE )
++  {
++    if( GetLastError() != ERROR_IO_PENDING )
++    {
++      CloseHandle( o.hEvent );      
+     return 0;
++    }
++    else
++      fWaitingOnWrite = TRUE;
++  }
++  else
++  {
++    CloseHandle( o.hEvent );
+   return written;
+ }
+ 
++  if( fWaitingOnWrite )
++{
++    BOOL dwRes = WaitForSingleObject( o.hEvent, INFINITE );
++    if( dwRes == WAIT_OBJECT_0 )
++      if( !GetOverlappedResult( hComm, &amp;o, &amp;written, FALSE ) )
++        written = 0;
++}
++
++  CloseHandle( o.hEvent );
++  return written;
++}
++
+ // Write a byte to the serial port
+ u32 ser_write_byte( ser_handler id, u8 data )
+ {
+   return ser_write( id, &amp;data, 1 );
+ }
+-
+-// Set communication timeout
+-void ser_set_timeout_ms( ser_handler id, u32 timeout )
+-{
+-  if( timeout == SER_NO_TIMEOUT )
+-    ser_win32_set_timeouts( id, MAXDWORD, 0, 0, 0, 0 );
+-  else if( timeout == SER_INF_TIMEOUT )
+-    ser_win32_set_timeouts( id, 0, 0, 0, 0, 0 );
+-  else
+-    ser_win32_set_timeouts( id, 0, 0, timeout, 0, 0 );
+-}
+-
+
+Modified: branches/remotefs_int/rfs_server/server.c
+===================================================================
+--- branches/remotefs_int/rfs_server/server.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/server.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -3,6 +3,7 @@
+ #include &lt;string.h&gt;
+ #include &quot;server.h&quot;
+ #include &quot;remotefs.h&quot;
++#include &quot;eluarpc.h&quot;
+ #include &quot;type.h&quot;
+ #include &quot;os_io.h&quot;
+ #include &quot;log.h&quot;
+@@ -10,19 +11,6 @@
+ static char* server_basedir;
+ static char server_fullname[ PLATFORM_MAX_FNAME_LEN + 1 ];
+ 
+-#ifdef DEBUG
+-#include &lt;stdio.h&gt;
+-#define LOG0(str) printf( str&quot;\n&quot; )
+-#define LOG1(str, arg1) printf( str&quot;\n&quot;, arg1 )
+-#define LOG2(str, arg1, arg2) printf( str&quot;\n&quot;, arg1, arg2 )
+-#define LOG3(str, arg1, arg2, arg3) printf( str&quot;\n&quot;, arg1, arg2, arg3 )
+-#else
+-#define LOG0(str)
+-#define LOG1(str, arg1)
+-#define LOG2(str, arg1, arg2)
+-#define LOG3(str, arg1, arg2, arg3)
+-#endif
+-
+ typedef int ( *p_server_handler )( u8 *p );
+ 
+ // *****************************************************************************
+@@ -36,7 +24,7 @@
+   
+   // Validate request
+   log_msg( &quot;server_open: request handler starting\n&quot; );
+-  if( remotefs_open_read_request( p, &amp;filename, &amp;flags, &amp;mode ) == REMOTEFS_ERR )
++  if( remotefs_open_read_request( p, &amp;filename, &amp;flags, &amp;mode ) == ELUARPC_ERR )
+   {
+     log_msg( &quot;server_open: unable to read request\n&quot; );
+     return SERVER_ERR;
+@@ -64,7 +52,7 @@
+   u32 count;
+   
+   log_msg( &quot;server_write: request handler starting\n&quot; );
+-  if( remotefs_write_read_request( p, &amp;fd, &amp;buf, &amp;count ) == REMOTEFS_ERR )
++  if( remotefs_write_read_request( p, &amp;fd, &amp;buf, &amp;count ) == ELUARPC_ERR )
+   {
+     log_msg( &quot;server_write: unable to read request\n&quot; );
+     return SERVER_ERR;
+@@ -82,13 +70,13 @@
+   u32 count;
+   
+   log_msg( &quot;server_read: request handler starting\n&quot; );
+-  if( remotefs_read_read_request( p, &amp;fd, &amp;count ) == REMOTEFS_ERR )
++  if( remotefs_read_read_request( p, &amp;fd, &amp;count ) == ELUARPC_ERR )
+   {
+     log_msg( &quot;server_read: unable to read request\n&quot; );
+     return SERVER_ERR;
+   }
+   log_msg( &quot;server_read: fd = %d, count = %u\n&quot;, fd, ( unsigned )count );
+-  count = ( u32 )os_read( fd, p + RFS_READ_BUF_OFFSET, count );
++  count = ( u32 )os_read( fd, p + ELUARPC_READ_BUF_OFFSET, count );
+   log_msg( &quot;server_read: OS response is %u\n&quot;, ( unsigned )count );
+   remotefs_read_write_response( p, count );
+   return SERVER_OK;
+@@ -99,7 +87,7 @@
+   int fd;
+   
+   log_msg( &quot;server_close: request handler starting\n&quot; );
+-  if( remotefs_close_read_request( p, &amp;fd ) == REMOTEFS_ERR )
++  if( remotefs_close_read_request( p, &amp;fd ) == ELUARPC_ERR )
+   {
+     log_msg( &quot;server_close: unable to read request\n&quot; );
+     return SERVER_ERR;
+@@ -117,7 +105,7 @@
+   s32 offset;
+ 
+   log_msg( &quot;server_lseek: request handler starting\n&quot; );
+-  if( remotefs_lseek_read_request( p, &amp;fd, &amp;offset, &amp;whence ) == REMOTEFS_ERR )
++  if( remotefs_lseek_read_request( p, &amp;fd, &amp;offset, &amp;whence ) == ELUARPC_ERR )
+   {
+     log_msg( &quot;server_lseek: unable to read request\n&quot; );
+     return SERVER_ERR;
+@@ -136,7 +124,7 @@
+   char separator[ 2 ] = { PLATFORM_PATH_SEPARATOR, 0 };
+ 
+   log_msg( &quot;server_opendir: request handler starting\n&quot; );
+-  if( remotefs_opendir_read_request( p, &amp;name ) == REMOTEFS_ERR )
++  if( remotefs_opendir_read_request( p, &amp;name ) == ELUARPC_ERR )
+   {
+     log_msg( &quot;server_opendir: unable to read request\n&quot; );
+     return SERVER_ERR;
+@@ -160,12 +148,12 @@
+ static int server_readdir( u8 *p )
+ {
+   const char* name;
+-  u32 fsize, d;
++  u32 fsize = 0, d;
+   int fd;
+   char separator[ 2 ] = { PLATFORM_PATH_SEPARATOR, 0 };
+ 
+   log_msg( &quot;server_readdir: request handler starting\n&quot; );
+-  if( remotefs_readdir_read_request( p, &amp;d ) == REMOTEFS_ERR )
++  if( remotefs_readdir_read_request( p, &amp;d ) == ELUARPC_ERR )
+   {
+     log_msg( &quot;server_readdir: unable to read request\n&quot; );
+     return SERVER_ERR;
+@@ -207,7 +195,7 @@
+   int res;
+ 
+   log_msg( &quot;server_closedir: request handler starting\n&quot; );
+-  if( remotefs_closedir_read_request( p, &amp;d ) == REMOTEFS_ERR )
++  if( remotefs_closedir_read_request( p, &amp;d ) == ELUARPC_ERR )
+   {
+     log_msg( &quot;server_closedir: unable to read request\n&quot; );
+     return SERVER_ERR;
+@@ -232,12 +220,17 @@
+   server_basedir = strdup( basedir );
+ }
+ 
++void server_cleanup()
++{
++  free( server_basedir );
++  server_basedir = NULL;
++}
+ int server_execute_request( u8 *pdata )
+ {
+   u8 req;
+   
+   // Decode request
+-  if( remotefs_get_request_id( pdata, &amp;req ) == REMOTEFS_ERR )
++  if( eluarpc_get_request_id( pdata, &amp;req ) == ELUARPC_ERR )
+     return SERVER_ERR;
+   log_msg( &quot;server_execute_request: got request with ID %d\n&quot;, req );
+   if( req &gt;= RFS_OP_FIRST &amp;&amp; req &lt;= RFS_OP_LAST ) 
+
+Modified: branches/remotefs_int/rfs_server/server.h
+===================================================================
+--- branches/remotefs_int/rfs_server/server.h	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/server.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -11,6 +11,7 @@
+ 
+ // Server function                     
+ void server_setup( const char *basedir );
++void server_cleanup();
+ int server_execute_request( u8 *pdata );
+ 
+ #endif
+
+Modified: branches/remotefs_int/rfs_server/type.h
+===================================================================
+--- branches/remotefs_int/rfs_server/type.h	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server/type.h	2010-11-10 16:03:37 UTC (rev 813)
+@@ -12,8 +12,6 @@
+ typedef long long s64;
+ typedef unsigned long long u64;
+ 
+-// Define serial port &quot;handle&quot; type for each platform
+-// [TODO] for now, only UNIX is supported
+ #ifdef WIN32_BUILD
+ #include &lt;windows.h&gt;
+ typedef HANDLE ser_handler;
+
+Modified: branches/remotefs_int/rfs_server.py
+===================================================================
+--- branches/remotefs_int/rfs_server.py	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/rfs_server.py	2010-11-10 16:03:37 UTC (rev 813)
+@@ -3,7 +3,8 @@
+ sim = ARGUMENTS.get( 'sim', '0' )
+ 
+ flist = &quot;&quot;
+-cdefs = &quot;&quot;
++cdefs = &quot;-DRFS_SERIAL_TRANSPORT -DRFS_STANDALONE_MODE&quot;
++socklib = ''
+ if sim == '0':
+   mainname = &quot;main.c&quot;
+ else:
+@@ -12,12 +13,14 @@
+   if sim == '1':
+     print &quot;SIM target not supported under Windows&quot;
+     os.exit( 1 )
+-  flist = &quot;main.c server.c client.c os_io_win32.c log.c&quot;
+-  cdefs = &quot;-DWIN32_BUILD&quot;
++  flist = &quot;main.c server.c os_io_win32.c log.c&quot;
++  cdefs = cdefs + &quot; -DWIN32_BUILD&quot;
+   exeprefix = &quot;exe&quot;
++  socklib = 'wsock32'
+ else:
+-  flist = &quot;%s server.c client.c os_io_posix.c log.c&quot; % mainname
++  flist = &quot;%s server.c os_io_posix.c log.c&quot; % mainname
+   exeprefix = &quot;elf&quot;
++  socklib = 'socket'
+ 
+ if sim == '0':
+   output = 'rfs_server.%s' % exeprefix
+@@ -26,16 +29,16 @@
+ #endif
+ 
+ full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;rfs_server/%s&quot; % name for name in flist.split() ] )
+-full_files = full_files + &quot; src/remotefs/remotefs.c&quot;
++full_files = full_files + &quot; src/remotefs/remotefs.c src/eluarpc.c&quot;
+ if platform.system() == &quot;Windows&quot;:
+   full_files = full_files + &quot; rfs_server/serial_win32.c&quot;
+ else:
+   full_files = full_files + &quot; rfs_server/serial_posix.c&quot;
+-local_include = &quot;-Irfs_server -Iinc/remotefs&quot;
++local_include = &quot;-Irfs_server -Iinc/remotefs -Iinc&quot;
+ 
+ # Compiler/linker options
+ cccom = &quot;gcc -m32 -O0 -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+-linkcom = &quot;gcc -m32 -o $TARGET $SOURCES&quot;
++linkcom = &quot;gcc -m32 -o $TARGET $SOURCES -l%s&quot; % socklib
+ 
+ # Env for building the program
+ comp = Environment( CCCOM = cccom,
+
+Added: branches/remotefs_int/src/eluarpc.c
+===================================================================
+--- branches/remotefs_int/src/eluarpc.c	                        (rev 0)
++++ branches/remotefs_int/src/eluarpc.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -0,0 +1,359 @@
++// eLua RPC mechanism
++
++#include &lt;string.h&gt;
++#include &lt;stdarg.h&gt;
++#include &lt;stdio.h&gt;
++#include &quot;type.h&quot;
++#include &quot;eluarpc.h&quot;
++#include &quot;rtype.h&quot;
++
++static u8 eluarpc_err_flag;
++
++// *****************************************************************************
++// Internal functions: fdata serialization
++
++static u8 *eluarpc_write_u8( u8 *p, u8 fdata )
++{
++  *p ++ = TYPE_INT_8;
++  *p ++ = fdata;
++  return p;  
++}
++
++static u8* eluarpc_write_op_id( u8 *p, u8 fdata )
++{
++  *p ++ = TYPE_OP_ID;
++  *p ++ = fdata;
++  return p;    
++}
++
++static u8 *eluarpc_write_u16( u8 *p, u16 fdata )
++{
++  *p ++ = TYPE_INT_16;
++  *p ++ = fdata &amp; 0xFF;
++  *p ++ = ( fdata &gt;&gt; 8 ) &amp; 0xFF;
++  return p;    
++}
++
++static u8 *eluarpc_write_u32( u8 *p, u32 fdata )
++{
++  *p ++ = TYPE_INT_32;
++  *p ++ = fdata &amp; 0xFF;
++  *p ++ = ( fdata &gt;&gt; 8 ) &amp; 0xFF;
++  *p ++ = ( fdata &gt;&gt; 16 ) &amp; 0xFF;
++  *p ++ = ( fdata &gt;&gt; 24 ) &amp; 0xFF;
++  return p;        
++}
++
++static u8 *eluarpc_write_ptr( u8 *p, const void* src, u32 srclen )
++{
++  *p ++ = TYPE_PTR;
++  p = eluarpc_write_u32( p, srclen );
++  if( src )
++    memcpy( p, src, srclen );
++  return p + srclen;    
++}
++
++static u8 *eluarpc_write_small_ptr( u8 *p, const void* src, u16 srclen )
++{
++  *p ++ = TYPE_SMALL_PTR;
++  p = eluarpc_write_u16( p, srclen );
++  if( src )
++    memcpy( p, src, srclen );
++  return p + srclen;    
++}
++
++// *****************************************************************************
++// Internal functions: fdata deserialization
++
++static const u8* eluarpc_read_expect( const u8 *p, u8 fdata )
++{
++  if( *p ++ != fdata )
++    eluarpc_err_flag = ELUARPC_ERR;
++  return p;
++}
++
++static const u8 *eluarpc_read_u8( const u8 *p, u8 *pfdata )
++{
++  p = eluarpc_read_expect( p, TYPE_INT_8 );
++  *pfdata = *p ++;
++  return p;  
++}
++
++static const u8 *eluarpc_read_op_id( const u8 *p, u8 *pfdata )
++{
++  p = eluarpc_read_expect( p, TYPE_OP_ID );
++  *pfdata = *p ++;
++  return p;  
++}
++
++static const u8* eluarpc_expect_op_id( const u8 *p, u8 id )
++{
++  u8 temp;
++  
++  p = eluarpc_read_expect( p, TYPE_OP_ID );
++  temp = *p ++;
++  if( temp != id )
++    eluarpc_err_flag = ELUARPC_ERR;
++  return p;
++}
++
++static const u8 *eluarpc_read_u16( const u8 *p, u16 *pfdata )
++{
++  p = eluarpc_read_expect( p, TYPE_INT_16 );
++  *pfdata = *p ++;
++  *pfdata |= ( u32 )( *p ++ ) &lt;&lt; 8;  
++  return p;    
++}
++
++static const u8 *eluarpc_read_u32( const u8 *p, u32 *pfdata )
++{
++  p = eluarpc_read_expect( p, TYPE_INT_32 );
++  *pfdata = *p ++;                         
++  *pfdata |= ( u32 )( *p ++ ) &lt;&lt; 8;
++  *pfdata |= ( u32 )( *p ++ ) &lt;&lt; 16;
++  *pfdata |= ( u32 )( *p ++ ) &lt;&lt; 24;      
++  return p;        
++}
++
++static const u8 *eluarpc_read_ptr( const u8 *p, void* src, u32 *psrclen )
++{                                         
++  p = eluarpc_read_expect( p, TYPE_PTR );
++  p = eluarpc_read_u32( p, psrclen );
++  if( src &amp;&amp; p )
++    memcpy( src, p, *psrclen );
++  return p + *psrclen;    
++}
++
++static const u8 *eluarpc_read_small_ptr( const u8 *p, void* src, u16 *psrclen )
++{                                         
++  p = eluarpc_read_expect( p, TYPE_SMALL_PTR );
++  p = eluarpc_read_u16( p, psrclen );
++  if( src &amp;&amp; p )
++    memcpy( src, p, *psrclen );
++  return p + *psrclen;    
++}
++
++
++// *****************************************************************************
++// Internal functions: packet handling (read and write)
++
++static u8* eluarpc_packet_ptr;
++
++static u8* eluarpc_start_packet( u8 *p )
++{
++  eluarpc_packet_ptr = p;
++  p += ELUARPC_START_OFFSET;
++  *p ++ = TYPE_START;
++  p = eluarpc_write_u32( p, PACKET_SIG );
++  return p;
++}
++
++static u8* eluarpc_end_packet( u8 *p )
++{
++  u16 len;
++  
++  *p ++ = TYPE_END;
++  p = eluarpc_write_u32( p, ~PACKET_SIG );
++  len = p - eluarpc_packet_ptr;
++  p = eluarpc_packet_ptr;
++  *p ++ = TYPE_PKT_SIZE;
++  eluarpc_write_u16( p, len );  
++  return p;  
++}
++
++static const u8* eluarpc_match_packet_start( const u8 *p )
++{
++  u32 fdata;
++  
++  p += ELUARPC_START_OFFSET;
++  p = eluarpc_read_expect( p, TYPE_START );
++  p = eluarpc_read_u32( p, &amp;fdata );
++  if( fdata != PACKET_SIG )
++    eluarpc_err_flag = ELUARPC_ERR;
++  return p;
++}
++
++static const u8* eluarpc_match_packet_end( const u8 *p )
++{
++  u32 fdata;
++  
++  p = eluarpc_read_expect( p, TYPE_END );
++  p = eluarpc_read_u32( p, &amp;fdata );
++  if( fdata != ~PACKET_SIG )
++    eluarpc_err_flag = ELUARPC_ERR;
++  return p;
++}
++
++// *****************************************************************************
++// Function serialization and deserialization
++
++int eluarpc_get_request_id( const u8 *p, u8 *pid )
++{ 
++  eluarpc_err_flag = ELUARPC_OK;
++  p = eluarpc_match_packet_start( p );
++  p = eluarpc_read_op_id( p, pid );
++  return eluarpc_err_flag;
++}
++
++u32 eluarpc_replace_flag( u32 val, u32 origflag, u32 newflag )
++{
++  return ( val &amp; origflag ) ? newflag : 0; 
++}
++
++int eluarpc_get_packet_size( const u8 *p, u16 *psize )
++{
++  eluarpc_err_flag = ELUARPC_OK;
++  p = eluarpc_read_expect( p, TYPE_PKT_SIZE );
++  p = eluarpc_read_u16( p, psize );
++  return eluarpc_err_flag;
++}
++
++// Generic write function
++// Specifiers: o - operation
++//             r - response
++//             c - u8
++//             h - u16
++//             l - u32
++//             i - int
++//             L - s32
++//             p - ptr (given as ptr, len, len is an u32)
++//             P - ptr (given as ptr, len, len is an u16)
++void eluarpc_gen_write( u8 *p, const char *fmt, ... )
++{
++  va_list ap;
++  const void *ptr;
++  u32 ptrlen;
++  
++  va_start( ap, fmt );
++  p = eluarpc_start_packet( p );
++  while( *fmt )
++    switch( *fmt ++ )
++    {
++      case 'o':
++        p = eluarpc_write_op_id( p, va_arg( ap, int ) );
++        break;
++        
++      case 'r':
++        *p++ = ELUARPC_OP_RES_MOD | ( u8 )va_arg( ap, int );
++        break;
++        
++      case 'c':
++        p = eluarpc_write_u8( p, ( u8 )va_arg( ap, int ) );
++        break;
++        
++      case 'h':
++        p = eluarpc_write_u16( p, ( u16 )va_arg( ap, int ) );
++        break;
++
++      case 'i':
++        p = eluarpc_write_u32( p, ( u32 )va_arg( ap, int ) );
++        break;
++        
++      case 'l':
++        p = eluarpc_write_u32( p, ( u32 )va_arg( ap, u32 ) );
++        break;
++
++      case 'L':
++        p = eluarpc_write_u32( p, ( u32 )va_arg( ap, s32 ) );
++        break;         
++      
++      case 'p':
++        ptr = va_arg( ap, void* );
++        ptrlen = ( u32 )va_arg( ap, u32 );
++        p = eluarpc_write_ptr( p, ptr, ptrlen );
++        break;
++        
++      case 'P':
++        ptr = va_arg( ap, void * );
++        ptrlen = ( u16 )va_arg( ap, int );
++        p = eluarpc_write_small_ptr( p, ptr, ptrlen );
++        break;        
++    }
++  eluarpc_end_packet( p );
++}
++
++// Generic read function
++// Specifiers: o - operation
++//             r - response
++//             c - u8
++//             h - u16
++//             l - u32
++//             L - s32
++//             i - int
++//             p - ptr (returned as ptr, len, len is an u32)
++//             P - ptr (returned as ptr, len, len is an u16)
++int eluarpc_gen_read( const u8 *p, const char *fmt, ... )
++{
++  va_list ap;
++  const void *pptr;
++  u32 *ptrlen;
++  const u8 *tempptr;
++  u32 temp32;
++  u16 temp16;
++  u16 *sptrlen;
++  
++  va_start( ap, fmt );
++  eluarpc_err_flag = ELUARPC_OK;
++  p = eluarpc_match_packet_start( p );
++  while( *fmt )
++    switch( *fmt ++ )
++    {
++      case 'o':
++        p = eluarpc_expect_op_id( p, va_arg( ap, int ) );
++        break;
++        
++      case 'r':
++        p = eluarpc_read_expect( p, ELUARPC_OP_RES_MOD | ( u8 )va_arg( ap, int ) );
++        break;
++        
++      case 'c':
++        p = eluarpc_read_u8( p, ( u8* )va_arg( ap, void * ) );
++        break;
++        
++      case 'h':
++        p = eluarpc_read_u16( p, ( u16* )va_arg( ap, void * ) );
++        break;
++        
++      case 'l':
++        p = eluarpc_read_u32( p, ( u32* )va_arg( ap, void * ) );
++        break;     
++
++      case 'L':
++        p = eluarpc_read_u32( p, &amp;temp32 );        
++        *( s32 *)va_arg( ap, void * ) = ( s32 )temp32;
++        break;     
++        
++      case 'i':
++        p = eluarpc_read_u32( p, &amp;temp32 );
++        *( int* )va_arg( ap, void * ) = ( int )temp32;        
++        break;     
++      
++      case 'p':
++        pptr = va_arg( ap, void** );
++        ptrlen = ( u32* )va_arg( ap, void* );
++        tempptr = p;
++        p = eluarpc_read_ptr( p, NULL, &amp;temp32 );
++        if( p == tempptr + ELUARPC_PTR_HEADER_SIZE )
++          *( const u8** )pptr = NULL;
++        else
++          *( const u8** )pptr = tempptr + ELUARPC_PTR_HEADER_SIZE;
++        if( ptrlen )
++          *ptrlen = temp32;        
++        break;
++        
++      case 'P':
++        pptr = va_arg( ap, void** );
++        sptrlen = ( u16* )va_arg( ap, void* );
++        tempptr = p;
++        p = eluarpc_read_small_ptr( p, NULL, &amp;temp16 );
++        if( p == tempptr + ELUARPC_SMALL_PTR_HEADER_SIZE )
++          *( const u8** )pptr = NULL;
++        else
++          *( const u8** )pptr = tempptr + ELUARPC_SMALL_PTR_HEADER_SIZE;
++        if( sptrlen )
++          *sptrlen = temp16;        
++        break;        
++    }
++  eluarpc_match_packet_end( p );  
++  return eluarpc_err_flag;
++}
+
+Modified: branches/remotefs_int/src/remotefs/client.c
+===================================================================
+--- branches/remotefs_int/src/remotefs/client.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/src/remotefs/client.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -4,7 +4,20 @@
+ #include &quot;remotefs.h&quot;
+ #include &quot;client.h&quot;
+ #include &quot;os_io.h&quot;
++#include &quot;eluarpc.h&quot;
+ 
++#include &lt;stdio.h&gt;
++#include &quot;platform_conf.h&quot;
++#include &quot;buf.h&quot;
++
++#if 0
++#define RFSDEBUG        printf
++#else
++void RFSDEBUG( const char* dummy, ... )
++{
++}
++#endif
++
+ // ****************************************************************************
+ // Client local data
+ 
+@@ -19,26 +32,43 @@
+ static int rfsch_send_request_read_response()
+ {
+   u16 temp16;
++  u32 readbytes;
+ 
+ #ifndef ELUA_CPU_LINUX
+   // Empty receive buffer
+   while( rfsc_recv( rfsc_buffer, 1, 0 ) == 1 );
+ #endif
+ 
++  RFSDEBUG( &quot;[RFS] before send request: %d\n&quot;, buf_get_count( BUF_ID_UART, RFS_UART_ID ) );
+   // Send request
+-  if( remotefs_get_packet_size( rfsc_buffer, &amp;temp16 ) == REMOTEFS_ERR )
++  if( eluarpc_get_packet_size( rfsc_buffer, &amp;temp16 ) == ELUARPC_ERR )
++  {
++    RFSDEBUG( &quot;[RFS] get packet size error\n&quot; );
+     return CLIENT_ERR;
++  }
+   if( rfsc_send( rfsc_buffer, temp16 ) != temp16 )
++  {
++    RFSDEBUG( &quot;[RFS] rfsc_send error\n&quot; );
+     return CLIENT_ERR;
++  }
+   
+   // Get response
+   // First the length, then the rest of the data
+-  if( rfsc_recv( rfsc_buffer, RFS_START_OFFSET, rfsc_timeout ) != RFS_START_OFFSET )
++  if( ( readbytes = rfsc_recv( rfsc_buffer, ELUARPC_START_OFFSET, rfsc_timeout ) ) != ELUARPC_START_OFFSET )
++  {
++    RFSDEBUG( &quot;[RFS] rfsc_recv (1) error: expected %u, got %u\n&quot;, ( unsigned )( temp16 - ELUARPC_START_OFFSET ), ( unsigned )readbytes );
+     return CLIENT_ERR;
+-  if( remotefs_get_packet_size( rfsc_buffer, &amp;temp16 ) == REMOTEFS_ERR )
++  }
++  if( eluarpc_get_packet_size( rfsc_buffer, &amp;temp16 ) == ELUARPC_ERR )
++  {
++    RFSDEBUG( &quot;[RFS] eluarpc_get_packet_size() error\n&quot; );
+     return CLIENT_ERR;
+-  if( rfsc_recv( rfsc_buffer + RFS_START_OFFSET, temp16 - RFS_START_OFFSET, rfsc_timeout ) != temp16 - RFS_START_OFFSET )
++  }
++  if( ( readbytes = rfsc_recv( rfsc_buffer + ELUARPC_START_OFFSET, temp16 - ELUARPC_START_OFFSET, rfsc_timeout ) ) != temp16 - ELUARPC_START_OFFSET )
++  {
++    RFSDEBUG( &quot;[RFS] rfsc_recv (2) error: expected %u, got %u\n&quot;, ( unsigned )( temp16 - ELUARPC_START_OFFSET ), ( unsigned )readbytes );
+     return CLIENT_ERR;
++  }
+   return CLIENT_OK;
+ }
+ 
+@@ -70,7 +100,7 @@
+     return -1;
+ 
+   // Interpret the response
+-  if( remotefs_open_read_response( rfsc_buffer, &amp;fd ) == REMOTEFS_ERR )
++  if( remotefs_open_read_response( rfsc_buffer, &amp;fd ) == ELUARPC_ERR )
+     return -1;
+   return fd;
+ }
+@@ -85,7 +115,7 @@
+     return -1;
+   
+   // Interpret the response
+-  if( remotefs_write_read_response( rfsc_buffer, &amp;count ) == REMOTEFS_ERR )
++  if( remotefs_write_read_response( rfsc_buffer, &amp;count ) == ELUARPC_ERR )
+     return -1;
+   return ( s32 )count;
+ }
+@@ -102,7 +132,7 @@
+     return -1;
+ 
+   // Interpret the response
+-  if( remotefs_read_read_response( rfsc_buffer, &amp;resbuf, &amp;count ) == REMOTEFS_ERR )
++  if( remotefs_read_read_response( rfsc_buffer, &amp;resbuf, &amp;count ) == ELUARPC_ERR )
+     return -1;
+   memcpy( buf, resbuf, count );
+   return ( s32 )count;
+@@ -120,7 +150,7 @@
+     return -1;
+ 
+   // Interpret the response
+-  if( remotefs_lseek_read_response( rfsc_buffer, &amp;res ) == REMOTEFS_ERR )
++  if( remotefs_lseek_read_response( rfsc_buffer, &amp;res ) == ELUARPC_ERR )
+     return -1;
+   return res;
+ }
+@@ -137,7 +167,7 @@
+     return -1;
+ 
+   // Interpret the response
+-  if( remotefs_close_read_response( rfsc_buffer, &amp;res ) == REMOTEFS_ERR )
++  if( remotefs_close_read_response( rfsc_buffer, &amp;res ) == ELUARPC_ERR )
+     return -1;
+   return res;
+ }
+@@ -152,7 +182,7 @@
+     return 0;
+ 
+   // Interpret the response
+-  if( remotefs_opendir_read_response( rfsc_buffer, &amp;res ) == REMOTEFS_ERR )
++  if( remotefs_opendir_read_response( rfsc_buffer, &amp;res ) == ELUARPC_ERR )
+     return 0;
+   return res;
+ }
+@@ -168,7 +198,7 @@
+   }
+ 
+   // Interpret the response
+-  if( remotefs_readdir_read_response( rfsc_buffer, pname, psize, ptime ) == REMOTEFS_ERR )
++  if( remotefs_readdir_read_response( rfsc_buffer, pname, psize, ptime ) == ELUARPC_ERR )
+     *pname = NULL;
+ }
+ 
+@@ -182,7 +212,7 @@
+     return -1;
+ 
+   // Interpret the response
+-  if( remotefs_closedir_read_response( rfsc_buffer, &amp;res ) == REMOTEFS_ERR )
++  if( remotefs_closedir_read_response( rfsc_buffer, &amp;res ) == ELUARPC_ERR )
+     return -1;
+   return res;
+ }  
+
+Modified: branches/remotefs_int/src/remotefs/elua_os_io.c
+===================================================================
+--- branches/remotefs_int/src/remotefs/elua_os_io.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/src/remotefs/elua_os_io.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -5,20 +5,21 @@
+ #include &lt;fcntl.h&gt;
+ #include &quot;os_io.h&quot;
+ #include &quot;remotefs.h&quot;
++#include &quot;eluarpc.h&quot;
+ 
+ u32 os_open_sys_flags_to_rfs_flags( int sysflags )
+ {
+   int rfsflags = 0;
+ 
+   // Translate RFS flags to POSIX flags
+-  rfsflags = remotefs_replace_flag( sysflags, O_APPEND, RFS_OPEN_FLAG_APPEND );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_CREAT, RFS_OPEN_FLAG_CREAT );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_EXCL, RFS_OPEN_FLAG_EXCL );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_TRUNC, RFS_OPEN_FLAG_TRUNC );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_SYNC, RFS_OPEN_FLAG_SYNC );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_RDONLY, RFS_OPEN_FLAG_RDONLY );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_WRONLY, RFS_OPEN_FLAG_WRONLY );
+-  rfsflags |= remotefs_replace_flag( sysflags, O_RDWR, RFS_OPEN_FLAG_RDWR );
++  rfsflags = eluarpc_replace_flag( sysflags, O_APPEND, RFS_OPEN_FLAG_APPEND );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_CREAT, RFS_OPEN_FLAG_CREAT );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_EXCL, RFS_OPEN_FLAG_EXCL );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_TRUNC, RFS_OPEN_FLAG_TRUNC );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_SYNC, RFS_OPEN_FLAG_SYNC );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_RDONLY, RFS_OPEN_FLAG_RDONLY );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_WRONLY, RFS_OPEN_FLAG_WRONLY );
++  rfsflags |= eluarpc_replace_flag( sysflags, O_RDWR, RFS_OPEN_FLAG_RDWR );
+   return rfsflags;
+ }
+ 
+
+Modified: branches/remotefs_int/src/remotefs/elua_rfs.c
+===================================================================
+--- branches/remotefs_int/src/remotefs/elua_rfs.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/src/remotefs/elua_rfs.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -5,7 +5,9 @@
+ #include &quot;type.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;remotefs.h&quot;
++#include &quot;eluarpc.h&quot;
+ #include &quot;client.h&quot;
++#include &quot;sermux.h&quot;
+ #include &quot;buf.h&quot;
+ #include &lt;fcntl.h&gt;
+ #ifdef ELUA_SIMULATOR
+@@ -19,7 +21,7 @@
+ // Compute the usable buffer size starting from RFS_BUFFER_SIZE (which is the
+ // size of the serial buffer). A complete packet must fit in RFS_BUFFER_SIZE
+ // bytes. Computed this to be large enough for a WRITE request.
+-#define RFS_REAL_BUFFER_SIZE      ( ( 1 &lt;&lt; RFS_BUFFER_SIZE ) - RFS_WRITE_REQUEST_EXTRA )
++#define RFS_REAL_BUFFER_SIZE      ( ( 1 &lt;&lt; RFS_BUFFER_SIZE ) - ELUARPC_WRITE_REQUEST_EXTRA )
+ static u8 rfs_buffer[ 1 &lt;&lt; RFS_BUFFER_SIZE ];
+ 
+ #ifdef ELUA_SIMULATOR
+@@ -124,7 +126,7 @@
+   return size;
+ }
+ 
+-static u32 rfs_recv( u8 *p, u32 size, u32 timeout )
++static u32 rfs_recv( u8 *p, u32 size, s32 timeout )
+ {
+   u32 cnt = 0;
+   int data;
+@@ -173,12 +175,6 @@
+ 
+ const DM_DEVICE *remotefs_init()
+ {
+-#if defined( RFS_UART_ID ) &amp;&amp; defined( RFS_UART_SPEED )
+-  // Initialize RFS UART
+-  platform_uart_setup( RFS_UART_ID, RFS_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+-  // [TODO] this isn't exactly right
+-  buf_set( BUF_ID_UART, RFS_UART_ID, RFS_BUFFER_SIZE, BUF_DSIZE_U8 ); 
+-#endif
+ #ifdef ELUA_CPU_LINUX 
+   // Open our read/write pipes
+   rfs_read_fd = hostif_open( RFS_SRV_WRITE_PIPE, O_RDONLY, 0 );
+@@ -188,6 +184,14 @@
+     hostif_putstr( &quot;unable to open read/write pipes\n&quot; );
+     return NULL;
+   }
++#elif RFS_UART_ID &lt; SERVICE_ID_FIRST  // if RFS runs on a virtual UART, buffers are already set in common.c
++  // Initialize RFS UART
++  platform_uart_setup( RFS_UART_ID, RFS_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
++  if( platform_uart_set_buffer( RFS_UART_ID, RFS_BUFFER_SIZE ) == PLATFORM_ERR )
++  {
++    printf( &quot;WARNING: unable to initialize RFS filesystem\n&quot; );
++    return NULL;
++  } 
+ #endif
+   rfsc_setup( rfs_buffer, rfs_send, rfs_recv, RFS_TIMEOUT );
+   return &amp;rfs_device;
+
+Modified: branches/remotefs_int/src/remotefs/remotefs.c
+===================================================================
+--- branches/remotefs_int/src/remotefs/remotefs.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/src/remotefs/remotefs.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -4,340 +4,31 @@
+ #include &lt;stdarg.h&gt;
+ #include &quot;type.h&quot;
+ #include &quot;remotefs.h&quot;
++#include &quot;eluarpc.h&quot;
+ #include &quot;rtype.h&quot;
+ 
+-static u8 remotefs_err_flag;
+-
+ // *****************************************************************************
+-// Internal functions: data serialization
+-
+-static u8 *remotefs_write_u8( u8 *p, u8 data )
+-{
+-  *p ++ = TYPE_INT_8;
+-  *p ++ = data;
+-  return p;  
+-}
+-
+-static u8* remotefs_write_op_id( u8 *p, u8 data )
+-{
+-  *p ++ = TYPE_OP_ID;
+-  *p ++ = data;
+-  return p;    
+-}
+-
+-static u8 *remotefs_write_u16( u8 *p, u16 data )
+-{
+-  *p ++ = TYPE_INT_16;
+-  *p ++ = data &amp; 0xFF;
+-  *p ++ = ( data &gt;&gt; 8 ) &amp; 0xFF;
+-  return p;    
+-}
+-
+-static u8 *remotefs_write_u32( u8 *p, u32 data )
+-{
+-  *p ++ = TYPE_INT_32;
+-  *p ++ = data &amp; 0xFF;
+-  *p ++ = ( data &gt;&gt; 8 ) &amp; 0xFF;
+-  *p ++ = ( data &gt;&gt; 16 ) &amp; 0xFF;
+-  *p ++ = ( data &gt;&gt; 24 ) &amp; 0xFF;
+-  return p;        
+-}
+-
+-static u8 *remotefs_write_ptr( u8 *p, const void* src, u32 srclen )
+-{
+-  *p ++ = TYPE_PTR;
+-  p = remotefs_write_u32( p, srclen );
+-  if( src )
+-    memcpy( p, src, srclen );
+-  return p + srclen;    
+-}
+-
+-// *****************************************************************************
+-// Internal functions: data deserialization
+-
+-static const u8* remotefs_read_expect( const u8 *p, u8 data )
+-{
+-  if( *p ++ != data )
+-    remotefs_err_flag = REMOTEFS_ERR;
+-  return p;
+-}
+-
+-static const u8 *remotefs_read_u8( const u8 *p, u8 *pdata )
+-{
+-  p = remotefs_read_expect( p, TYPE_INT_8 );
+-  *pdata = *p ++;
+-  return p;  
+-}
+-
+-static const u8 *remotefs_read_op_id( const u8 *p, u8 *pdata )
+-{
+-  p = remotefs_read_expect( p, TYPE_OP_ID );
+-  *pdata = *p ++;
+-  return p;  
+-}
+-
+-static const u8* remotefs_expect_op_id( const u8 *p, u8 id )
+-{
+-  u8 temp;
+-  
+-  p = remotefs_read_expect( p, TYPE_OP_ID );
+-  temp = *p ++;
+-  if( temp != id )
+-    remotefs_err_flag = REMOTEFS_ERR;
+-  return p;
+-}
+-
+-static const u8 *remotefs_read_u16( const u8 *p, u16 *pdata )
+-{
+-  p = remotefs_read_expect( p, TYPE_INT_16 );
+-  *pdata = *p ++;
+-  *pdata |= ( *p ++ ) &lt;&lt; 8;  
+-  return p;    
+-}
+-
+-static const u8 *remotefs_read_u32( const u8 *p, u32 *pdata )
+-{
+-  p = remotefs_read_expect( p, TYPE_INT_32 );
+-  *pdata = *p ++;                         
+-  *pdata |= ( *p ++ ) &lt;&lt; 8;
+-  *pdata |= ( *p ++ ) &lt;&lt; 16;
+-  *pdata |= ( *p ++ ) &lt;&lt; 24;      
+-  return p;        
+-}
+-
+-static const u8 *remotefs_read_ptr( const u8 *p, void* src, u32 *psrclen )
+-{                                         
+-  p = remotefs_read_expect( p, TYPE_PTR );
+-  p = remotefs_read_u32( p, psrclen );
+-  if( src &amp;&amp; p )
+-    memcpy( src, p, *psrclen );
+-  return p + *psrclen;    
+-}
+-
+-// *****************************************************************************
+-// Internal functions: packet handling (read and write)
+-
+-static u8* remotefs_packet_ptr;
+-
+-static u8* remotefs_start_packet( u8 *p )
+-{
+-  remotefs_packet_ptr = p;
+-  p += RFS_START_OFFSET;
+-  *p ++ = TYPE_START;
+-  p = remotefs_write_u32( p, PACKET_SIG );
+-  return p;
+-}
+-
+-static u8* remotefs_end_packet( u8 *p )
+-{
+-  u16 len;
+-  
+-  *p ++ = TYPE_END;
+-  p = remotefs_write_u32( p, ~PACKET_SIG );
+-  len = p - remotefs_packet_ptr;
+-  p = remotefs_packet_ptr;
+-  *p ++ = TYPE_PKT_SIZE;
+-  remotefs_write_u16( p, len );  
+-  return p;  
+-}
+-
+-static const u8* remotefs_match_packet_start( const u8 *p )
+-{
+-  u32 data;
+-  
+-  p += RFS_START_OFFSET;
+-  p = remotefs_read_expect( p, TYPE_START );
+-  p = remotefs_read_u32( p, &amp;data );
+-  if( data != PACKET_SIG )
+-    remotefs_err_flag = REMOTEFS_ERR;
+-  return p;
+-}
+-
+-static const u8* remotefs_match_packet_end( const u8 *p )
+-{
+-  u32 data;
+-  
+-  p = remotefs_read_expect( p, TYPE_END );
+-  p = remotefs_read_u32( p, &amp;data );
+-  if( data != ~PACKET_SIG )
+-    remotefs_err_flag = REMOTEFS_ERR;
+-  return p;
+-}
+-
+-// *****************************************************************************
+-// Function serialization and deserialization
+-
+-int remotefs_get_request_id( const u8 *p, u8 *pid )
+-{ 
+-  remotefs_err_flag = REMOTEFS_OK;
+-  p = remotefs_match_packet_start( p );
+-  p = remotefs_read_op_id( p, pid );
+-  return remotefs_err_flag;
+-}
+-
+-u32 remotefs_replace_flag( u32 val, u32 origflag, u32 newflag )
+-{
+-  return ( val &amp; origflag ) ? newflag : 0; 
+-}
+-
+-int remotefs_get_packet_size( const u8 *p, u16 *psize )
+-{
+-  remotefs_err_flag = REMOTEFS_OK;
+-  p = remotefs_read_expect( p, TYPE_PKT_SIZE );
+-  p = remotefs_read_u16( p, psize );
+-  return remotefs_err_flag;
+-}
+-
+-// Generic write function
+-// Specifiers: o - operation
+-//             r - response
+-//             c - u8
+-//             h - u16
+-//             l - u32
+-//             i - int
+-//             L - s32
+-//             p - ptr (given as ptr, len, len is an u32)
+-void remotefs_gen_write( u8 *p, const char *fmt, ... )
+-{
+-  va_list ap;
+-  const void *ptr;
+-  u32 ptrlen;
+-  
+-  va_start( ap, fmt );
+-  p = remotefs_start_packet( p );
+-  while( *fmt )
+-    switch( *fmt ++ )
+-    {
+-      case 'o':
+-        p = remotefs_write_op_id( p, va_arg( ap, int ) );
+-        break;
+-        
+-      case 'r':
+-        *p++ = RFS_OP_RES_MOD | ( u8 )va_arg( ap, int );
+-        break;
+-        
+-      case 'c':
+-        p = remotefs_write_u8( p, ( u8 )va_arg( ap, int ) );
+-        break;
+-        
+-      case 'h':
+-        p = remotefs_write_u16( p, ( u16 )va_arg( ap, int ) );
+-        break;
+-
+-      case 'i':
+-        p = remotefs_write_u32( p, ( u32 )va_arg( ap, int ) );
+-        break;
+-        
+-      case 'l':
+-        p = remotefs_write_u32( p, ( u32 )va_arg( ap, u32 ) );
+-        break;
+-
+-      case 'L':
+-        p = remotefs_write_u32( p, ( u32 )va_arg( ap, s32 ) );
+-        break;         
+-      
+-      case 'p':
+-        ptr = va_arg( ap, void * );
+-        ptrlen = ( u32 )va_arg( ap, long );
+-        p = remotefs_write_ptr( p, ptr, ptrlen );
+-        break;
+-    }
+-  remotefs_end_packet( p );
+-}
+-
+-// Generic read function
+-// Specifiers: o - operation
+-//             r - response
+-//             c - u8
+-//             h - u16
+-//             l - u32
+-//             L - s32
+-//             i - int
+-//             p - ptr (returned as ptr, len, len is an u32)
+-int remotefs_gen_read( const u8 *p, const char *fmt, ... )
+-{
+-  va_list ap;
+-  const void *pptr;
+-  u32 *ptrlen;
+-  const u8 *tempptr;
+-  u32 temp32;
+-  
+-  va_start( ap, fmt );
+-  remotefs_err_flag = REMOTEFS_OK;
+-  p = remotefs_match_packet_start( p );
+-  while( *fmt )
+-    switch( *fmt ++ )
+-    {
+-      case 'o':
+-        p = remotefs_expect_op_id( p, va_arg( ap, int ) );
+-        break;
+-        
+-      case 'r':
+-        p = remotefs_read_expect( p, RFS_OP_RES_MOD | ( u8 )va_arg( ap, int ) );
+-        break;
+-        
+-      case 'c':
+-        p = remotefs_read_u8( p, ( u8* )va_arg( ap, void* ) );
+-        break;
+-        
+-      case 'h':
+-        p = remotefs_read_u16( p, ( u16* )va_arg( ap, void* ) );
+-        break;
+-        
+-      case 'l':
+-        p = remotefs_read_u32( p, ( u32* )va_arg( ap, void* ) );
+-        break;     
+-
+-      case 'L':
+-        p = remotefs_read_u32( p, &amp;temp32 );        
+-        *( s32 *)va_arg( ap, void* ) = ( s32 )temp32;
+-        break;     
+-        
+-      case 'i':
+-        p = remotefs_read_u32( p, &amp;temp32 );
+-        *( int* )va_arg( ap, void* ) = ( int )temp32;        
+-        break;     
+-      
+-      case 'p':
+-        pptr = va_arg( ap, void** );
+-        ptrlen = va_arg( ap, void* );
+-        tempptr = p;
+-        p = remotefs_read_ptr( p, NULL, &amp;temp32 );
+-        if( p == tempptr + RFS_PTR_HEADER_SIZE )
+-          *( const u8** )pptr = NULL;
+-        else
+-          *( const u8** )pptr = tempptr + RFS_PTR_HEADER_SIZE;
+-        if( ptrlen )
+-          *ptrlen = temp32;        
+-        break;
+-    }
+-  remotefs_match_packet_end( p );  
+-  return remotefs_err_flag;
+-}
+-
+-
+-// *****************************************************************************
+ // Operation: open
+ // open: int open( const char *pathname,int flags, mode_t mode )
+ 
+ void remotefs_open_write_response( u8 *p, int result )
+ {
+-  remotefs_gen_write( p, &quot;ri&quot;, RFS_OP_OPEN, result );
++  eluarpc_gen_write( p, &quot;ri&quot;, RFS_OP_OPEN, result );
+ }
+ 
+ int remotefs_open_read_response( const u8 *p, int *presult )
+ {
+-  return remotefs_gen_read( p, &quot;ri&quot;, RFS_OP_OPEN, presult );  
++  return eluarpc_gen_read( p, &quot;ri&quot;, RFS_OP_OPEN, presult );  
+ }
+ 
+ void remotefs_open_write_request( u8 *p, const char* pathname, int flags, int mode )
+ {
+-  remotefs_gen_write( p, &quot;opii&quot;, RFS_OP_OPEN, pathname, strlen( pathname ) + 1, flags, mode );
++  eluarpc_gen_write( p, &quot;opii&quot;, RFS_OP_OPEN, pathname, strlen( pathname ) + 1, flags, mode );
+ }
+ 
+ int remotefs_open_read_request( const u8 *p, const char **ppathname, int *pflags, int *pmode )
+ {  
+-  return remotefs_gen_read( p, &quot;opii&quot;, RFS_OP_OPEN, ppathname, NULL, pflags, pmode );  
++  return eluarpc_gen_read( p, &quot;opii&quot;, RFS_OP_OPEN, ppathname, NULL, pflags, pmode );  
+ }  
+ 
+ // *****************************************************************************
+@@ -346,22 +37,22 @@
+  
+ void remotefs_write_write_response( u8 *p, u32 result )
+ {                                                   
+-  remotefs_gen_write( p, &quot;rl&quot;, RFS_OP_WRITE, result );  
++  eluarpc_gen_write( p, &quot;rl&quot;, RFS_OP_WRITE, result );  
+ }
+ 
+ int remotefs_write_read_response( const u8 *p, u32 *presult )
+ {
+-  return remotefs_gen_read( p, &quot;rl&quot;, RFS_OP_WRITE, presult );  
++  return eluarpc_gen_read( p, &quot;rl&quot;, RFS_OP_WRITE, presult );  
+ }
+ 
+ void remotefs_write_write_request( u8 *p, int fd, const void *buf, u32 count )
+ {
+-  remotefs_gen_write( p, &quot;oip&quot;, RFS_OP_WRITE, fd, buf, count ); 
++  eluarpc_gen_write( p, &quot;oip&quot;, RFS_OP_WRITE, fd, buf, count ); 
+ }
+ 
+ int remotefs_write_read_request( const u8 *p, int *pfd, const void **pbuf, u32 *pcount )
+ {
+-  return remotefs_gen_read( p, &quot;oip&quot;, RFS_OP_WRITE, pfd, pbuf, pcount );  
++  return eluarpc_gen_read( p, &quot;oip&quot;, RFS_OP_WRITE, pfd, pbuf, pcount );  
+ }
+ 
+ // *****************************************************************************
+@@ -370,22 +61,22 @@
+ 
+ void remotefs_read_write_response( u8 *p, u32 readbytes )
+ {
+-  remotefs_gen_write( p, &quot;rp&quot;, RFS_OP_READ, NULL, readbytes );  
++  eluarpc_gen_write( p, &quot;rp&quot;, RFS_OP_READ, NULL, readbytes );  
+ }
+ 
+ int remotefs_read_read_response( const u8 *p, const u8 **ppdata, u32 *preadbytes )
+ {
+-  return remotefs_gen_read( p, &quot;rp&quot;, RFS_OP_READ, ppdata, preadbytes );  
++  return eluarpc_gen_read( p, &quot;rp&quot;, RFS_OP_READ, ppdata, preadbytes );  
+ }
+ 
+ void remotefs_read_write_request( u8 *p, int fd, u32 count )
+ {
+-  remotefs_gen_write( p, &quot;oil&quot;, RFS_OP_READ, fd, count ); 
++  eluarpc_gen_write( p, &quot;oil&quot;, RFS_OP_READ, fd, count ); 
+ }
+ 
+ int remotefs_read_read_request( const u8 *p, int *pfd, u32 *pcount )
+ {
+-  return remotefs_gen_read( p, &quot;oil&quot;, RFS_OP_READ, pfd, pcount );    
++  return eluarpc_gen_read( p, &quot;oil&quot;, RFS_OP_READ, pfd, pcount );    
+ }
+   
+ // *****************************************************************************
+@@ -394,22 +85,22 @@
+   
+ void remotefs_close_write_response( u8 *p, int result )
+ {
+-  remotefs_gen_write( p, &quot;ri&quot;, RFS_OP_CLOSE, result );  
++  eluarpc_gen_write( p, &quot;ri&quot;, RFS_OP_CLOSE, result );  
+ }
+ 
+ int remotefs_close_read_response( const u8 *p, int *presult )
+ {
+-  return remotefs_gen_read( p, &quot;ri&quot;, RFS_OP_CLOSE, presult );   
++  return eluarpc_gen_read( p, &quot;ri&quot;, RFS_OP_CLOSE, presult );   
+ }
+ 
+ void remotefs_close_write_request( u8 *p, int fd )
+ {
+-  remotefs_gen_write( p, &quot;oi&quot;, RFS_OP_CLOSE, fd ); 
++  eluarpc_gen_write( p, &quot;oi&quot;, RFS_OP_CLOSE, fd ); 
+ }
+ 
+ int remotefs_close_read_request( const u8 *p, int *pfd )
+ {
+-  return remotefs_gen_read( p, &quot;oi&quot;, RFS_OP_CLOSE, pfd );  
++  return eluarpc_gen_read( p, &quot;oi&quot;, RFS_OP_CLOSE, pfd );  
+ }
+ 
+ // *****************************************************************************
+@@ -418,22 +109,22 @@
+ 
+ void remotefs_lseek_write_response( u8 *p, s32 result )
+ {
+-  remotefs_gen_write( p, &quot;rL&quot;, RFS_OP_LSEEK, result );
++  eluarpc_gen_write( p, &quot;rL&quot;, RFS_OP_LSEEK, result );
+ }
+ 
+ int remotefs_lseek_read_response( const u8 *p, s32 *presult )
+ {
+-  return remotefs_gen_read( p, &quot;rL&quot;, RFS_OP_LSEEK, presult );   
++  return eluarpc_gen_read( p, &quot;rL&quot;, RFS_OP_LSEEK, presult );   
+ }
+ 
+ void remotefs_lseek_write_request( u8 *p, int fd, s32 offset, int whence )
+ {
+-  remotefs_gen_write( p, &quot;oiLi&quot;, RFS_OP_LSEEK, fd, offset, whence ); 
++  eluarpc_gen_write( p, &quot;oiLi&quot;, RFS_OP_LSEEK, fd, offset, whence ); 
+ }
+ 
+ int remotefs_lseek_read_request( const u8 *p, int *pfd, s32 *poffset, int *pwhence )
+ {
+-  return remotefs_gen_read( p, &quot;oiLi&quot;, RFS_OP_LSEEK, pfd, poffset, pwhence );
++  return eluarpc_gen_read( p, &quot;oiLi&quot;, RFS_OP_LSEEK, pfd, poffset, pwhence );
+ }
+ 
+ // ****************************************************************************
+@@ -442,22 +133,22 @@
+ 
+ void remotefs_opendir_write_response( u8 *p, u32 d )
+ {
+-  remotefs_gen_write( p, &quot;rl&quot;, RFS_OP_OPENDIR, d );
++  eluarpc_gen_write( p, &quot;rl&quot;, RFS_OP_OPENDIR, d );
+ }
+ 
+ int remotefs_opendir_read_response( const u8 *p, u32 *pd )
+ {
+-  return remotefs_gen_read( p, &quot;rl&quot;, RFS_OP_OPENDIR, pd );
++  return eluarpc_gen_read( p, &quot;rl&quot;, RFS_OP_OPENDIR, pd );
+ }
+ 
+ void remotefs_opendir_write_request( u8 *p, const char* name )
+ {
+-  remotefs_gen_write( p, &quot;op&quot;, RFS_OP_OPENDIR, name, strlen( name ) + 1 );
++  eluarpc_gen_write( p, &quot;op&quot;, RFS_OP_OPENDIR, name, strlen( name ) + 1 );
+ }
+ 
+ int remotefs_opendir_read_request( const u8 *p, const char **pname )
+ {
+-  return remotefs_gen_read( p, &quot;op&quot;, RFS_OP_OPENDIR, pname, NULL );
++  return eluarpc_gen_read( p, &quot;op&quot;, RFS_OP_OPENDIR, pname, NULL );
+ }
+ 
+ // ****************************************************************************
+@@ -467,22 +158,22 @@
+ 
+ void remotefs_readdir_write_response( u8 *p, const char *name, u32 size, u32 ftime )
+ {
+-  remotefs_gen_write( p, &quot;rpll&quot;, RFS_OP_READDIR, name, name ? strlen( name ) + 1 : 0, size, ftime );
++  eluarpc_gen_write( p, &quot;rpll&quot;, RFS_OP_READDIR, name, name ? strlen( name ) + 1 : 0, size, ftime );
+ }
+ 
+ int remotefs_readdir_read_response( const u8 *p, const char **pname, u32 *psize, u32 *pftime )
+ {
+-  return remotefs_gen_read( p, &quot;rpll&quot;,  RFS_OP_READDIR, pname, NULL, psize, pftime );
++  return eluarpc_gen_read( p, &quot;rpll&quot;,  RFS_OP_READDIR, pname, NULL, psize, pftime );
+ }
+ 
+ void remotefs_readdir_write_request( u8 *p, u32 d )
+ {
+-  remotefs_gen_write( p, &quot;ol&quot;, RFS_OP_READDIR, d );
++  eluarpc_gen_write( p, &quot;ol&quot;, RFS_OP_READDIR, d );
+ }
+ 
+ int remotefs_readdir_read_request( const u8 *p, u32 *pd )
+ {
+-  return remotefs_gen_read( p, &quot;ol&quot;, RFS_OP_READDIR, pd );
++  return eluarpc_gen_read( p, &quot;ol&quot;, RFS_OP_READDIR, pd );
+ }
+ 
+ // ****************************************************************************
+@@ -491,22 +182,22 @@
+ 
+ void remotefs_closedir_write_response( u8 *p, int d )
+ {
+-  remotefs_gen_write( p, &quot;ri&quot;, RFS_OP_CLOSEDIR, d );
++  eluarpc_gen_write( p, &quot;ri&quot;, RFS_OP_CLOSEDIR, d );
+ }
+ 
+ int remotefs_closedir_read_response( const u8 *p, int *pd )
+ {
+-  return remotefs_gen_read( p, &quot;ri&quot;, RFS_OP_CLOSEDIR, pd );
++  return eluarpc_gen_read( p, &quot;ri&quot;, RFS_OP_CLOSEDIR, pd );
+ }
+ 
+ void remotefs_closedir_write_request( u8 *p, u32 d )
+ {
+-  remotefs_gen_write( p, &quot;ol&quot;, RFS_OP_CLOSEDIR, d );
++  eluarpc_gen_write( p, &quot;ol&quot;, RFS_OP_CLOSEDIR, d );
+ }
+ 
+ int remotefs_closedir_read_request( const u8 *p, u32 *pd )
+ {
+-  return remotefs_gen_read( p, &quot;ol&quot;, RFS_OP_CLOSEDIR, pd );
++  return eluarpc_gen_read( p, &quot;ol&quot;, RFS_OP_CLOSEDIR, pd );
+ }
+ 
+ 
+
+Modified: branches/remotefs_int/src/shell.c
+===================================================================
+--- branches/remotefs_int/src/shell.c	2010-11-10 14:38:44 UTC (rev 812)
++++ branches/remotefs_int/src/shell.c	2010-11-10 16:03:37 UTC (rev 813)
+@@ -12,6 +12,9 @@
+ #include &quot;platform.h&quot;
+ #include &quot;elua_net.h&quot;
+ #include &quot;devman.h&quot;
++#include &quot;buf.h&quot;
++#include &quot;remotefs.h&quot;
++#include &quot;eluarpc.h&quot;
+ 
+ #include &quot;platform_conf.h&quot;
+ #ifdef BUILD_SHELL
+@@ -52,7 +55,8 @@
+   printf( &quot;  ls or dir   - lists filesystems files and sizes\n&quot; );
+   printf( &quot;  cat or type - lists file contents\n&quot; );
+   printf( &quot;  lua [args]  - run Lua with the given arguments\n&quot; );
+-  printf( &quot;  recv        - receive a file via XMODEM and execute it\n&quot; );
++  printf( &quot;  recv           - receive a file (XMODEM) and execute it\n&quot; );
++  printf( &quot;  cp &lt;src&gt; &lt;dst&gt; - copy source file 'src' to 'dst'\n&quot; );
+   printf( &quot;  ver         - print eLua version\n&quot; );
+ }
+ 
+@@ -234,6 +238,71 @@
+       printf( &quot;Usage: cat (or type) &lt;filename1&gt; [&lt;filename2&gt; ...]\n&quot; );
+ }    
+ 
++// 'copy' handler
++#ifdef BUILD_RFS
++#define SHELL_COPY_BUFSIZE    ( ( 1 &lt;&lt; RFS_BUFFER_SIZE ) - ELUARPC_WRITE_REQUEST_EXTRA )
++#else
++#define SHELL_COPY_BUFSIZE    256
++#endif
++static void shell_cp( char *args )
++{
++  char *p1, *p2;
++  int res = 0;
++  FILE *fps = NULL, *fpd = NULL;
++  void *buf = NULL;
++  size_t datalen, total = 0;
++
++  if( *args )
++  {
++    p1 = strchr( args, ' ' );
++    if( p1 )
++    {
++      *p1 = 0;
++      p2 = strchr( p1 + 1, ' ' );
++      if( p2 )
++      {
++        *p2 = 0;
++        // First file is at args, second one at p1 + 1
++        if( ( fps = fopen( args, &quot;rb&quot; ) ) == NULL )
++          printf( &quot;Unable to open %s for reading\n&quot;, args );
++        else
++        {
++          if( ( fpd = fopen( p1 + 1, &quot;wb&quot; ) ) == NULL )
++            printf( &quot;Unable to open %s for writing\n&quot;, p1 + 1 );
++          else
++          {
++            // Alloc memory
++            if( ( buf = malloc( SHELL_COPY_BUFSIZE ) ) == NULL )
++              printf( &quot;Not enough memory\n&quot; );
++            else
++            {
++              // Do the actual copy
++              while( 1 )
++              {
++                datalen = fread( buf, 1, SHELL_COPY_BUFSIZE, fps );
++                fwrite( buf, 1, datalen, fpd );
++                total += datalen;
++                if( datalen &lt; SHELL_COPY_BUFSIZE )
++                  break;
++              }
++              printf( &quot;%u bytes copied\n&quot;, total );
++              res = 1;
++            }
++          }
++        } 
++      }
++    }
++  }
++  if( !res )
++    printf( &quot;Syntax error.\n&quot; );
++  if( fps )
++    fclose( fps );
++  if( fpd )
++    fclose( fpd );
++  if( buf )
++    free( buf );
++}
++
+ // Insert shell commands here
+ static const SHELL_COMMAND shell_commands[] =
+ {
+@@ -246,6 +315,7 @@
+   { &quot;dir&quot;, shell_ls },
+   { &quot;cat&quot;, shell_cat },
+   { &quot;type&quot;, shell_cat },
++  { &quot;cp&quot;, shell_cp },
+   { NULL, NULL }
+ };
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000765.html">[Elua-svn] r812 - branches
+</A></li>
+	<LI>Next message: <A HREF="000767.html">[Elua-svn] r814 - in branches/remotefs_int: . rfs_server
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#766">[ date ]</a>
+              <a href="thread.html#766">[ thread ]</a>
+              <a href="subject.html#766">[ subject ]</a>
+              <a href="author.html#766">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

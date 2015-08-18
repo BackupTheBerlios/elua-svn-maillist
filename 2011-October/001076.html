@@ -1,0 +1,228 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] fa335c: lc-switch.h has typo in head	protection macros
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20fa335c%3A%20lc-switch.h%20has%20typo%20in%20head%0A%09protection%20macros&In-Reply-To=%3C20111005021632.9F9C242684%40smtp1.rs.github.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001075.html">
+   <LINK REL="Next"  HREF="001077.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] fa335c: lc-switch.h has typo in head	protection macros</H1>
+    <B>noreply at github.com</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20fa335c%3A%20lc-switch.h%20has%20typo%20in%20head%0A%09protection%20macros&In-Reply-To=%3C20111005021632.9F9C242684%40smtp1.rs.github.com%3E"
+       TITLE="[eLua-svn] [elua/elua] fa335c: lc-switch.h has typo in head	protection macros">noreply at github.com
+       </A><BR>
+    <I>Wed Oct  5 04:16:32 CEST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001075.html">[eLua-svn] [elua/elua] 60d620: Remove separate dependency step from	Lua build sys...
+</A></li>
+        <LI>Next message: <A HREF="001077.html">[eLua-svn] [elua/elua] 6a1e68: Fix typo in TCP/IP arch doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1076">[ date ]</a>
+              <a href="thread.html#1076">[ thread ]</a>
+              <a href="subject.html#1076">[ subject ]</a>
+              <a href="author.html#1076">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+
+  Commit: fa335c481e972e38e7267f2997ed062d9e1ff957
+      <A HREF="https://github.com/elua/elua/commit/fa335c481e972e38e7267f2997ed062d9e1ff957">https://github.com/elua/elua/commit/fa335c481e972e38e7267f2997ed062d9e1ff957</A>
+  Author: Pablo Cossutta &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">pay at dearriba.com</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M src/uip/lc-switch.h
+
+  Log Message:
+  -----------
+  lc-switch.h has typo in head protection macros
+
+Another think: the LC-SWITCH.C has this two lines that are wrong:
+
+Of course its a typo on the second one.
+
+<A HREF="http://article.gmane.org/gmane.network.uip.user/15">http://article.gmane.org/gmane.network.uip.user/15</A>
+
+
+  Commit: 2d484e1eadf3fe7c5feba43800745eca3b20ad75
+      <A HREF="https://github.com/elua/elua/commit/2d484e1eadf3fe7c5feba43800745eca3b20ad75">https://github.com/elua/elua/commit/2d484e1eadf3fe7c5feba43800745eca3b20ad75</A>
+  Author: Till Harbaum &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">lists at harbaum.org</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M src/uip/uip.c
+
+  Log Message:
+  -----------
+  Fix missing UDP stats for sent/received packets
+
+i just saw that the stats taking in uip is missing entries for udp
+receive and
+transmit.
+
+To fix this insert a UIP_STAT after the udp_found label:
+
+ udp_found:
+ +  UIP_STAT(++uip_stat.udp.recv);
+
+ And a UIP_STAT before the goto ip_send_nolen instruction:
+
+ +  UIP_STAT(++uip_stat.udp.sent);
+   goto ip_send_nolen;
+
+
+  Commit: 7fbfc2c229faa471c48eb75e4216d6261f705861
+      <A HREF="https://github.com/elua/elua/commit/7fbfc2c229faa471c48eb75e4216d6261f705861">https://github.com/elua/elua/commit/7fbfc2c229faa471c48eb75e4216d6261f705861</A>
+  Author: Jack Elston &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">elstonj at colorado.edu</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M src/uip/uip.c
+
+  Log Message:
+  -----------
+  UDP packet data pointed at wrong location
+
+I have been working on implementing a port to the atmel
+ATMega128 and I have noticed that sending UDP packets does not
+work (the transferred data is always 0).
+
+A look into the code reveals that in uip.c, the address of
+uip_appdata gets set incorrectly.
+
+Somewhere around line 1159 the code needs to be changed:
+
+--- uip_appdata = &amp;uip_buf[UIP_LLH_LEN + UIP_IPTCPH_LEN];
++++ uip_appdata = &amp;uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+
+<A HREF="http://article.gmane.org/gmane.network.uip.user/68">http://article.gmane.org/gmane.network.uip.user/68</A>
+
+
+  Commit: c388c3f3b30e762e148819f946df75de09947218
+      <A HREF="https://github.com/elua/elua/commit/c388c3f3b30e762e148819f946df75de09947218">https://github.com/elua/elua/commit/c388c3f3b30e762e148819f946df75de09947218</A>
+  Author: Andrew Ruder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">andy at aeruder.net</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M src/uip/uip.c
+
+  Log Message:
+  -----------
+  TCP polling code can send stale/duplicate data
+
+Here's the content of the patch (so it can be more easily
+discussed if need be).  What basically happens is uip_len and
+uip_slen never get reset to 0 when calling the poll handler.
+Here's an example of how things go wrong:
+
+Let's say you get some new incoming data (uip_newdata()), your
+application handler processes the new data and sends something
+out (thus setting uip_slen).  Back in the main loop again, you
+poll a connection.  uip_slen is still set from the last send and
+if your poll handler doesn't send out something new, uip ends up
+just sending out the exact same data on the now polled
+connection.  In every other applicable case, uip_len and
+uip_slen get reset, but for whatever reason this one just got
+missed...
+
+<A HREF="http://article.gmane.org/gmane.network.uip.user/1312">http://article.gmane.org/gmane.network.uip.user/1312</A>
+
+
+  Commit: eeab1025e2cb5b761fc4bab642317179b9164bda
+      <A HREF="https://github.com/elua/elua/commit/eeab1025e2cb5b761fc4bab642317179b9164bda">https://github.com/elua/elua/commit/eeab1025e2cb5b761fc4bab642317179b9164bda</A>
+  Author: Raimondas Sasnauskas &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">raimondas.sasnauskas at cs.rwth-aachen.de</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M src/uip/uip.c
+
+  Log Message:
+  -----------
+  Lost SYNACK causes connection reset
+
+==================
+From: Raimondas Sasnauskas &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">raimondas.sasnauskas at cs.rwth-aachen.de</A>&gt;
+Date: Sun, Sep 20, 2009 at 1:29 PM
+Subject: Re: RE: Re: RE: Re: Re: RE: Bug (?) in uip TCP/IP stack: lost SYNACK causes connection reset
+
+OK, here I'm proposing the following patch (see git diff attached).
+
+Again the problem we face here is the subsequent SYN arriving in
+UIP_SYN_RCVD state after the SYNACK packet was lost.  First, to avoid
+other issues,  suggest to reset any _active_ connection where a SYN
+arrives in a state != UIP_SYN_RCVD.
+
+==================
+
+This is a combination of the patch submitted by Raimondas Sasnauskas and
+the patch applied by Oliver Schmidt to Contiki
+
+===================
+Original bug report
+===================
+
+ From: Raimondas Sasnauskas
+       &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">raimondas.sasnauskas at cs.rwth-aachen.de</A>&gt;
+ Subject: Bug (?) in uip TCP/IP stack: lost SYNACK causes
+          connection reset
+ Date: 2009-09-02 19:07:51 GMT
+
+ Hi all,
+
+ I've found the following issue in the TCP (UIP_ACTIVE_OPEN)
+ connection establishment phase leading to connection failure.
+ This happens whe the SYNACK packet gets lost during the TCP
+ 3-way handshake.
+
+ Client: SYN
+ Server: SYNACK (this packet gets lost)
+ Client: SYN (retransmission)
+ Server: ACK (&lt;-- server thinks it's data?)
+ Client: RESET (correct, no SYNACK received yet)
+ Server: ABORT (got reset, aborting connection)
+
+ I do not have a patch/workaround yet, but I think that
+ correctly handling incoming TCP_SYN packets in UIP_SYN_RCVD
+ state would fix this issue.
+
+ <A HREF="http://article.gmane.org/gmane.network.uip.user/1506">http://article.gmane.org/gmane.network.uip.user/1506</A>
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/8839e93...eeab102">https://github.com/elua/elua/compare/8839e93...eeab102</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001075.html">[eLua-svn] [elua/elua] 60d620: Remove separate dependency step from	Lua build sys...
+</A></li>
+	<LI>Next message: <A HREF="001077.html">[eLua-svn] [elua/elua] 6a1e68: Fix typo in TCP/IP arch doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1076">[ date ]</a>
+              <a href="thread.html#1076">[ thread ]</a>
+              <a href="subject.html#1076">[ subject ]</a>
+              <a href="author.html#1076">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

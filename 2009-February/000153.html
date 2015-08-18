@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r198 - trunk/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r198%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200902162306.n1GN67qN029274%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000152.html">
+   <LINK REL="Next"  HREF="000159.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r198 - trunk/src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r198%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200902162306.n1GN67qN029274%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r198 - trunk/src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Feb 17 00:06:07 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000152.html">[Elua-svn] r197 - in trunk: inc romfs src src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000159.html">[Elua-svn] r199 - in branches/eagle_mmc: . inc romfs src src/fatfs	src/lua src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#153">[ date ]</a>
+              <a href="thread.html#153">[ thread ]</a>
+              <a href="subject.html#153">[ subject ]</a>
+              <a href="author.html#153">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-02-17 00:06:07 +0100 (Tue, 17 Feb 2009)
+New Revision: 198
+
+Modified:
+   trunk/src/platform/lm3s/platform.c
+Log:
+Minor consistency change for ADC on LM3S.
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-02-16 23:01:32 UTC (rev 197)
++++ trunk/src/platform/lm3s/platform.c	2009-02-16 23:06:07 UTC (rev 198)
+@@ -606,10 +606,11 @@
+   // If switching from burst, resize &amp; flush buffer
+   if ( s-&gt;burst == 1 )
+   {
+-    buf_flush( BUF_ID_ADC, id );
+     res = buf_set( BUF_ID_ADC, id, ADC_BUF_SIZE , BUF_DSIZE_U16 );
+     if ( res != PLATFORM_OK )
+       return res;
++    // Need more general buf resizing... for now flush each time
++    buf_flush( BUF_ID_ADC, id );
+     s-&gt;burst = 0;
+     s-&gt;reqsamples = 0;
+   }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000152.html">[Elua-svn] r197 - in trunk: inc romfs src src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000159.html">[Elua-svn] r199 - in branches/eagle_mmc: . inc romfs src src/fatfs	src/lua src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#153">[ date ]</a>
+              <a href="thread.html#153">[ thread ]</a>
+              <a href="subject.html#153">[ subject ]</a>
+              <a href="author.html#153">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

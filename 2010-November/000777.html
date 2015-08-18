@@ -1,0 +1,584 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r824 - in trunk: doc/en inc src src/lua src/modules	src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r824%20-%20in%20trunk%3A%20doc/en%20inc%20src%20src/lua%20src/modules%0A%09src/platform/stm32&In-Reply-To=%3C20101117202137.0AE0148103D%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000776.html">
+   <LINK REL="Next"  HREF="000778.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r824 - in trunk: doc/en inc src src/lua src/modules	src/platform/stm32</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r824%20-%20in%20trunk%3A%20doc/en%20inc%20src%20src/lua%20src/modules%0A%09src/platform/stm32&In-Reply-To=%3C20101117202137.0AE0148103D%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r824 - in trunk: doc/en inc src src/lua src/modules	src/platform/stm32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Nov 17 21:21:36 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000776.html">[Elua-svn] r823 - trunk/src
+</A></li>
+        <LI>Next message: <A HREF="000778.html">[Elua-svn] r825 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#777">[ date ]</a>
+              <a href="thread.html#777">[ thread ]</a>
+              <a href="subject.html#777">[ subject ]</a>
+              <a href="author.html#777">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-17 21:21:36 +0100 (Wed, 17 Nov 2010)
+New Revision: 824
+
+Modified:
+   trunk/doc/en/building.txt
+   trunk/doc/en/linenoise.txt
+   trunk/inc/linenoise.h
+   trunk/src/common.c
+   trunk/src/linenoise.c
+   trunk/src/lua/lstate.c
+   trunk/src/lua/luaconf.h
+   trunk/src/modules/elua.c
+   trunk/src/platform/stm32/platform_conf.h
+   trunk/src/shell.c
+Log:
+linenoise support extended to the eLua shell (it can be enabled separately in platform_conf.h). Documentation updated
+
+Modified: trunk/doc/en/building.txt
+===================================================================
+--- trunk/doc/en/building.txt	2010-11-17 09:57:41 UTC (rev 823)
++++ trunk/doc/en/building.txt	2010-11-17 20:21:36 UTC (rev 824)
+@@ -145,7 +145,7 @@
+ 
+   #define BUILD_LINENOISE
+   
+-xref:static[Static configuration data dependencies]: *LINENOISE_HISTORY_SIZE, LINENOISE_AUTOSAVE_FNAME*
++xref:static[Static configuration data dependencies]: *LINENOISE_HISTORY_SIZE_LUA, LINENOISE_HISTORY_SIZE_SHELL, LINENOISE_AUTOSAVE_FNAME*
+ |===================================================================
+ 
+ [[confmodules]]
+@@ -256,8 +256,12 @@
+ 
+ o|PLATFORM_INT_QUEUE_LOG_SIZE  |If Lua interrupt support is enabled, this defines the base 2 logarithm of the size of the interrupt queue. Check link:inthandlers.html[here] for details.
+ 
+-o|LINENOISE_HISTORY_SIZE       |If linenoise support is enabled, this defines the number of lines kept in history. Check link:linenoise.html[here] for details.
++o|LINENOISE_HISTORY_SIZE_LUA   |If linenoise support is enabled, this defines the number of lines kept in history for the Lua interpreter. Check link:linenoise.html[here] for details. If history
++support in Lua is not needed, define this as 0.
+ 
++o|LINENOISE_HISTORY_SIZE_SHELL  |If linenoise support is enabled, this defines the number of lines kept in history for the eLua shell. Check link:linenoise.html[here] for details. If history
++support in the eLua shell is not needed, define this as 0.
++
+ o|LINENOISE_AUTOSAVE_FNAME  |If linenoise support is enabled, the history will automatically be saved everytime the Lua interpreter exits in the filename specified 
+ by this macro. Check link:linenoise.html[here] for details. This macro is optional; if it's not defined, the history will not be saved automatically.
+ |===================================================================
+
+Modified: trunk/doc/en/linenoise.txt
+===================================================================
+--- trunk/doc/en/linenoise.txt	2010-11-17 09:57:41 UTC (rev 823)
++++ trunk/doc/en/linenoise.txt	2010-11-17 20:21:36 UTC (rev 824)
+@@ -26,7 +26,6 @@
+ | Up                          | Recall the previous line
+ | Down                        | Recall the next line
+ | CTRL+C                      | Abandon the current line
+-| Delete (not backspace)      | Delete the character under the cursor
+ | Home                        | Go to the beginning of the line
+ | End                         | Go to the end of the line
+ | CTRL+K                      | Delete from the cursor to the end of the line
+@@ -35,6 +34,8 @@
+ 
+ To save the history, simply call *elua.save_history* with the name of the file in which the history will be saved
+ (check link:refman_gen_elua.html[here] for details). Be careful, the file will be overwritten. +
++The exact same keys presented in the table above can be used by the eLua shell if linenoise is enabled for it. 
++However, you won't be able to save history from the eLua shell. +
+ The reason why this component isn't enabled by default is that it takes RAM (like all good things in eLua :) ) so
+ keep this in mind when deciding if you want it or not.      
+  
+
+Modified: trunk/inc/linenoise.h
+===================================================================
+--- trunk/inc/linenoise.h	2010-11-17 09:57:41 UTC (rev 823)
++++ trunk/inc/linenoise.h	2010-11-17 20:21:36 UTC (rev 824)
+@@ -34,9 +34,18 @@
+ #ifndef __LINENOISE_H
+ #define __LINENOISE_H
+ 
+-int linenoise_getline( char* buffer, const char* prompt );
+-int linenoise_addhistory( const char *line );
+-void linenoise_cleanup();
+-int linenoise_savehistory( const char* filename );
++// Error codes
++#define LINENOISE_HISTORY_NOT_ENABLED ( -2 ) 
++#define LINENOISE_HISTORY_EMPTY       ( -3 )
+ 
++// Components that use linenoise in eLua
++#define LINENOISE_ID_LUA            0
++#define LINENOISE_ID_SHELL          1  
++#define LINENOISE_TOTAL_COMPONENTS  2
++
++int linenoise_getline( int id, char* buffer, int maxinput, const char* prompt );
++int linenoise_addhistory( int id, const char *line );
++void linenoise_cleanup( int id );
++int linenoise_savehistory( int id, const char* filename );
++
+ #endif /* __LINENOISE_H */
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2010-11-17 09:57:41 UTC (rev 823)
++++ trunk/src/common.c	2010-11-17 20:21:36 UTC (rev 824)
+@@ -124,7 +124,7 @@
+       case 0x09:
+         return KC_TAB;
+       case 0x7F:
+-        return KC_DEL;
++//        return KC_DEL; // bogdanm: some terminal emulators (for example screen) return 0x7F for BACKSPACE :(
+       case 0x08:
+         return KC_BACKSPACE;
+       case 26:
+
+Modified: trunk/src/linenoise.c
+===================================================================
+--- trunk/src/linenoise.c	2010-11-17 09:57:41 UTC (rev 823)
++++ trunk/src/linenoise.c	2010-11-17 20:21:36 UTC (rev 824)
+@@ -71,9 +71,6 @@
+  * 
+  */
+ 
+-#define lua_c
+-#include &quot;luaconf.h&quot;
+-
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;errno.h&gt;
+@@ -90,30 +87,33 @@
+ #define LINENOISE_PUSH_EMPTY                1
+ #define LINENOISE_DONT_PUSH_EMPTY           0
+ 
+-static const int history_max_len = LINENOISE_HISTORY_SIZE;
+-static int history_len = 0;
+-static char **history = NULL;
++static const int history_max_lengths[ LINENOISE_TOTAL_COMPONENTS ] = { LINENOISE_HISTORY_SIZE_LUA, LINENOISE_HISTORY_SIZE_SHELL };
++static int history_lengths[ LINENOISE_TOTAL_COMPONENTS ];
++static char **histories[ LINENOISE_TOTAL_COMPONENTS ];
+ 
+-static int linenoise_internal_addhistory( const char *line, int force_empty );
++static int linenoise_internal_addhistory( int id, const char *line, int force_empty );
+ 
+-void linenoise_cleanup() 
++void linenoise_cleanup( int id ) 
+ {
+   int j;
+   
+-  if( history ) 
++#ifdef LINENOISE_AUTOSAVE_FNAME
++  if( id == LINENOISE_ID_LUA )
+   {
+-    for( j = 0; j &lt; history_len; j++ )
+-      free( history[ j ] );
+-    free( history );
+-    history = NULL;
++    if( linenoise_savehistory( id, LINENOISE_AUTOSAVE_FNAME ) == 0 )
++      printf( &quot;History saved to %s.\n&quot;, LINENOISE_AUTOSAVE_FNAME );
++    else
++      printf( &quot;Unable to save history to %s.\n&quot;, LINENOISE_AUTOSAVE_FNAME );
++  }    
++#endif   
++  if( histories[ id ] ) 
++  {
++    for( j = 0; j &lt; history_lengths[ id ]; j++ )
++      free( histories[ id ][ j ] );
++    free( histories[ id ] );
++    histories[ id ] = NULL;
+   }
+-  history_len = 0;
+-#ifdef LINENOISE_AUTOSAVE_FNAME
+-  if( linenoise_savehistory( LINENOISE_AUTOSAVE_FNAME ) == 0 )
+-    printf( &quot;History saved to %s.\n&quot;, LINENOISE_AUTOSAVE_FNAME );
+-  else
+-    printf( &quot;Unable to save history to %s.\n&quot;, LINENOISE_AUTOSAVE_FNAME );    
+-#endif    
++  history_lengths[ id ] = 0;   
+ }
+ 
+ #define MAX_SEQ_LEN           16
+@@ -144,19 +144,19 @@
+     term_putstr( seq, strlen( seq ) );
+ }
+ 
+-static int linenoisePrompt(char *buf, size_t buflen, const char *prompt) {
++static int linenoisePrompt(int id, char *buf, size_t buflen, const char *prompt) {
+     size_t plen = strlen(prompt);
+     size_t pos = 0;
+     size_t len = 0;
+     size_t cols = TERM_COLS;
+     int history_index = 0;
+-
++    
+     buf[0] = '\0';
+     buflen--; /* Make sure there is always space for the nulterm */
+ 
+     /* The latest history entry is always our current buffer, that
+      * initially is just an empty string. */
+-    linenoise_internal_addhistory( &quot;&quot;, LINENOISE_PUSH_EMPTY );
++    linenoise_internal_addhistory( id, &quot;&quot;, LINENOISE_PUSH_EMPTY );
+     
+     term_putstr( prompt, plen );
+     while(1) {
+@@ -169,8 +169,8 @@
+           case KC_ENTER:
+           case KC_CTRL_C:
+           case KC_CTRL_Z:
+-            history_len--;
+-            free(history[history_len]);
++            history_lengths[ id ] --;
++            free( histories[ id ][history_lengths[ id ]] );
+             if( c == KC_CTRL_C )
+               return LINENOISE_CTRL_C;
+             else if( c == KC_CTRL_Z )
+@@ -221,24 +221,24 @@
+        case KC_UP:
+        case KC_DOWN:
+             /* up and down arrow: history */
+-            if (history_len &gt; 1) 
++            if (history_lengths[ id ] &gt; 1) 
+             {
+               /* Update the current history entry before to
+                * overwrite it with tne next one. */
+-              free(history[history_len-1-history_index]);
+-              history[history_len-1-history_index] = strdup(buf);
++              free(histories[ id ][history_lengths[ id ]-1-history_index]);
++              histories[ id ][history_lengths[ id ]-1-history_index] = strdup(buf);
+               /* Show the new entry */
+               history_index += (c == KC_UP) ? 1 : -1;
+               if (history_index &lt; 0) 
+               {
+                 history_index = 0;
+                 break;
+-              } else if (history_index &gt;= history_len) 
++              } else if (history_index &gt;= history_lengths[ id ]) 
+               {
+-                history_index = history_len-1;
++                history_index = history_lengths[ id ]-1;
+                 break;
+               }
+-              strncpy(buf,history[history_len-1-history_index],buflen);
++              strncpy(buf,histories[ id ][history_lengths[ id ]-1-history_index],buflen);
+               buf[buflen] = '\0';
+               len = pos = strlen(buf);
+               refreshLine(prompt,buf,len,pos,cols);
+@@ -315,14 +315,21 @@
+     return len;
+ }
+ 
+-int linenoise_getline( char* buffer, const char* prompt )
++int linenoise_getline( int id, char* buffer, int maxinput, const char* prompt )
+ {
+   int count;
+   
++  if( history_max_lengths[ id ] == 0 )
++  {
++    fputs( prompt, stdout );
++    fflush( stdout );
++    return fgets( buffer, maxinput, stdin ) == NULL ? -1 : 0;
++  }
+   while( 1 )
+   {
+-    count = linenoisePrompt( buffer, LUA_MAXINPUT, prompt );
+-    printf( &quot;\n&quot; );
++    count = linenoisePrompt( id, buffer, maxinput, prompt );
++    if( count != -1 )
++      printf( &quot;\n&quot; );
+     if( count != LINENOISE_CTRL_C )
+     {  
+       if( count &gt; 0 &amp;&amp; buffer[ count ] != '\0' )
+@@ -332,82 +339,96 @@
+   }
+ }
+ 
+-/* Using a circular buffer is smarter, but a bit more complex to handle. */
+-static int linenoise_internal_addhistory( const char *line, int force_empty ) 
++static int linenoise_internal_addhistory( int id, const char *line, int force_empty ) 
+ {
+-    char *linecopy;
+-    const char *p;
+-    
+-    if (history_max_len == 0) return 0;
+-    if (history == NULL) {
+-        history = malloc(sizeof(char*)*history_max_len);
+-        if (history == NULL) return 0;
+-        memset(history,0,(sizeof(char*)*history_max_len));
++  char *linecopy;
++  const char *p;
++  const int history_max_len = history_max_lengths[ id ];
++         
++  if( history_max_len == 0 )
++    return 0;
++  if( histories[ id ] == NULL ) 
++  {
++    if( ( histories[ id ] = malloc( sizeof( char* ) * history_max_len ) ) == NULL )
++    {
++      fprintf( stderr, &quot;out of memory in linenoise while trying to allocate history buffer.\n&quot; );
++      return 0;
+     }
+-    while( 1 )
++    memset( histories[ id ], 0, ( sizeof( char* ) * history_max_len ) );
++  }
++  while( 1 )
++  {
++    if( ( p = strchr( line, '\n' ) ) == NULL )
++      p = line + strlen( line );
++    if( p &gt; line || force_empty == LINENOISE_PUSH_EMPTY )
+     {
+-      if( ( p = strchr( line, '\n' ) ) == NULL )
+-        p = line + strlen( line );
+-      if( p &gt; line || force_empty == LINENOISE_PUSH_EMPTY )
++      if( ( linecopy = strndup( line, p - line ) ) == NULL )
+       {
+-        linecopy = strndup(line, p - line);
+-        if (!linecopy) return 0;
+-        if (history_len == history_max_len) {
+-            free(history[0]);
+-           memmove(history,history+1,sizeof(char*)*(history_max_len-1));
+-           history_len--;
+-        }
+-        history[history_len] = linecopy;
+-        history_len++;
++        fprintf( stderr, &quot;out of memory in linenoise while trying to add a line to history.\n&quot; );
++        return 0; 
+       }
+-      if( *p == 0 )
+-        break;
+-      line = p + 1;
+-      if( *line == 0 )
+-        break;
++      if( history_lengths[ id ] == history_max_len ) 
++      {
++        free( histories[ id ][ 0 ] );
++        memmove( histories[ id ], histories[ id ] + 1, sizeof( char* ) * ( history_max_len - 1 ) );
++        history_lengths[ id ] --;
++      }
++      histories[ id ][history_lengths[ id ]] = linecopy;
++      history_lengths[ id ] ++;
+     }
+-    return 1;
++    if( *p == 0 )
++      break;
++    line = p + 1;
++    if( *line == 0 )
++      break;
++  }
++  return 1;
+ }
+ 
+-int linenoise_addhistory( const char *line )
++int linenoise_addhistory( int id, const char *line )
+ {
+-  return linenoise_internal_addhistory( line, LINENOISE_DONT_PUSH_EMPTY );
++  return linenoise_internal_addhistory( id, line, LINENOISE_DONT_PUSH_EMPTY );
+ }
+ 
+ /* Save the history in the specified file. On success 0 is returned 
+  * otherwise -1 is returned. */
+-int linenoise_savehistory( const char *filename ) 
+-{
+-  FILE *fp = fopen( filename, &quot;wb&quot; );
++int linenoise_savehistory( int id, const char *filename ) 
++{  
++  FILE *fp;
+   int j;
+   
+-  if( fp == NULL ) 
++  if( history_max_lengths[ id ] == 0 )
++    return LINENOISE_HISTORY_NOT_ENABLED;  
++  if( histories[ id ] == NULL || history_lengths[ id ] == 0 )
++    return LINENOISE_HISTORY_EMPTY;
++  if( ( fp = fopen( filename, &quot;wb&quot; ) ) == NULL )
+     return -1;
+-  for( j = 0; j &lt; history_len; j++ )
+-    fprintf( fp, &quot;%s\n&quot;, history[ j ] );
++  for( j = 0; j &lt; history_lengths[ id ]; j++ )
++    fprintf( fp, &quot;%s\n&quot;, histories[ id ][ j ] );
+   fclose( fp );
+   return 0;
+ }
+ 
+ #else // #ifdef BUILD_LINENOISE
+ 
+-int linenoise_getline( char* buffer, const char* prompt )
++int linenoise_getline( int id, char* buffer, int maxinput, const char* prompt )
+ {
++  ( void )id;
+ 	fputs( prompt, stdout );
+   fflush( stdout );
+-	return fgets( buffer, LUA_MAXINPUT, stdin ) == NULL ? -1 : 0;
++	return fgets( buffer, maxinput, stdin ) == NULL ? -1 : 0;
+ }
+ 
+-int linenoise_addhistory( const char *line )
++int linenoise_addhistory( int id, const char *line )
+ {
+   return 0;
+ }
+ 
+-void linenoise_cleanup()
++void linenoise_cleanup( int id )
+ {
+ }
+ 
+-int linenoise_savehistory( const char *filename )
++int linenoise_savehistory( int id, const char *filename )
+ {
+   return -1;
+ }
+
+Modified: trunk/src/lua/lstate.c
+===================================================================
+--- trunk/src/lua/lstate.c	2010-11-17 09:57:41 UTC (rev 823)
++++ trunk/src/lua/lstate.c	2010-11-17 20:21:36 UTC (rev 824)
+@@ -239,7 +239,7 @@
+   lua_rawseti( L, LUA_REGISTRYINDEX, LUA_INT_HANDLER_KEY );
+   elua_int_cleanup();
+   platform_cpu_set_global_interrupts( oldstate );
+-  linenoise_cleanup();
++  linenoise_cleanup( LINENOISE_ID_LUA );
+ #endif  
+   L = G(L)-&gt;mainthread;  /* only the main thread can be closed */
+   lua_lock(L);
+
+Modified: trunk/src/lua/luaconf.h
+===================================================================
+--- trunk/src/lua/luaconf.h	2010-11-17 09:57:41 UTC (rev 823)
++++ trunk/src/lua/luaconf.h	2010-11-17 20:21:36 UTC (rev 824)
+@@ -308,10 +308,10 @@
+ #else // #if defined(LUA_CROSS_COMPILER)
+ 
+ #include &quot;linenoise.h&quot;
+-#define lua_readline(L,b,p)	((void)L, (linenoise_getline(b,p)) != -1)
++#define lua_readline(L,b,p)	((void)L, (linenoise_getline(LINENOISE_ID_LUA,b,LUA_MAXINPUT,p)) != -1)
+ #define lua_saveline(L,idx) \
+ 	if (lua_strlen(L,idx) &gt; 0)  /* non-empty line? */ \
+-	  linenoise_addhistory(lua_tostring(L, idx));  /* add it to history */
++	  linenoise_addhistory(LINENOISE_ID_LUA, lua_tostring(L, idx));  /* add it to history */
+ #define lua_freeline(L,b)	{ (void)L; (void)b; }
+ 
+ #endif // #if defined(LUA_CROSS_COMPILER)
+
+Modified: trunk/src/modules/elua.c
+===================================================================
+--- trunk/src/modules/elua.c	2010-11-17 09:57:41 UTC (rev 823)
++++ trunk/src/modules/elua.c	2010-11-17 20:21:36 UTC (rev 824)
+@@ -37,9 +37,15 @@
+ {
+ #ifdef BUILD_LINENOISE
+   const char* fname = luaL_checkstring( L, 1 );
++  int res;
+   
+-  if( linenoise_savehistory( fname ) == 0 )
++  res = linenoise_savehistory( LINENOISE_ID_LUA, fname );
++  if( res == 0 )
+     printf( &quot;History saved to %s.\n&quot;, fname );
++  else if( res == LINENOISE_HISTORY_NOT_ENABLED )
++    printf( &quot;linenoise not enabled for Lua.\n&quot; );
++  else if( res == LINENOISE_HISTORY_EMPTY )
++    printf( &quot;History empty, nothing to save.\n&quot; );
+   else
+     printf( &quot;Unable to save history to %s.\n&quot;, fname );
+   return 0;  
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2010-11-17 09:57:41 UTC (rev 823)
++++ trunk/src/platform/stm32/platform_conf.h	2010-11-17 20:21:36 UTC (rev 824)
+@@ -170,8 +170,9 @@
+ #define RFS_TIMEOUT           100000
+ #define RFS_UART_SPEED        115200
+ 
+-// Linenoise buffer size
+-#define LINENOISE_HISTORY_SIZE  50
++// Linenoise buffer sizes
++#define LINENOISE_HISTORY_SIZE_LUA    50
++#define LINENOISE_HISTORY_SIZE_SHELL  10
+ 
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+
+Modified: trunk/src/shell.c
+===================================================================
+--- trunk/src/shell.c	2010-11-17 09:57:41 UTC (rev 823)
++++ trunk/src/shell.c	2010-11-17 20:21:36 UTC (rev 824)
+@@ -12,8 +12,9 @@
+ #include &quot;platform.h&quot;
+ #include &quot;elua_net.h&quot;
+ #include &quot;devman.h&quot;
++#include &quot;linenoise.h&quot;
++#include &quot;platform_conf.h&quot;
+ 
+-#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_SHELL
+ 
+ // Shell alternate ' ' char
+@@ -252,7 +253,7 @@
+ // Execute the eLua &quot;shell&quot; in an infinite loop
+ void shell_start()
+ {
+-  char cmd[ SHELL_MAXSIZE ];
++  char cmd[ SHELL_MAXSIZE + 1 ];
+   char *p, *temp;
+   const SHELL_COMMAND* pcmd;
+   int i, inside_quotes;
+@@ -261,12 +262,16 @@
+   printf( SHELL_WELCOMEMSG, ELUA_STR_VERSION );
+   while( 1 )
+   {
+-    // Show prompt
+-    printf( SHELL_PROMPT );
+-
+-    // Read command
+-    while( fgets( cmd, SHELL_MAXSIZE, stdin ) == NULL )
++    while( linenoise_getline( LINENOISE_ID_SHELL, cmd, SHELL_MAXSIZE, SHELL_PROMPT ) == -1 )
++    {
++      printf( &quot;\n&quot; );
+       clearerr( stdin );
++    }
++    if( strlen( cmd ) == 0 )
++      continue;
++    linenoise_addhistory( LINENOISE_ID_SHELL, cmd );
++    if( cmd[ strlen( cmd ) - 1 ] != '\n' )
++      strcat( cmd, &quot;\n&quot; );
+ 
+     // Change '\r' and '\n' chars to ' ' to ease processing
+     p = cmd;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000776.html">[Elua-svn] r823 - trunk/src
+</A></li>
+	<LI>Next message: <A HREF="000778.html">[Elua-svn] r825 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#777">[ date ]</a>
+              <a href="thread.html#777">[ thread ]</a>
+              <a href="subject.html#777">[ subject ]</a>
+              <a href="author.html#777">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

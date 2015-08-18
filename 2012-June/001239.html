@@ -1,0 +1,210 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] a199d4: Changed FS registration mechanism
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2012-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20a199d4%3A%20Changed%20FS%20registration%20mechanism&In-Reply-To=%3C4fe7760a10032_37d5180dae4115173%40sh2.rs.github.com.mail%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001238.html">
+   <LINK REL="Next"  HREF="001240.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] a199d4: Changed FS registration mechanism</H1>
+    <B>GitHub</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20a199d4%3A%20Changed%20FS%20registration%20mechanism&In-Reply-To=%3C4fe7760a10032_37d5180dae4115173%40sh2.rs.github.com.mail%3E"
+       TITLE="[eLua-svn] [elua/elua] a199d4: Changed FS registration mechanism">noreply at github.com
+       </A><BR>
+    <I>Sun Jun 24 22:18:18 CEST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001238.html">[eLua-svn] [elua/elua] dc52be: Fix alarmed and setalarm functions	on mbed rtc
+</A></li>
+        <LI>Next message: <A HREF="001240.html">[eLua-svn] [elua/elua] e35df5: Fixed WOFS compilation on sim (Linux)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1239">[ date ]</a>
+              <a href="thread.html#1239">[ thread ]</a>
+              <a href="subject.html#1239">[ subject ]</a>
+              <a href="author.html#1239">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+  Commit: a199d476156e21bfe52585512e09fc3c0a0d9292
+      <A HREF="https://github.com/elua/elua/commit/a199d476156e21bfe52585512e09fc3c0a0d9292">https://github.com/elua/elua/commit/a199d476156e21bfe52585512e09fc3c0a0d9292</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2012-06-17 (Sun, 17 Jun 2012)
+
+  Changed paths:
+    M inc/elua_rfs.h
+    M inc/mmcfs.h
+    M inc/newlib/devman.h
+    M inc/newlib/genstd.h
+    M inc/romfs.h
+    M inc/semifs.h
+    M src/main.c
+    M src/mmcfs.c
+    M src/newlib/devman.c
+    M src/newlib/genstd.c
+    M src/newlib/stdtcp.c
+    M src/newlib/stubs.c
+    M src/remotefs/elua_rfs.c
+    M src/romfs.c
+    M src/semifs.c
+    M src/shell.c
+
+  Log Message:
+  -----------
+  Changed FS registration mechanism
+
+Now it's possible to have more than one instance of a given file
+system. For example, one could use more that one ROM file system
+in different physical locations (a possible configuration is
+internal Flash and external serial memories). This mechanism is
+currently implemented only in the device manager (devman.c),
+actual instance implementation require per-FS support (to be
+implemented later).
+
+
+  Commit: ed54aec47abbe0358423bf2b9d049c3792f60392
+      <A HREF="https://github.com/elua/elua/commit/ed54aec47abbe0358423bf2b9d049c3792f60392">https://github.com/elua/elua/commit/ed54aec47abbe0358423bf2b9d049c3792f60392</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2012-06-18 (Mon, 18 Jun 2012)
+
+  Changed paths:
+    M inc/newlib/devman.h
+    M inc/romfs.h
+    M src/mmcfs.c
+    M src/newlib/devman.c
+    M src/newlib/genstd.c
+    M src/newlib/stdtcp.c
+    M src/newlib/stubs.c
+    M src/remotefs/elua_rfs.c
+    M src/romfs.c
+    M src/semifs.c
+
+  Log Message:
+  -----------
+  Added FS registration data as argument to all FS functions
+
+All the functions that implement a FS receive the instance data
+of the FS (given at registration time to dm_register) as their
+last argument. ROMFS was changed to take advantage of this.
+
+
+  Commit: 01a8dcd9a5272e4e0486bd8712f1393a5dcfb572
+      <A HREF="https://github.com/elua/elua/commit/01a8dcd9a5272e4e0486bd8712f1393a5dcfb572">https://github.com/elua/elua/commit/01a8dcd9a5272e4e0486bd8712f1393a5dcfb572</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2012-06-19 (Tue, 19 Jun 2012)
+
+  Changed paths:
+    M mkfs.py
+    M src/romfs.c
+    M utils/mkfs.lua
+
+  Log Message:
+  -----------
+  Changed the ROMFS terminator char
+
+The ROMFS termination char is now 0xFF instead of 0x00 (in preparation
+of WOFS).
+
+
+  Commit: a378b8943ebec2575d6dfa481d54974e3292dd77
+      <A HREF="https://github.com/elua/elua/commit/a378b8943ebec2575d6dfa481d54974e3292dd77">https://github.com/elua/elua/commit/a378b8943ebec2575d6dfa481d54974e3292dd77</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2012-06-20 (Wed, 20 Jun 2012)
+
+  Changed paths:
+    M src/shell.c
+
+  Log Message:
+  -----------
+  shell: multiple fixes
+
+1. the filename for 'recv &lt;filename&gt;' was not set correctly
+2. error messages for 'cp' were not always correct
+3. check for copy errors and issue a message accordingly
+
+
+  Commit: e9a24cac115431d36fc651a6135e851467a8d779
+      <A HREF="https://github.com/elua/elua/commit/e9a24cac115431d36fc651a6135e851467a8d779">https://github.com/elua/elua/commit/e9a24cac115431d36fc651a6135e851467a8d779</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2012-06-24 (Sun, 24 Jun 2012)
+
+  Changed paths:
+    M inc/platform.h
+    M inc/romfs.h
+    M mkfs.py
+    M src/common.c
+    M src/platform/lm3s/lm3s.ld
+    M src/platform/lm3s/platform.c
+    M src/platform/lm3s/platform_conf.h
+    M src/platform/sim/host.c
+    M src/platform/sim/host.h
+    M src/platform/sim/hostif.h
+    M src/platform/sim/hostif_linux.c
+    M src/platform/stm32/platform.c
+    M src/platform/stm32/platform_conf.h
+    M src/platform/stm32/stm32.ld
+    M src/romfs.c
+    M src/shell.c
+    M utils/mkfs.lua
+
+  Log Message:
+  -----------
+  Added WOFS + other stuff
+
+This should really be more than one commit, but I wrote everything in one
+shot and I don't feel like arranging the changes logically into different
+commits. So, these are the changes:
+
+- added WOFS (Write Once File System). This is a writeable file system that
+  exists in the MCU's internal Flash memory and allows files to be written,
+  but only once, in a single shot. More details to follow.
+- the platform interface has a new MCU flash access interface.
+- added WOFS &quot;reference implementations&quot; for two CPUs: LM3S8962 and
+  STM32F103RE. They are easily extendable to other CPUs in the same platform
+  and can be taken as a model for other platforms.
+- the ROMFS file layout in memory was slightly changed.
+- the simulator (src/platform/sim) got a new function (lseek).
+- shell: now each shell command receives its arguments in a C-main-style
+  (argc, argv) pair. This was originally Marcelo's idea and it finally
+  made it to the master (although this particular implementation is mine),
+  after I got fed up with all the argument parsing in the shell functions.
+- new shell command: wofmt (&quot;formats&quot; a WOFS, effectively clearing it).
+- a couple of small fixes in the shell code
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/fc57957f7ac5...e9a24cac1154">https://github.com/elua/elua/compare/fc57957f7ac5...e9a24cac1154</A>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001238.html">[eLua-svn] [elua/elua] dc52be: Fix alarmed and setalarm functions	on mbed rtc
+</A></li>
+	<LI>Next message: <A HREF="001240.html">[eLua-svn] [elua/elua] e35df5: Fixed WOFS compilation on sim (Linux)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1239">[ date ]</a>
+              <a href="thread.html#1239">[ thread ]</a>
+              <a href="subject.html#1239">[ subject ]</a>
+              <a href="author.html#1239">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

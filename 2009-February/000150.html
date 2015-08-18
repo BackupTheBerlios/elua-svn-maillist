@@ -1,0 +1,1828 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r194 - in trunk/doc: . en wb wb_img
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r194%20-%20in%20trunk/doc%3A%20.%20en%20wb%20wb_img&In-Reply-To=%3C200902161715.n1GHFIaF002475%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000149.html">
+   <LINK REL="Next"  HREF="000151.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r194 - in trunk/doc: . en wb wb_img</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r194%20-%20in%20trunk/doc%3A%20.%20en%20wb%20wb_img&In-Reply-To=%3C200902161715.n1GHFIaF002475%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r194 - in trunk/doc: . en wb wb_img">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Mon Feb 16 18:15:18 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000149.html">[Elua-svn] r193 - in trunk: inc romfs src src/modules	src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000151.html">[Elua-svn] r195 - in trunk: inc romfs src src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#150">[ date ]</a>
+              <a href="thread.html#150">[ thread ]</a>
+              <a href="subject.html#150">[ subject ]</a>
+              <a href="author.html#150">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2009-02-16 18:15:17 +0100 (Mon, 16 Feb 2009)
+New Revision: 194
+
+Added:
+   trunk/doc/wb/template_wb_search.html
+   trunk/doc/wb_img/eLua-logo-80x80.png
+Modified:
+   trunk/doc/en/refman.html
+   trunk/doc/index_en.html
+   trunk/doc/index_pt.html
+   trunk/doc/wb/template_index.html
+   trunk/doc/wb/template_wb_bar.html
+   trunk/doc/wb/template_wb_title.html
+   trunk/doc/wb/template_wb_tree.html
+   trunk/doc/wb/wb_build.lua
+   trunk/doc/wb/wb_usr.lua
+   trunk/doc/wb_bar_en.html
+   trunk/doc/wb_bar_pt.html
+   trunk/doc/wb_title_en.html
+   trunk/doc/wb_title_pt.html
+   trunk/doc/wb_tree_en.html
+   trunk/doc/wb_tree_pt.html
+Log:
+Features added to WebBook HTML generator :
+- New parameters in wb_usr to specify:
+- logo image file name
+- search box visibility
+- search box title and label
+- vertical size of title bar (for bigger logos)
+
+Features changed in WebBook HTML generator:
+- copywrite notice now optional
+- mail contact now optional
+- UTF-8 used for Portuguese version
+- search box now has a separate template to allow positioning flexibility
+
+HTML Templates enhanced
+
+Ongoing work....
+
+
+
+Modified: trunk/doc/en/refman.html
+===================================================================
+--- trunk/doc/en/refman.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/en/refman.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -708,7 +708,7 @@
+ &lt;/p&gt;
+ &lt;h3&gt;&lt;a name=&quot;platdepmodules&quot;&gt;&lt;/a&gt;eLua Platform
+ Dependent
+-Modules&lt;/h3&gt;&lt;h3&gt;&lt;a name=&quot;adcmodule&quot;&gt;&lt;/a&gt;adc&lt;/h3&gt;&lt;br&gt;&lt;a name=&quot;adc_sample&quot;&gt;&lt;/a&gt;adc.sample(channel_id) - returns a single integer value from the ADC&lt;br&gt;&lt;br&gt;&lt;a name=&quot;adc_maxval&quot;&gt;&lt;/a&gt;adc.maxval(channel_id) - returns largest integer one can expect for this channel on a given platform (based on bit depth)&lt;br&gt;&lt;br&gt;&lt;a name=&quot;adc_dataready&quot;&gt;&lt;/a&gt;adc.dataready(channel_id)
++Modules&lt;/h3&gt;&lt;h3&gt;&lt;a name=&quot;adcmodule&quot;&gt;&lt;/a&gt;adc&lt;/h3&gt;Currently runs on: LM3S &lt;br&gt;&lt;br&gt;&lt;a name=&quot;adc_sample&quot;&gt;&lt;/a&gt;adc.sample(channel_id) - returns a single integer value from the ADC&lt;br&gt;&lt;br&gt;&lt;a name=&quot;adc_maxval&quot;&gt;&lt;/a&gt;adc.maxval(channel_id) - returns largest integer one can expect for this channel on a given platform (based on bit depth)&lt;br&gt;&lt;br&gt;&lt;a name=&quot;adc_dataready&quot;&gt;&lt;/a&gt;adc.dataready(channel_id)
+ - if running in non-blocking mode, this will indicate if all of the
+ samples requested from the last sample or &lt;br&gt;burst have been acquired and
+ are waiting in the buffer&lt;br&gt;&lt;br&gt;&lt;a name=&quot;adc_setmode&quot;&gt;&lt;/a&gt;adc.setmode(channel_id, mode) - mode: 0
+@@ -721,7 +721,7 @@
+ (channel_id), using (timer_id) at (frequency). results are returned as
+ a table&lt;br&gt;&lt;br&gt;
+ &lt;h3&gt;&lt;a name=&quot;dispmodule&quot;&gt;&lt;/a&gt;disp&lt;/h3&gt;
+-&lt;span style=&quot;font-weight: bold;&quot;&gt;&lt;/span&gt;&lt;br&gt;
++&lt;span style=&quot;font-weight: bold;&quot;&gt;&lt;/span&gt;Currently runs on: LM3S &lt;br&gt;
+ &lt;p class=&quot;MsoNormal&quot;&gt;&lt;a name=&quot;disp_init&quot;&gt;&lt;/a&gt;
+ disp.init &lt;/p&gt;
+ &lt;p class=&quot;MsoNormal&quot;&gt; &lt;br&gt;
+
+Modified: trunk/doc/index_en.html
+===================================================================
+--- trunk/doc/index_en.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/index_en.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -2,11 +2,11 @@
+ &lt;html&gt;
+ 
+ &lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
+ &lt;title&gt;eLua Doc&lt;/title&gt;
+ &lt;/head&gt;
+ 
+-&lt;frameset rows=&quot;51,*&quot; frameborder=&quot;0&quot; framespacing=&quot;0&quot; bordercolor=&quot;#0B6DCE&quot;&gt;
++&lt;frameset rows=&quot;80,*&quot; frameborder=&quot;0&quot; framespacing=&quot;0&quot; bordercolor=&quot;#0B6DCE&quot;&gt;
+   &lt;frame name=&quot;wb_title&quot; scrolling=&quot;no&quot; noresize=&quot;noresize&quot; src=&quot;wb_title_en.html&quot; 
+          frameborder=&quot;0&quot; marginheight=&quot;0&quot; marginwidth=&quot;0&quot; target=&quot;wb_cont&quot;&gt;
+   &lt;frameset cols=&quot;200,*&quot; frameborder=&quot;1&quot; framespacing=&quot;4&quot; bordercolor=&quot;#0B6DCE&quot; border=&quot;4&quot;&gt;
+
+Modified: trunk/doc/index_pt.html
+===================================================================
+--- trunk/doc/index_pt.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/index_pt.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -2,11 +2,11 @@
+ &lt;html&gt;
+ 
+ &lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
+ &lt;title&gt;eLua Doc&lt;/title&gt;
+ &lt;/head&gt;
+ 
+-&lt;frameset rows=&quot;51,*&quot; frameborder=&quot;0&quot; framespacing=&quot;0&quot; bordercolor=&quot;#0B6DCE&quot;&gt;
++&lt;frameset rows=&quot;80,*&quot; frameborder=&quot;0&quot; framespacing=&quot;0&quot; bordercolor=&quot;#0B6DCE&quot;&gt;
+   &lt;frame name=&quot;wb_title&quot; scrolling=&quot;no&quot; noresize=&quot;noresize&quot; src=&quot;wb_title_pt.html&quot; 
+          frameborder=&quot;0&quot; marginheight=&quot;0&quot; marginwidth=&quot;0&quot; target=&quot;wb_cont&quot;&gt;
+   &lt;frameset cols=&quot;200,*&quot; frameborder=&quot;1&quot; framespacing=&quot;4&quot; bordercolor=&quot;#0B6DCE&quot; border=&quot;4&quot;&gt;
+
+Modified: trunk/doc/wb/template_index.html
+===================================================================
+--- trunk/doc/wb/template_index.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb/template_index.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -2,11 +2,11 @@
+ &lt;html&gt;
+ 
+ &lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
+ &lt;title&gt;WB_TITLE&lt;/title&gt;
+ &lt;/head&gt;
+ 
+-&lt;frameset rows=&quot;51,*&quot; frameborder=&quot;0&quot; framespacing=&quot;0&quot; bordercolor=&quot;#0B6DCE&quot;&gt;
++&lt;frameset rows=&quot;TITLE_BAR_HEIGHT,*&quot; frameborder=&quot;0&quot; framespacing=&quot;0&quot; bordercolor=&quot;#0B6DCE&quot;&gt;
+   &lt;frame name=&quot;wb_title&quot; scrolling=&quot;no&quot; noresize=&quot;noresize&quot; src=&quot;wb_titleWB_LNG.html&quot; 
+          frameborder=&quot;0&quot; marginheight=&quot;0&quot; marginwidth=&quot;0&quot; target=&quot;wb_cont&quot;&gt;
+   &lt;frameset cols=&quot;WB_START_SIZE,*&quot; frameborder=&quot;1&quot; framespacing=&quot;4&quot; bordercolor=&quot;#0B6DCE&quot; border=&quot;4&quot;&gt;
+
+Modified: trunk/doc/wb/template_wb_bar.html
+===================================================================
+--- trunk/doc/wb/template_wb_bar.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb/template_wb_bar.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -1,7 +1,7 @@
+ &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+ &lt;html&gt;
+ &lt;head&gt;
+-  &lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot; &gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
+   &lt;title&gt;Bar&lt;/title&gt;
+   &lt;base target=&quot;wb_cont&quot;&gt;
+   &lt;style type=&quot;text/css&quot;&gt;
+@@ -20,8 +20,10 @@
+ 
+ &lt;body style=&quot;margin: 2px; background-color: #F1F1F1&quot;&gt; 
+   &lt;div class=&quot;navigation&quot;&gt;
+-    &lt;p&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;&gt;&lt;img
+-  src=&quot;wb_img/logo.png&quot; style=&quot;border-width: 0px&quot;&gt;&lt;/a&gt;&lt;img src=&quot;wb_img/barlineleft.png&quot;&gt;&lt;img alt=&quot;WB_EXPALL_ALT&quot; src=&quot;wb_img/showall.png&quot; onclick=&quot;parent.wb_tree.showAllFolders()&quot; onmouseover=&quot;this.src='wb_img/showall_over.png'&quot; onmouseout=&quot;this.src='wb_img/showall.png'&quot;&gt;&lt;img alt=&quot;WB_CONTALL_ALT&quot; src=&quot;wb_img/hideall.png&quot; onclick=&quot;parent.wb_tree.hideAllFolders()&quot; onmouseover=&quot;this.src='wb_img/hideall_over.png'&quot; onmouseout=&quot;this.src='wb_img/hideall.png'&quot;&gt;&lt;img alt=&quot;WB_SYNC_ALT&quot; src=&quot;wb_img/sync.png&quot; onclick=&quot;parent.wb_tree.syncContents()&quot; onmouseover=&quot;this.src='wb_img/sync_over.png'&quot; onmouseout=&quot;this.src='wb_img/sync.png'&quot;&gt;&lt;img alt=&quot;WB_NEXT_ALT&quot; src=&quot;wb_img/next.png&quot; onclick=&quot;parent.wb_tree.nextContents()&quot; onmouseover=&quot;this.src='wb_img/next_over.png'&quot; onmouseout=&quot;this.src='wb_img/next.png'&quot;&gt;&lt;img alt=&quot;WB_PREV_ALT&quot; src=&quot;wb_img/previous.png&quot; onclick=&quot;parent.wb_tree.prevContents()&quot; onmouseover=&quot;this.src='wb_img/previous_over.png'&quot; onmouseout=&quot;this.src='wb_img/previous.png'&quot;&gt;WB_LNG!
+ _BUTTON&lt;/p&gt;
++    &lt;p&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;&gt;&lt;img src=&quot;wb_img/logo.png&quot; style=&quot;border-width: 0px&quot;&gt;&lt;/a&gt;
++		&lt;img src=&quot;wb_img/barlineleft.png&quot;&gt;&lt;img alt=&quot;WB_EXPALL_ALT&quot; src=&quot;wb_img/showall.png&quot; onclick=&quot;parent.wb_tree.showAllFolders()&quot; onmouseover=&quot;this.src='wb_img/showall_over.png'&quot; onmouseout=&quot;this.src='wb_img/showall.png'&quot;&gt;&lt;img alt=&quot;WB_CONTALL_ALT&quot; src=&quot;wb_img/hideall.png&quot; onclick=&quot;parent.wb_tree.hideAllFolders()&quot; onmouseover=&quot;this.src='wb_img/hideall_over.png'&quot; onmouseout=&quot;this.src='wb_img/hideall.png'&quot;&gt;&lt;img alt=&quot;WB_SYNC_ALT&quot; src=&quot;wb_img/sync.png&quot; onclick=&quot;parent.wb_tree.syncContents()&quot; onmouseover=&quot;this.src='wb_img/sync_over.png'&quot; onmouseout=&quot;this.src='wb_img/sync.png'&quot;&gt;&lt;img alt=&quot;WB_NEXT_ALT&quot; src=&quot;wb_img/next.png&quot; onclick=&quot;parent.wb_tree.nextContents()&quot; onmouseover=&quot;this.src='wb_img/next_over.png'&quot; onmouseout=&quot;this.src='wb_img/next.png'&quot;&gt;&lt;img alt=&quot;WB_PREV_ALT&quot; src=&quot;wb_img/previous.png&quot; onclick=&quot;parent.wb_tree.prevContents()&quot; onmouseover=&quot;this.src='wb_img/previous_over.png'&quot; onmouseout=&quot;this.src='wb_img/previous.png'&quot;&gt;WB_LNG_BUTTON
++
++	&lt;/p&gt;
+   &lt;/div&gt;
+ &lt;/body&gt;
+ &lt;/html&gt;
+
+Added: trunk/doc/wb/template_wb_search.html
+===================================================================
+--- trunk/doc/wb/template_wb_search.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb/template_wb_search.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -0,0 +1,11 @@
++
++ &lt;FORM method=GET action=&quot;<A HREF="http://www.google.com/search">http://www.google.com/search</A>&quot; style=&quot;margin-bottom: 0; margin: 0; text-align: center;font-size:12px;font-family:verdana;&quot;&gt;
++      &lt;input type=&quot;hidden&quot; name=&quot;ie&quot; value=&quot;UTF-8&quot; /&gt;
++      &lt;input type=&quot;hidden&quot; name=oe value=&quot;UTF-8&quot; /&gt;
++	  WB_SEARCH_LABEL
++      &lt;INPUT TYPE=&quot;text&quot; name=&quot;q&quot; size=&quot;21&quot; maxlength=&quot;255&quot; value=&quot;&quot; /&gt;
++      &lt;INPUT type=&quot;submit&quot; name=&quot;btnG&quot; VALUE=&quot;Search&quot; style=&quot;height: 21px; vertical-align: top; font-size: x-small;&quot; /&gt;
++      &lt;input type=&quot;hidden&quot; name=&quot;domains&quot; value=&quot;WB_SEARCH_LINK&quot; /&gt;
++      &lt;input type=&quot;hidden&quot; name=&quot;sitesearch&quot; value=&quot;WB_SEARCH_LINK&quot; /&gt;
++  &lt;/FORM&gt;
++  
+
+Modified: trunk/doc/wb/template_wb_title.html
+===================================================================
+--- trunk/doc/wb/template_wb_title.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb/template_wb_title.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -1,6 +1,7 @@
+ &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+ &lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
++
+ &lt;title&gt;Title&lt;/title&gt;
+ &lt;base target=&quot;wb_cont&quot;&gt;
+ &lt;style type=&quot;text/css&quot;&gt;
+@@ -15,7 +16,7 @@
+ td.contact {
+   text-align: center;
+   vertical-align: middle;
+-  width: 11em;
++  /*width: 11em;*/
+ }
+ a.contact {
+   font-family: Arial, Helvetica, sans-serif;
+@@ -32,29 +33,22 @@
+ 
+ &lt;body style=&quot;background-color: WB_TITLE_BGCOLOR; margin-left: 3px; margin-right: 3px; margin-top: 2px; margin-bottom: 0; background-image: url('wb_img/title_background.png');&quot;&gt;
+ 
+-&lt;table style=&quot;width: 100%&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
++&lt;table border=&quot;0&quot; style=&quot;width: 100%;&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+   &lt;tr&gt;
+-    &lt;td style=&quot;width: 50px;&quot;&gt;&lt;img src=&quot;logo.gif&quot;&gt;&lt;/td&gt;
+-    &lt;td class=&quot;title&quot;&gt;WB_BAR_TITLE&lt;/td&gt;
+-    &lt;td style=&quot;width: 3.5em&quot;&gt;
++    &lt;td valign=&quot;center&quot; style=&quot;width: 30px;padding:0px 10px 0px 0px;&quot;&gt;
++		WB_LOGO
++	&lt;/td&gt;
++    &lt;td valign=&quot;center&quot; class=&quot;title&quot;&gt;WB_BAR_TITLE&lt;/td&gt;
++    &lt;!--td style=&quot;width: 3.5em&quot;&gt;
+      &lt;a class=&quot;contact&quot; href=&quot;ssSearchWB_LNG.html&quot;&gt;SimpleSearch&lt;/a&gt;
+-     &lt;/td&gt;
+-    &lt;td style=&quot;width: 11em&quot;&gt;
+-      &lt;FORM method=GET action=&quot;<A HREF="http://www.google.com/search">http://www.google.com/search</A>&quot; style=&quot;margin-bottom: 0; margin: 0; text-align: center; &quot;&gt;
+-      &lt;input type=hidden name=ie value=UTF-8&gt;
+-      &lt;input type=hidden name=oe value=UTF-8&gt;
+-      &lt;INPUT TYPE=text name=q size=21 maxlength=255 value=&quot;&quot;&gt;&lt;br&gt;
+-      &lt;A HREF=&quot;<A HREF="http://www.google.com/">http://www.google.com/</A>&quot;&gt;&lt;IMG SRC=&quot;wb_img/google.gif&quot; border=&quot;0&quot; ALT=&quot;Google&quot;&gt;&lt;/A&gt;
+-      &lt;INPUT type=submit name=btnG VALUE=&quot;Search&quot; style=&quot;height: 21px; vertical-align: top; font-size: x-small;&quot;&gt;
+-      &lt;input type=hidden name=domains value=&quot;WB_SEARCH_LINK&quot;&gt;
+-      &lt;input type=hidden name=sitesearch value=&quot;WB_SEARCH_LINK&quot; checked&gt;
+-      &lt;input type=hidden name=sitesearch value=&quot;&quot;&gt;
+-      &lt;/FORM&gt;
++     &lt;/td--&gt;
++    &lt;td style=&quot;width: 280px&quot; &gt;
++	  WB_SEARCH_FORM
+     &lt;/td&gt;
+     &lt;td class=&quot;contact&quot;&gt;
+-     &lt;a class=&quot;contact&quot; target=&quot;_blank&quot; href=&quot;WB_COPYRIGHT_LINK&quot;&gt;&#169; WB_COPYRIGHT_NAME&lt;/a&gt;
+-     &lt;br&gt;
+-     &lt;a class=&quot;contact&quot; href=&quot;mailto:WB_CONTACT&quot;&gt;(WB_CONTACT)&lt;/a&gt;
++    	WB_COPYRIGHT
++     	&lt;br&gt;
++	    WB_CONTACT
+      &lt;/td&gt;
+   &lt;/tr&gt;
+ &lt;/table&gt;
+
+Modified: trunk/doc/wb/template_wb_tree.html
+===================================================================
+--- trunk/doc/wb/template_wb_tree.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb/template_wb_tree.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -1,7 +1,7 @@
+ &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+ &lt;html&gt;
+ &lt;head&gt;
+-  &lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot; &gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
+   &lt;title&gt;Tree&lt;/title&gt;
+   &lt;base target=&quot;wb_cont&quot;&gt;
+   &lt;style type=&quot;text/css&quot;&gt;
+
+Modified: trunk/doc/wb/wb_build.lua
+===================================================================
+--- trunk/doc/wb/wb_build.lua	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb/wb_build.lua	2009-02-16 17:15:17 UTC (rev 194)
+@@ -1,364 +1,392 @@
+-
+-dofile(&quot;wb_usr.lua&quot;)
+-
+-lngCount = nil
+-lngSuffix = nil
+-lngIndex = nil
+-lngNext = nil
+-linkCount = 1
+-
+-function readFile(filename)
+-  local file = io.open(filename)
+-  local text = file:read(&quot;*a&quot;)
+-  file:close()
+-  return text
+-end
+-
+-function writeFile(filename, text)
+-  local file = io.open(filename, &quot;w&quot;)
+-  file:write(text)
+-  file:close()
+-end
+-
+--- #####################################################################
+-
+-htmlFiles = {}
+-
+-function addHtmlFile(v)
+-  if v then
+-    -- only up to &quot;#&quot;
+-    local j = string.find(v, &quot;#&quot;)
+-    if j then
+-      f = string.sub(v, 0, j-1)
+-    else
+-      f = v
+-    end
+-  
+-    htmlFiles[f] = f
+-  end
+-end
+-
+--- #####################################################################
+-
+-function writeIndexFile()
+-  print(&quot;Writing \&quot;../index&quot;..lngSuffix..&quot;.html\&quot;.&quot;)
+-  
+-  local wb_index = readFile(&quot;template_index.html&quot;)
+-  
+-  wb_index = string.gsub(wb_index, &quot;WB_TITLE&quot;, wb_usr.messages[lngIndex].title)
+-  wb_index = string.gsub(wb_index, &quot;WB_START_SIZE&quot;, wb_usr.start_size)
+-  wb_index = string.gsub(wb_index, &quot;WB_START_PAGE&quot;, lngIndex..&quot;/&quot;..wb_usr.tree.link)
+-  if (lngCount &gt; 1) then
+-    wb_index = string.gsub(wb_index, &quot;WB_LNG&quot;, lngSuffix)
+-  else
+-    wb_index = string.gsub(wb_index, &quot;WB_LNG&quot;, &quot;&quot;)
+-  end
+-  
+-  writeFile(&quot;../index&quot;..lngSuffix..&quot;.html&quot;, wb_index)
+-end
+-
+--- #####################################################################
+-
+-function writeTitleFile()
+-  print(&quot;Writing \&quot;../wb_title&quot;..lngSuffix..&quot;.html\&quot;.&quot;)
+-  
+-  local wb_title = readFile(&quot;template_wb_title.html&quot;)
+-  
+-  wb_title = string.gsub(wb_title, &quot;WB_BAR_TITLE&quot;, wb_usr.messages[lngIndex].bar_title)
+-  wb_title = string.gsub(wb_title, &quot;WB_TITLE_BGCOLOR&quot;, wb_usr.title_bgcolor)
+-  wb_title = string.gsub(wb_title, &quot;WB_SEARCH_LINK&quot;, wb_usr.search_link)
+-  wb_title = string.gsub(wb_title, &quot;WB_COPYRIGHT_LINK&quot;, wb_usr.copyright_link)
+-  wb_title = string.gsub(wb_title, &quot;WB_COPYRIGHT_NAME&quot;, wb_usr.copyright_name)
+-  wb_title = string.gsub(wb_title, &quot;WB_CONTACT&quot;, wb_usr.contact)
+-  
+-  if (lngCount &gt; 1) then
+-    wb_title = string.gsub(wb_title, &quot;WB_LNG&quot;, lngSuffix)
+-  else
+-    wb_title = string.gsub(wb_title, &quot;WB_LNG&quot;, &quot;&quot;)
+-  end
+-  
+-  writeFile(&quot;../wb_title&quot;..lngSuffix..&quot;.html&quot;, wb_title)
+-end
+-
+--- #####################################################################
+-
+-function writeIndent(file, level)
+-  -- base identation             
+-  file:write(&quot;    &quot;)       
+-  
+-  for i = 1, level*2, 1 do
+-    file:write(&quot; &quot;)
+-  end
+-end
+-
+-function getNodeName(node)
+-  local name = nil
+-  if (node.name[lngIndex]) then
+-    name = node.name[lngIndex]
+-  else
+-    name = node.name[&quot;nl&quot;]
+-  end
+-
+-  if not name then 
+-    error(&quot;Name not found.&quot;)
+-  end
+-  
+-  return name
+-end
+-
+-function writeNode(file, node, opened, level, folder_index, folder_suffix, node_suffix, child_prefix)
+-  if (node.folder) then -- folder
+-    -- box image
+-    writeIndent(file, level)
+-    file:write(&quot;&lt;p&gt;&quot;)
+-    
+-    folder_suffix = folder_suffix .. &quot;.&quot; .. folder_index
+-                                         
+-    file:write(child_prefix..&quot;&lt;img name=\&quot;imgfolder&quot;..folder_suffix..&quot;\&quot; &quot;)
+-      
+-    if (opened) then
+-      file:write(&quot;src=\&quot;wb_img/minusnode&quot;..node_suffix..&quot;.png\&quot; &quot;)
+-    else
+-      file:write(&quot;src=\&quot;wb_img/plusnode&quot;..node_suffix..&quot;.png\&quot; &quot;)
+-    end
+-    
+-    file:write(&quot;onclick=\&quot;toggleFolder('folder&quot;..folder_suffix..&quot;')\&quot;&gt;&quot;)
+-    
+-    if (node.link) then
+-      file:write(&quot;&lt;a name=\&quot;link&quot;..linkCount..&quot;folder&quot;..folder_suffix..&quot;\&quot; class=\&quot;el\&quot; href=\&quot;&quot;..lngIndex..&quot;/&quot;..node.link..&quot;\&quot;&gt;&quot;..getNodeName(node)..&quot;&lt;/a&gt;&quot;)
+-      addHtmlFile(node.link)
+-      linkCount = linkCount + 1
+-    else
+-      file:write(&quot;  &quot;..getNodeName(node))
+-    end
+-    
+-    file:write(&quot;&lt;/p&gt;\n&quot;)
+-                
+-    -- folder div            
+-    writeIndent(file, level)
+-    if (opened) then
+-      file:write(&quot;&lt;div id=\&quot;folder&quot;..folder_suffix..&quot;\&quot; style=\&quot;display:block\&quot;&gt;\n&quot;)
+-    else
+-      file:write(&quot;&lt;div id=\&quot;folder&quot;..folder_suffix..&quot;\&quot;&gt;\n&quot;)
+-    end
+-  
+-    local n = #(node.folder)
+-    local next_folder_index = 0
+-    local next_node_suffix = &quot;&quot;
+-    local next_child_prefix = &quot;&lt;img src=\&quot;wb_img/vertline.png\&quot;&gt;&quot;
+-    if (node_suffix == &quot;last&quot;) then
+-      next_child_prefix = &quot;&lt;img src=\&quot;wb_img/blank.png\&quot;&gt;&quot;
+-    end
+-    for i = 1, n, 1 do
+-      if (i == n) then
+-        next_node_suffix = &quot;last&quot;
+-      end
+-      if (node.folder[i].folder) then
+-        next_folder_index = next_folder_index + 1
+-      end
+-      writeNode(file, node.folder[i], false, level+1, next_folder_index, folder_suffix, next_node_suffix, child_prefix..next_child_prefix)
+-    end
+-      
+-    writeIndent(file, level)
+-    file:write(&quot;&lt;/div&gt;\n&quot;)
+-  else -- leaf
+-    if (node.link and node.link ~= &quot;&quot;) then  -- normal leaf
+-      writeIndent(file, level)
+-      file:write(&quot;&lt;p&gt;&quot;..child_prefix..&quot;&lt;img src=\&quot;wb_img/node&quot;..node_suffix..&quot;.png\&quot;&gt;&lt;a class=\&quot;el\&quot; name=\&quot;link&quot;..linkCount..&quot;folder&quot;..folder_suffix..&quot;\&quot; href=\&quot;&quot;..lngIndex..&quot;/&quot;..node.link..&quot;\&quot;&gt;&quot;..getNodeName(node)..&quot;&lt;/a&gt;&lt;/p&gt;\n&quot;)
+-      addHtmlFile(node.link)
+-      linkCount = linkCount + 1
+-    else  -- separator leaf
+-      writeIndent(file, level)
+-      file:write(&quot;&lt;p class=\&quot;sep\&quot;&gt;&quot;)
+-      
+-      local sep_child_prefix = string.gsub(child_prefix, &quot;/vertline&quot;, &quot;/sepvertline&quot;)
+-      sep_child_prefix = string.gsub(sep_child_prefix, &quot;/blank&quot;, &quot;/sepblank&quot;)
+-      
+-      file:write(sep_child_prefix..&quot;&lt;img src=\&quot;wb_img/sepnode.png\&quot;&gt;&lt;/p&gt;\n&quot;)
+-    end
+-  end  
+-end
+-
+-function writeTree(file)
+-  -- root node              
+-  file:write(&quot;    &lt;h3&gt;&lt;a name=\&quot;link0folder.0\&quot; class=\&quot;el\&quot; href=\&quot;&quot;..lngIndex..&quot;/&quot;..wb_usr.tree.link..&quot;\&quot;&gt;&quot;..getNodeName(wb_usr.tree)..&quot;&lt;/a&gt;&lt;/h3&gt;\n&quot;)
+-  addHtmlFile(wb_usr.tree.link)
+-                       
+-  local folder = wb_usr.tree.folder                     
+-  local n = #folder
+-  local node_suffix = &quot;&quot; 
+-  local folder_index = 0
+-  for i = 1, n, 1 do
+-    if (i == n) then
+-      node_suffix = &quot;last&quot;
+-    end                        
+-    if (folder[i].folder) then
+-      folder_index = folder_index + 1
+-    end
+-    if (i == 1 and wb_usr.start_open) then
+-      writeNode(file, folder[i], true, 1, folder_index, &quot;&quot;, node_suffix, &quot;&quot;)
+-    else
+-      writeNode(file, folder[i], false, 1, folder_index, &quot;&quot;, node_suffix, &quot;&quot;)
+-    end
+-  end
+-end
+-
+-function writeTreeFile()
+-  print(&quot;Writing \&quot;../wb_tree&quot;..lngSuffix..&quot;.html\&quot;.&quot;)
+-  
+-  local file = io.open(&quot;../wb_tree&quot;..lngSuffix..&quot;.html&quot;, &quot;w&quot;)
+-   
+-  -- Write Header 
+-  local wb_tree = readFile(&quot;template_wb_tree.html&quot;)
+-  file:write(wb_tree)
+-                   
+-  -- Write Tree Nodes and Leafs
+-  writeTree(file)
+-                               
+-  -- Write Footer                             
+-  file:write(&quot;  &lt;/div&gt;\n&quot;)
+-  file:write(&quot;&lt;/body&gt;\n&quot;)
+-  file:write(&quot;&lt;/html&gt;\n&quot;)
+-  
+-  file:close()
+-end
+-              
+--- #####################################################################
+-
+-lngMessages =
+-{               
+-  search= {
+-    en= &quot;Simple Search&quot;,
+-    pt= &quot;Busca Simples&quot;, 
+-    es= &quot;Busca Simples&quot;,
+-  },
+-  exp_all= {
+-    en= &quot;Expand All Nodes&quot;,
+-    pt= &quot;Expande Todos os N&#243;s&quot;, 
+-    es= &quot;Ensanchar Todos Nodos&quot;,
+-  },
+-  cont_all= {
+-    en= &quot;Contract All Nodes&quot;,
+-    pt= &quot;Contrai Todos os N&#243;s&quot;,
+-    es= &quot;Contrato Todos Nodos&quot;,
+-  },
+-  sync= {
+-    en= &quot;Sync Tree with Contents&quot;,
+-    pt= &quot;Sincroniza &#193;rvore com Conte&#250;do&quot;,
+-    es= &quot;Sincroniza &#193;rbol con el Contenido&quot;,
+-  },
+-  lang= {
+-    en= &quot;Switch Language&quot;,
+-    pt= &quot;Troca Idioma&quot;,
+-    es= &quot;Cambie Idioma&quot;,
+-  },
+-  next= {
+-    en= &quot;Next Link&quot;,
+-    pt= &quot;Pr&#243;ximo Link&quot;,
+-    es= &quot;Pr&#243;ximo Link&quot;,
+-  },
+-  prev= {
+-    en= &quot;Previous Link&quot;,
+-    pt= &quot;Link Anterior&quot;,
+-    es= &quot;Link Anterior&quot;,
+-  },
+-} 
+-
+-function writeBarFile()
+-  print(&quot;Writing \&quot;../wb_bar&quot;..lngSuffix..&quot;.html\&quot;.&quot;)
+-  
+-  local file = io.open(&quot;../wb_bar&quot;..lngSuffix..&quot;.html&quot;, &quot;w&quot;)
+-   
+-  local wb_bar = readFile(&quot;template_wb_bar.html&quot;)
+-  
+-  wb_bar = string.gsub(wb_bar, &quot;WB_EXPALL_ALT&quot;, lngMessages.exp_all[lngIndex])
+-  wb_bar = string.gsub(wb_bar, &quot;WB_CONTALL_ALT&quot;, lngMessages.cont_all[lngIndex])
+-  wb_bar = string.gsub(wb_bar, &quot;WB_SYNC_ALT&quot;, lngMessages.sync[lngIndex])
+-  wb_bar = string.gsub(wb_bar, &quot;WB_NEXT_ALT&quot;, lngMessages.next[lngIndex])
+-  wb_bar = string.gsub(wb_bar, &quot;WB_PREV_ALT&quot;, lngMessages.prev[lngIndex])
+-  
+-  if (lngCount &gt; 1) then                
+-    local lng_button = &quot;&lt;img src=\&quot;wb_img/barlineright.png\&quot;&gt;&quot;
+-    lng_button = lng_button .. &quot;&lt;a target=\&quot;_top\&quot; href=\&quot;index_&quot;..lngNext..&quot;.html\&quot;&gt;&lt;img alt=\&quot;&quot;..lngMessages.lang[lngIndex]..&quot;\&quot; src=\&quot;wb_img/lng&quot;..lngSuffix..&quot;.png\&quot; onmouseover=\&quot;this.src='wb_img/lng&quot;..lngSuffix..&quot;_over.png'\&quot; onmouseout=\&quot;this.src='wb_img/lng&quot;..lngSuffix..&quot;.png'\&quot; style=\&quot;border-width: 0px\&quot;&gt;&lt;/a&gt;&quot;
+-    wb_bar = string.gsub(wb_bar, &quot;WB_LNG_BUTTON&quot;, lng_button)
+-  else
+-    wb_bar = string.gsub(wb_bar, &quot;WB_LNG_BUTTON&quot;, &quot;&quot;)
+-  end
+-  
+-  file:write(wb_bar)
+-  file:close()
+-end
+-
+--- #####################################################################
+-
+-function writeSearchFile()
+-  print(&quot;Writing \&quot;../ssSearch&quot;..lngSuffix..&quot;.html\&quot;.&quot;)
+-  
+-  local file = io.open(&quot;../ssSearch&quot;..lngSuffix..&quot;.html&quot;, &quot;w&quot;)
+-   
+-  local wb_search = readFile(&quot;template_ssSearch.html&quot;)
+-  
+-  wb_search = string.gsub(wb_search, &quot;WB_SEARCH&quot;, lngMessages.search[lngIndex])
+-  
+-  if (lngCount &gt; 1) then                
+-    wb_search = string.gsub(wb_search, &quot;WB_LNG&quot;, lngSuffix)
+-  else
+-    wb_search = string.gsub(wb_search, &quot;WB_LNG&quot;, &quot;&quot;)
+-  end
+-  
+-  file:write(wb_search)
+-  file:close()
+-end
+-              
+-function writeSearchIndexFile()
+-  print(&quot;Writing \&quot;../wb_search&quot;..lngSuffix..&quot;.txt\&quot;.&quot;)
+-  
+-  local file = io.open(&quot;../wb_search&quot;..lngSuffix..&quot;.txt&quot;, &quot;w&quot;)
+-  
+-  local v = next(htmlFiles, nil)
+-  while v ~= nil do
+-    file:write(lngIndex..&quot;/&quot;..v..&quot;\n&quot;)
+-    v = next(htmlFiles, v)
+-  end
+-  
+-  file:close()
+-end
+-              
+--- #####################################################################
+-
+-lngCount = 0
+-local first_name = nil
+-local prev_elem = nil
+-for name, elem in pairs(wb_usr.messages) do 
+-  if (lngCount == 0) then
+-    first_name = name
+-  end
+-  lngCount = lngCount + 1
+-  if (prev_elem) then
+-    prev_elem.next = name
+-  end
+-  prev_elem = elem
+-end
+-prev_elem.next = first_name
+-  
+-print(&quot;Building...&quot;)
+-
+-for name, elem in pairs(wb_usr.messages) do 
+-  lngIndex = name
+-  lngNext = elem.next
+-  
+-  if (lngCount &gt; 1) then
+-    lngSuffix = &quot;_&quot;..lngIndex
+-  else
+-    lngSuffix = &quot;&quot;
+-  end
+-  
+-  writeIndexFile()
+-  writeTitleFile()
+-  writeBarFile()
+-  writeTreeFile()
+-  writeSearchFile()            
+-  writeSearchIndexFile()
+-end
+-
+-print(&quot;Done.&quot;)
++
++dofile(&quot;wb_usr.lua&quot;)
++
++lngCount = nil
++lngSuffix = nil
++lngIndex = nil
++lngNext = nil
++linkCount = 1
++
++function readFile(filename)
++  local file = io.open(filename)
++  local text = file:read(&quot;*a&quot;)
++  file:close()
++  return text
++end
++
++function writeFile(filename, text)
++  local file = io.open(filename, &quot;w&quot;)
++  file:write(text)
++  file:close()
++end
++
++-- #####################################################################
++
++htmlFiles = {}
++
++function addHtmlFile(v)
++  if v then
++    -- only up to &quot;#&quot;
++    local j = string.find(v, &quot;#&quot;)
++    if j then
++      f = string.sub(v, 0, j-1)
++    else
++      f = v
++    end
++  
++    htmlFiles[f] = f
++  end
++end
++
++-- #####################################################################
++function loadSearch()
++  local searchHTML = readFile(&quot;template_wb_search.html&quot;)
++ 
++  if(wb_usr.enable_search == true)then
++    searchHTML = string.gsub(searchHTML, &quot;WB_SEARCH_LABEL&quot;, wb_usr.search_label or &quot;&quot;)
++	searchHTML = string.gsub(searchHTML, &quot;WB_SEARCH_LINK&quot;, wb_usr.search_link)
++  else
++   searchHTML = &quot;&quot;
++  end
++  return searchHTML
++end
++
++function writeIndexFile()
++  print(&quot;Writing \&quot;../index&quot;..lngSuffix..&quot;.html\&quot;.&quot;)
++  
++  local wb_index = readFile(&quot;template_index.html&quot;)
++  
++  wb_index = string.gsub(wb_index, &quot;WB_TITLE&quot;, wb_usr.messages[lngIndex].title)
++  wb_index = string.gsub(wb_index, &quot;TITLE_BAR_HEIGHT&quot;, wb_usr.title_bar_height or 51)
++  wb_index = string.gsub(wb_index, &quot;WB_START_SIZE&quot;, wb_usr.start_size)
++  wb_index = string.gsub(wb_index, &quot;WB_START_PAGE&quot;, lngIndex..&quot;/&quot;..wb_usr.tree.link)
++  if (lngCount &gt; 1) then
++    wb_index = string.gsub(wb_index, &quot;WB_LNG&quot;, lngSuffix)
++  else
++    wb_index = string.gsub(wb_index, &quot;WB_LNG&quot;, &quot;&quot;)
++  end
++  
++  writeFile(&quot;../index&quot;..lngSuffix..&quot;.html&quot;, wb_index)
++end
++
++-- #####################################################################
++
++function writeTitleFile()
++  print(&quot;Writing \&quot;../wb_title&quot;..lngSuffix..&quot;.html\&quot;.&quot;)
++  
++  local wb_title = readFile(&quot;template_wb_title.html&quot;)
++  if(wb_usr.logo_image_file ~= nil and wb_usr.logo_image_file ~= &quot;&quot;)then
++    wb_title = string.gsub(wb_title, &quot;WB_LOGO&quot;, [[&lt;img src=&quot;wb_img/]]..wb_usr.logo_image_file..[[&quot; border=&quot;0&quot;&gt;]])
++  else
++  	wb_title = string.gsub(wb_title, &quot;WB_LOGO&quot;,&quot;&quot;)
++  end
++
++  wb_title = string.gsub(wb_title, &quot;WB_BAR_TITLE&quot;, wb_usr.messages[lngIndex].bar_title)
++  wb_title = string.gsub(wb_title, &quot;WB_TITLE_BGCOLOR&quot;, wb_usr.title_bgcolor)
++  wb_title = string.gsub(wb_title, &quot;WB_SEARCH_FORM&quot;,loadSearch())
++  
++  local copyrightHTML = &quot;&quot;
++  if (wb_usr.copyright_link ~= nil and wb_usr.copyright_name ~= nil and wb_usr.copyright_link ~= &quot;&quot; and wb_usr.copyright_name ~= &quot;&quot;)then
++	copyrightHTML = [[&lt;a class=&quot;contact&quot; target=&quot;_blank&quot; href=&quot;WB_COPYRIGHT_LINK&quot;&gt;&#194;&#169; WB_COPYRIGHT_NAME&lt;/a&gt;]]
++	copyrightHTML = string.gsub(copyrightHTML, &quot;WB_COPYRIGHT_LINK&quot;, wb_usr.copyright_link)
++    copyrightHTML = string.gsub(copyrightHTML, &quot;WB_COPYRIGHT_NAME&quot;, wb_usr.copyright_name)
++  end
++  wb_title = string.gsub(wb_title, &quot;WB_COPYRIGHT&quot;, copyrightHTML)
++  
++  local contactHTML = &quot;&quot;
++  if wb_usr.contact ~= nil and wb_usr.contact ~= &quot;&quot; then
++	contactHTML = string.gsub([[&lt;a class=&quot;contact&quot; href=&quot;mailto:WB_CONTACT&quot;&gt;(WB_CONTACT)&lt;/a&gt;]], &quot;WB_CONTACT&quot;, wb_usr.contact)  
++  end
++  wb_title = string.gsub(wb_title, &quot;WB_CONTACT&quot;, contactHTML)
++  
++  if (lngCount &gt; 1) then
++    wb_title = string.gsub(wb_title, &quot;WB_LNG&quot;, lngSuffix)
++  else
++    wb_title = string.gsub(wb_title, &quot;WB_LNG&quot;, &quot;&quot;)
++  end
++  
++  writeFile(&quot;../wb_title&quot;..lngSuffix..&quot;.html&quot;, wb_title)
++end
++
++-- #####################################################################
++
++function writeIndent(file, level)
++  -- base identation             
++  file:write(&quot;    &quot;)       
++  
++  for i = 1, level*2, 1 do
++    file:write(&quot; &quot;)
++  end
++end
++
++function getNodeName(node)
++  local name = nil
++  if (node.name[lngIndex]) then
++    name = node.name[lngIndex]
++  else
++    name = node.name[&quot;nl&quot;]
++  end
++
++  if not name then 
++    error(&quot;Name not found.&quot;)
++  end
++  
++  return name
++end
++
++function writeNode(file, node, opened, level, folder_index, folder_suffix, node_suffix, child_prefix)
++  if (node.folder) then -- folder
++    -- box image
++    writeIndent(file, level)
++    file:write(&quot;&lt;p&gt;&quot;)
++    
++    folder_suffix = folder_suffix .. &quot;.&quot; .. folder_index
++                                         
++    file:write(child_prefix..&quot;&lt;img name=\&quot;imgfolder&quot;..folder_suffix..&quot;\&quot; &quot;)
++      
++    if (opened) then
++      file:write(&quot;src=\&quot;wb_img/minusnode&quot;..node_suffix..&quot;.png\&quot; &quot;)
++    else
++      file:write(&quot;src=\&quot;wb_img/plusnode&quot;..node_suffix..&quot;.png\&quot; &quot;)
++    end
++    
++    file:write(&quot;onclick=\&quot;toggleFolder('folder&quot;..folder_suffix..&quot;')\&quot;&gt;&quot;)
++    
++    if (node.link) then
++      file:write(&quot;&lt;a name=\&quot;link&quot;..linkCount..&quot;folder&quot;..folder_suffix..&quot;\&quot; class=\&quot;el\&quot; href=\&quot;&quot;..lngIndex..&quot;/&quot;..node.link..&quot;\&quot;&gt;&quot;..getNodeName(node)..&quot;&lt;/a&gt;&quot;)
++      addHtmlFile(node.link)
++      linkCount = linkCount + 1
++    else
++      file:write(&quot;  &quot;..getNodeName(node))
++    end
++    
++    file:write(&quot;&lt;/p&gt;\n&quot;)
++                
++    -- folder div            
++    writeIndent(file, level)
++    if (opened) then
++      file:write(&quot;&lt;div id=\&quot;folder&quot;..folder_suffix..&quot;\&quot; style=\&quot;display:block\&quot;&gt;\n&quot;)
++    else
++      file:write(&quot;&lt;div id=\&quot;folder&quot;..folder_suffix..&quot;\&quot;&gt;\n&quot;)
++    end
++  
++    local n = #(node.folder)
++    local next_folder_index = 0
++    local next_node_suffix = &quot;&quot;
++    local next_child_prefix = &quot;&lt;img src=\&quot;wb_img/vertline.png\&quot;&gt;&quot;
++    if (node_suffix == &quot;last&quot;) then
++      next_child_prefix = &quot;&lt;img src=\&quot;wb_img/blank.png\&quot;&gt;&quot;
++    end
++    for i = 1, n, 1 do
++      if (i == n) then
++        next_node_suffix = &quot;last&quot;
++      end
++      if (node.folder[i].folder) then
++        next_folder_index = next_folder_index + 1
++      end
++      writeNode(file, node.folder[i], false, level+1, next_folder_index, folder_suffix, next_node_suffix, child_prefix..next_child_prefix)
++    end
++      
++    writeIndent(file, level)
++    file:write(&quot;&lt;/div&gt;\n&quot;)
++  else -- leaf
++    if (node.link and node.link ~= &quot;&quot;) then  -- normal leaf
++      writeIndent(file, level)
++      file:write(&quot;&lt;p&gt;&quot;..child_prefix..&quot;&lt;img src=\&quot;wb_img/node&quot;..node_suffix..&quot;.png\&quot;&gt;&lt;a class=\&quot;el\&quot; name=\&quot;link&quot;..linkCount..&quot;folder&quot;..folder_suffix..&quot;\&quot; href=\&quot;&quot;..lngIndex..&quot;/&quot;..node.link..&quot;\&quot;&gt;&quot;..getNodeName(node)..&quot;&lt;/a&gt;&lt;/p&gt;\n&quot;)
++      addHtmlFile(node.link)
++      linkCount = linkCount + 1
++    else  -- separator leaf
++      writeIndent(file, level)
++      file:write(&quot;&lt;p class=\&quot;sep\&quot;&gt;&quot;)
++      
++      local sep_child_prefix = string.gsub(child_prefix, &quot;/vertline&quot;, &quot;/sepvertline&quot;)
++      sep_child_prefix = string.gsub(sep_child_prefix, &quot;/blank&quot;, &quot;/sepblank&quot;)
++      
++      file:write(sep_child_prefix..&quot;&lt;img src=\&quot;wb_img/sepnode.png\&quot;&gt;&lt;/p&gt;\n&quot;)
++    end
++  end  
++end
++
++function writeTree(file)
++  -- root node              
++  file:write(&quot;    &lt;h3&gt;&lt;a name=\&quot;link0folder.0\&quot; class=\&quot;el\&quot; href=\&quot;&quot;..lngIndex..&quot;/&quot;..wb_usr.tree.link..&quot;\&quot;&gt;&quot;..getNodeName(wb_usr.tree)..&quot;&lt;/a&gt;&lt;/h3&gt;\n&quot;)
++  addHtmlFile(wb_usr.tree.link)
++                       
++  local folder = wb_usr.tree.folder                     
++  local n = #folder
++  local node_suffix = &quot;&quot; 
++  local folder_index = 0
++  for i = 1, n, 1 do
++    if (i == n) then
++      node_suffix = &quot;last&quot;
++    end                        
++    if (folder[i].folder) then
++      folder_index = folder_index + 1
++    end
++    if (i == 1 and wb_usr.start_open) then
++      writeNode(file, folder[i], true, 1, folder_index, &quot;&quot;, node_suffix, &quot;&quot;)
++    else
++      writeNode(file, folder[i], false, 1, folder_index, &quot;&quot;, node_suffix, &quot;&quot;)
++    end
++  end
++end
++
++function writeTreeFile()
++  print(&quot;Writing \&quot;../wb_tree&quot;..lngSuffix..&quot;.html\&quot;.&quot;)
++  
++  local file = io.open(&quot;../wb_tree&quot;..lngSuffix..&quot;.html&quot;, &quot;w&quot;)
++   
++  -- Write Header 
++  local wb_tree = readFile(&quot;template_wb_tree.html&quot;)
++  file:write(wb_tree)
++                   
++  -- Write Tree Nodes and Leafs
++  writeTree(file)
++                               
++  -- Write Footer                             
++  file:write(&quot;  &lt;/div&gt;\n&quot;)
++  file:write(&quot;&lt;/body&gt;\n&quot;)
++  file:write(&quot;&lt;/html&gt;\n&quot;)
++  
++  file:close()
++end
++              
++-- #####################################################################
++
++lngMessages =
++{               
++  search= {
++    en= &quot;Simple Search&quot;,
++    pt= &quot;Busca Simples&quot;, 
++    es= &quot;Busca Simples&quot;,
++  },
++  exp_all= {
++    en= &quot;Expand All Nodes&quot;,
++    pt= &quot;Expande Todos os N&#195;&#179;s&quot;, 
++    es= &quot;Ensanchar Todos Nodos&quot;,
++  },
++  cont_all= {
++    en= &quot;Contract All Nodes&quot;,
++    pt= &quot;Contrai Todos os N&#195;&#179;s&quot;,
++    es= &quot;Contrato Todos Nodos&quot;,
++  },
++  sync= {
++    en= &quot;Sync Tree with Contents&quot;,
++    pt= &quot;Sincroniza &#195;&#129;rvore com Conte&#195;&#186;do&quot;,
++    es= &quot;Sincroniza &#195;&#129;rbol con el Contenido&quot;,
++  },
++  lang= {
++    en= &quot;Switch Language&quot;,
++    pt= &quot;Troca Idioma&quot;,
++    es= &quot;Cambie Idioma&quot;,
++  },
++  next= {
++    en= &quot;Next Link&quot;,
++    pt= &quot;Pr&#195;&#179;ximo Link&quot;,
++    es= &quot;Pr&#195;&#179;ximo Link&quot;,
++  },
++  prev= {
++    en= &quot;Previous Link&quot;,
++    pt= &quot;Link Anterior&quot;,
++    es= &quot;Link Anterior&quot;,
++  },
++} 
++
++function writeBarFile()
++  print(&quot;Writing \&quot;../wb_bar&quot;..lngSuffix..&quot;.html\&quot;.&quot;)
++  
++  local file = io.open(&quot;../wb_bar&quot;..lngSuffix..&quot;.html&quot;, &quot;w&quot;)
++   
++  local wb_bar = readFile(&quot;template_wb_bar.html&quot;)
++  
++  wb_bar = string.gsub(wb_bar, &quot;WB_EXPALL_ALT&quot;, lngMessages.exp_all[lngIndex])
++  wb_bar = string.gsub(wb_bar, &quot;WB_CONTALL_ALT&quot;, lngMessages.cont_all[lngIndex])
++  wb_bar = string.gsub(wb_bar, &quot;WB_SYNC_ALT&quot;, lngMessages.sync[lngIndex])
++  wb_bar = string.gsub(wb_bar, &quot;WB_NEXT_ALT&quot;, lngMessages.next[lngIndex])
++  wb_bar = string.gsub(wb_bar, &quot;WB_PREV_ALT&quot;, lngMessages.prev[lngIndex])
++  
++  if (lngCount &gt; 1) then                
++    local lng_button = &quot;&lt;img src=\&quot;wb_img/barlineright.png\&quot;&gt;&quot;
++    lng_button = lng_button .. &quot;&lt;a target=\&quot;_top\&quot; href=\&quot;index_&quot;..lngNext..&quot;.html\&quot;&gt;&lt;img alt=\&quot;&quot;..lngMessages.lang[lngIndex]..&quot;\&quot; src=\&quot;wb_img/lng&quot;..lngSuffix..&quot;.png\&quot; onmouseover=\&quot;this.src='wb_img/lng&quot;..lngSuffix..&quot;_over.png'\&quot; onmouseout=\&quot;this.src='wb_img/lng&quot;..lngSuffix..&quot;.png'\&quot; style=\&quot;border-width: 0px\&quot;&gt;&lt;/a&gt;&quot;
++    wb_bar = string.gsub(wb_bar, &quot;WB_LNG_BUTTON&quot;, lng_button)
++  else
++    wb_bar = string.gsub(wb_bar, &quot;WB_LNG_BUTTON&quot;, &quot;&quot;)
++  end
++  
++  file:write(wb_bar)
++  file:close()
++end
++
++-- #####################################################################
++
++function writeSearchFile()
++  print(&quot;Writing \&quot;../ssSearch&quot;..lngSuffix..&quot;.html\&quot;.&quot;)
++  
++  local file = io.open(&quot;../ssSearch&quot;..lngSuffix..&quot;.html&quot;, &quot;w&quot;)
++   
++  local wb_search = readFile(&quot;template_ssSearch.html&quot;)
++  
++  wb_search = string.gsub(wb_search, &quot;WB_SEARCH&quot;, lngMessages.search[lngIndex])
++  
++  if (lngCount &gt; 1) then                
++    wb_search = string.gsub(wb_search, &quot;WB_LNG&quot;, lngSuffix)
++  else
++    wb_search = string.gsub(wb_search, &quot;WB_LNG&quot;, &quot;&quot;)
++  end
++  
++  file:write(wb_search)
++  file:close()
++end
++              
++function writeSearchIndexFile()
++  print(&quot;Writing \&quot;../wb_search&quot;..lngSuffix..&quot;.txt\&quot;.&quot;)
++  
++  local file = io.open(&quot;../wb_search&quot;..lngSuffix..&quot;.txt&quot;, &quot;w&quot;)
++  
++  local v = next(htmlFiles, nil)
++  while v ~= nil do
++    file:write(lngIndex..&quot;/&quot;..v..&quot;\n&quot;)
++    v = next(htmlFiles, v)
++  end
++  
++  file:close()
++end
++              
++-- #####################################################################
++
++lngCount = 0
++local first_name = nil
++local prev_elem = nil
++for name, elem in pairs(wb_usr.messages) do 
++  if (lngCount == 0) then
++    first_name = name
++  end
++  lngCount = lngCount + 1
++  if (prev_elem) then
++    prev_elem.next = name
++  end
++  prev_elem = elem
++end
++prev_elem.next = first_name
++  
++print(&quot;Building...&quot;)
++
++for name, elem in pairs(wb_usr.messages) do 
++  lngIndex = name
++  lngNext = elem.next
++  
++  if (lngCount &gt; 1) then
++    lngSuffix = &quot;_&quot;..lngIndex
++  else
++    lngSuffix = &quot;&quot;
++  end
++  
++  writeIndexFile()
++  writeTitleFile()
++  writeBarFile()
++  writeTreeFile()
++  writeSearchFile()            
++  writeSearchIndexFile()
++end
++
++print(&quot;Done.&quot;)
+
+Modified: trunk/doc/wb/wb_usr.lua
+===================================================================
+--- trunk/doc/wb/wb_usr.lua	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb/wb_usr.lua	2009-02-16 17:15:17 UTC (rev 194)
+@@ -12,16 +12,18 @@
+ wb_usr = {
+    langs = {&quot;en&quot;,&quot;pt&quot; },
+    start_size = &quot;200&quot;,
+---   contact = &quot;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">dadosutter at eluaproject.net</A>&quot;,
+-   contact = &quot;&quot;,
+-   copyright_link = &quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;, 
+---   copyright_link = &quot;&quot;, 
+-   search_link = &quot;<A HREF="http://www.eluaproject.net/doc">http://www.eluaproject.net/doc</A>&quot;, 
+---   copyright_name = &quot;eLua Team&quot;,
+-   copyright_name = &quot;&quot;,
++   title_bar_height = 80,
++   enable_search = true,
++   --search_label = &quot;Search:&quot;,
++   search_link = &quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;, 
++   --contact = &quot;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">dadosutter at eluaproject.net</A>&quot;,
++   --copyright_name = &quot;eLua Team&quot;,
++   --copyright_link = &quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;, 
++   
+    title_bgcolor = &quot;midnightblue&quot;,
+    file_title = &quot;wb&quot;,
+-   start_open = &quot;1&quot;
++   start_open = &quot;1&quot;,
++   logo_image_file = &quot;eLua-logo-80x80.png&quot;
+ } 
+ 
+ 
+@@ -45,33 +47,33 @@
+ 
+ -- Menu Tree Definition
+ wb_usr.tree =
+-{
++{
+   name = { nl = &quot;eLua&quot; },
+   link = &quot;news.html&quot;, 
+   folder =
+   {
+-    { name = {en = &quot;Overview&quot;, pt = &quot;Apresenta&#231;&#227;o&quot; },
++    { name = {en = &quot;Overview&quot;, pt = &quot;Apresenta&#195;&#167;&#195;&#163;o&quot; },
+       link = &quot;overview.html&quot;,
+       folder =
+       {
+-        {  name = { en = &quot;What is&quot;, pt = &quot;O que &#233; eLua ?&quot; },
++        {  name = { en = &quot;What is&quot;, pt = &quot;O que &#195;&#169; eLua ?&quot; },
+            link = &quot;overview.html#whatis&quot;,
+-        },
+-        {  name = { en = &quot;Audience&quot;, pt = &quot;P&#250;blico alvo&quot; },
++        },
++        {  name = { en = &quot;Audience&quot;, pt = &quot;P&#195;&#186;blico alvo&quot; },
+            link = &quot;overview.html#audience&quot;,
+-        },
+-        {  name = { en = &quot;Uses&quot;, pt = &quot;Aplica&#231;&#245;es&quot; },
++        },
++        {  name = { en = &quot;Uses&quot;, pt = &quot;Aplica&#195;&#167;&#195;&#181;es&quot; },
+            link = &quot;overview.html#uses&quot;,
+-        },
++        },
+         {  name = { en = &quot;Authors&quot;, pt = &quot;Autores&quot; },
+            link = &quot;overview.html#authors&quot;,
+-        },
++        },
+         {  name = { en = &quot;Contacts&quot;, pt = &quot;Contatos&quot; },
+            link = &quot;overview.html#contacts&quot;,
+-        },
+-        {  name = { en = &quot;Licence&quot;, pt = &quot;Licen&#231;a&quot; },
++        },
++        {  name = { en = &quot;Licence&quot;, pt = &quot;Licen&#195;&#167;a&quot; },
+            link = &quot;overview.html#license&quot;,
+-        },
++        },
+       },
+     },
+     {
+@@ -81,18 +83,18 @@
+       {
+         {  name = { en = &quot;Lists&quot;, pt = &quot;Listas&quot; },
+            link = &quot;community.html#lists&quot;,
+-        },
+-        {  name = { en = &quot;Credits&quot;, pt = &quot;Cr&#233;ditos&quot; },
++        },
++        {  name = { en = &quot;Credits&quot;, pt = &quot;Cr&#195;&#169;ditos&quot; },
+            link = &quot;community.html#credits&quot;,
+-        },
++        },
+ --[[
+         {  name = { en = &quot;Galery&quot;, pt = &quot;Galeria&quot; },
+            link = &quot;community.html#galery&quot;,
+-        },
++        },
+         {  name = { en = &quot;Projects&quot;, pt = &quot;Projetos&quot; },
+            link = &quot;community.html#projects&quot;,
+         },
+---]]        
++--]]        
+       },
+     },
+     {
+@@ -100,34 +102,34 @@
+       link = &quot;status.html&quot;,
+       folder =
+       {
+-        {  name = { en = &quot;News&quot;, pt = &quot;Not&#237;cias&quot; },
++        {  name = { en = &quot;News&quot;, pt = &quot;Not&#195;&#173;cias&quot; },
+            link = &quot;news.html&quot;,
+-        },
++        },
+         {  name = { en = &quot;Platforms&quot;, pt = &quot;Plataformas&quot; },
+            link = &quot;status.html#platforms&quot;,
+-        },
++        },
+         {  name = { en = &quot;Roadmap&quot;, pt = &quot;Futuro&quot; },
+            link = &quot;status.html#roadmap&quot;,
+-        },
++        },
+       },
+     },
+-    {
+-      name = { en = &quot;Documentation&quot;, pt = &quot;Documenta&#231;&#227;o&quot; },
+-      link = &quot;using.html&quot;,
+-      folder = 
++    {
++      name = { en = &quot;Documentation&quot;, pt = &quot;Documenta&#195;&#167;&#195;&#163;o&quot; },
++      link = &quot;using.html&quot;,
++      folder = 
+       {
+         {
+           name = { en = &quot;FAQ&quot;, pt = &quot;FAQ&quot; },
+           link = &quot;faq.html&quot;,
+-        },
++        },
+         {
+           name = { en = &quot;Using&quot;, pt = &quot;Usando&quot; },
+           link = &quot;using.html&quot;,
+-        },
++        },
+         {
+           name = { en = &quot;Building&quot;, pt = &quot;Building&quot; },
+           link = &quot;building.html&quot;,
+-        },
++        },
+         {
+           name = { en = &quot;Examples&quot;, pt = &quot;Exemplos&quot; },
+           link = &quot;examples.html&quot;,
+@@ -135,36 +137,36 @@
+           {
+             {  name = { en = &quot;hello.lua&quot;, pt = &quot;hello.lua&quot; },
+                link = &quot;examples.html#hello&quot;,
+-            },
++            },
+             {  name = { en = &quot;info.lua&quot;, pt = &quot;info.lua&quot; },
+                link = &quot;examples.html#info&quot;,
+-            },
++            },
+             {  name = { en = &quot;led.lua&quot;, pt = &quot;led.lua&quot; },
+                link = &quot;examples.html#led&quot;,
+-            },
++            },
+             {  name = { en = &quot;hangman.lua&quot;, pt = &quot;hangman.lua&quot; },
+                link = &quot;examples.html#hangman&quot;,
+-            },
++            },
+             {  name = { en = &quot;pwmled.lua&quot;, pt = &quot;pwmled.lua&quot; },
+                link = &quot;examples.html#pwmled&quot;,
+-            },
++            },
+             {  name = { en = &quot;tvbgone.lua&quot;, pt = &quot;tvbgone.lua&quot; },
+                link = &quot;examples.html#tvbgone&quot;,
+-            },
++            },
+             {  name = { en = &quot;piano.lua&quot;, pt = &quot;piano.lua&quot; },
+                link = &quot;examples.html#piano&quot;,
+-            },
++            },
+             {  name = { en = &quot;bisect.lua&quot;, pt = &quot;bisect.lua&quot; },
+                link = &quot;examples.html#bisect&quot;,
+-            },
++            },
+             {  name = { en = &quot;morse.lua&quot;, pt = &quot;morse.lua&quot; },
+                link = &quot;examples.html#morse&quot;,
+-            },
++            },
+             {  name = { en = &quot;lhttpd.lua&quot;, pt = &quot;lhttpd.lua&quot; },
+                link = &quot;examples.html#lhttpd&quot;,
+-            },
++            },
+           },
+-        },
++        },
+         {
+           name = { en = &quot;Tutorials&quot;, pt = &quot;Tutoriais&quot; },
+           link = &quot;tutorials.html&quot;,
+@@ -172,7 +174,7 @@
+           {
+             {  name = { en = &quot;Booting on a PC&quot;, pt = &quot;Booting on a PC&quot; },
+                link = &quot;tut_bootpc.html&quot;,
+-            },
++            },
+             {  name = { en = &quot;Booting from a Pendrive&quot;, pt = &quot;Booting from a Pendriv&quot; },
+                link = &quot;tut_bootstick.html&quot;,
+             },
+@@ -190,44 +192,44 @@
+                    link = &quot;tc_386.html&quot;,
+                  },
+                },  
+-            },
++            },
+             {  name = { en = &quot;Using OpenOCD&quot;, pt = &quot;Using OpenOC&quot; },
+                link = &quot;tut_openocd.html&quot;,
+-            },
++            },
+           },
+-        },
++        },
+         {
+-          name = {en = &quot;Version History&quot;, pt = &quot;Hist&#243;rico de Vers&#245;es&quot; },
++          name = {en = &quot;Version History&quot;, pt = &quot;Hist&#195;&#179;rico de Vers&#195;&#181;es&quot; },
+           link = &quot;versionhistory.html&quot;,
+           folder =
+           {
+             {  name = { en = &quot;v 0.4&quot;, pt = &quot;v 0.4&quot; },
+                link = &quot;versionhistory.html#04&quot;,
+-            },
++            },
+             {  name = { en = &quot;v 0.5&quot;, pt = &quot;v 0.5&quot; },
+                link = &quot;versionhistory.html#05&quot;,
+-            },
++            },
+             {  name = { en = &quot;v 0.6&quot;, pt = &quot;v 0.6&quot; },
+                link = &quot;versionhistory.html#06&quot;,
+-            },
++            },
+           },
+         },
+-      },
+-    },
+-    {
+-      name = { en = &quot;Reference Manual&quot;, pt = &quot;Manual de Refer&#234;ncia&quot; },
+-      link = &quot;refman.html#genericmodules&quot;,
+-      folder = 
++      },
++    },
++    {
++      name = { en = &quot;Reference Manual&quot;, pt = &quot;Manual de Refer&#195;&#170;ncia&quot; },
++      link = &quot;refman.html#genericmodules&quot;,
++      folder = 
+       {
+         {
+-          name = { en = &quot;Generic Modules&quot;, pt = &quot;M&#243;dulos Gen&#233;ricos&quot; },
++          name = { en = &quot;Generic Modules&quot;, pt = &quot;M&#195;&#179;dulos Gen&#195;&#169;ricos&quot; },
+           link = &quot;refman.html#genericmodules&quot;,
+           folder = 
+           {
+             {
+               name = { en = &quot;bit&quot;, pt = &quot;bit&quot; },
+               link = &quot;refman.html#bitmodule&quot;,
+-              folder =
++              folder =
+               {
+                 {
+                   name ={ en = &quot;bnot&quot;, pt = &quot;bnot&quot; },
+@@ -279,7 +281,7 @@
+               name = { en = &quot;cpu&quot;, pt = &quot;cpu&quot; },
+               link = &quot;refman.html#cpumodule&quot;,
+               folder =
+-              {
++              {
+                 {
+                   name ={ en = &quot;write32&quot;, pt = &quot;write32&quot; },
+                   link = &quot;refman.html#cpu_write32&quot;
+@@ -321,7 +323,7 @@
+             {
+               name = { en = &quot;gpio&quot;, pt = &quot;gpio&quot; },
+               link = &quot;refman.html#gpiomodule&quot;,
+-              folder =
++              folder =
+               {
+                 {
+                   name ={ en = &quot;configpin&quot;, pt = &quot;configpin&quot; },
+@@ -342,13 +344,13 @@
+                 {
+                   name ={ en = &quot;setpinlow&quot;, pt = &quot;setpinlow&quot; },
+                   link = &quot;refman.html#gpio_setpinlow&quot;
+-                },
++                },
+               },
+             },  
+             {
+               name = {en = &quot;net&quot;, pt = &quot;net&quot; },
+               link = &quot;refman.html#netmodule&quot;,
+-              folder =
++              folder =
+               {
+                 {
+                   name ={ en = &quot;to be added ...&quot;, pt = &quot;setup&quot; },
+@@ -360,7 +362,7 @@
+               name = { en = &quot;pwm&quot;, pt = &quot;pwm&quot; },
+               link = &quot;refman.html#pwmmodule&quot;,
+               folder =
+-              {
++              {
+                 {
+                   name ={ en = &quot;setup&quot;, pt = &quot;setup&quot; },
+                   link = &quot;refman.html#pwm_setup&quot;
+@@ -391,7 +393,7 @@
+               name = { en = &quot;spi&quot;, pt = &quot;spi&quot; },
+               link = &quot;refman.html#spimodules&quot;,
+               folder =
+-              {
++              {
+                 {
+                   name ={ en = &quot;setup&quot;, pt = &quot;setup&quot; },
+                   link = &quot;refman.html#spi_setup&quot;
+@@ -411,14 +413,14 @@
+                 {
+                   name ={ en = &quot;sendrecv&quot;, pt = &quot;sendrecv&quot; },
+                   link = &quot;refman.html#spi_sendrecv&quot;
+-                },
++                },
+               },
+             },
+             {
+               name = { en = &quot;sys&quot;, pt = &quot;sys&quot; },
+               link = &quot;refman.html#sysmodule&quot;,
+               folder =
+-              {
++              {
+                 {
+                   name ={ en = &quot;platform&quot;, pt = &quot;platform&quot; },
+                   link = &quot;refman.html#sys_platforms&quot;
+@@ -440,7 +442,7 @@
+             {
+               name = {en = &quot;term&quot;, pt = &quot;term&quot; },
+               link = &quot;refman.html#termmodule&quot;,
+-              folder =
++              folder =
+               {
+                 {
+                   name ={ en = &quot;clear&quot;, pt = &quot;clear&quot; },
+@@ -500,7 +502,7 @@
+               name = { en = &quot;tmr&quot;, pt = &quot;tmr&quot; },
+               link = &quot;refman.html#tmrmodule&quot;,
+               folder =
+-              {
++              {
+                 {
+                   name ={ en = &quot;delay&quot;, pt = &quot;delay&quot; },
+                   link = &quot;refman.html#tmr_delay&quot;
+@@ -520,21 +522,21 @@
+                 {
+                   name ={ en = &quot;mindelay&quot;, pt = &quot;mindelay&quot; },
+                   link = &quot;refman.html#tmr_mindelay&quot;
+-                },
++                },
+                 {
+                   name ={ en = &quot;maxdelay&quot;, pt = &quot;maxdelay&quot; },
+                   link = &quot;refman.html#tmr_maxdelay&quot;
+-                },
++                },
+                 {
+                   name ={ en = &quot;setclock&quot;, pt = &quot;setclock&quot; },
+                   link = &quot;refman.html#tmr_setclock&quot;
+-                },
++                },
+               },
+             },
+             {
+               name = {en = &quot;uart&quot;, pt = &quot;uart&quot; },
+               link = &quot;refman.html#uartmodule&quot;,
+-              folder =
++              folder =
+               {
+                 {
+                   name ={ en = &quot;setup&quot;, pt = &quot;setup&quot; },
+@@ -547,7 +549,7 @@
+                 {
+                   name ={ en = &quot;recv&quot;, pt = &quot;recv&quot; },
+                   link = &quot;refman.html#uart_recv&quot;
+-                },
++                },
+               },
+             },  
+           },
+@@ -560,7 +562,7 @@
+             {  name = { en = &quot;adc&quot;, pt = &quot;adc&quot; },
+                link = &quot;refman.html#adcmodule&quot;,
+                folder =
+-               {
++               {
+                  {
+                    name ={ en = &quot;sample&quot;, pt = &quot;sample&quot; },
+                    link = &quot;refman.html#adc_sample&quot;
+@@ -589,12 +591,12 @@
+                    name = { en = &quot;burst&quot;, pt = &quot;burst&quot; },
+                    link = &quot;refman.html#adc_burst&quot;
+                  },
+-              },   
+-            },
++              },   
++            },
+             {  name = { en = &quot;disp&quot;, pt = &quot;disp&quot; },
+                link = &quot;refman.html#dispmodule&quot;,
+                folder =
+-               {
++               {
+                  {
+                    name ={ en = &quot;init&quot;, pt = &quot;init&quot; },
+                    link = &quot;refman.html#disp_init&quot;
+@@ -623,11 +625,11 @@
+                    name = { en = &quot;draw&quot;, pt = &quot;draw&quot; },
+                    link = &quot;refman.html#disp_draw&quot;
+                  },
+-              },   
+-            },
++              },   
++            },
+           },
+-        },
+-      },
++        },
++      },
+     },
+     {
+       name = { en = &quot;Downloads&quot;, pt = &quot;Downloads&quot; },
+@@ -664,7 +666,7 @@
+         { 
+           name = { en = &quot;Source Code&quot;, pt = &quot;Fontes&quot; },
+           link = &quot;sources.html&quot;,
+-          folder = 
++          folder = 
+           {
+             { 
+               name = { en = &quot;v0.6&quot;, pt = &quot;v0.6&quot; },
+@@ -689,13 +691,13 @@
+                 },
+               },
+             },
+-          },
++          },
+         },
+         { 
+           name = { en = &quot;Developers&quot;, pt = &quot;Desenvolvedores&quot; },
+           link = &quot;developers.html&quot;
+-        },
++        },
+       },
+-    },
++    },
+   },
+ }
+
+Modified: trunk/doc/wb_bar_en.html
+===================================================================
+--- trunk/doc/wb_bar_en.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb_bar_en.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -1,7 +1,7 @@
+ &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+ &lt;html&gt;
+ &lt;head&gt;
+-  &lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot; &gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
+   &lt;title&gt;Bar&lt;/title&gt;
+   &lt;base target=&quot;wb_cont&quot;&gt;
+   &lt;style type=&quot;text/css&quot;&gt;
+@@ -20,8 +20,10 @@
+ 
+ &lt;body style=&quot;margin: 2px; background-color: #F1F1F1&quot;&gt; 
+   &lt;div class=&quot;navigation&quot;&gt;
+-    &lt;p&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;&gt;&lt;img
+-  src=&quot;wb_img/logo.png&quot; style=&quot;border-width: 0px&quot;&gt;&lt;/a&gt;&lt;img src=&quot;wb_img/barlineleft.png&quot;&gt;&lt;img alt=&quot;Expand All Nodes&quot; src=&quot;wb_img/showall.png&quot; onclick=&quot;parent.wb_tree.showAllFolders()&quot; onmouseover=&quot;this.src='wb_img/showall_over.png'&quot; onmouseout=&quot;this.src='wb_img/showall.png'&quot;&gt;&lt;img alt=&quot;Contract All Nodes&quot; src=&quot;wb_img/hideall.png&quot; onclick=&quot;parent.wb_tree.hideAllFolders()&quot; onmouseover=&quot;this.src='wb_img/hideall_over.png'&quot; onmouseout=&quot;this.src='wb_img/hideall.png'&quot;&gt;&lt;img alt=&quot;Sync Tree with Contents&quot; src=&quot;wb_img/sync.png&quot; onclick=&quot;parent.wb_tree.syncContents()&quot; onmouseover=&quot;this.src='wb_img/sync_over.png'&quot; onmouseout=&quot;this.src='wb_img/sync.png'&quot;&gt;&lt;img alt=&quot;Next Link&quot; src=&quot;wb_img/next.png&quot; onclick=&quot;parent.wb_tree.nextContents()&quot; onmouseover=&quot;this.src='wb_img/next_over.png'&quot; onmouseout=&quot;this.src='wb_img/next.png'&quot;&gt;&lt;img alt=&quot;Previous Link&quot; src=&quot;wb_img/previous.png&quot; onclick=&quot;parent.wb_tree.prevContents()&quot; onmouseover=&quot;this.src='wb_img/previous_over.png'&quot; onmouseout=&quot;this.src='wb_img/pr!
+ evious.png'&quot;&gt;&lt;img src=&quot;wb_img/barlineright.png&quot;&gt;&lt;a target=&quot;_top&quot; href=&quot;index_pt.html&quot;&gt;&lt;img alt=&quot;Switch Language&quot; src=&quot;wb_img/lng_en.png&quot; onmouseover=&quot;this.src='wb_img/lng_en_over.png'&quot; onmouseout=&quot;this.src='wb_img/lng_en.png'&quot; style=&quot;border-width: 0px&quot;&gt;&lt;/a&gt;&lt;/p&gt;
++    &lt;p&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;&gt;&lt;img src=&quot;wb_img/logo.png&quot; style=&quot;border-width: 0px&quot;&gt;&lt;/a&gt;
++		&lt;img src=&quot;wb_img/barlineleft.png&quot;&gt;&lt;img alt=&quot;Expand All Nodes&quot; src=&quot;wb_img/showall.png&quot; onclick=&quot;parent.wb_tree.showAllFolders()&quot; onmouseover=&quot;this.src='wb_img/showall_over.png'&quot; onmouseout=&quot;this.src='wb_img/showall.png'&quot;&gt;&lt;img alt=&quot;Contract All Nodes&quot; src=&quot;wb_img/hideall.png&quot; onclick=&quot;parent.wb_tree.hideAllFolders()&quot; onmouseover=&quot;this.src='wb_img/hideall_over.png'&quot; onmouseout=&quot;this.src='wb_img/hideall.png'&quot;&gt;&lt;img alt=&quot;Sync Tree with Contents&quot; src=&quot;wb_img/sync.png&quot; onclick=&quot;parent.wb_tree.syncContents()&quot; onmouseover=&quot;this.src='wb_img/sync_over.png'&quot; onmouseout=&quot;this.src='wb_img/sync.png'&quot;&gt;&lt;img alt=&quot;Next Link&quot; src=&quot;wb_img/next.png&quot; onclick=&quot;parent.wb_tree.nextContents()&quot; onmouseover=&quot;this.src='wb_img/next_over.png'&quot; onmouseout=&quot;this.src='wb_img/next.png'&quot;&gt;&lt;img alt=&quot;Previous Link&quot; src=&quot;wb_img/previous.png&quot; onclick=&quot;parent.wb_tree.prevContents()&quot; onmouseover=&quot;this.src='wb_img/previous_over.png'&quot; onmouseout=&quot;this.src='wb_img/previous.png'&quot;&gt;&lt;img src=&quot;wb_img/barlineright.png&quot;&gt;&lt;a t!
+ arget=&quot;_top&quot; href=&quot;index_pt.html&quot;&gt;&lt;img alt=&quot;Switch Language&quot; src=&quot;wb_img/lng_en.png&quot; onmouseover=&quot;this.src='wb_img/lng_en_over.png'&quot; onmouseout=&quot;this.src='wb_img/lng_en.png'&quot; style=&quot;border-width: 0px&quot;&gt;&lt;/a&gt;
++
++	&lt;/p&gt;
+   &lt;/div&gt;
+ &lt;/body&gt;
+ &lt;/html&gt;
+
+Modified: trunk/doc/wb_bar_pt.html
+===================================================================
+--- trunk/doc/wb_bar_pt.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb_bar_pt.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -1,7 +1,7 @@
+ &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+ &lt;html&gt;
+ &lt;head&gt;
+-  &lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot; &gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
+   &lt;title&gt;Bar&lt;/title&gt;
+   &lt;base target=&quot;wb_cont&quot;&gt;
+   &lt;style type=&quot;text/css&quot;&gt;
+@@ -20,8 +20,10 @@
+ 
+ &lt;body style=&quot;margin: 2px; background-color: #F1F1F1&quot;&gt; 
+   &lt;div class=&quot;navigation&quot;&gt;
+-    &lt;p&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;&gt;&lt;img
+-  src=&quot;wb_img/logo.png&quot; style=&quot;border-width: 0px&quot;&gt;&lt;/a&gt;&lt;img src=&quot;wb_img/barlineleft.png&quot;&gt;&lt;img alt=&quot;Expande Todos os N&#243;s&quot; src=&quot;wb_img/showall.png&quot; onclick=&quot;parent.wb_tree.showAllFolders()&quot; onmouseover=&quot;this.src='wb_img/showall_over.png'&quot; onmouseout=&quot;this.src='wb_img/showall.png'&quot;&gt;&lt;img alt=&quot;Contrai Todos os N&#243;s&quot; src=&quot;wb_img/hideall.png&quot; onclick=&quot;parent.wb_tree.hideAllFolders()&quot; onmouseover=&quot;this.src='wb_img/hideall_over.png'&quot; onmouseout=&quot;this.src='wb_img/hideall.png'&quot;&gt;&lt;img alt=&quot;Sincroniza &#193;rvore com Conte&#250;do&quot; src=&quot;wb_img/sync.png&quot; onclick=&quot;parent.wb_tree.syncContents()&quot; onmouseover=&quot;this.src='wb_img/sync_over.png'&quot; onmouseout=&quot;this.src='wb_img/sync.png'&quot;&gt;&lt;img alt=&quot;Pr&#243;ximo Link&quot; src=&quot;wb_img/next.png&quot; onclick=&quot;parent.wb_tree.nextContents()&quot; onmouseover=&quot;this.src='wb_img/next_over.png'&quot; onmouseout=&quot;this.src='wb_img/next.png'&quot;&gt;&lt;img alt=&quot;Link Anterior&quot; src=&quot;wb_img/previous.png&quot; onclick=&quot;parent.wb_tree.prevContents()&quot; onmouseover=&quot;this.src='wb_img/previous_over.png'&quot; onmouseout=&quot;thi!
+ s.src='wb_img/previous.png'&quot;&gt;&lt;img src=&quot;wb_img/barlineright.png&quot;&gt;&lt;a target=&quot;_top&quot; href=&quot;index_en.html&quot;&gt;&lt;img alt=&quot;Troca Idioma&quot; src=&quot;wb_img/lng_pt.png&quot; onmouseover=&quot;this.src='wb_img/lng_pt_over.png'&quot; onmouseout=&quot;this.src='wb_img/lng_pt.png'&quot; style=&quot;border-width: 0px&quot;&gt;&lt;/a&gt;&lt;/p&gt;
++    &lt;p&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;&gt;&lt;img src=&quot;wb_img/logo.png&quot; style=&quot;border-width: 0px&quot;&gt;&lt;/a&gt;
++		&lt;img src=&quot;wb_img/barlineleft.png&quot;&gt;&lt;img alt=&quot;Expande Todos os N&#195;&#179;s&quot; src=&quot;wb_img/showall.png&quot; onclick=&quot;parent.wb_tree.showAllFolders()&quot; onmouseover=&quot;this.src='wb_img/showall_over.png'&quot; onmouseout=&quot;this.src='wb_img/showall.png'&quot;&gt;&lt;img alt=&quot;Contrai Todos os N&#195;&#179;s&quot; src=&quot;wb_img/hideall.png&quot; onclick=&quot;parent.wb_tree.hideAllFolders()&quot; onmouseover=&quot;this.src='wb_img/hideall_over.png'&quot; onmouseout=&quot;this.src='wb_img/hideall.png'&quot;&gt;&lt;img alt=&quot;Sincroniza &#195;&#129;rvore com Conte&#195;&#186;do&quot; src=&quot;wb_img/sync.png&quot; onclick=&quot;parent.wb_tree.syncContents()&quot; onmouseover=&quot;this.src='wb_img/sync_over.png'&quot; onmouseout=&quot;this.src='wb_img/sync.png'&quot;&gt;&lt;img alt=&quot;Pr&#195;&#179;ximo Link&quot; src=&quot;wb_img/next.png&quot; onclick=&quot;parent.wb_tree.nextContents()&quot; onmouseover=&quot;this.src='wb_img/next_over.png'&quot; onmouseout=&quot;this.src='wb_img/next.png'&quot;&gt;&lt;img alt=&quot;Link Anterior&quot; src=&quot;wb_img/previous.png&quot; onclick=&quot;parent.wb_tree.prevContents()&quot; onmouseover=&quot;this.src='wb_img/previous_over.png'&quot; onmouseout=&quot;this.src='wb_img/previous.png'&quot;&gt;&lt;img src=&quot;wb_img/b!
+ arlineright.png&quot;&gt;&lt;a target=&quot;_top&quot; href=&quot;index_en.html&quot;&gt;&lt;img alt=&quot;Troca Idioma&quot; src=&quot;wb_img/lng_pt.png&quot; onmouseover=&quot;this.src='wb_img/lng_pt_over.png'&quot; onmouseout=&quot;this.src='wb_img/lng_pt.png'&quot; style=&quot;border-width: 0px&quot;&gt;&lt;/a&gt;
++
++	&lt;/p&gt;
+   &lt;/div&gt;
+ &lt;/body&gt;
+ &lt;/html&gt;
+
+Added: trunk/doc/wb_img/eLua-logo-80x80.png
+===================================================================
+(Binary files differ)
+
+
+Property changes on: trunk/doc/wb_img/eLua-logo-80x80.png
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Modified: trunk/doc/wb_title_en.html
+===================================================================
+--- trunk/doc/wb_title_en.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb_title_en.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -1,6 +1,7 @@
+ &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+ &lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
++
+ &lt;title&gt;Title&lt;/title&gt;
+ &lt;base target=&quot;wb_cont&quot;&gt;
+ &lt;style type=&quot;text/css&quot;&gt;
+@@ -15,7 +16,7 @@
+ td.contact {
+   text-align: center;
+   vertical-align: middle;
+-  width: 11em;
++  /*width: 11em;*/
+ }
+ a.contact {
+   font-family: Arial, Helvetica, sans-serif;
+@@ -32,29 +33,33 @@
+ 
+ &lt;body style=&quot;background-color: midnightblue; margin-left: 3px; margin-right: 3px; margin-top: 2px; margin-bottom: 0; background-image: url('wb_img/title_background.png');&quot;&gt;
+ 
+-&lt;table style=&quot;width: 100%&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
++&lt;table border=&quot;0&quot; style=&quot;width: 100%;&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+   &lt;tr&gt;
+-    &lt;td style=&quot;width: 50px;&quot;&gt;&lt;img src=&quot;logo.gif&quot;&gt;&lt;/td&gt;
+-    &lt;td class=&quot;title&quot;&gt;eLua - Embedded Lua&lt;/td&gt;
+-    &lt;td style=&quot;width: 3.5em&quot;&gt;
++    &lt;td valign=&quot;center&quot; style=&quot;width: 30px;padding:0px 10px 0px 0px;&quot;&gt;
++		&lt;img src=&quot;wb_img/eLua-logo-80x80.png&quot; border=&quot;0&quot;&gt;
++	&lt;/td&gt;
++    &lt;td valign=&quot;center&quot; class=&quot;title&quot;&gt;eLua - Embedded Lua&lt;/td&gt;
++    &lt;!--td style=&quot;width: 3.5em&quot;&gt;
+      &lt;a class=&quot;contact&quot; href=&quot;ssSearch_en.html&quot;&gt;SimpleSearch&lt;/a&gt;
+-     &lt;/td&gt;
+-    &lt;td style=&quot;width: 11em&quot;&gt;
+-      &lt;FORM method=GET action=&quot;<A HREF="http://www.google.com/search">http://www.google.com/search</A>&quot; style=&quot;margin-bottom: 0; margin: 0; text-align: center; &quot;&gt;
+-      &lt;input type=hidden name=ie value=UTF-8&gt;
+-      &lt;input type=hidden name=oe value=UTF-8&gt;
+-      &lt;INPUT TYPE=text name=q size=21 maxlength=255 value=&quot;&quot;&gt;&lt;br&gt;
+-      &lt;A HREF=&quot;<A HREF="http://www.google.com/">http://www.google.com/</A>&quot;&gt;&lt;IMG SRC=&quot;wb_img/google.gif&quot; border=&quot;0&quot; ALT=&quot;Google&quot;&gt;&lt;/A&gt;
+-      &lt;INPUT type=submit name=btnG VALUE=&quot;Search&quot; style=&quot;height: 21px; vertical-align: top; font-size: x-small;&quot;&gt;
+-      &lt;input type=hidden name=domains value=&quot;<A HREF="http://www.eluaproject.net/doc">http://www.eluaproject.net/doc</A>&quot;&gt;
+-      &lt;input type=hidden name=sitesearch value=&quot;<A HREF="http://www.eluaproject.net/doc">http://www.eluaproject.net/doc</A>&quot; checked&gt;
+-      &lt;input type=hidden name=sitesearch value=&quot;&quot;&gt;
+-      &lt;/FORM&gt;
++     &lt;/td--&gt;
++    &lt;td style=&quot;width: 280px&quot; &gt;
++	  
++ &lt;FORM method=GET action=&quot;<A HREF="http://www.google.com/search">http://www.google.com/search</A>&quot; style=&quot;margin-bottom: 0; margin: 0; text-align: center;font-size:12px;font-family:verdana;&quot;&gt;
++      &lt;input type=&quot;hidden&quot; name=&quot;ie&quot; value=&quot;UTF-8&quot; /&gt;
++      &lt;input type=&quot;hidden&quot; name=oe value=&quot;UTF-8&quot; /&gt;
++	  
++      &lt;INPUT TYPE=&quot;text&quot; name=&quot;q&quot; size=&quot;21&quot; maxlength=&quot;255&quot; value=&quot;&quot; /&gt;
++      &lt;INPUT type=&quot;submit&quot; name=&quot;btnG&quot; VALUE=&quot;Search&quot; style=&quot;height: 21px; vertical-align: top; font-size: x-small;&quot; /&gt;
++      &lt;input type=&quot;hidden&quot; name=&quot;domains&quot; value=&quot;<A HREF="http://www.eluaproject.net/doc">http://www.eluaproject.net/doc</A>&quot; /&gt;
++      &lt;input type=&quot;hidden&quot; name=&quot;sitesearch&quot; value=&quot;<A HREF="http://www.eluaproject.net/doc">http://www.eluaproject.net/doc</A>&quot; /&gt;
++  &lt;/FORM&gt;
++  
++
+     &lt;/td&gt;
+     &lt;td class=&quot;contact&quot;&gt;
+-     &lt;a class=&quot;contact&quot; target=&quot;_blank&quot; href=&quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;&gt;&#169; &lt;/a&gt;
+-     &lt;br&gt;
+-     &lt;a class=&quot;contact&quot; href=&quot;mailto:&quot;&gt;()&lt;/a&gt;
++    	
++     	&lt;br&gt;
++	    
+      &lt;/td&gt;
+   &lt;/tr&gt;
+ &lt;/table&gt;
+
+Modified: trunk/doc/wb_title_pt.html
+===================================================================
+--- trunk/doc/wb_title_pt.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb_title_pt.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -1,6 +1,7 @@
+ &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+ &lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
++
+ &lt;title&gt;Title&lt;/title&gt;
+ &lt;base target=&quot;wb_cont&quot;&gt;
+ &lt;style type=&quot;text/css&quot;&gt;
+@@ -15,7 +16,7 @@
+ td.contact {
+   text-align: center;
+   vertical-align: middle;
+-  width: 11em;
++  /*width: 11em;*/
+ }
+ a.contact {
+   font-family: Arial, Helvetica, sans-serif;
+@@ -32,29 +33,33 @@
+ 
+ &lt;body style=&quot;background-color: midnightblue; margin-left: 3px; margin-right: 3px; margin-top: 2px; margin-bottom: 0; background-image: url('wb_img/title_background.png');&quot;&gt;
+ 
+-&lt;table style=&quot;width: 100%&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
++&lt;table border=&quot;0&quot; style=&quot;width: 100%;&quot; cellspacing=&quot;0&quot; cellpadding=&quot;0&quot;&gt;
+   &lt;tr&gt;
+-    &lt;td style=&quot;width: 50px;&quot;&gt;&lt;img src=&quot;logo.gif&quot;&gt;&lt;/td&gt;
+-    &lt;td class=&quot;title&quot;&gt;eLua - Embedded Lua&lt;/td&gt;
+-    &lt;td style=&quot;width: 3.5em&quot;&gt;
++    &lt;td valign=&quot;center&quot; style=&quot;width: 30px;padding:0px 10px 0px 0px;&quot;&gt;
++		&lt;img src=&quot;wb_img/eLua-logo-80x80.png&quot; border=&quot;0&quot;&gt;
++	&lt;/td&gt;
++    &lt;td valign=&quot;center&quot; class=&quot;title&quot;&gt;eLua - Embedded Lua&lt;/td&gt;
++    &lt;!--td style=&quot;width: 3.5em&quot;&gt;
+      &lt;a class=&quot;contact&quot; href=&quot;ssSearch_pt.html&quot;&gt;SimpleSearch&lt;/a&gt;
+-     &lt;/td&gt;
+-    &lt;td style=&quot;width: 11em&quot;&gt;
+-      &lt;FORM method=GET action=&quot;<A HREF="http://www.google.com/search">http://www.google.com/search</A>&quot; style=&quot;margin-bottom: 0; margin: 0; text-align: center; &quot;&gt;
+-      &lt;input type=hidden name=ie value=UTF-8&gt;
+-      &lt;input type=hidden name=oe value=UTF-8&gt;
+-      &lt;INPUT TYPE=text name=q size=21 maxlength=255 value=&quot;&quot;&gt;&lt;br&gt;
+-      &lt;A HREF=&quot;<A HREF="http://www.google.com/">http://www.google.com/</A>&quot;&gt;&lt;IMG SRC=&quot;wb_img/google.gif&quot; border=&quot;0&quot; ALT=&quot;Google&quot;&gt;&lt;/A&gt;
+-      &lt;INPUT type=submit name=btnG VALUE=&quot;Search&quot; style=&quot;height: 21px; vertical-align: top; font-size: x-small;&quot;&gt;
+-      &lt;input type=hidden name=domains value=&quot;<A HREF="http://www.eluaproject.net/doc">http://www.eluaproject.net/doc</A>&quot;&gt;
+-      &lt;input type=hidden name=sitesearch value=&quot;<A HREF="http://www.eluaproject.net/doc">http://www.eluaproject.net/doc</A>&quot; checked&gt;
+-      &lt;input type=hidden name=sitesearch value=&quot;&quot;&gt;
+-      &lt;/FORM&gt;
++     &lt;/td--&gt;
++    &lt;td style=&quot;width: 280px&quot; &gt;
++	  
++ &lt;FORM method=GET action=&quot;<A HREF="http://www.google.com/search">http://www.google.com/search</A>&quot; style=&quot;margin-bottom: 0; margin: 0; text-align: center;font-size:12px;font-family:verdana;&quot;&gt;
++      &lt;input type=&quot;hidden&quot; name=&quot;ie&quot; value=&quot;UTF-8&quot; /&gt;
++      &lt;input type=&quot;hidden&quot; name=oe value=&quot;UTF-8&quot; /&gt;
++	  
++      &lt;INPUT TYPE=&quot;text&quot; name=&quot;q&quot; size=&quot;21&quot; maxlength=&quot;255&quot; value=&quot;&quot; /&gt;
++      &lt;INPUT type=&quot;submit&quot; name=&quot;btnG&quot; VALUE=&quot;Search&quot; style=&quot;height: 21px; vertical-align: top; font-size: x-small;&quot; /&gt;
++      &lt;input type=&quot;hidden&quot; name=&quot;domains&quot; value=&quot;<A HREF="http://www.eluaproject.net/doc">http://www.eluaproject.net/doc</A>&quot; /&gt;
++      &lt;input type=&quot;hidden&quot; name=&quot;sitesearch&quot; value=&quot;<A HREF="http://www.eluaproject.net/doc">http://www.eluaproject.net/doc</A>&quot; /&gt;
++  &lt;/FORM&gt;
++  
++
+     &lt;/td&gt;
+     &lt;td class=&quot;contact&quot;&gt;
+-     &lt;a class=&quot;contact&quot; target=&quot;_blank&quot; href=&quot;<A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A>&quot;&gt;&#169; &lt;/a&gt;
+-     &lt;br&gt;
+-     &lt;a class=&quot;contact&quot; href=&quot;mailto:&quot;&gt;()&lt;/a&gt;
++    	
++     	&lt;br&gt;
++	    
+      &lt;/td&gt;
+   &lt;/tr&gt;
+ &lt;/table&gt;
+
+Modified: trunk/doc/wb_tree_en.html
+===================================================================
+--- trunk/doc/wb_tree_en.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb_tree_en.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -1,7 +1,7 @@
+ &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+ &lt;html&gt;
+ &lt;head&gt;
+-  &lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot; &gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
+   &lt;title&gt;Tree&lt;/title&gt;
+   &lt;base target=&quot;wb_cont&quot;&gt;
+   &lt;style type=&quot;text/css&quot;&gt;
+
+Modified: trunk/doc/wb_tree_pt.html
+===================================================================
+--- trunk/doc/wb_tree_pt.html	2009-02-16 07:37:28 UTC (rev 193)
++++ trunk/doc/wb_tree_pt.html	2009-02-16 17:15:17 UTC (rev 194)
+@@ -1,7 +1,7 @@
+ &lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+ &lt;html&gt;
+ &lt;head&gt;
+-  &lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot; &gt;
++&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
+   &lt;title&gt;Tree&lt;/title&gt;
+   &lt;base target=&quot;wb_cont&quot;&gt;
+   &lt;style type=&quot;text/css&quot;&gt;
+@@ -219,27 +219,27 @@
+ &lt;body style=&quot;margin: 2px; background-color: #F1F1F1&quot; onload=&quot;showStartPage()&quot;&gt; 
+   &lt;div class=&quot;tree&quot; onmouseout=&quot;clearLastLink()&quot;&gt;
+     &lt;h3&gt;&lt;a name=&quot;link0folder.0&quot; class=&quot;el&quot; href=&quot;pt/news.html&quot;&gt;eLua&lt;/a&gt;&lt;/h3&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.1&quot; src=&quot;wb_img/minusnode.png&quot; onclick=&quot;toggleFolder('folder.1')&quot;&gt;&lt;a name=&quot;link149folder.1&quot; class=&quot;el&quot; href=&quot;pt/overview.html&quot;&gt;Apresenta&#231;&#227;o&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.1&quot; src=&quot;wb_img/minusnode.png&quot; onclick=&quot;toggleFolder('folder.1')&quot;&gt;&lt;a name=&quot;link149folder.1&quot; class=&quot;el&quot; href=&quot;pt/overview.html&quot;&gt;Apresenta&#195;&#167;&#195;&#163;o&lt;/a&gt;&lt;/p&gt;
+       &lt;div id=&quot;folder.1&quot; style=&quot;display:block&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link150folder.1&quot; href=&quot;pt/overview.html#whatis&quot;&gt;O que &#233; eLua ?&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link151folder.1&quot; href=&quot;pt/overview.html#audience&quot;&gt;P&#250;blico alvo&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link152folder.1&quot; href=&quot;pt/overview.html#uses&quot;&gt;Aplica&#231;&#245;es&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link150folder.1&quot; href=&quot;pt/overview.html#whatis&quot;&gt;O que &#195;&#169; eLua ?&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link151folder.1&quot; href=&quot;pt/overview.html#audience&quot;&gt;P&#195;&#186;blico alvo&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link152folder.1&quot; href=&quot;pt/overview.html#uses&quot;&gt;Aplica&#195;&#167;&#195;&#181;es&lt;/a&gt;&lt;/p&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link153folder.1&quot; href=&quot;pt/overview.html#authors&quot;&gt;Autores&lt;/a&gt;&lt;/p&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link154folder.1&quot; href=&quot;pt/overview.html#contacts&quot;&gt;Contatos&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link155folder.1&quot; href=&quot;pt/overview.html#license&quot;&gt;Licen&#231;a&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link155folder.1&quot; href=&quot;pt/overview.html#license&quot;&gt;Licen&#195;&#167;a&lt;/a&gt;&lt;/p&gt;
+       &lt;/div&gt;
+       &lt;p&gt;&lt;img name=&quot;imgfolder.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.2')&quot;&gt;&lt;a name=&quot;link156folder.2&quot; class=&quot;el&quot; href=&quot;pt/community.html&quot;&gt;Comunidade&lt;/a&gt;&lt;/p&gt;
+       &lt;div id=&quot;folder.2&quot;&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link157folder.2&quot; href=&quot;pt/community.html#lists&quot;&gt;Listas&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link158folder.2&quot; href=&quot;pt/community.html#credits&quot;&gt;Cr&#233;ditos&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link158folder.2&quot; href=&quot;pt/community.html#credits&quot;&gt;Cr&#195;&#169;ditos&lt;/a&gt;&lt;/p&gt;
+       &lt;/div&gt;
+       &lt;p&gt;&lt;img name=&quot;imgfolder.3&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.3')&quot;&gt;&lt;a name=&quot;link159folder.3&quot; class=&quot;el&quot; href=&quot;pt/status.html&quot;&gt;Status&lt;/a&gt;&lt;/p&gt;
+       &lt;div id=&quot;folder.3&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link160folder.3&quot; href=&quot;pt/news.html&quot;&gt;Not&#237;cias&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link160folder.3&quot; href=&quot;pt/news.html&quot;&gt;Not&#195;&#173;cias&lt;/a&gt;&lt;/p&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link161folder.3&quot; href=&quot;pt/status.html#platforms&quot;&gt;Plataformas&lt;/a&gt;&lt;/p&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link162folder.3&quot; href=&quot;pt/status.html#roadmap&quot;&gt;Futuro&lt;/a&gt;&lt;/p&gt;
+       &lt;/div&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.4&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4')&quot;&gt;&lt;a name=&quot;link163folder.4&quot; class=&quot;el&quot; href=&quot;pt/using.html&quot;&gt;Documenta&#231;&#227;o&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.4&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4')&quot;&gt;&lt;a name=&quot;link163folder.4&quot; class=&quot;el&quot; href=&quot;pt/using.html&quot;&gt;Documenta&#195;&#167;&#195;&#163;o&lt;/a&gt;&lt;/p&gt;
+       &lt;div id=&quot;folder.4&quot;&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link164folder.4&quot; href=&quot;pt/faq.html&quot;&gt;FAQ&lt;/a&gt;&lt;/p&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link165folder.4&quot; href=&quot;pt/using.html&quot;&gt;Usando&lt;/a&gt;&lt;/p&gt;
+@@ -269,16 +269,16 @@
+           &lt;/div&gt;
+           &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link185folder.4.2&quot; href=&quot;pt/tut_openocd.html&quot;&gt;Using OpenOC&lt;/a&gt;&lt;/p&gt;
+         &lt;/div&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.3&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.4.3')&quot;&gt;&lt;a name=&quot;link186folder.4.3&quot; class=&quot;el&quot; href=&quot;pt/versionhistory.html&quot;&gt;Hist&#243;rico de Vers&#245;es&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.3&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.4.3')&quot;&gt;&lt;a name=&quot;link186folder.4.3&quot; class=&quot;el&quot; href=&quot;pt/versionhistory.html&quot;&gt;Hist&#195;&#179;rico de Vers&#195;&#181;es&lt;/a&gt;&lt;/p&gt;
+         &lt;div id=&quot;folder.4.3&quot;&gt;
+           &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link187folder.4.3&quot; href=&quot;pt/versionhistory.html#04&quot;&gt;v 0.4&lt;/a&gt;&lt;/p&gt;
+           &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link188folder.4.3&quot; href=&quot;pt/versionhistory.html#05&quot;&gt;v 0.5&lt;/a&gt;&lt;/p&gt;
+           &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link189folder.4.3&quot; href=&quot;pt/versionhistory.html#06&quot;&gt;v 0.6&lt;/a&gt;&lt;/p&gt;
+         &lt;/div&gt;
+       &lt;/div&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.5&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5')&quot;&gt;&lt;a name=&quot;link190folder.5&quot; class=&quot;el&quot; href=&quot;pt/refman.html#genericmodules&quot;&gt;Manual de Refer&#234;ncia&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.5&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5')&quot;&gt;&lt;a name=&quot;link190folder.5&quot; class=&quot;el&quot; href=&quot;pt/refman.html#genericmodules&quot;&gt;Manual de Refer&#195;&#170;ncia&lt;/a&gt;&lt;/p&gt;
+       &lt;div id=&quot;folder.5&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1')&quot;&gt;&lt;a name=&quot;link191folder.5.1&quot; class=&quot;el&quot; href=&quot;pt/refman.html#genericmodules&quot;&gt;M&#243;dulos Gen&#233;ricos&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1')&quot;&gt;&lt;a name=&quot;link191folder.5.1&quot; class=&quot;el&quot; href=&quot;pt/refman.html#genericmodules&quot;&gt;M&#195;&#179;dulos Gen&#195;&#169;ricos&lt;/a&gt;&lt;/p&gt;
+         &lt;div id=&quot;folder.5.1&quot;&gt;
+           &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.1')&quot;&gt;&lt;a name=&quot;link192folder.5.1.1&quot; class=&quot;el&quot; href=&quot;pt/refman.html#bitmodule&quot;&gt;bit&lt;/a&gt;&lt;/p&gt;
+           &lt;div id=&quot;folder.5.1.1&quot;&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000149.html">[Elua-svn] r193 - in trunk: inc romfs src src/modules	src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000151.html">[Elua-svn] r195 - in trunk: inc romfs src src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#150">[ date ]</a>
+              <a href="thread.html#150">[ thread ]</a>
+              <a href="subject.html#150">[ subject ]</a>
+              <a href="author.html#150">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

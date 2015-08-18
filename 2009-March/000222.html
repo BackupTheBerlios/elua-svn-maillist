@@ -1,0 +1,149 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r266 - in trunk/src: . platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r266%20-%20in%20trunk/src%3A%20.%20platform/lm3s&In-Reply-To=%3C200903252124.n2PLO602011590%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000221.html">
+   <LINK REL="Next"  HREF="000223.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r266 - in trunk/src: . platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r266%20-%20in%20trunk/src%3A%20.%20platform/lm3s&In-Reply-To=%3C200903252124.n2PLO602011590%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r266 - in trunk/src: . platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Mar 25 22:24:06 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000221.html">[Elua-svn] r265 - trunk/romfs
+</A></li>
+        <LI>Next message: <A HREF="000223.html">[Elua-svn] r267 - in trunk: inc src src/modules src/platform/lm3s	src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#222">[ date ]</a>
+              <a href="thread.html#222">[ thread ]</a>
+              <a href="subject.html#222">[ subject ]</a>
+              <a href="author.html#222">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-03-25 22:24:05 +0100 (Wed, 25 Mar 2009)
+New Revision: 266
+
+Modified:
+   trunk/src/elua_adc.c
+   trunk/src/platform/lm3s/platform_conf.h
+Log:
+Style cleanup &amp; build properly without net module.
+
+Modified: trunk/src/elua_adc.c
+===================================================================
+--- trunk/src/elua_adc.c	2009-03-25 16:17:19 UTC (rev 265)
++++ trunk/src/elua_adc.c	2009-03-25 21:24:05 UTC (rev 266)
+@@ -64,6 +64,7 @@
+   }
+ }
+ 
++// Set up channel in preparation for sample acquisition
+ int adc_setup_channel( unsigned id, u8 logcount )
+ {
+   elua_adc_ch_state *s = adc_get_ch_state( id );
+@@ -88,14 +89,12 @@
+   return PLATFORM_OK;
+ }
+ 
+-// Initialize Configuration and Buffers
++// Initialize channel configuration and buffers
+ void adc_init_ch_state( unsigned id )
+ {
+   elua_adc_ch_state *s = adc_get_ch_state( id );
+   elua_adc_dev_state *d = adc_get_dev_state( 0 );
+   
+-  // point to channel on device, mark as not active
+-  
+   INACTIVATE_CHANNEL(d, id);
+   
+   // Initialize Configuration
+@@ -260,9 +259,7 @@
+   s-&gt;smooth_ready = 0;
+   
+   if ( s-&gt;logsmoothlen &gt; 0 )
+-  {
+     DUFF_DEVICE_8( SMOOTH_REALSIZE( s ),  s-&gt;smoothbuf[ i++ ] = 0 );
+-  }
+ }
+ 
+ // Number of samples requested that have not yet been removed from the buffer
+@@ -289,9 +286,8 @@
+   elua_adc_ch_state *s = adc_get_ch_state( id );
+   
+   if( adc_samples_available( id ) &lt; samples &amp;&amp; s-&gt;blocking == 1 )
+-  {
+-    while( s-&gt;op_pending == 1 &amp;&amp; adc_samples_available( id ) &lt; samples ) { ; }
+-  }
++    while( s-&gt;op_pending == 1 &amp;&amp; adc_samples_available( id ) &lt; samples );
++
+ }
+ 
+ #endif
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2009-03-25 16:17:19 UTC (rev 265)
++++ trunk/src/platform/lm3s/platform_conf.h	2009-03-25 21:24:05 UTC (rev 266)
+@@ -49,6 +49,12 @@
+ #define PWMLINE  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )
+ #endif
+ 
++#ifdef BUILD_UIP
++#define NETLINE  _ROM( AUXLIB_NET, luaopen_net, net_map )
++#else
++#define NETLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
+@@ -59,7 +65,7 @@
+   _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+-  _ROM( AUXLIB_NET, luaopen_net, net_map )\
++  NETLINE\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
+   DISPLINE\
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000221.html">[Elua-svn] r265 - trunk/romfs
+</A></li>
+	<LI>Next message: <A HREF="000223.html">[Elua-svn] r267 - in trunk: inc src src/modules src/platform/lm3s	src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#222">[ date ]</a>
+              <a href="thread.html#222">[ thread ]</a>
+              <a href="subject.html#222">[ subject ]</a>
+              <a href="author.html#222">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

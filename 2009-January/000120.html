@@ -1,0 +1,1264 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r164 - in trunk: inc romfs src src/modules	src/platform/lm3s src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r164%20-%20in%20trunk%3A%20inc%20romfs%20src%20src/modules%0A%09src/platform/lm3s%20src/platform/stm32&In-Reply-To=%3C200901272049.n0RKnkgs017898%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000119.html">
+   <LINK REL="Next"  HREF="000121.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r164 - in trunk: inc romfs src src/modules	src/platform/lm3s src/platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r164%20-%20in%20trunk%3A%20inc%20romfs%20src%20src/modules%0A%09src/platform/lm3s%20src/platform/stm32&In-Reply-To=%3C200901272049.n0RKnkgs017898%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r164 - in trunk: inc romfs src src/modules	src/platform/lm3s src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Jan 27 21:49:46 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000119.html">[Elua-svn] r163 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000121.html">[Elua-svn] r165 - in trunk: . romfs src src/modules	src/platform/i386
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#120">[ date ]</a>
+              <a href="thread.html#120">[ thread ]</a>
+              <a href="subject.html#120">[ subject ]</a>
+              <a href="author.html#120">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-01-27 21:49:45 +0100 (Tue, 27 Jan 2009)
+New Revision: 164
+
+Modified:
+   trunk/inc/common.h
+   trunk/inc/platform.h
+   trunk/romfs/adcscope.lua
+   trunk/src/common.c
+   trunk/src/modules/adc.c
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/startup_gcc.c
+   trunk/src/platform/stm32/platform.c
+Log:
+- ADC now runs with an interrupt handler, which manages samples from each
+  channel.  Smoothing support (rolling average) has been added. adcscope has
+  been updated to reflect these changes, and show output from 4 channels at
+  once.
+
+- fix for typo in stm32/platform.c
+
+Modified: trunk/inc/common.h
+===================================================================
+--- trunk/inc/common.h	2009-01-27 20:49:34 UTC (rev 163)
++++ trunk/inc/common.h	2009-01-27 20:49:45 UTC (rev 164)
+@@ -12,4 +12,6 @@
+ void cmn_platform_init();
+ void cmn_virtual_timer_cb();
+ 
++unsigned int intlog2( unsigned int v );
++
+ #endif // #ifndef __COMMON_H__
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2009-01-27 20:49:34 UTC (rev 163)
++++ trunk/inc/platform.h	2009-01-27 20:49:45 UTC (rev 164)
+@@ -53,7 +53,7 @@
+   PLATFORM_IO_PORT_SET_VALUE,
+   PLATFORM_IO_PORT_GET_VALUE,
+   PLATFORM_IO_PORT_DIR_INPUT,
+-  PLATFORM_IO_PORT_DIR_OUTPUT  
++  PLATFORM_IO_PORT_DIR_OUTPUT
+ };
+ 
+ // The platform I/O functions
+@@ -176,13 +176,48 @@
+ 
+ // *****************************************************************************
+ // The platform ADC functions
++
+ int platform_adc_exists( unsigned id );
++
++enum
++{
++  PLATFORM_ADC_CH_SETUP,         // Have we set up the sequence?
++  PLATFORM_ADC_CH_PENDING,       // Is there a pending conversion?
++  PLATFORM_ADC_CH_NONBLOCKING,   // Are we in blocking or non-blocking mode? (0 - blocking, 1 - nonblocking)
++  PLATFORM_ADC_CH_BURST,         // Acquiring in burst mode
++  PLATFORM_ADC_CH_DATA_READY     // Is data ready for this channel
++};
++
++u32 platform_adc_op( unsigned id, int op, u32 data );
++
++enum
++{
++  PLATFORM_ADC_GET_MAXVAL,
++  PLATFORM_ADC_GET_SMOOTHING,
++  PLATFORM_ADC_SET_SMOOTHING
++};
++
+ u16 platform_adc_sample( unsigned id );
+-u16 platform_adc_maxval( unsigned id );
+-void platform_adc_start( unsigned id );
+ int platform_adc_is_done( unsigned id );
++
++enum
++{
++  PLATFORM_ADC_BLOCKING,
++  PLATFORM_ADC_NONBLOCKING
++};
++
++// Platform ADC state
++struct platform_adc_state
++{
++  u8              status;
++  u8              burstbuffersz, burstbufferidx;
++  u8              smoothbuffsz, smoothbuffidx;
++  unsigned long   smoothingav, smoothingsum;
++  u16             *burstbuff, *smoothbuff;
++};
++
+ void platform_adc_set_mode( unsigned id, int mode );
+-void platform_adc_burst( unsigned id, u16* buf, unsigned count, u32 frequency );
++void platform_adc_burst( unsigned id, u16* buf, unsigned count, unsigned timer_id, u32 frequency );
+ 
+ // *****************************************************************************
+ // Ethernet specific functions
+
+Modified: trunk/romfs/adcscope.lua
+===================================================================
+--- trunk/romfs/adcscope.lua	2009-01-27 20:49:34 UTC (rev 163)
++++ trunk/romfs/adcscope.lua	2009-01-27 20:49:45 UTC (rev 164)
+@@ -3,11 +3,36 @@
+ disp.init(1000000)
+ disp.clear()
+ 
+-adc.setmode(0,0)
++adc.setsmoothing(1,4)
++adc.setsmoothing(1,16)
++adc.setsmoothing(2,64)
++adc.setsmoothing(3,128)
+ 
++adcvals = {}
++ctr = 0
++
+ while ( true ) do
+-  adc.start(0)
+-  adcval = adc.sample(0)
+-  outstring = string.format(&quot;ADC0: %04d&quot;,adcval)
+-  disp.stringdraw( outstring, 10, 10, 11 )
++  ctr = ctr + 1
++  
++  stime = tmr.start(0)
++  adcvals[0] = adc.sample(0)
++  adcvals[1] = adc.sample(1)
++  adcvals[2] = adc.sample(2)
++  adcvals[3] = adc.sample(3)
++  etime = tmr.read(0)
++  dtime = tmr.diff(0,etime,stime)
++  
++  if ( ctr == 100 ) then
++    ctr = 0
++    outstring = string.format(&quot;ADC0   (4): %04d&quot;,adcvals[0])
++    disp.stringdraw( outstring, 10, 10, 11 )
++    outstring = string.format(&quot;ADC1  (16): %04d&quot;,adcvals[1])
++    disp.stringdraw( outstring, 10, 20, 11 )
++    outstring = string.format(&quot;ADC2  (64): %04d&quot;,adcvals[2])
++    disp.stringdraw( outstring, 10, 30, 11 )
++    outstring = string.format(&quot;ADC3 (128): %04d&quot;,adcvals[3])
++    disp.stringdraw( outstring, 10, 40, 11 )
++    outstring = string.format(&quot;Tcyc: %06d (us)&quot;,dtime)
++    disp.stringdraw( outstring, 10, 50, 11 )
++  end
+ end
+\ No newline at end of file
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2009-01-27 20:49:34 UTC (rev 163)
++++ trunk/src/common.c	2009-01-27 20:49:45 UTC (rev 164)
+@@ -276,3 +276,17 @@
+   
+   return id &gt;= sizeof( mend ) / sizeof( void* ) ? NULL : mend[ id ];
+ }
++
++
++// ****************************************************************************
++// Misc support
++unsigned int intlog2( unsigned int v )
++{
++  unsigned r = 0;
++
++  while (v &gt;&gt;= 1)
++  {
++    r++;
++  }
++  return r;
++}
+\ No newline at end of file
+
+Modified: trunk/src/modules/adc.c
+===================================================================
+--- trunk/src/modules/adc.c	2009-01-27 20:49:34 UTC (rev 163)
++++ trunk/src/modules/adc.c	2009-01-27 20:49:45 UTC (rev 164)
+@@ -21,31 +21,20 @@
+   return 1;
+ }
+ 
+-// Lua: start( id )
+-static int adc_start( lua_State* L )
+-{
+-  unsigned id;
+-  
+-  id = luaL_checkinteger( L, 1 );
+-  MOD_CHECK_ID( adc, id );
+-  platform_adc_start( id );
+-  return 0;
+-}
+-
+ // Lua: maxval( id )
+ static int adc_maxval( lua_State* L)
+ {
+   unsigned id;
+-  u16 res;
++  u32 res;
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( adc, id );
+-  res = platform_adc_maxval( id );
++  res = platform_adc_op( id, PLATFORM_ADC_GET_MAXVAL, 0 );
+   lua_pushinteger( L, res );
+   return 1;
+ }
+ 
+-// Lua: is_done( id )
++// Lua: isdone( id )
+ static int adc_is_done( lua_State* L )
+ {
+   unsigned id;
+@@ -58,7 +47,7 @@
+   return 1;
+ }
+ 
+-// Lua: set_mode( id, mode )
++// Lua: setmode( id, mode )
+ static int adc_set_mode( lua_State* L )
+ {
+   unsigned id, mode;
+@@ -70,16 +59,50 @@
+   return 0;
+ }
+ 
++// Lua: setsmoothing( id, length )
++static int adc_set_smoothing( lua_State* L )
++{
++  unsigned id, length, res;
++  
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( adc, id );
++  length = luaL_checkinteger( L, 2 );
++  res = platform_adc_op( id, PLATFORM_ADC_SET_SMOOTHING, length );
++  if ( res )
++    return luaL_error( L, &quot;Buffer allocation failed.&quot; );
++  else
++    return 0;
++}
++
++// Lua: getsmoothing( id )
++static int adc_get_smoothing( lua_State* L)
++{
++  unsigned id;
++  u32 res;
++  
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( adc, id );
++  res = platform_adc_op( id, PLATFORM_ADC_GET_SMOOTHING, 0 );
++  lua_pushinteger( L, res );
++  return 1;
++}
++
++// Lua: adc_burst(id, buffer)
++//static int adc_burst( )
++//void platform_adc_burst( unsigned id, u16* buf, unsigned count, unsigned timer_id, u32 frequency )
++
++
+ // Module function map
+ #define MIN_OPT_LEVEL 2
+ #include &quot;lrodefs.h&quot;
+ const LUA_REG_TYPE adc_map[] = 
+ {
+   { LSTRKEY( &quot;sample&quot; ), LFUNCVAL( adc_sample ) },
+-  { LSTRKEY( &quot;start&quot; ), LFUNCVAL( adc_start ) },
+   { LSTRKEY( &quot;maxval&quot; ), LFUNCVAL( adc_maxval ) },
+   { LSTRKEY( &quot;isdone&quot; ), LFUNCVAL( adc_is_done ) },
+   { LSTRKEY( &quot;setmode&quot; ), LFUNCVAL( adc_set_mode ) },
++  { LSTRKEY( &quot;setsmoothing&quot; ), LFUNCVAL( adc_set_smoothing ) },
++  { LSTRKEY( &quot;getsmoothing&quot; ), LFUNCVAL( adc_get_smoothing ) },
+   { LNILKEY, LNILVAL }
+ };
+ 
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-01-27 20:49:34 UTC (rev 163)
++++ trunk/src/platform/lm3s/platform.c	2009-01-27 20:49:45 UTC (rev 164)
+@@ -9,6 +9,7 @@
+ #include &lt;string.h&gt;
+ #include &lt;ctype.h&gt;
+ #include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
+ #include &quot;uip_arp.h&quot;
+ #include &quot;elua_uip.h&quot;
+ #include &quot;uip-conf.h&quot;
+@@ -477,70 +478,233 @@
+   IntMasterDisable();
+ }
+ 
+-
+ // *****************************************************************************
+-// ADC specific functions
++// ADC specific functions and variables
+ 
+ const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_CH3 };
++const static u32 adc_ints[] = { INT_ADC0, INT_ADC1, INT_ADC2, INT_ADC3 };
+ 
++struct platform_adc_state adc_state[ NUM_ADC ];
+ 
+-static void adcs_init(unsigned id)
++// Handle ADC interrupts
++void ADCIntHandler( void )
+ {
+-	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC);
++  unsigned long samplevalue;
++  unsigned id;
++  
++  // Check each sequence for a pending sample
++  for( id = 0; id &lt; NUM_ADC; id ++ )
++  {
++    if( ADCIntStatus(ADC_BASE, id, false) )
++    {      
++      ADCIntClear(ADC_BASE, id);
++      
++      // Get samples
++      ADCSequenceDataGet(ADC_BASE, id, &amp;samplevalue);
++      
++      // Smooth data if needed
++      if ( adc_state[id].smoothbuffsz &gt; 1 )
++      {        
++        if( adc_state[id].smoothbuffidx ==  adc_state[id].smoothbuffsz )
++        {
++          adc_state[id].smoothbuffidx = 0;
++        }
++        
++        // Subtract Oldest Value from Sum
++        adc_state[id].smoothingsum -= adc_state[id].smoothbuff[adc_state[id].smoothbuffidx];
++        
++        // Replace Oldest Value in Buffer
++        adc_state[id].smoothbuff[adc_state[id].smoothbuffidx] = (u16) samplevalue;
++        
++        // Add New Sample to Sum
++        adc_state[id].smoothingsum += adc_state[id].smoothbuff[adc_state[id].smoothbuffidx];
++        
++        
++        adc_state[id].smoothbuffidx++;
++        
++        // Calculate Average
++        if ( (adc_state[id].smoothbuffsz != 0) &amp;&amp; \
++             !(adc_state[id].smoothbuffsz &amp; (adc_state[id].smoothbuffsz - 1)) )
++          adc_state[id].smoothingav = adc_state[id].smoothingsum &gt;&gt; intlog2( adc_state[id].smoothbuffsz );
++        else
++          adc_state[id].smoothingav = adc_state[id].smoothingsum / adc_state[id].smoothbuffsz;
++          
++        adc_state[id].burstbuff[0] = (u16) adc_state[id].smoothingav;
++      }
++      else
++        adc_state[id].burstbuff[0] = (u16) samplevalue;
++      
++      // Mark channel as no longer having a fresh sample, close pending state
++      HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_DATA_READY ) = 1;
++      HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_PENDING ) = 0;
++    }
++  }
+ }
+ 
+-
+-u16 platform_adc_sample( unsigned id ) /* sample the specified ADC channel */
++static void adcs_init()
+ {
+-  u16 samplevalue;
++  unsigned id;
++	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC);
+ 
+-  /* Wait for data if not ready */
+-  while(!ADCIntStatus(ADC_BASE, id, false))
+-  {
+-  }
++	for( id = 0; id &lt; NUM_ADC; id ++ )
++	{
++    adc_state[id].status = 0x00;
+ 
+-  /* Get sample, comes back as unsigned long... */
+-  ADCSequenceDataGet(ADC_BASE, id, &amp;samplevalue);
++    adc_state[id].burstbuffersz = 1;
++    adc_state[id].burstbufferidx = 0;
+ 
+-  return samplevalue;
+-}
++    adc_state[id].smoothbuffsz = 1;
++    adc_state[id].smoothbuffidx = 0;
++    adc_state[id].smoothingav = 0;
++    adc_state[id].smoothingsum = 0;
+ 
+-void platform_adc_start( unsigned id ) /* starts a conversion on the specified ADC channel and returns immediately */
+-{
+-  ADCSequenceEnable(ADC_BASE, id);
+-  ADCProcessorTrigger(ADC_BASE, id);
++    adc_state[id].burstbuff = malloc( adc_state[id].burstbuffersz * sizeof( u16 ) );
++    adc_state[id].smoothbuff = malloc( adc_state[id].smoothbuffsz * sizeof( u16 ) );
++	  
++  	// Make sure sequencer is disabled before making changes
++    ADCSequenceDisable( ADC_BASE, id );
++
++    // Conversion initiated on processor trigger
++    ADCSequenceConfigure( ADC_BASE, id, ADC_TRIGGER_PROCESSOR, id ) ;
++
++    // ADC_CTL_IE causes an interrupt to be fired when this step is complete
++    // ADC_CTL_END causes this to be the last step to be taken in the sequence
++    // Samples go into sequencer of the same number as input channel
++   	ADCSequenceStepConfigure( ADC_BASE, id, 0, ADC_CTL_IE | ADC_CTL_END | adc_ctls[id] );
++
++    ADCIntEnable(ADC_BASE, id);
++    IntEnable(adc_ints[id]);
++
++    // Restart Sequencer
++    ADCSequenceEnable( ADC_BASE, id );
++	}
+ }
+ 
+-u16 platform_adc_maxval( unsigned id ) /* Returns maximum possible conversion value from ADC */
++u32 platform_adc_op( unsigned id, int op, u32 data )  // Move to common?
+ {
+-  return pow(2,ADC_BIT_RESOLUTION)-1;
+-}
++  // Do we really need 32-bit in and out?
++  u32 res = 0;
++  u8 ctr = 0;
+ 
+-int platform_adc_is_done( unsigned id ) /* returns 1 if the conversion on the specified channel ended, 0 otherwise */
+-{
+-  return !ADCIntStatus(ADC_BASE, id, false);
++  switch( op )
++  {
++    case PLATFORM_ADC_GET_MAXVAL:
++      res = pow( 2,ADC_BIT_RESOLUTION ) - 1;
++      break;
++
++    case PLATFORM_ADC_GET_SMOOTHING:
++      res = adc_state[id].smoothbuffsz;
++      break;
++
++    case PLATFORM_ADC_SET_SMOOTHING:
++      // If buffer length changes, alloc new buffer, and reset position
++      if( (u16) data !=  adc_state[id].smoothbuffsz )
++      {
++        adc_state[id].smoothbuffsz = (u16) data; 
++        
++        // Free old buffer space
++        free(adc_state[id].smoothbuff); // FIXME? Compiler complains
++        
++        // Reset sum, avg, index location
++        adc_state[id].smoothbuffidx = 0;
++        adc_state[id].smoothingav = 0;
++        adc_state[id].smoothingsum = 0;
++        
++        // Allocate and zero new smoothing buffer
++        if( ( adc_state[id].smoothbuff = malloc( adc_state[id].smoothbuffsz * sizeof( u16 ) ) ) == NULL )
++         {
++           return 1;
++         }
++        
++        for( ctr = 0; ctr &lt; adc_state[id].smoothbuffsz; ctr ++ )
++          adc_state[id].smoothbuff[ctr] = 0;
++      }
++      break;
++  }
++  return res;
+ }
+ 
++// Get a single sample from the specified ADC channel
++u16 platform_adc_sample( unsigned id ) 
++{   
++  // If no sample is pending or if were configured for burst, set to single-shot
++  if ( HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_PENDING ) == 0 || \
++       HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_BURST ) == 1)
++  {
++    // Make sure sequencer is disabled before making changes
++    ADCSequenceDisable( ADC_BASE, id );
+ 
+-void platform_adc_set_mode( unsigned id, int mode ) /* sets the mode on the specified ADC channel to either &quot;single shot&quot; or &quot;continuous&quot; */
+-{
+-  /* currently mode is ignored... acquisition is currently just single-shot */
++    // Conversion initiated on processor trigger
++    ADCSequenceConfigure( ADC_BASE, id, ADC_TRIGGER_PROCESSOR, id ) ;
+ 
+-  /* Stop sequencer we're going to adjust */
+-  ADCSequenceDisable(ADC_BASE, id);
++     // Restart Sequencer
++    ADCSequenceEnable( ADC_BASE, id);
++    HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_BURST ) = 0;
++  }
++  
++  // Fire Trigger to start sample conversion
++  HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_PENDING ) = 1;
++  ADCProcessorTrigger( ADC_BASE, id );
++  
++  // If in blocking mode and sample is pending, wait for ready flag
++  if ( HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_NONBLOCKING ) == 0 &amp;&amp; \
++       HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_PENDING ) == 1 )
++  {
++    while ( HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_DATA_READY ) == 0 ) { ; }
++  }
++ 
++  // If non-blocking we return whatever we have in the buffer
++  // Mark sample as old, and return
++  HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_DATA_READY ) = 0;
++  return adc_state[id].burstbuff[0];
++}
+ 
+-  /* Set sequence id to be triggered by processor, with priority id  */
+-  ADCSequenceConfigure(ADC_BASE, id, ADC_TRIGGER_PROCESSOR, id);
++// returns 1 if the conversion on the specified channel ended, 0 otherwise
++int platform_adc_is_done( unsigned id ) 
++{  
++  return HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_DATA_READY );
++}
+ 
+-  /* ADC_CTL_IE causes an interrupt to be fired when this step is complete */
+-  /* ADC_CTL_END causes this to be the last step to be taken */
+-  ADCSequenceStepConfigure(ADC_BASE, id, 0, ADC_CTL_IE | ADC_CTL_END | adc_ctls[id]);
++// sets the mode on the specified ADC channel to either blocking (0) or non-blocking (1)
++void platform_adc_set_mode( unsigned id, int mode ) 
++{  
++  switch( mode )
++  {
++    case PLATFORM_ADC_BLOCKING:
++      HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_NONBLOCKING ) = 0;
++      break;
++
++    case PLATFORM_ADC_NONBLOCKING:
++      HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_NONBLOCKING ) = 1;
++      break;
++  }
+ }
+ 
+-void platform_adc_burst( unsigned id, u16* buf, unsigned count, u32 frequency ) /* burst conversion: read &quot;count&quot; samples from the ADC channel &quot;id&quot;, storing the results in &quot;buf&quot;. The samples are read at periodic intervals, the period is given by &quot;frequency&quot;. */
++// burst conversion: read &quot;count&quot; samples from the ADC channel &quot;id&quot;, storing the results in &quot;buf&quot;. The samples are read at periodic intervals, the period is given by &quot;frequency&quot;.
++/*  -- not ready yet --
++void platform_adc_burst( unsigned id, u16* buf, unsigned count, unsigned timer_id, u32 frequency )
+ {
+-  /* not yet implemented */
++  if( HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_BURST ) == 0 )
++  {
++    // Make sure sequencer is disabled before making changes
++    ADCSequenceDisable( ADC_BASE, id );
++  
++    // Set sequence id to be triggered repeatedly, with priority id
++    ADCSequenceConfigure( ADC_BASE, id, ADC_TRIGGER_TIMER, id ) ;
++  
++    // Restart Sequencer
++    ADCSequenceEnable( ADC_BASE, id );
++    HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_BURST ) = 1;
++  }
++  
++  HWREGBITW( &amp;adc_state[id].status, PLATFORM_ADC_CH_PENDING ) = 1;
++
++  // Enable Timer
++  TimerConfigure(timer_base[timer_id], TIMER_CFG_32_BIT_PER);
++  TimerLoadSet(timer_base[timer_id], TIMER_A, SysCtlClockGet() / frequency);
++  TimerControlTrigger(timer_base[timer_id], TIMER_A, true);
+ }
++*/
+ 
+ // ****************************************************************************
+ // OLED Display specific functions
+
+Modified: trunk/src/platform/lm3s/startup_gcc.c
+===================================================================
+--- trunk/src/platform/lm3s/startup_gcc.c	2009-01-27 20:49:34 UTC (rev 163)
++++ trunk/src/platform/lm3s/startup_gcc.c	2009-01-27 20:49:45 UTC (rev 164)
+@@ -3,25 +3,25 @@
+ // startup_gcc.c - Startup code for use with GNU tools.
+ //
+ // Copyright (c) 2007-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
++//
+ // Software License Agreement
+-// 
++//
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+ // exclusively on LMI's microcontroller products.
+-// 
++//
+ // The software is owned by LMI and/or its suppliers, and is protected under
+ // applicable copyright laws.  All rights are reserved.  You may not combine
+ // this software with &quot;viral&quot; open-source software in order to form a larger
+ // program.  Any use in violation of the foregoing restrictions may subject
+ // the user to criminal sanctions under applicable laws, as well as to civil
+ // liability for the breach of the terms and conditions of this license.
+-// 
++//
+ // THIS SOFTWARE IS PROVIDED &quot;AS IS&quot;.  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
+ // OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
+ // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+-// 
++//
+ // This is part of revision 2752 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+@@ -36,9 +36,10 @@
+ static void FaultISR(void);
+ static void IntDefaultHandler(void);
+ 
+-// External interrupt handlers (used by Ethernet)
++// External interrupt handlers
+ extern void EthernetIntHandler();
+-extern void SysTickIntHandler(); 
++extern void SysTickIntHandler();
++extern void ADCIntHandler();
+ 
+ #include &quot;hw_memmap.h&quot;
+ 
+@@ -90,10 +91,10 @@
+     IntDefaultHandler,                      // PWM Generator 1
+     IntDefaultHandler,                      // PWM Generator 2
+     IntDefaultHandler,                      // Quadrature Encoder 0
+-    IntDefaultHandler,                      // ADC Sequence 0
+-    IntDefaultHandler,                      // ADC Sequence 1
+-    IntDefaultHandler,                      // ADC Sequence 2
+-    IntDefaultHandler,                      // ADC Sequence 3
++    ADCIntHandler,	                        // ADC Sequence 0
++    ADCIntHandler,                          // ADC Sequence 1
++    ADCIntHandler,                          // ADC Sequence 2
++    ADCIntHandler,                          // ADC Sequence 3
+     IntDefaultHandler,                      // Watchdog timer
+     IntDefaultHandler,                      // Timer 0 subtimer A
+     IntDefaultHandler,                      // Timer 0 subtimer B
+@@ -177,7 +178,7 @@
+     // Call the application's entry point.
+     //
+     main();
+-    
++
+     while(1);
+ }
+ 
+@@ -223,13 +224,13 @@
+     //
+     // Enter an infinite loop.
+     //
+-   UARTCharPut( UART0_BASE, '#' );       
+-   UARTCharPut( UART0_BASE, '#' );       
+-   UARTCharPut( UART0_BASE, '#' );       
+-   UARTCharPut( UART0_BASE, '#' );       
+-   UARTCharPut( UART0_BASE, '#' );            
++   UARTCharPut( UART0_BASE, '#' );
++   UARTCharPut( UART0_BASE, '#' );
++   UARTCharPut( UART0_BASE, '#' );
++   UARTCharPut( UART0_BASE, '#' );
++   UARTCharPut( UART0_BASE, '#' );
+    while(1)
+-   { 
++   {
+    }
+ }
+ 
+@@ -248,6 +249,6 @@
+     //
+     while(1)
+     {
+-      UARTCharPut( UART0_BASE, '*' );    
++      UARTCharPut( UART0_BASE, '*' );
+     }
+ }
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2009-01-27 20:49:34 UTC (rev 163)
++++ trunk/src/platform/stm32/platform.c	2009-01-27 20:49:45 UTC (rev 164)
+@@ -10,7 +10,7 @@
+ #include &lt;ctype.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &quot;uip_arp.h&quot;
+-#include &quot;elua_uip.h&quot; 
++#include &quot;elua_uip.h&quot;
+ #include &quot;uip-conf.h&quot;
+ #include &quot;platform_conf.h&quot;
+ #include &quot;common.h&quot;
+@@ -55,7 +55,7 @@
+ static void eth_init();
+ 
+ int platform_init()
+-{ 
++{
+   // Set the clocking to run from PLL
+   RCC_Configuration();
+ 
+@@ -81,19 +81,19 @@
+ #endif
+ 
+   // Setup timers
+-  //timers_init();        
++  //timers_init();
+ 
+   // Setup PWMs
+-  //pwms_init();                 
++  //pwms_init();
+ 
+   // Setup ethernet (TCP/IP)
+   //eth_init();
+ 
+   cmn_platform_init();
+-  
++
+   // All done
+   return PLATFORM_OK;
+-} 
++}
+ 
+ // ****************************************************************************
+ // Clocks
+@@ -126,12 +126,12 @@
+ 
+     /* Flash 2 wait state */
+     FLASH_SetLatency(FLASH_Latency_2);
+- 
++
+     /* HCLK = SYSCLK */
+-    RCC_HCLKConfig(RCC_SYSCLK_Div1); 
+-  
++    RCC_HCLKConfig(RCC_SYSCLK_Div1);
++
+     /* PCLK2 = HCLK */
+-    RCC_PCLK2Config(RCC_HCLK_Div1); 
++    RCC_PCLK2Config(RCC_HCLK_Div1);
+ 
+     /* PCLK1 = HCLK/2 */
+     RCC_PCLK1Config(RCC_HCLK_Div2);
+@@ -139,7 +139,7 @@
+     /* PLLCLK = 8MHz * 9 = 72 MHz */
+     RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_9);
+ 
+-    /* Enable PLL */ 
++    /* Enable PLL */
+     RCC_PLLCmd(ENABLE);
+ 
+     /* Wait till PLL is ready */
+@@ -154,8 +154,8 @@
+     while(RCC_GetSYSCLKSource() != 0x08)
+     {
+     }
+-  } 
+- 
++  }
++
+   RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+ }
+ 
+@@ -176,15 +176,15 @@
+ 
+   NVIC_DeInit();
+ 
+-#ifdef  VECT_TAB_RAM  
+-  /* Set the Vector Table base location at 0x20000000 */ 
+-  NVIC_SetVectorTable(NVIC_VectTab_RAM, 0x0); 
++#ifdef  VECT_TAB_RAM
++  /* Set the Vector Table base location at 0x20000000 */
++  NVIC_SetVectorTable(NVIC_VectTab_RAM, 0x0);
+ #else  /* VECT_TAB_FLASH  */
+-  /* Set the Vector Table base location at 0x08000000 */ 
+-  NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x0);   
+-#endif 
++  /* Set the Vector Table base location at 0x08000000 */
++  NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x0);
++#endif
+ 
+-  /* Configure the NVIC Preemption Priority Bits */  
++  /* Configure the NVIC Preemption Priority Bits */
+   NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+ 
+   /* Configure the SysTick handler priority */
+@@ -208,11 +208,11 @@
+   {
+     // Enable clock to port.
+     RCC_APB2PeriphClockCmd(pio_port_clk[port], ENABLE);
+-  
++
+     // Default all port pins to input and enable port.
+     GPIO_InitStructure.GPIO_Pin  = GPIO_Pin_All;
+     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+-  
++
+     GPIO_Init(pio_port[port], &amp;GPIO_InitStructure);
+   }
+ }
+@@ -222,69 +222,69 @@
+   pio_type retval = 1;
+   GPIO_InitTypeDef GPIO_InitStructure;
+   GPIO_TypeDef * base = pio_port[ port ];
+-  
++
+   switch( op )
+   {
+-    case PLATFORM_IO_PORT_SET_VALUE:    
++    case PLATFORM_IO_PORT_SET_VALUE:
+       GPIO_Write(base, pinmask);
+       break;
+-      
++
+     case PLATFORM_IO_PIN_SET:
+       GPIO_SetBits(base, pinmask);
+       break;
+-      
++
+     case PLATFORM_IO_PIN_CLEAR:
+       GPIO_ResetBits(base, pinmask);
+       break;
+-      
++
+     case PLATFORM_IO_PORT_DIR_INPUT:
+-      pinmask = GPIO_Pin_All;      
++      pinmask = GPIO_Pin_All;
+     case PLATFORM_IO_PIN_DIR_INPUT:
+       GPIO_InitStructure.GPIO_Pin  = pinmask;
+       GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+-    
++
+       GPIO_Init(base, &amp;GPIO_InitStructure);
+       break;
+-      
+-    case PLATFORM_IO_PORT_DIR_OUTPUT:      
++
++    case PLATFORM_IO_PORT_DIR_OUTPUT:
+       pinmask = GPIO_Pin_All;
+     case PLATFORM_IO_PIN_DIR_OUTPUT:
+       GPIO_InitStructure.GPIO_Pin   = pinmask;
+       GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_Out_PP;
+       GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+-    
++
+       GPIO_Init(base, &amp;GPIO_InitStructure);
+-      break;      
+-            
++      break;
++
+     case PLATFORM_IO_PORT_GET_VALUE:
+       retval = GPIO_ReadInputData(base);
+       break;
+-      
++
+     case PLATFORM_IO_PIN_GET:
+       retval = GPIO_ReadInputDataBit(base, pinmask);
+       break;
+-      
++
+     case PLATFORM_IO_PIN_PULLUP:
+       GPIO_InitStructure.GPIO_Pin   = pinmask;
+       GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPU;
+-    
++
+       GPIO_Init(base, &amp;GPIO_InitStructure);
+       break;
+-    
++
+     case PLATFORM_IO_PIN_PULLDOWN:
+       GPIO_InitStructure.GPIO_Pin   = pinmask;
+       GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IPD;
+-    
++
+       GPIO_Init(base, &amp;GPIO_InitStructure);
+       break;
+-      
++
+     case PLATFORM_IO_PIN_NOPULL:
+       GPIO_InitStructure.GPIO_Pin   = pinmask;
+       GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
+-    
++
+       GPIO_Init(base, &amp;GPIO_InitStructure);
+       break;
+-      
++
+     default:
+       retval = 0;
+       break;
+@@ -325,18 +325,18 @@
+ u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
+ {
+   unsigned protocol;
+-  
++
+   if( cpol == 0 )
+     protocol = cpha ? SSI_FRF_MOTO_MODE_1 : SSI_FRF_MOTO_MODE_0;
+   else
+     protocol = cpha ? SSI_FRF_MOTO_MODE_3 : SSI_FRF_MOTO_MODE_2;
+-  mode = mode == PLATFORM_SPI_MASTER ? SSI_MODE_MASTER : SSI_MODE_SLAVE;  
++  mode = mode == PLATFORM_SPI_MASTER ? SSI_MODE_MASTER : SSI_MODE_SLAVE;
+   SSIDisable( spi_base[ id ] );
+ 
+   GPIOPinTypeSSI( spi_gpio_base[ id ], spi_gpio_pins[ id ] );
+-  
++
+   // FIXME: not sure this is always &quot;right&quot;
+-  GPIOPadConfigSet(spi_gpio_base[ id ], spi_gpio_clk_pin[ id ], GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);    
++  GPIOPadConfigSet(spi_gpio_base[ id ], spi_gpio_clk_pin[ id ], GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
+ 
+   SSIConfigSetExpClk( spi_base[ id ], SysCtlClockGet(), protocol, mode, clock, databits );
+   SSIEnable( spi_base[ id ] );
+@@ -352,7 +352,7 @@
+ 
+ void platform_spi_select( unsigned id, int is_select )
+ {
+-  // This platform doesn't have a hardware SS pin, so there's nothing to do here  
++  // This platform doesn't have a hardware SS pin, so there's nothing to do here
+   id = id;
+   is_select = is_select;
+ }
+@@ -390,7 +390,7 @@
+ 
+   /* Configure USART */
+   USART_Init(usart[id], initVals);
+-  
++
+   /* Enable USART1 Receive and Transmit interrupts */
+   //USART_ITConfig(usart[id], USART_IT_RXNE, ENABLE);
+   //USART_ITConfig(usart[id], USART_IT_TXE, ENABLE);
+@@ -408,7 +408,7 @@
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4, ENABLE);
+-  
++
+   // Configure the U(S)ART for 115,200, 8-N-1 operation.
+ 
+   USART_InitStructure.USART_BaudRate = CON_UART_SPEED;
+@@ -426,10 +426,10 @@
+   USART_InitTypeDef USART_InitStructure;
+ 
+   USART_InitStructure.USART_BaudRate = baud;
+-  
++
+   USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+   USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+-    
++
+   switch( databits )
+   {
+     case 5:
+@@ -457,7 +457,7 @@
+     default:
+       USART_InitStructure.USART_StopBits = USART_StopBits_2;
+       break;
+-  }    
++  }
+ 
+   switch (parity)
+   {
+@@ -471,9 +471,9 @@
+       USART_InitStructure.USART_Parity = USART_Parity_No;
+       break;
+   }
+-  
++
+   usart_init(id, &amp;USART_InitStructure);
+-  
++
+   return TRUE;
+ }
+ 
+@@ -492,18 +492,17 @@
+     if (USART_GetFlagStatus(usart[id], USART_FLAG_RXNE) == RESET)
+       return -1;
+     else
+-      return USART_ReceiveData(usart[id]);  
++      return USART_ReceiveData(usart[id]);
+   }
+   // Receive char blocking
+   while(USART_GetFlagStatus(usart[id], USART_FLAG_RXNE) == RESET);
+-  return USART_ReceiveData(usart[id]);  
++  return USART_ReceiveData(usart[id]);
+ }
+ #endif
+ 
+ #ifdef STM32_USE_TIMERS
+ // ****************************************************************************
+ // Timers
+-// Same on LM3S8962 and LM3S6965
+ 
+ // All possible LM3S timers defs
+ static TIM_TypeDef * timer[] = { TIM2, TIM3, TIM4, TIM5};
+@@ -544,9 +543,9 @@
+   clkdiv = ((tmp &amp; 0x8000) ? (tmp + 0x10000) : tmp) &gt;&gt; 16;  // Round up or down and convert back to u32.0
+   if (clkdiv &gt; 0x10000)  // Saturate to u16 (+1 for a clkdiv value of 1 is a reg value of 0)
+       clkdiv = 0x10000;
+-  
++
+   TIM_PrescalerConfig(timer[id], clkdiv - 1, TIM_PSCReloadMode_Immediate); // Update timer prescaler immediately
+-  
++
+   return pclk / clkdiv; // Return actual clock rate used.
+ }
+ 
+@@ -554,17 +553,17 @@
+ {
+   timer_data_type final;
+   u32 base = timer_base[ id ];
+-  
++
+   final = 0xFFFFFFFF - ( ( ( u64 )delay_us * SysCtlClockGet() ) / 1000000 );
+   TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
+   while( TimerValueGet( base, TIMER_A ) &gt; final );
+ }
+-      
++
+ u32 platform_s_timer_op( unsigned id, int op, u32 data )
+ {
+   u32 res = 0;
+-  u32 base = timer_base[ id ]; 
+-  
++  u32 base = timer_base[ id ];
++
+   data = data;
+   switch( op )
+   {
+@@ -572,24 +571,24 @@
+       res = 0xFFFFFFFF;
+       TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
+       break;
+-      
++
+     case PLATFORM_TIMER_OP_READ:
+       res = TimerValueGet( base, TIMER_A );
+       break;
+-      
++
+     case PLATFORM_TIMER_OP_GET_MAX_DELAY:
+       res = platform_timer_get_diff_us( id, 0, 0xFFFFFFFF );
+       break;
+-      
++
+     case PLATFORM_TIMER_OP_GET_MIN_DELAY:
+       res = platform_timer_get_diff_us( id, 0, 1 );
+       break;
+-      
++
+     case PLATFORM_TIMER_OP_SET_CLOCK:
+     case PLATFORM_TIMER_OP_GET_CLOCK:
+       res = SysCtlClockGet();
+       break;
+-      
++
+   }
+   return res;
+ }
+@@ -629,7 +628,7 @@
+ {
+   unsigned i;
+   u32 clk;
+-  
++
+   clk = SysCtlPWMClockGet();
+   for( i = 0; i &lt; sizeof( pwm_div_ctl ) / sizeof( u32 ); i ++ )
+     if( clk == pwm_div_ctl[ i ] )
+@@ -642,7 +641,7 @@
+ {
+   unsigned i, min_i;
+   u32 sysclk;
+-  
++
+   sysclk = SysCtlClockGet();
+   for( i = min_i = 0; i &lt; sizeof( pwm_div_data ) / sizeof( u8 ); i ++ )
+     if( ABSDIFF( clock, sysclk / pwm_div_data[ i ] ) &lt; ABSDIFF( clock, sysclk / pwm_div_data[ min_i ] ) )
+@@ -653,14 +652,14 @@
+ 
+ int platform_pwm_exists( unsigned id )
+ {
+-  return id &lt; PLATFORM_NUM_PWMS; 
++  return id &lt; PLATFORM_NUM_PWMS;
+ }
+ 
+ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
+ {
+   u32 pwmclk = platform_pwm_get_clock();
+   u32 period;
+-  
++
+   // Set pin as PWM
+   GPIOPinTypePWM( pwm_ports[ id ], pwm_pins[ id ] );
+   // Compute period
+@@ -677,28 +676,28 @@
+ u32 platform_pwm_op( unsigned id, int op, u32 data )
+ {
+   u32 res = 0;
+-  
++
+   switch( op )
+   {
+     case PLATFORM_PWM_OP_SET_CLOCK:
+       res = platform_pwm_set_clock( data );
+       break;
+-            
++
+     case PLATFORM_PWM_OP_GET_CLOCK:
+       res = platform_pwm_get_clock();
+       break;
+-      
++
+     case PLATFORM_PWM_OP_START:
+       PWMOutputState( PWM_BASE, 1 &lt;&lt; id, true );
+       PWMGenEnable( PWM_BASE, pwm_gens[ id &gt;&gt; 1 ] );
+       break;
+-      
++
+     case PLATFORM_PWM_OP_STOP:
+       PWMOutputState( PWM_BASE, 1 &lt;&lt; id, false );
+       PWMGenDisable( PWM_BASE, pwm_gens[ id &gt;&gt; 1 ] );
+       break;
+   }
+-  
++
+   return res;
+ }
+ #endif
+@@ -750,12 +749,12 @@
+ {
+ #ifdef BUILD_UIP
+   u32 user0, user1, temp;
+-  static struct uip_eth_addr sTempAddr;     
+-  
++  static struct uip_eth_addr sTempAddr;
++
+   // Enable and reset the controller
+   SysCtlPeripheralEnable( SYSCTL_PERIPH_ETH );
+   SysCtlPeripheralReset( SYSCTL_PERIPH_ETH );
+-  
++
+   // Enable Ethernet LEDs
+   GPIODirModeSet( GPIO_PORTF_BASE, GPIO_PIN_2 | GPIO_PIN_3, GPIO_DIR_MODE_HW );
+   GPIOPadConfigSet( GPIO_PORTF_BASE, GPIO_PIN_2 | GPIO_PIN_3, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
+@@ -764,13 +763,13 @@
+   SysTickPeriodSet(SysCtlClockGet() / SYSTICKHZ);
+   SysTickEnable();
+   SysTickIntEnable();
+-  
++
+   // Intialize the Ethernet Controller and disable all Ethernet Controller interrupt sources.
+   EthernetIntDisable(ETH_BASE, (ETH_INT_PHY | ETH_INT_MDIO | ETH_INT_RXER |
+                      ETH_INT_RXOF | ETH_INT_TX | ETH_INT_TXER | ETH_INT_RX));
+   temp = EthernetIntStatus(ETH_BASE, false);
+-  EthernetIntClear(ETH_BASE, temp);  
+-  
++  EthernetIntClear(ETH_BASE, temp);
++
+   // Initialize the Ethernet Controller for operation.
+   EthernetInitExpClk(ETH_BASE, SysCtlClockGet());
+ 
+@@ -788,7 +787,7 @@
+   IntEnable(INT_ETH);
+ 
+   // Enable the Ethernet RX Packet interrupt source.
+-  EthernetIntEnable(ETH_BASE, ETH_INT_RX);  
++  EthernetIntEnable(ETH_BASE, ETH_INT_RX);
+ 
+   // Enable all processor interrupts.
+   IntMasterEnable();
+@@ -800,7 +799,7 @@
+   // non-volatile USER0 and USER1 registers.  These registers can be read
+   // using the FlashUserGet function, as illustrated below.
+   FlashUserGet(&amp;user0, &amp;user1);
+-  
++
+   // Convert the 24/24 split MAC address from NV ram into a 32/16 split MAC
+   // address needed to program the hardware registers, then program the MAC
+   // address into the Ethernet Controller registers.
+@@ -809,10 +808,10 @@
+   sTempAddr.addr[2] = ((user0 &gt;&gt; 16) &amp; 0xff);
+   sTempAddr.addr[3] = ((user1 &gt;&gt;  0) &amp; 0xff);
+   sTempAddr.addr[4] = ((user1 &gt;&gt;  8) &amp; 0xff);
+-  sTempAddr.addr[5] = ((user1 &gt;&gt; 16) &amp; 0xff);  
++  sTempAddr.addr[5] = ((user1 &gt;&gt; 16) &amp; 0xff);
+ 
+   // Program the hardware with it's MAC address (for filtering).
+-  EthernetMACAddrSet(ETH_BASE, (unsigned char *)&amp;sTempAddr);  
++  EthernetMACAddrSet(ETH_BASE, (unsigned char *)&amp;sTempAddr);
+ 
+   // Initialize the eLua uIP layer
+   elua_uip_init( &amp;sTempAddr );
+@@ -824,7 +823,7 @@
+ 
+ void platform_eth_send_packet( const void* src, u32 size )
+ {
+-  EthernetPacketPut( ETH_BASE, uip_buf, uip_len );    
++  EthernetPacketPut( ETH_BASE, uip_buf, uip_len );
+ }
+ 
+ u32 platform_eth_get_packet_nb( void* buf, u32 maxlen )
+@@ -834,7 +833,7 @@
+ 
+ void platform_eth_force_interrupt()
+ {
+-  HWREG( NVIC_SW_TRIG) |= INT_ETH - 16;  
++  HWREG( NVIC_SW_TRIG) |= INT_ETH - 16;
+ }
+ 
+ u32 platform_eth_get_elapsed_time()
+@@ -863,12 +862,12 @@
+ void EthernetIntHandler()
+ {
+   u32 temp;
+-  
++
+   // Read and Clear the interrupt.
+   temp = EthernetIntStatus( ETH_BASE, false );
+   EthernetIntClear( ETH_BASE, temp );
+ 
+-  // Call the UIP main loop  
++  // Call the UIP main loop
+   elua_uip_mainloop();
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000119.html">[Elua-svn] r163 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000121.html">[Elua-svn] r165 - in trunk: . romfs src src/modules	src/platform/i386
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#120">[ date ]</a>
+              <a href="thread.html#120">[ thread ]</a>
+              <a href="subject.html#120">[ subject ]</a>
+              <a href="author.html#120">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,279 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r853 - in trunk: inc src/modules test
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r853%20-%20in%20trunk%3A%20inc%20src/modules%20test&In-Reply-To=%3C20101214010552.8BABF4801A9%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000805.html">
+   <LINK REL="Next"  HREF="000807.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r853 - in trunk: inc src/modules test</H1>
+    <B>jbsnyder at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r853%20-%20in%20trunk%3A%20inc%20src/modules%20test&In-Reply-To=%3C20101214010552.8BABF4801A9%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r853 - in trunk: inc src/modules test">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Dec 14 02:05:52 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000805.html">[Elua-svn] r852 - trunk/inc
+</A></li>
+        <LI>Next message: <A HREF="000807.html">[Elua-svn] r854 - in trunk/doc: eluadoc en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#806">[ date ]</a>
+              <a href="thread.html#806">[ thread ]</a>
+              <a href="subject.html#806">[ subject ]</a>
+              <a href="author.html#806">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-12-14 02:05:52 +0100 (Tue, 14 Dec 2010)
+New Revision: 853
+
+Modified:
+   trunk/inc/luarpc_rpc.h
+   trunk/src/modules/luarpc.c
+   trunk/test/test-rpc.lua
+Log:
+Apply misc fixes to LuaRPC:
+ - prevent premature helper gc
+ - replace some MYASSERT statements with standard Lua functions for arg checking
+
+Modified: trunk/inc/luarpc_rpc.h
+===================================================================
+--- trunk/inc/luarpc_rpc.h	2010-12-11 00:24:17 UTC (rev 852)
++++ trunk/inc/luarpc_rpc.h	2010-12-14 01:05:52 UTC (rev 853)
+@@ -103,8 +103,9 @@
+ typedef struct _Helper Helper;
+ struct _Helper {
+   Handle *handle;                     // pointer to handle object
+-	Helper *parent;                     // parent helper
+-	u8 nparents;                        // number of parents
++  Helper *parent;                     // parent helper
++  int pref;                           // Parent reference idx in registry
++  u8 nparents;                        // number of parents
+   char funcname[NUM_FUNCNAME_CHARS];  // name of the function
+ };
+ 
+
+Modified: trunk/src/modules/luarpc.c
+===================================================================
+--- trunk/src/modules/luarpc.c	2010-12-11 00:24:17 UTC (rev 852)
++++ trunk/src/modules/luarpc.c	2010-12-14 01:05:52 UTC (rev 853)
+@@ -762,10 +762,13 @@
+   Helper *h = ( Helper * )lua_newuserdata( L, sizeof( Helper ) );
+   luaL_getmetatable( L, &quot;rpc.helper&quot; );
+   lua_setmetatable( L, -2 );
++
++  lua_pushvalue( L, 1 ); // push parent handle
++  h-&gt;pref = luaL_ref( L, LUA_REGISTRYINDEX ); // put ref into struct
+   h-&gt;handle = handle;
+   h-&gt;parent = NULL;
+   h-&gt;nparents = 0;
+-  strncpy ( h-&gt;funcname, funcname, NUM_FUNCNAME_CHARS );
++  strncpy( h-&gt;funcname, funcname, NUM_FUNCNAME_CHARS );
+   return h;
+ }
+ 
+@@ -775,7 +778,7 @@
+ {
+   const char *s;
+ 
+-  MYASSERT( lua_gettop( L ) == 2 );
++  check_num_args( L, 2 );
+   MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.handle&quot; ) );
+ 
+   if( lua_type( L, 2 ) != LUA_TSTRING )
+@@ -797,7 +800,7 @@
+ {
+   const char *s;
+ 
+-  MYASSERT( lua_gettop( L ) == 3 );
++  check_num_args( L, 3 );
+   MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.handle&quot; ) );
+ 
+   if( lua_type( L, 2 ) != LUA_TSTRING )
+@@ -928,11 +931,10 @@
+   int freturn = 0;
+   Helper *h;
+   Transport *tpt;
+-  MYASSERT( lua_gettop( L ) &gt;= 1 );
+-  MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.helper&quot; ) );
+-  
+-  // get helper object and its transport 
+-  h = ( Helper * )lua_touserdata( L, 1 );
++
++  h = ( Helper * )luaL_checkudata(L, 1, &quot;rpc.helper&quot;);
++  luaL_argcheck(L, h, 1, &quot;helper expected&quot;);
++
+   tpt = &amp;h-&gt;handle-&gt;tpt;
+   
+   // capture special calls, otherwise execute normal remote call
+@@ -1001,9 +1003,7 @@
+   return freturn;
+ }
+ 
+-
+-
+-
++// __newindex even on helper
+ static int helper_newindex( lua_State *L )
+ {
+   struct exception e;
+@@ -1011,16 +1011,17 @@
+   int ret_code;
+   Helper *h;
+   Transport *tpt;
+-  MYASSERT( lua_isuserdata( L, -3 ) &amp;&amp; ismetatable_type( L, -3, &quot;rpc.helper&quot; ) );
+-  MYASSERT( lua_isstring( L, -2 ) );
+-  
+-  // get helper object and its transport
+-  h = ( Helper * )lua_touserdata( L, -3 );
++
++  h = ( Helper * )luaL_checkudata(L, -3, &quot;rpc.helper&quot;);
++  luaL_argcheck(L, h, -3, &quot;helper expected&quot;);
++ 
++  luaL_checktype(L, -2, LUA_TSTRING );
++
+   tpt = &amp;h-&gt;handle-&gt;tpt;
+   
+   Try
+   {  
+-    // write function name
++    // index destination on remote side
+     helper_wait_ready( tpt, RPC_CMD_NEWINDEX );
+     helper_remote_index( h );
+ 
+@@ -1055,6 +1056,9 @@
+   Helper *h = ( Helper * )lua_newuserdata( L, sizeof( Helper ) );
+   luaL_getmetatable( L, &quot;rpc.helper&quot; );
+   lua_setmetatable( L, -2 );
++
++  lua_pushvalue( L, 1 ); // push parent
++  h-&gt;pref = luaL_ref( L, LUA_REGISTRYINDEX ); // put ref into struct
+   h-&gt;handle = helper-&gt;handle;
+   h-&gt;parent = helper;
+   h-&gt;nparents = helper-&gt;nparents + 1;
+@@ -1062,12 +1066,12 @@
+   return h;
+ }
+ 
+-// indexing a handle returns a helper 
++// indexing a helper returns a helper 
+ static int helper_index( lua_State *L )
+ {
+   const char *s;
+ 
+-  MYASSERT( lua_gettop( L ) == 2 );
++  check_num_args( L, 2 );
+   MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.helper&quot; ) );
+ 
+   if( lua_type( L, 2 ) != LUA_TSTRING )
+@@ -1081,6 +1085,17 @@
+   return 1;
+ }
+ 
++static int helper_close (lua_State *L)
++{
++  Helper *h = ( Helper * )luaL_checkudata(L, 1, &quot;rpc.helper&quot;);
++  luaL_argcheck(L, h, 1, &quot;helper expected&quot;);
++  
++  luaL_unref(L, LUA_REGISTRYINDEX, h-&gt;pref);
++  h-&gt;pref = LUA_REFNIL;
++  return 0;
++}
++
++
+ // **************************************************************************
+ // server side handle userdata objects. 
+ 
+@@ -1543,8 +1558,8 @@
+   ServerHandle *handle;
+   check_num_args( L, 1 );
+ 
+-  if ( ! ( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.server_handle&quot; ) ) )
+-    return luaL_error( L, &quot;arg must be server handle&quot; );
++  handle = ( ServerHandle * )luaL_checkudata(L, 1, &quot;rpc.server_handle&quot;);
++  luaL_argcheck(L, handle, 1, &quot;server handle expected&quot;);
+ 
+   handle = ( ServerHandle * )lua_touserdata( L, 1 );
+ 
+@@ -1625,6 +1640,7 @@
+   { LSTRKEY( &quot;__call&quot; ), LFUNCVAL( helper_call ) },
+   { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( helper_index ) },
+   { LSTRKEY( &quot;__newindex&quot; ), LFUNCVAL( helper_newindex ) },
++  { LSTRKEY( &quot;__gc&quot; ), LFUNCVAL( helper_close ) },
+   { LNILKEY, LNILVAL }
+ };
+ 
+@@ -1686,6 +1702,7 @@
+   { &quot;__call&quot;, helper_call },
+   { &quot;__index&quot;, helper_index },
+   { &quot;__newindex&quot;, helper_newindex },
++  { &quot;__gc&quot;, helper_close },
+   { NULL, NULL }
+ };
+ 
+
+Modified: trunk/test/test-rpc.lua
+===================================================================
+--- trunk/test/test-rpc.lua	2010-12-11 00:24:17 UTC (rev 852)
++++ trunk/test/test-rpc.lua	2010-12-14 01:05:52 UTC (rev 853)
+@@ -37,6 +37,23 @@
+ -- check that we can get entry on remote table
+ assert(test_local.sval == slave.test:get().sval, &quot;table field not equivalent&quot;)
+ 
++-- ensure that we're not loosing critical objects in GC
++tval = 5
++y={}
++y.z={}
++y.z.x = tval
++slave.y=y
++
++a={}
++for i=1,2 do
++  a[i]=slave.y.z
++  collectgarbage(&quot;collect&quot;)
++end
++for idx,val in ipairs(a) do
++  assert(val:get().x == tval, &quot;missing parent helper&quot;)
++  assert(val.x:get() == tval, &quot;missing parent helper&quot;)
++end
++
+ print(&quot;Memory Used: &quot; .. slave.collectgarbage(&quot;count&quot;) .. &quot; kB&quot;)
+ 
+ -- adc = slave.adc
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000805.html">[Elua-svn] r852 - trunk/inc
+</A></li>
+	<LI>Next message: <A HREF="000807.html">[Elua-svn] r854 - in trunk/doc: eluadoc en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#806">[ date ]</a>
+              <a href="thread.html#806">[ thread ]</a>
+              <a href="subject.html#806">[ subject ]</a>
+              <a href="author.html#806">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

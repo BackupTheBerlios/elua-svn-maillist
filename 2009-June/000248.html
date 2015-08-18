@@ -1,0 +1,2094 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r292 - in branches/luarpc: . inc src src/modules	src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r292%20-%20in%20branches/luarpc%3A%20.%20inc%20src%20src/modules%0A%09src/platform/stm32&In-Reply-To=%3C200906092012.n59KC1i7022118%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000247.html">
+   <LINK REL="Next"  HREF="000249.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r292 - in branches/luarpc: . inc src src/modules	src/platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r292%20-%20in%20branches/luarpc%3A%20.%20inc%20src%20src/modules%0A%09src/platform/stm32&In-Reply-To=%3C200906092012.n59KC1i7022118%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r292 - in branches/luarpc: . inc src src/modules	src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Jun  9 22:12:01 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000247.html">[Elua-svn] r291 - branches
+</A></li>
+        <LI>Next message: <A HREF="000249.html">[Elua-svn] r293 - branches
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#248">[ date ]</a>
+              <a href="thread.html#248">[ thread ]</a>
+              <a href="subject.html#248">[ subject ]</a>
+              <a href="author.html#248">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-09 22:12:00 +0200 (Tue, 09 Jun 2009)
+New Revision: 292
+
+Added:
+   branches/luarpc/inc/cexcept.h
+   branches/luarpc/inc/luarpc_rpc.h
+   branches/luarpc/src/luarpc_elua.c
+   branches/luarpc/src/modules/luarpc.c
+Modified:
+   branches/luarpc/SConstruct
+   branches/luarpc/src/common.c
+   branches/luarpc/src/modules/auxmods.h
+   branches/luarpc/src/platform/stm32/platform_conf.h
+Log:
+Merge branch 'luarpc_integration' into HEAD
+
+Modified: branches/luarpc/SConstruct
+===================================================================
+--- branches/luarpc/SConstruct	2009-06-09 20:10:41 UTC (rev 291)
++++ branches/luarpc/SConstruct	2009-06-09 20:12:00 UTC (rev 292)
+@@ -230,7 +230,7 @@
+ local_libs = ''
+ 
+ # Application files
+-app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c &quot;
++app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua.c &quot;
+ 
+ # Newlib related files
+ newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+@@ -241,7 +241,7 @@
+ local_include += ['src/uip']
+ 
+ # Lua module files
+-module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c&quot;
++module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c luarpc.c&quot;
+ module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+ 
+ # Optimizer flags (speed or size)
+
+Added: branches/luarpc/inc/cexcept.h
+===================================================================
+--- branches/luarpc/inc/cexcept.h	2009-06-09 20:10:41 UTC (rev 291)
++++ branches/luarpc/inc/cexcept.h	2009-06-09 20:12:00 UTC (rev 292)
+@@ -0,0 +1,248 @@
++/*===
++cexcept.h 2.0.1 (2008-Jul-19-Sat)
++<A HREF="http://www.nicemice.net/cexcept/">http://www.nicemice.net/cexcept/</A>
++Adam M. Costello
++<A HREF="http://www.nicemice.net/amc/">http://www.nicemice.net/amc/</A>
++
++An interface for exception-handling in ANSI C (C89 and subsequent ISO
++standards), developed jointly with Cosmin Truta.
++
++    Copyright (c) 2000-2008 Adam M. Costello and Cosmin Truta.
++    This software may be modified only if its author and version
++    information is updated accurately, and may be redistributed
++    only if accompanied by this unaltered notice.  Subject to those
++    restrictions, permission is granted to anyone to do anything
++    with this software.  The copyright holders make no guarantees
++    regarding this software, and are not responsible for any damage
++    resulting from its use.
++
++The cexcept interface is not compatible with and cannot interact
++with system exceptions (like division by zero or memory segmentation
++violation), compiler-generated exceptions (like C++ exceptions), or
++other exception-handling interfaces.
++
++When using this interface across multiple .c files, do not include
++this header file directly.  Instead, create a wrapper header file that
++includes this header file and then invokes the define_exception_type
++macro (see below).  The .c files should then include that header file.
++
++The interface consists of one type, one well-known name, and six macros.
++
++
++define_exception_type(type_name);
++
++    This macro is used like an external declaration.  It specifies
++    the type of object that gets copied from the exception thrower to
++    the exception catcher.  The type_name can be any type that can be
++    assigned to, that is, a non-constant arithmetic type, struct, union,
++    or pointer.  Examples:
++
++        define_exception_type(int);
++
++        enum exception { out_of_memory, bad_arguments, disk_full };
++        define_exception_type(enum exception);
++
++        struct exception { int code; const char *msg; };
++        define_exception_type(struct exception);
++
++    Because throwing an exception causes the object to be copied (not
++    just once, but twice), programmers may wish to consider size when
++    choosing the exception type.
++
++
++struct exception_context;
++
++    This type may be used after the define_exception_type() macro has
++    been invoked.  A struct exception_context must be known to both
++    the thrower and the catcher.  It is expected that there be one
++    context for each thread that uses exceptions.  It would certainly
++    be dangerous for multiple threads to access the same context.
++    One thread can use multiple contexts, but that is likely to be
++    confusing and not typically useful.  The application can allocate
++    this structure in any way it pleases--automatic, static, or dynamic.
++    The application programmer should pretend not to know the structure
++    members, which are subject to change.
++
++
++struct exception_context *the_exception_context;
++
++    The Try/Catch and Throw statements (described below) implicitly
++    refer to a context, using the name the_exception_context.  It is
++    the application's responsibility to make sure that this name yields
++    the address of a mutable (non-constant) struct exception_context
++    wherever those statements are used.  Subject to that constraint, the
++    application may declare a variable of this name anywhere it likes
++    (inside a function, in a parameter list, or externally), and may
++    use whatever storage class specifiers (static, extern, etc) or type
++    qualifiers (const, volatile, etc) it likes.  Examples:
++
++        static struct exception_context
++          * const the_exception_context = &foo;
++
++        { struct exception_context *the_exception_context = bar; ... }
++
++        int blah(struct exception_context *the_exception_context, ...);
++
++        extern struct exception_context the_exception_context[1];
++
++    The last example illustrates a trick that avoids creating a pointer
++    object separate from the structure object.
++
++    The name could even be a macro, for example:
++
++        struct exception_context ec_array[numthreads];
++        #define the_exception_context (ec_array + thread_id)
++
++    Be aware that the_exception_context is used several times by the
++    Try/Catch/Throw macros, so it shouldn't be expensive or have side
++    effects.  The expansion must be a drop-in replacement for an
++    identifier, so it's safest to put parentheses around it.
++
++
++void init_exception_context(struct exception_context *ec);
++
++    For context structures allocated statically (by an external
++    definition or using the &quot;static&quot; keyword), the implicit
++    initialization to all zeros is sufficient, but contexts allocated
++    by other means must be initialized using this macro before they
++    are used by a Try/Catch statement.  It does no harm to initialize
++    a context more than once (by using this macro on a statically
++    allocated context, or using this macro twice on the same context),
++    but a context must not be re-initialized after it has been used by a
++    Try/Catch statement.
++
++
++Try statement
++Catch (expression) statement
++
++    The Try/Catch/Throw macros are capitalized in order to avoid
++    confusion with the C++ keywords, which have subtly different
++    semantics.
++
++    A Try/Catch statement has a syntax similar to an if/else statement,
++    except that the parenthesized expression goes after the second
++    keyword rather than the first.  As with if/else, there are two
++    clauses, each of which may be a simple statement ending with a
++    semicolon or a brace-enclosed compound statement.  But whereas
++    the else clause is optional, the Catch clause is required.  The
++    expression must be a modifiable lvalue (something capable of being
++    assigned to) of the same type (disregarding type qualifiers) that
++    was passed to define_exception_type().
++
++    If a Throw that uses the same exception context as the Try/Catch is
++    executed within the Try clause (typically within a function called
++    by the Try clause), and the exception is not caught by a nested
++    Try/Catch statement, then a copy of the exception will be assigned
++    to the expression, and control will jump to the Catch clause.  If no
++    such Throw is executed, then the assignment is not performed, and
++    the Catch clause is not executed.
++
++    The expression is not evaluated unless and until the exception is
++    caught, which is significant if it has side effects, for example:
++
++        Try foo();
++        Catch (p[++i].e) { ... }
++
++    IMPORTANT: Jumping into or out of a Try clause (for example via
++    return, break, continue, goto, longjmp) is forbidden--the compiler
++    will not complain, but bad things will happen at run-time.  Jumping
++    into or out of a Catch clause is okay, and so is jumping around
++    inside a Try clause.  In many cases where one is tempted to return
++    from a Try clause, it will suffice to use Throw, and then return
++    from the Catch clause.  Another option is to set a flag variable and
++    use goto to jump to the end of the Try clause, then check the flag
++    after the Try/Catch statement.
++
++    IMPORTANT: The values of any non-volatile automatic variables
++    changed within the Try clause are undefined after an exception is
++    caught.  Therefore, variables modified inside the Try block whose
++    values are needed later outside the Try block must either use static
++    storage or be declared with the &quot;volatile&quot; type qualifier.
++
++
++Throw expression;
++
++    A Throw statement is very much like a return statement, except that
++    the expression is required.  Whereas return jumps back to the place
++    where the current function was called, Throw jumps back to the Catch
++    clause of the innermost enclosing Try clause.  The expression must
++    be compatible with the type passed to define_exception_type().  The
++    exception must be caught, otherwise the program may crash.
++
++    Slight limitation:  If the expression is a comma-expression, it must
++    be enclosed in parentheses.
++
++
++Try statement
++Catch_anonymous statement
++
++    When the value of the exception is not needed, a Try/Catch statement
++    can use Catch_anonymous instead of Catch (expression).
++
++
++Everything below this point is for the benefit of the compiler.  The
++application programmer should pretend not to know any of it, because it
++is subject to change.
++
++===*/
++
++
++#ifndef CEXCEPT_H
++#define CEXCEPT_H
++
++
++#include &lt;setjmp.h&gt;
++
++#define define_exception_type(etype) \
++struct exception_context { \
++  jmp_buf *penv; \
++  int caught; \
++  volatile struct { etype etmp; } v; \
++}
++
++/* etmp must be volatile because the application might use automatic */
++/* storage for the_exception_context, and etmp is modified between   */
++/* the calls to setjmp() and longjmp().  A wrapper struct is used to */
++/* avoid warnings about a duplicate volatile qualifier in case etype */
++/* already includes it.                                              */
++
++#define init_exception_context(ec) ((void)((ec)-&gt;penv = 0))
++
++#define Try \
++  { \
++    jmp_buf *exception__prev, exception__env; \
++    exception__prev = the_exception_context-&gt;penv; \
++    the_exception_context-&gt;penv = &amp;exception__env; \
++    if (setjmp(exception__env) == 0) { \
++      do
++
++#define exception__catch(action) \
++      while (the_exception_context-&gt;caught = 0, \
++             the_exception_context-&gt;caught); \
++    } \
++    else { \
++      the_exception_context-&gt;caught = 1; \
++    } \
++    the_exception_context-&gt;penv = exception__prev; \
++  } \
++  if (!the_exception_context-&gt;caught || action) { } \
++  else
++
++#define Catch(e) exception__catch(((e) = the_exception_context-&gt;v.etmp, 0))
++#define Catch_anonymous exception__catch(0)
++
++/* Try ends with do, and Catch begins with while(0) and ends with     */
++/* else, to ensure that Try/Catch syntax is similar to if/else        */
++/* syntax.                                                            */
++/*                                                                    */
++/* The 0 in while(0) is expressed as x=0,x in order to appease        */
++/* compilers that warn about constant expressions inside while().     */
++/* Most compilers should still recognize that the condition is always */
++/* false and avoid generating code for it.                            */
++
++#define Throw \
++  for (;; longjmp(*the_exception_context-&gt;penv, 1)) \
++    the_exception_context-&gt;v.etmp =
++
++
++#endif /* CEXCEPT_H */
+
+Added: branches/luarpc/inc/luarpc_rpc.h
+===================================================================
+--- branches/luarpc/inc/luarpc_rpc.h	2009-06-09 20:10:41 UTC (rev 291)
++++ branches/luarpc/inc/luarpc_rpc.h	2009-06-09 20:12:00 UTC (rev 292)
+@@ -0,0 +1,170 @@
++#include &quot;cexcept.h&quot;
++
++/****************************************************************************/
++/* handle the differences between winsock and unix */
++
++#ifdef WIN32  /*  BEGIN WIN32 SOCKET SETUP  */
++
++#define close closesocket
++#define read(fd,buf,len) recv ((fd),(buf),(len),0)
++#define write(fd,buf,len) send ((fd),(buf),(len),0)
++#define SOCKTYPE SOCKET
++#define sock_errno (WSAGetLastError())
++
++#else
++
++#define SOCKTYPE int
++#define net_startup() ;
++#define sock_errno errno
++#define transport_strerror strerror
++
++#endif
++
++/****************************************************************************/
++/* parameters */
++
++#define MAXCON 10 /* maximum number of waiting server connections */
++
++/* a kind of silly way to get the maximum int, but oh well ... */
++#define MAXINT ((int)((((unsigned int)(-1)) &lt;&lt; 1) &gt;&gt; 1))
++
++/****************************************************************************/
++/* error handling */
++
++/* allow special handling for GCC compiler */
++#ifdef __GNUC__
++#define DOGCC(x) x
++#else
++#define DOGCC(x) /* */
++#endif
++
++
++/* assertions */
++
++#ifndef NDEBUG
++#ifdef __GNUC__
++#define MYASSERT(a) if (!(a)) rpcdebug ( \
++  &quot;assertion \&quot;&quot; #a &quot;\&quot; failed in %s() [%s]&quot;,__FUNCTION__,__FILE__);
++#else
++#define MYASSERT(a) if (!(a)) rpcdebug ( \
++  &quot;assertion \&quot;&quot; #a &quot;\&quot; failed in %s:%d&quot;,__FILE__,__LINE__);
++#endif
++#else
++#define MYASSERT(a) ;
++#endif
++
++/****************************************************************************/
++/* more error handling */
++
++/* error numbers passed around are normal system &quot;errno&quot; error numbers
++ * (normally generated by transport operations), except when they have the
++ * following values:
++ */
++
++enum {
++  ERR_EOF      = MAXINT - 100,  /* reached end of file on transport */
++  ERR_CLOSED   = MAXINT - 101,  /* attempted operation on closed transport */
++  ERR_PROTOCOL = MAXINT - 102,  /* some error in the received protocol */
++	ERR_NODATA	 = MAXINT - 103,
++	ERR_BADFNAME = MAXINT - 104,
++	ERR_DATALINK = MAXINT - 105,
++	ERR_COMMAND  = MAXINT - 106
++};
++
++enum exception_type { done, nonfatal, fatal };
++
++struct exception {
++  enum exception_type type;
++	int errnum;
++};
++
++define_exception_type(struct exception);
++
++extern struct exception_context the_exception_context[ 1 ];
++
++#define NUM_FUNCNAME_CHARS 20
++
++/* Transport Connection Structure */
++
++/* FIXME: should be cleaner */
++struct _Transport 
++{
++  int fd;      /* INVALID_TRANSPORT if socket is closed */
++};
++typedef struct _Transport Transport;
++
++
++struct _Handle 
++{
++  Transport tpt;      /* the handle socket */
++  int error_handler;    /* function reference */
++  int async;      /* nonzero if async mode being used */
++  int read_reply_count;   /* number of async call return values to read */
++};
++typedef struct _Handle Handle;
++
++
++struct _Helper {
++  Handle *handle;     /* pointer to handle object */
++  char funcname[NUM_FUNCNAME_CHARS];  /* name of the function */
++	char *lname; /* last name appended */
++};
++typedef struct _Helper Helper;
++
++
++struct _ServerHandle {
++  Transport ltpt;   /* listening socket, always valid if no error */
++  Transport atpt;   /* accepting socket, valid if connection established */
++	int link_errs;
++};
++typedef struct _ServerHandle ServerHandle;
++
++/* Maximum number of framing errors before connection reset */
++#define MAX_LINK_ERRS ( 2 )
++
++#define INVALID_TRANSPORT (-1)
++
++#define HEAD_BYTE (0x7e)
++
++#define TAIL_BYTE (0x7f)
++
++#define TRANSPORT_VERIFY_OPEN \
++	if (tpt-&gt;fd == INVALID_TRANSPORT) \
++	{ \
++		e.errnum = ERR_CLOSED; \
++		e.type = fatal; \
++		Throw( e ); \
++	}
++
++/* Arg &amp; Error Checking Provided to Transport Mechanisms */
++int check_num_args (lua_State *L, int desired_n);
++void deal_with_error (lua_State *L, Handle *h, const char *error_string);
++
++/* TRANSPORT API */
++
++/* Setup Transport */
++void transport_init (Transport *tpt);
++
++/* Open Listener / Server */
++void transport_open_listener(lua_State *L, ServerHandle *handle);
++
++/* Open Connection / Client */
++int transport_open_connection(lua_State *L, Handle *handle);
++
++/* Accept Connection */
++void transport_accept (Transport *tpt, Transport *atpt);
++
++/* Read &amp; Write to Transport */
++void transport_read_buffer (Transport *tpt, u8 *buffer, int length);
++void transport_write_buffer (Transport *tpt, const u8 *buffer, int length);
++
++/* Check if data is available on connection without reading:
++ 		- 1 = data available, 0 = no data available */
++int transport_readable (Transport *tpt);
++
++/* Check if transport is open:
++		- 1 = connection open, 0 = connection closed */
++int transport_is_open (Transport *tpt);
++
++/* Shut down connection */
++void transport_close (Transport *tpt);
+\ No newline at end of file
+
+Modified: branches/luarpc/src/common.c
+===================================================================
+--- branches/luarpc/src/common.c	2009-06-09 20:10:41 UTC (rev 291)
++++ branches/luarpc/src/common.c	2009-06-09 20:12:00 UTC (rev 292)
+@@ -454,7 +454,6 @@
+   return ( void* )p;
+ }
+ 
+-
+ // ****************************************************************************
+ // Misc support
+ unsigned int intlog2( unsigned int v )
+
+Added: branches/luarpc/src/luarpc_elua.c
+===================================================================
+--- branches/luarpc/src/luarpc_elua.c	2009-06-09 20:10:41 UTC (rev 291)
++++ branches/luarpc/src/luarpc_elua.c	2009-06-09 20:12:00 UTC (rev 292)
+@@ -0,0 +1,141 @@
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;luarpc_rpc.h&quot;
++
++#ifdef BUILD_LUARPC
++
++int uart_timeout = PLATFORM_UART_INFINITE_TIMEOUT;
++
++/* Setup Transport */
++void transport_init (Transport *tpt)
++{
++	tpt-&gt;fd = INVALID_TRANSPORT;
++}
++
++/* Open Listener / Server */
++void transport_open_listener(lua_State *L, ServerHandle *handle)
++{
++	/* Get args &amp; Set up connection */
++	
++	handle-&gt;ltpt.fd = CON_UART_ID;
++}
++
++/* Open Connection / Client */
++int transport_open_connection(lua_State *L, Handle *handle)
++{
++	handle-&gt;tpt.fd = CON_UART_ID;
++	return 0;
++}
++
++/* Accept Connection */
++void transport_accept (Transport *tpt, Transport *atpt)
++{
++	struct exception e;
++	TRANSPORT_VERIFY_OPEN;
++	atpt-&gt;fd = tpt-&gt;fd;
++}
++
++/* Read &amp; Write to Transport */
++void transport_read_buffer_low (Transport *tpt, u8 *buffer, int length)
++{
++	int n = 0;
++	int c;
++	struct exception e;
++	
++	while( n &lt; length )
++	{
++		TRANSPORT_VERIFY_OPEN;
++		c = platform_uart_recv( CON_UART_ID, CON_TIMER_ID, uart_timeout );
++				
++    if( c &lt; 0 )
++		{
++			e.errnum = ERR_NODATA;
++			e.type = nonfatal;
++			Throw( e );
++		}
++		else
++		{
++			buffer[ n ] = ( u8 ) c;
++			n++;
++		}
++  }
++}
++
++void transport_read_buffer (Transport *tpt, u8 *buffer, int length)
++{
++	u8 tmp;
++	struct exception e;
++	TRANSPORT_VERIFY_OPEN;
++	
++	/* Read Header */
++	transport_read_buffer_low( tpt, &amp;tmp, 1);
++	if ( tmp != HEAD_BYTE )
++	{
++		uart_timeout = 1000000;
++		e.errnum = ERR_PROTOCOL;
++		e.type = nonfatal;
++		Throw( e );
++	}
++	
++	/* Read Data */
++	transport_read_buffer_low( tpt, buffer, length);
++	
++	/* Read Trailer */
++	transport_read_buffer_low( tpt, &amp;tmp, 1);
++	if ( tmp != TAIL_BYTE )
++	{
++		uart_timeout = 1000000;
++		e.errnum = ERR_PROTOCOL;
++		e.type = nonfatal;
++		Throw( e );
++	}
++	
++	uart_timeout = PLATFORM_UART_INFINITE_TIMEOUT;
++}
++
++void transport_write_buffer_low (Transport *tpt, const u8 *buffer, int length)
++{
++	int i;
++	for( i = 0; i &lt; length; i ++ )
++    platform_uart_send( CON_UART_ID, buffer[ i ] );
++}
++
++void transport_write_buffer( Transport *tpt, const u8 *buffer, int length )
++{
++	u8 tmp;
++	struct exception e;
++	TRANSPORT_VERIFY_OPEN;
++	
++	tmp = HEAD_BYTE;
++	transport_write_buffer_low( tpt, (const u8 *)&amp;tmp, 1 );
++	
++	transport_write_buffer_low( tpt, buffer, length );
++	
++	tmp = TAIL_BYTE;
++	transport_write_buffer_low( tpt, (const u8 *)&amp;tmp, 1 );
++}
++
++/* Check if data is available on connection without reading:
++ 		- 1 = data available, 0 = no data available */
++int transport_readable (Transport *tpt)
++{
++	return 1;
++}
++
++/* Check if transport is open:
++		- 1 = connection open, 0 = connection closed */
++int transport_is_open (Transport *tpt)
++{
++	return (tpt-&gt;fd != INVALID_TRANSPORT);
++}
++
++/* Shut down connection */
++void transport_close (Transport *tpt)
++{
++	tpt-&gt;fd = INVALID_TRANSPORT;
++}
++
++#endif
+\ No newline at end of file
+
+Modified: branches/luarpc/src/modules/auxmods.h
+===================================================================
+--- branches/luarpc/src/modules/auxmods.h	2009-06-09 20:10:41 UTC (rev 291)
++++ branches/luarpc/src/modules/auxmods.h	2009-06-09 20:12:00 UTC (rev 292)
+@@ -42,6 +42,9 @@
+ #define AUXLIB_ADC      &quot;adc&quot;
+ LUALIB_API int ( luaopen_adc )( lua_State *L );
+ 
++#define AUXLIB_LUARPC   &quot;rpc&quot;
++LUALIB_API int ( luaopen_luarpc )( lua_State *L );
++
+ // Helper macros
+ 
+ #define MOD_CHECK_ID( mod, id )\
+
+Added: branches/luarpc/src/modules/luarpc.c
+===================================================================
+--- branches/luarpc/src/modules/luarpc.c	2009-06-09 20:10:41 UTC (rev 291)
++++ branches/luarpc/src/modules/luarpc.c	2009-06-09 20:12:00 UTC (rev 292)
+@@ -0,0 +1,1354 @@
++/*****************************************************************************
++* Lua-RPC library, Copyright (C) 2001 Russell L. Smith. All rights reserved. *
++*   Email: <A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">russ at q12.org</A>   Web: www.q12.org                                   *
++* For documentation, see <A HREF="http://www.q12.org/lua.">http://www.q12.org/lua.</A> For the license agreement,  *
++* see the file LICENSE that comes with this distribution.                    *
++*****************************************************************************/
++
++#include &lt;stdlib.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;string.h&gt;
++#include &lt;alloca.h&gt;
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++
++#ifndef LUARPC_STANDALONE
++#include &quot;platform.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;lrotable.h&quot;
++#else
++#include &quot;config.h&quot;
++#endif
++
++#include &quot;luarpc_rpc.h&quot;
++
++#ifdef BUILD_LUARPC
++
++/* Support for Compiling with rotables */
++#ifdef LUA_OPTIMIZE_MEMORY
++#define LUA_ISCALLABLE(state, idx) ( lua_isfunction( state, idx ) || lua_islightfunction( state, idx ) )
++#else
++#define LUA_ISCALLABLE(state, idx) lua_isfunction( state, idx )
++#endif
++
++struct exception_context the_exception_context[ 1 ];
++
++static void errorMessage (const char *msg, va_list ap)
++{
++  fflush (stdout);
++  fflush (stderr);
++  fprintf (stderr,&quot;\nError: &quot;);
++  vfprintf (stderr,msg,ap);
++  fprintf (stderr,&quot;\n\n&quot;);
++  fflush (stderr);
++}
++
++
++DOGCC(static void panic (const char *msg, ...)
++      __attribute__ ((noreturn,unused));)
++static void panic (const char *msg, ...)
++{
++  va_list ap;
++  va_start (ap,msg);
++  errorMessage (msg,ap);
++  exit (1);
++}
++
++
++DOGCC(static void rpcdebug (const char *msg, ...)
++      __attribute__ ((noreturn,unused));)
++static void rpcdebug (const char *msg, ...)
++{
++  va_list ap;
++  va_start (ap,msg);
++  errorMessage (msg,ap);
++  abort();
++}
++
++/* return a string representation of an error number */
++
++static const char * errorString (int n)
++{
++  switch (n) {
++  case ERR_EOF: return &quot;connection closed unexpectedly (\&quot;end of file\&quot;)&quot;;
++  case ERR_CLOSED: return &quot;operation requested on a closed transport&quot;;
++  case ERR_PROTOCOL: return &quot;error in the received LuaRPC protocol&quot;;
++	case ERR_COMMAND: return &quot;undefined RPC command&quot;;
++	case ERR_DATALINK: return &quot;transmission error at data link level&quot;;
++  case ERR_NODATA: return &quot;no data received when attempting to read&quot;;
++  case ERR_BADFNAME: return &quot;function name is too long&quot;;
++  default: return transport_strerror (n);
++  }
++}
++
++
++/****************************************************************************/
++/* transport layer generics */
++
++/* read from the transport into a string buffer. */
++
++static void transport_read_string( Transport *tpt, const char *buffer, int length )
++{
++  transport_read_buffer( tpt, ( u8 * )buffer, length );
++}
++
++
++/* write a string buffer to the transport */
++
++static void transport_write_string( Transport *tpt, const char *buffer, int length )
++{
++  transport_write_buffer( tpt, ( u8 * )buffer, length );
++}
++
++
++/* read a u8 from the transport */
++
++static u8 transport_read_u8( Transport *tpt )
++{
++  u8 b;
++	struct exception e;
++  TRANSPORT_VERIFY_OPEN;
++  transport_read_buffer( tpt, &amp;b, 1 );
++  return b;
++}
++
++
++/* write a u8 to the transport */
++
++static void transport_write_u8( Transport *tpt, u8 x )
++{
++	struct exception e;
++  TRANSPORT_VERIFY_OPEN;
++  transport_write_buffer (tpt,&amp;x,1);
++}
++
++
++/* read a u32 from the transport */
++
++static u32 transport_read_u32( Transport *tpt )
++{
++  u8 b[4];
++  u32 i;
++	struct exception e;
++  TRANSPORT_VERIFY_OPEN;
++  transport_read_buffer ( tpt, b, 4 );
++  i = ( b[ 0 ] &lt;&lt; 24 ) | (b[ 1 ] &lt;&lt; 16 ) | ( b[ 2 ] &lt;&lt; 8) | b[ 3 ];
++  return i;
++}
++
++
++/* write a u32 to the transport */
++
++static void transport_write_u32 (Transport *tpt, u32 x)
++{
++  u8 b[4];
++	struct exception e;
++  TRANSPORT_VERIFY_OPEN;
++  b[0] = x &gt;&gt; 24;
++  b[1] = x &gt;&gt; 16;
++  b[2] = x &gt;&gt; 8;
++  b[3] = x;
++  transport_write_buffer (tpt,b,4);
++}
++
++
++/* Represent doubles as byte string */
++union DoubleBytes {
++  double d;
++  u8 b[ sizeof( double ) ];
++};
++
++/* read a double from the transport */
++
++static double transport_read_double (Transport *tpt)
++{
++  union DoubleBytes double_bytes;
++	struct exception e;
++  TRANSPORT_VERIFY_OPEN;
++  /* @@@ handle endianness */
++  transport_read_buffer ( tpt,double_bytes.b, sizeof( double ) );
++  return double_bytes.d;
++}
++
++
++/* write a double to the transport */
++
++static void transport_write_double (Transport *tpt, double x)
++{
++  int n;
++  union DoubleBytes double_bytes;
++	struct exception e;
++  TRANSPORT_VERIFY_OPEN;
++  /* @@@ handle endianness */
++  double_bytes.d = x;
++  transport_write_buffer( tpt,double_bytes.b, sizeof( double ) );
++}
++
++
++
++/****************************************************************************/
++/* lua utility */
++
++/* replacement for lua_error that resets the exception stack before leaving
++ * Lua-RPC.
++ */
++
++void my_lua_error( lua_State *L, const char *errmsg )
++{
++  lua_pushstring( L, errmsg );
++  lua_error( L );
++}
++
++int check_num_args( lua_State *L, int desired_n )
++{
++  int n = lua_gettop( L );   /* number of arguments on stack */
++  if ( n != desired_n ) {
++    char s[ 100 ];
++    sprintf( s, &quot;must have %d argument%c&quot;, desired_n,
++       ( desired_n == 1 ) ? '\0' : 's' );
++    my_lua_error( L, s );
++  }
++  return n;
++}
++
++static int ismetatable_type( lua_State *L, int ud, const char *tname )
++{
++  if( lua_getmetatable( L, ud ) ) {  /* does it have a metatable? */
++    lua_getfield( L, LUA_REGISTRYINDEX, tname );  /* get correct metatable */
++    if( lua_rawequal( L, -1, -2 ) ) {  /* does it have the correct mt? */
++      lua_pop( L, 2 );  /* remove both metatables */
++      return 1;
++    }
++  }
++  return 0;
++}
++
++
++
++/****************************************************************************/
++/* read and write lua variables to a transport.
++ * these functions do little error handling of their own, but they call transport
++ * functions which may throw exceptions, so calls to these functions must be
++ * wrapped in a Try block.
++ */
++
++enum {
++  RPC_NIL=0,
++  RPC_NUMBER,
++  RPC_BOOLEAN,
++  RPC_STRING,
++  RPC_TABLE,
++  RPC_TABLE_END,
++  RPC_FUNCTION,
++  RPC_FUNCTION_END
++};
++
++enum
++{
++	RPC_CMD_CALL = 1,
++	RPC_CMD_GET,
++	RPC_CMD_CON
++};
++
++enum { RPC_PROTOCOL_VERSION = 3 };
++
++/* write a table at the given index in the stack. the index must be absolute
++ * (i.e. positive).
++ */
++
++static void write_variable( Transport *tpt, lua_State *L, int var_index );
++static int read_variable( Transport *tpt, lua_State *L );
++
++static void write_table( Transport *tpt, lua_State *L, int table_index )
++{
++  lua_pushnil( L );  /* push first key */
++  while ( lua_next( L, table_index ) ) 
++	{
++    /* next key and value were pushed on the stack */
++    write_variable( tpt, L, lua_gettop( L ) - 1 );
++    write_variable( tpt, L, lua_gettop( L ) );
++    /* remove value, keep key for next iteration */
++    lua_pop( L, 1 );
++  }
++}
++/* STARTING POINT FOR SENDING FUNCTIONS OVER THE WIRE
++static int function_writer (lua_State *L, const void* b, size_t size, void* B) {
++  (void)L;
++  luaL_addlstring((luaL_Buffer*) B, (const char *)b, size);
++  return 0;
++}
++
++
++static void str_dump (lua_State *L) {
++  luaL_Buffer b;
++  luaL_checktype(L, 1, LUA_TFUNCTION);
++  lua_settop(L, 1);
++  luaL_buffinit(L,&amp;b);
++  if (lua_dump(L, function_writer, &amp;b) != 0)
++    luaL_error(L, &quot;unable to dump given function&quot;);
++  luaL_pushresult(&amp;b);
++  return 1;
++}
++
++
++static void write_function (Transport *tpt, lua_State *L, int table_index)
++{
++  luaL_Buffer b;
++  luaL_checktype(L, table_index, LUA_TFUNCTION);
++  lua_settop(L, table_index);
++  luaL_buffinit(L,&amp;b);
++  if (lua_dump(L, function_writer, &amp;b) != 0)
++    luaL_error(L, &quot;unable to dump given function&quot;);
++  //int lua_dump (lua_State *L, lua_Writer writer, void *data);
++}
++*/
++
++/* write a variable at the given index in the stack. the index must be absolute
++ * (i.e. positive).
++ */
++
++static void write_variable( Transport *tpt, lua_State *L, int var_index )
++{
++  int stack_at_start = lua_gettop( L );
++
++  switch( lua_type( L, var_index ) )
++	{
++  	case LUA_TNUMBER:
++	    transport_write_u8( tpt, RPC_NUMBER );
++	    transport_write_double( tpt, lua_tonumber( L, var_index ) );
++	    break;
++
++	  case LUA_TSTRING:
++		{
++	    const char *s;
++	    u32 len;
++	    transport_write_u8( tpt, RPC_STRING );
++	    s = lua_tostring( L, var_index );
++	    len = lua_strlen( L, var_index );
++	    transport_write_u32( tpt, len );
++	    transport_write_string( tpt, s, len );
++	    break;
++	  }
++
++	  case LUA_TTABLE:
++	    transport_write_u8( tpt, RPC_TABLE );
++	    write_table( tpt, L, var_index );
++	    transport_write_u8( tpt, RPC_TABLE_END );
++	    break;
++
++	  case LUA_TNIL:
++	    transport_write_u8( tpt, RPC_NIL );
++	    break;
++
++	  case LUA_TBOOLEAN:
++	    transport_write_u8( tpt,RPC_BOOLEAN );
++	    transport_write_u8( tpt, ( u8 )lua_toboolean( L, var_index ) );
++	    break;
++
++	  case LUA_TFUNCTION:
++	 /* transport_write_u8 (tpt,RPC_FUNCTION);
++	    write_function (tpt,L,var_index);
++	    transport_write_u8 (tpt,RPC_FUNCTION_END); */
++	    my_lua_error( L, &quot;can't pass functions to a remote function&quot; );
++	    break;
++
++	  case LUA_TUSERDATA:
++	    my_lua_error( L, &quot;can't pass user data to a remote function&quot; );
++	    break;
++
++	  case LUA_TTHREAD:
++	    my_lua_error( L, &quot;can't pass threads to a remote function&quot; );
++	    break;
++
++	  case LUA_TLIGHTUSERDATA:
++	    my_lua_error( L, &quot;can't pass light user data to a remote function&quot; );
++	    break;
++	}
++  MYASSERT( lua_gettop( L ) == stack_at_start );
++}
++
++
++/* read a table and push in onto the stack */
++
++static void read_table( Transport *tpt, lua_State *L )
++{
++  int table_index;
++  lua_newtable( L );
++  table_index = lua_gettop( L );
++  for ( ;; ) 
++	{
++    if( !read_variable( tpt, L ) )
++			return;
++    read_variable( tpt, L );
++    lua_rawset( L, table_index );
++  }
++}
++
++
++/* read a variable and push in onto the stack. this returns 1 if a &quot;normal&quot;
++ * variable was read, or 0 if an end-table marker was read (in which case
++ * nothing is pushed onto the stack).
++ */
++
++static int read_variable( Transport *tpt, lua_State *L )
++{
++	struct exception e;
++  u8 type = transport_read_u8( tpt );
++
++  switch( type )
++  {
++    case RPC_NIL:
++      lua_pushnil( L );
++      break;
++
++    case RPC_BOOLEAN:
++      lua_pushboolean( L, transport_read_u8( tpt ) );
++      break;
++
++    case RPC_NUMBER:
++      lua_pushnumber( L, transport_read_double( tpt ) );
++      break;
++
++    case RPC_STRING:
++		{
++      u32 len = transport_read_u32( tpt );
++      char *s = ( char * )alloca( len + 1 );
++      transport_read_string( tpt, s, len );
++      s[ len ] = 0;
++      lua_pushlstring( L, s, len );
++      break;
++		}
++
++    case RPC_TABLE:
++      read_table( tpt, L );
++      break;
++
++    case RPC_TABLE_END:
++      return 0;
++
++    default:
++			e.errnum = ERR_PROTOCOL;
++			e.type = fatal;
++      Throw( e );
++  }
++  return 1;
++}
++
++
++/****************************************************************************/
++/* rpc utility */
++
++/* functions for sending and receving headers
++ */
++
++static void write_header( Transport *tpt )
++{
++	char header[ 5 ];
++
++  /* write the protocol header */
++  header[0] = 'L';
++  header[1] = 'R';
++  header[2] = 'P';
++  header[3] = 'C';
++  header[4] = RPC_PROTOCOL_VERSION;
++
++  transport_write_string( tpt, header, sizeof( header ) );
++}
++
++static void read_header( Transport *tpt )
++{
++	struct exception e;
++	char header[ 5 ];
++	
++  /* check that the header is ok */
++  transport_read_string( tpt, header, sizeof( header ) );
++  if( header[0] != 'L' ||
++      header[1] != 'R' ||
++      header[2] != 'P' ||
++      header[3] != 'C' ||
++      header[4] != RPC_PROTOCOL_VERSION )
++	{
++		e.errnum = ERR_PROTOCOL;
++		e.type = nonfatal;
++		Throw( e );
++	}
++}
++
++/****************************************************************************/
++/* client side handle and handle helper userdata objects.
++ *
++ * a handle userdata (handle to a RPC server) is a pointer to a Handle object.
++ * a helper userdata is a pointer to a Helper object.
++ *
++ * helpers let us make expressions like:
++ *    handle.funcname (a,b,c)
++ * &quot;handle.funcname&quot; returns the helper object, which calls the remote
++ * function.
++ */
++
++/* global error handling */
++static int global_error_handler = LUA_NOREF;  /* function reference */
++
++/* handle a client or server side error. NOTE: this function may or may not
++ * return. the handle `h' may be 0.
++ */
++
++void deal_with_error(lua_State *L, Handle *h, const char *error_string)
++{ 
++  if( global_error_handler !=  LUA_NOREF )
++  {
++    lua_getref( L, global_error_handler );
++    lua_pushstring( L, error_string );
++    lua_pcall( L, 1, 0, 0 );
++  }
++  else
++    my_lua_error( L, error_string );
++}
++
++
++Handle * handle_create( lua_State *L )
++{
++  Handle *h = ( Handle * )lua_newuserdata( L, sizeof( Handle ) );
++  luaL_getmetatable( L, &quot;rpc.handle&quot; );
++  lua_setmetatable( L, -2 );
++  h-&gt;error_handler = LUA_NOREF;
++  h-&gt;async = 0;
++  h-&gt;read_reply_count = 0;
++  return h;
++}
++
++static Helper * helper_create( lua_State *L, Handle *handle, const char *funcname )
++{
++	Helper *h = ( Helper * )lua_newuserdata( L, sizeof( Helper ) );
++  luaL_getmetatable( L, &quot;rpc.helper&quot; );
++  lua_setmetatable( L, -2 );
++  h-&gt;handle = handle;
++	h-&gt;lname = h-&gt;funcname;
++  strncpy ( h-&gt;funcname, funcname, NUM_FUNCNAME_CHARS );
++  return h;
++}
++
++
++/* indexing a handle returns a helper */
++static int handle_index (lua_State *L)
++{
++  const char *s;
++  Helper *h;
++
++  MYASSERT( lua_gettop( L ) == 2 );
++  MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.handle&quot; ) );
++
++  if( lua_type( L, 2 ) != LUA_TSTRING )
++    my_lua_error( L, &quot;can't index a handle with a non-string&quot; );
++  s = lua_tostring( L, 2 );
++	if ( strlen( s ) &gt; NUM_FUNCNAME_CHARS - 1 )
++		my_lua_error( L, &quot;function name is too long&quot; );
++		
++  h = helper_create( L, ( Handle * )lua_touserdata( L, 1 ), s );
++
++  /* return the helper object */
++  return 1;
++}
++
++
++static int helper_get( lua_State *L )
++{
++  struct exception e;
++  int freturn = 0;
++  Helper *h;
++  Transport *tpt;
++  MYASSERT( lua_gettop( L ) &gt;= 1 );
++  MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.helper&quot; ) );
++  
++  /* get helper object and its transport */
++  h = ( Helper * )lua_touserdata( L, 1 );
++  tpt = &amp;h-&gt;handle-&gt;tpt;
++
++  Try
++  {
++    int i,len,n;
++    u32 nret,ret_code;
++				
++    /* write function name */
++    len = strlen( h-&gt;funcname );
++		transport_write_u8( tpt, RPC_CMD_GET );
++    transport_write_u32 ( tpt, len );
++    transport_write_string( tpt, h-&gt;funcname, len );
++
++		/* read variable back */
++    read_variable( tpt, L );
++
++    freturn = 1;
++  }
++  Catch( e )
++  {
++		switch( e.type )
++		{
++			case fatal:
++				if ( e.errnum == ERR_CLOSED )
++		      my_lua_error( L, &quot;can't refer to a remote function after the handle has been closed&quot; );
++				deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
++				transport_close( tpt );
++				break;
++			case nonfatal:
++				deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
++				lua_pushnil( L );
++				return 1;
++				break;
++			default:
++        deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
++				transport_close( tpt );
++				break;
++		}
++  }
++  return freturn;
++}
++
++
++static int helper_call (lua_State *L)
++{
++  struct exception e;
++  int freturn = 0;
++  Helper *h;
++  Transport *tpt;
++  MYASSERT( lua_gettop( L ) &gt;= 1 );
++  MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.helper&quot; ) );
++  
++  /* get helper object and its transport */
++  h = ( Helper * )lua_touserdata( L, 1 );
++  tpt = &amp;h-&gt;handle-&gt;tpt;
++	
++	
++	/* @@@ ugly way to capture get calls, should find another way */
++	if( strcmp(&quot;get&quot;, h-&gt;lname ) == 0 )
++	{
++		*(h-&gt;lname - 1) = '\0'; /* scrub .get */
++		helper_get( L );
++		freturn = 1;
++	}
++	else
++	{
++  	Try
++	  {
++	    int i,len,n;
++	    u32 nret,ret_code;
++
++	    /* first read out any pending return values for old async calls */
++	    for (; h-&gt;handle-&gt;read_reply_count &gt; 0; h-&gt;handle-&gt;read_reply_count--) {
++	      ret_code = transport_read_u8 (tpt);   /* return code */
++	      if( ret_code == 0 )
++	      {
++	        /* read return arguments, ignore everything we read */
++	        nret = transport_read_u32( tpt );
++        
++	        for (i=0; i &lt; ( ( int ) nret ); i++)
++	          read_variable (tpt,L);
++        
++	        lua_pop (L,nret);
++	      }
++	      else
++	      {
++	        /* read error and handle it */
++	        u32 code = transport_read_u32 (tpt);
++	        u32 len = transport_read_u32 (tpt);
++	        char *err_string = (char*) alloca (len+1);
++	        transport_read_string( tpt, err_string, len );
++	        err_string[ len ] = 0;
++
++	        deal_with_error( L, h-&gt;handle, err_string );
++	        freturn = 0;
++	      }
++	    }
++
++	    /* write function name */
++	    len = strlen( h-&gt;funcname );
++			transport_write_u8( tpt, RPC_CMD_CALL );
++	    transport_write_u32 ( tpt, len );
++	    transport_write_string( tpt, h-&gt;funcname, len );
++
++	    /* write number of arguments */
++	    n = lua_gettop( L );
++	    transport_write_u32( tpt, n - 1 );
++    
++	    /* write each argument */
++	    for( i = 2; i &lt;= n; i ++ )
++	      write_variable( tpt, L, i );
++
++	    /* if we're in async mode, we're done */
++	    if ( h-&gt;handle-&gt;async )
++	    {
++	      h-&gt;handle-&gt;read_reply_count++;
++	      freturn = 0;
++	    }
++
++	    /* read return code */
++	    ret_code = transport_read_u8( tpt );
++
++	    if ( ret_code== 0 )
++	    {
++	      /* read return arguments */
++	      nret = transport_read_u32( tpt );
++      
++	      for ( i = 0; i &lt; ( (int ) nret ); i ++ )
++	        read_variable( tpt, L );
++      
++	      freturn = ( int )nret;
++	    }
++	    else
++	    {
++	      /* read error and handle it */
++	      u32 code = transport_read_u32( tpt );
++	      u32 len = transport_read_u32( tpt );
++	      char *err_string = ( char * )alloca( len + 1 );
++	      transport_read_string( tpt, err_string, len );
++	      err_string[ len ] = 0;
++
++	      deal_with_error( L, h-&gt;handle, err_string );
++	      freturn = 0;
++	    }
++	  }
++	  Catch( e )
++	  {
++			switch( e.type )
++			{
++				case fatal:
++					if ( e.errnum == ERR_CLOSED )
++			      my_lua_error( L, &quot;can't refer to a remote function after the handle has been closed&quot; );
++					deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
++					transport_close( tpt );
++					break;
++				case nonfatal:
++					deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
++					lua_pushnil( L );
++					return 1;
++					break;
++				default:
++	        deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
++					transport_close( tpt );
++					break;
++			}
++	  }
++	}
++  return freturn;
++}
++
++static Helper * helper_append( lua_State *L, Helper *helper, const char *funcname )
++{
++	size_t plen;
++	Helper *h = ( Helper * )lua_newuserdata( L, sizeof( Helper ) );
++  luaL_getmetatable( L, &quot;rpc.helper&quot; );
++  lua_setmetatable( L, -2 );
++  h-&gt;handle = helper-&gt;handle;
++  strncpy( h-&gt;funcname, helper-&gt;funcname, NUM_FUNCNAME_CHARS );
++	plen = strlen( h-&gt;funcname );
++	h-&gt;lname = &amp;h-&gt;funcname[ plen + 1 ];
++	strncat( h-&gt;funcname, &quot;.&quot;, NUM_FUNCNAME_CHARS - plen );
++	strncat( h-&gt;funcname, funcname, NUM_FUNCNAME_CHARS - ( plen + 1 ) );
++  return h;
++}
++
++/* indexing a handle returns a helper */
++static int helper_index (lua_State *L)
++{
++  const char *s;
++  Helper *h;
++
++  MYASSERT( lua_gettop( L ) == 2 );
++  MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.helper&quot; ) );
++
++  if( lua_type( L, 2 ) != LUA_TSTRING )
++    my_lua_error( L, &quot;can't index a handle with a non-string&quot; );
++  s = lua_tostring( L, 2 );
++	if ( strlen( s ) &gt; NUM_FUNCNAME_CHARS - 1 )
++		my_lua_error( L, &quot;function name is too long&quot; );
++	
++	h = helper_append( L, ( Helper * )lua_touserdata( L, 1 ), s );
++
++  return 1;
++}
++
++
++
++/****************************************************************************/
++/* server side handle userdata objects. */
++
++static ServerHandle *server_handle_create( lua_State *L )
++{
++  ServerHandle *h = ( ServerHandle * )lua_newuserdata( L, sizeof( ServerHandle ) );
++  luaL_getmetatable( L, &quot;rpc.server_handle&quot; );
++  lua_setmetatable( L, -2 );
++
++	h-&gt;link_errs = 0;
++
++  transport_init( &amp;h-&gt;ltpt );
++  transport_init( &amp;h-&gt;atpt );
++  return h;
++}
++
++
++static void server_handle_shutdown( ServerHandle *h )
++{
++  transport_close( &amp;h-&gt;ltpt );
++  transport_close( &amp;h-&gt;atpt );
++}
++
++
++static void server_handle_destroy( ServerHandle *h )
++{
++  server_handle_shutdown( h );
++}
++
++/****************************************************************************/
++/* remote function calling (client side) */
++
++/* rpc_connect (ip_address, port)
++ *     returns a handle to the new connection, or nil if there was an error.
++ *     if there is an RPC error function defined, it will be called on error.
++ */
++
++static int rpc_connect( lua_State *L )
++{
++  struct exception e;
++  Handle *handle = 0;
++  
++  Try
++  {
++		handle = handle_create ( L );
++	  transport_open_connection( L, handle );
++		
++		transport_write_u8( &amp;handle-&gt;tpt, RPC_CMD_CON );
++		write_header( &amp;handle-&gt;tpt );
++		read_header( &amp;handle-&gt;tpt );
++  }
++  Catch( e )
++  {     
++    deal_with_error( L, 0, errorString( e.errnum ) );
++    lua_pushnil( L );
++  }
++  return 1;
++}
++
++
++/* rpc_close (handle)
++ *     this closes the transport, but does not free the handle object. that's
++ *     because the handle will still be in the user's name space and might be
++ *     referred to again. we'll let garbage collection free the object.
++ *     it's a lua runtime error to refer to a transport after it has been closed.
++ */
++
++static int rpc_close( lua_State *L )
++{
++  check_num_args( L, 1 );
++
++  if( lua_isuserdata( L, 1 ) )
++  {
++    if( ismetatable_type( L, 1, &quot;rpc.handle&quot; ) )
++    {
++      Handle *handle = ( Handle * )lua_touserdata( L, 1 );
++      transport_close( &amp;handle-&gt;tpt );
++      return 0;
++    }
++    if( ismetatable_type( L, 1, &quot;rpc.server_handle&quot; ) )
++    {
++      ServerHandle *handle = ( ServerHandle * )lua_touserdata( L, 1 );
++      server_handle_shutdown( handle );
++      return 0;
++    }
++  }
++
++  my_lua_error(L,&quot;argument must be an RPC handle&quot;);
++  return 0;
++}
++
++
++
++/* rpc_async (handle,)
++ *     this sets a handle's asynchronous calling mode (0/nil=off, other=on).
++ *     (this is for the client only).
++ */
++
++static int rpc_async (lua_State *L)
++{
++  Handle *handle;
++  check_num_args( L, 2 );
++
++  if ( !lua_isuserdata( L, 1 ) || !ismetatable_type( L, 1, &quot;rpc.handle&quot; ) )
++    my_lua_error( L, &quot;first argument must be an RPC client handle&quot; );
++
++  handle = ( Handle * )lua_touserdata( L, 1 );
++
++  if ( lua_isnil( L, 2 ) || ( lua_isnumber( L, 2 ) &amp;&amp; lua_tonumber( L, 2 ) == 0) )
++    handle-&gt;async = 0;
++  else
++    handle-&gt;async = 1;
++
++  return 0;
++}
++
++/****************************************************************************/
++/* lua remote function server */
++
++/* read function call data and execute the function. this function empties the
++ * stack on entry and exit. This sets a custom error handler to catch errors 
++ * around the function call.
++ */
++
++static void read_cmd_call( Transport *tpt, lua_State *L )
++{
++  int i, stackpos, good_function, nargs;
++  u32 len;
++  char *funcname;
++	char *token = NULL;
++
++  /* read function name */
++  len = transport_read_u32( tpt ); /* function name string length */ 
++  funcname = ( char * )alloca( len + 1 );
++  transport_read_string( tpt, funcname, len );
++  funcname[ len ] = 0;
++
++  /* get function */
++	/* @@@ perhaps handle more like variables instead of using a long string? */
++	/* @@@ also strtok is not thread safe */
++	token = strtok( funcname, &quot;.&quot; );
++	lua_getglobal( L, token );
++	token = strtok( NULL, &quot;.&quot; );
++	while( token != NULL )
++	{
++		lua_getfield( L, -1, token );
++		token = strtok( NULL, &quot;.&quot; );
++	}
++	stackpos = lua_gettop( L ) - 1;
++	good_function = LUA_ISCALLABLE( L, -1 );
++
++  /* read number of arguments */
++  nargs = transport_read_u32( tpt );
++
++  /* read in each argument, leave it on the stack */
++  for ( i = 0; i &lt; nargs; i ++ ) 
++    read_variable( tpt, L );
++
++  /* call the function */
++  if( good_function )
++  {
++    int nret, error_code;
++    error_code = lua_pcall( L, nargs, LUA_MULTRET, 0 );
++		
++    /* handle errors */
++    if ( error_code )
++    {
++			size_t len;
++			const char *errmsg;
++			errmsg = lua_tolstring (L, -1, &amp;len);
++			transport_write_u8( tpt, 1 );
++			transport_write_u32( tpt, error_code );
++			transport_write_u32( tpt, len );
++			transport_write_string( tpt, errmsg, len );
++    }
++    else
++    {
++      /* pass the return values back to the caller */
++      transport_write_u8( tpt, 0 );
++      nret = lua_gettop( L ) - stackpos;
++      transport_write_u32( tpt, nret );
++      for ( i = 0; i &lt; nret; i ++ )
++        write_variable( tpt, L, stackpos + 1 + i );
++    }
++  }
++  else
++  {
++    /* bad function */
++    const char *msg = &quot;undefined function: &quot;;
++    int errlen = strlen( msg ) + len;
++    transport_write_u8( tpt, 1 );
++    transport_write_u32( tpt, LUA_ERRRUN );
++    transport_write_u32( tpt, errlen );
++    transport_write_string( tpt, msg, strlen( msg ) );
++    transport_write_string( tpt, funcname, len );
++  }
++  /* empty the stack */
++  lua_settop ( L, 0 );
++}
++
++
++static void read_cmd_get( Transport *tpt, lua_State *L )
++{
++  int i;
++  u32 len;
++  char *funcname;
++	char *token = NULL;
++
++  /* read function name */
++  len = transport_read_u32( tpt ); /* function name string length */ 
++  funcname = ( char * )alloca( len + 1 );
++  transport_read_string( tpt, funcname, len );
++  funcname[ len ] = 0;
++
++  /* get function */
++	/* @@@ perhaps handle more like variables instead of using a long string? */
++	/* @@@ also strtok is not thread safe */
++	token = strtok( funcname, &quot;.&quot; );
++	lua_getglobal( L, token );
++	token = strtok( NULL, &quot;.&quot; );
++	while( token != NULL )
++	{
++		lua_getfield( L, -1, token );
++		token = strtok( NULL, &quot;.&quot; );
++	}
++
++  /* return top value on stack */
++  write_variable( tpt, L, lua_gettop( L ) );
++
++  /* empty the stack */
++  lua_settop ( L, 0 );
++}
++
++
++static ServerHandle *rpc_listen_helper( lua_State *L )
++{
++  struct exception e;
++  ServerHandle *handle = 0;
++
++  Try
++  {
++    /* make server handle */
++    handle = server_handle_create( L );
++
++    /* make listening transport */
++    transport_open_listener( L, handle );
++  }
++  Catch( e )
++  {
++    if( handle )
++      server_handle_destroy( handle );
++    
++    deal_with_error( L, 0, errorString( e.errnum ) );
++    return 0;
++  }
++  return handle;
++}
++
++
++/* rpc_listen (port) --&gt; server_handle */
++
++static int rpc_listen( lua_State *L )
++{
++  ServerHandle *handle;
++
++  handle = rpc_listen_helper( L );
++  if ( handle == 0 )
++    printf( &quot;Bad Handle!&quot; );
++    
++  return 1;
++}
++
++
++/* rpc_peek (server_handle) --&gt; 0 or 1 */
++
++static int rpc_peek( lua_State *L )
++{
++  ServerHandle *handle;
++
++  check_num_args( L, 1 );
++  if ( !( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.server_handle&quot; ) ) )
++    my_lua_error( L, &quot;argument must be an RPC server handle&quot; );
++
++  handle = ( ServerHandle * )lua_touserdata( L, 1 );
++
++  /* if accepting transport is open, see if there is any data to read */
++  if ( transport_is_open( &amp;handle-&gt;atpt ) )
++  {
++    if ( transport_readable( &amp;handle-&gt;atpt ) )
++      lua_pushnumber( L, 1 );
++    else 
++      lua_pushnil( L );
++      
++    return 1;
++  }
++
++  /* otherwise, see if there is a new connection on the listening transport */
++  if ( transport_is_open( &amp;handle-&gt;ltpt ) )
++  {
++    if ( transport_readable( &amp;handle-&gt;ltpt ) )
++      lua_pushnumber ( L, 1 );
++    else
++      lua_pushnil( L );
++      
++    return 1;
++  }
++
++  lua_pushnumber( L, 0 );
++  return 1;
++}
++
++
++static void rpc_dispatch_helper( lua_State *L, ServerHandle *handle )
++{  
++  struct exception e;
++
++  Try 
++  {
++    /* if accepting transport is open, read function calls */
++    if ( transport_is_open( &amp;handle-&gt;atpt ) )
++    {
++      Try
++      {
++				switch ( transport_read_u8( &amp;handle-&gt;atpt ) )
++				{
++					case RPC_CMD_CALL:
++						read_cmd_call( &amp;handle-&gt;atpt, L );
++						break;
++					case RPC_CMD_GET:
++						read_cmd_get( &amp;handle-&gt;atpt, L );
++						break;
++					case RPC_CMD_CON: /*  @@@ allow client to &quot;reconnect&quot;, should support better mechanism */
++						read_header( &amp;handle-&gt;atpt );
++						write_header( &amp;handle-&gt;atpt );
++						break;
++					default:
++						e.type = nonfatal;
++						e.errnum = ERR_COMMAND;
++						Throw( e );
++				}
++				
++				handle-&gt;link_errs = 0;
++      }
++      Catch( e )
++      {
++        /* if the client has closed the connection, close our side
++         * gracefully too.
++         */
++        transport_close( &amp;handle-&gt;atpt );
++
++				switch( e.type )
++				{
++					case fatal:
++						Throw( e );
++						
++					case nonfatal:
++						handle-&gt;link_errs++;
++						if ( handle-&gt;link_errs &gt; MAX_LINK_ERRS )
++						{
++							handle-&gt;link_errs = 0;
++							Throw( e );
++						}
++						break;
++						
++					default: 
++						Throw( e );
++				}
++      }
++    }
++    else
++    {
++      /* if accepting transport is not open, accept a new connection from the
++       * listening transport.
++       */
++			transport_accept( &amp;handle-&gt;ltpt, &amp;handle-&gt;atpt );
++			
++			switch ( transport_read_u8( &amp;handle-&gt;atpt ) )
++			{
++				case RPC_CMD_CON:
++					read_header( &amp;handle-&gt;atpt );
++					write_header( &amp;handle-&gt;atpt );
++					break;
++				default: /* connection must be established to issue any other commands */
++					e.type = nonfatal;
++					e.errnum = ERR_COMMAND;
++					Throw( e );
++			}
++    }
++  }
++  Catch( e )
++  {
++		switch( e.type )
++		{
++			case fatal:
++				server_handle_shutdown( handle );
++				deal_with_error( L, 0, errorString( e.errnum ) );
++				break;
++			case nonfatal:
++				transport_close( &amp;handle-&gt;atpt );
++				break;
++			default:
++        Throw( e );
++		}
++  }
++}
++
++
++/* rpc_dispatch (server_handle) */
++
++static int rpc_dispatch( lua_State *L )
++{
++  ServerHandle *handle;
++  check_num_args( L, 1 );
++
++  if ( ! ( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.server_handle&quot; ) ) )
++    my_lua_error( L, &quot;argument must be an RPC server handle&quot; );
++
++  handle = ( ServerHandle * )lua_touserdata( L, 1 );
++
++  rpc_dispatch_helper( L, handle );
++  return 0;
++}
++
++
++/* lrf_server (port) */
++
++static int rpc_server( lua_State *L )
++{
++  ServerHandle *handle = rpc_listen_helper( L );
++  while ( transport_is_open( &amp;handle-&gt;ltpt ) )
++    rpc_dispatch_helper( L, handle );
++  
++  printf( &quot;LT: %d, AT: %d\n&quot;, handle-&gt;ltpt.fd, handle-&gt;atpt.fd );
++  
++  server_handle_destroy( handle );
++  return 0;
++}
++
++/****************************************************************************/
++/* more error handling stuff */
++
++/* rpc_on_error ([handle,] error_handler)
++ */
++
++static int rpc_on_error( lua_State *L )
++{
++  check_num_args( L, 1 );
++
++  if( global_error_handler !=  LUA_NOREF )
++    lua_unref (L,global_error_handler);
++  
++  global_error_handler = LUA_NOREF;
++
++  if ( LUA_ISCALLABLE( L, 1 ) )
++    global_error_handler = lua_ref( L, 1 );
++  else if ( lua_isnil( L, 1 ) )
++    { ;; }
++  else
++    my_lua_error( L, &quot;bad arguments&quot; );
++
++  /* @@@ add option for handle */
++  /* Handle *h = (Handle*) lua_touserdata (L,1); */
++  /* if (lua_isuserdata (L,1) &amp;&amp; ismetatable_type(L, 1, &quot;rpc.handle&quot;)); */
++
++  return 0;
++}
++
++/****************************************************************************/
++/* register RPC functions */
++
++
++
++#ifndef LUARPC_STANDALONE
++
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++
++const LUA_REG_TYPE rpc_handle[] =
++{
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( handle_index ) },
++  { LNILKEY, LNILVAL }
++};
++
++const LUA_REG_TYPE rpc_helper[] =
++{
++  { LSTRKEY( &quot;__call&quot; ), LFUNCVAL( helper_call ) },
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( helper_index ) },
++  { LNILKEY, LNILVAL }
++};
++
++const LUA_REG_TYPE rpc_server_handle[] =
++{
++  { LNILKEY, LNILVAL }
++};
++
++const LUA_REG_TYPE rpc_map[] =
++{
++  {  LSTRKEY( &quot;connect&quot; ), LFUNCVAL( rpc_connect ) },
++  {  LSTRKEY( &quot;close&quot; ), LFUNCVAL( rpc_close ) },
++  {  LSTRKEY( &quot;server&quot; ), LFUNCVAL( rpc_server ) },
++  {  LSTRKEY( &quot;on_error&quot; ), LFUNCVAL( rpc_on_error ) },
++  {  LSTRKEY( &quot;listen&quot; ), LFUNCVAL( rpc_listen ) },
++  {  LSTRKEY( &quot;peek&quot; ), LFUNCVAL( rpc_peek ) },
++  {  LSTRKEY( &quot;dispatch&quot; ), LFUNCVAL( rpc_dispatch ) },
++  {  LSTRKEY( &quot;rpc_async&quot; ), LFUNCVAL( rpc_async ) },
++  { LNILKEY, LNILVAL }
++};
++
++
++LUALIB_API int luaopen_luarpc(lua_State *L)
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++	luaL_rometatable(L, &quot;rpc.helper&quot;, (void*)rpc_helper);
++	luaL_rometatable(L, &quot;rpc.handle&quot;, (void*)rpc_handle);
++	luaL_rometatable(L, &quot;rpc.server_handle&quot;, (void*)rpc_server_handle);
++#else
++  luaL_register( L, &quot;rpc&quot;, rpc_map );
++
++  luaL_newmetatable( L, &quot;rpc.helper&quot; );
++  luaL_register( L, NULL, rpc_helper );
++  
++  luaL_newmetatable( L, &quot;rpc.handle&quot; );
++  luaL_register( L, NULL, rpc_handle );
++  
++  luaL_newmetatable( L, &quot;rpc.server_handle&quot; );
++#endif
++  return 1;
++}
++
++#else
++
++static const luaL_reg rpc_handle[] =
++{
++  { &quot;__index&quot;, handle_index },
++  { NULL, NULL }
++};
++
++static const luaL_reg rpc_helper[] =
++{
++  { &quot;__call&quot;, helper_call },
++  { &quot;__index&quot;, helper_index },
++  { NULL, NULL }
++};
++
++static const luaL_reg rpc_server_handle[] =
++{
++  { NULL, NULL }
++};
++
++static const luaL_reg rpc_map[] =
++{
++  { &quot;connect&quot;, rpc_connect },
++  { &quot;close&quot;, rpc_close },
++  { &quot;server&quot;, rpc_server },
++  { &quot;on_error&quot;, rpc_on_error },
++  { &quot;listen&quot;, rpc_listen },
++  { &quot;peek&quot;, rpc_peek },
++  { &quot;dispatch&quot;, rpc_dispatch },
++  { &quot;rpc_async&quot;, rpc_async },
++  { NULL, NULL }
++};
++
++
++LUALIB_API int luaopen_luarpc(lua_State *L)
++{
++  luaL_register( L, &quot;rpc&quot;, rpc_map );
++
++  luaL_newmetatable( L, &quot;rpc.helper&quot; );
++  luaL_register( L, NULL, rpc_helper );
++  
++  luaL_newmetatable( L, &quot;rpc.handle&quot; );
++  luaL_register( L, NULL, rpc_handle );
++  
++  luaL_newmetatable( L, &quot;rpc.server_handle&quot; );
++
++  return 1;
++}
++
++#endif
++
++#endif
+\ No newline at end of file
+
+Modified: branches/luarpc/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/luarpc/src/platform/stm32/platform_conf.h	2009-06-09 20:10:41 UTC (rev 291)
++++ branches/luarpc/src/platform/stm32/platform_conf.h	2009-06-09 20:12:00 UTC (rev 292)
+@@ -20,6 +20,7 @@
+ //#define BUILD_DNS
+ #define BUILD_CON_GENERIC
+ #define BUILD_ADC
++#define BUILD_LUARPC
+ //#define BUILD_CON_TCP
+ 
+ // *****************************************************************************
+@@ -52,9 +53,10 @@
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+   _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
++	_ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )\
+   LCDLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+-
++	
+ // *****************************************************************************
+ // Configuration data
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000247.html">[Elua-svn] r291 - branches
+</A></li>
+	<LI>Next message: <A HREF="000249.html">[Elua-svn] r293 - branches
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#248">[ date ]</a>
+              <a href="thread.html#248">[ thread ]</a>
+              <a href="subject.html#248">[ subject ]</a>
+              <a href="author.html#248">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,819 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r60 - trunk/src/platform/at91sam7x
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r60%20-%20trunk/src/platform/at91sam7x&In-Reply-To=%3C200808191923.m7JJNlpJ022480%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000014.html">
+   <LINK REL="Next"  HREF="000016.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r60 - trunk/src/platform/at91sam7x</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r60%20-%20trunk/src/platform/at91sam7x&In-Reply-To=%3C200808191923.m7JJNlpJ022480%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r60 - trunk/src/platform/at91sam7x">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Aug 19 21:23:47 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000014.html">[Elua-svn] r59 - in trunk: files src
+</A></li>
+        <LI>Next message: <A HREF="000016.html">[Elua-svn] r61 - in trunk: inc src/platform/at91sam7x	src/platform/lm3s src/platform/lpc288x
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#15">[ date ]</a>
+              <a href="thread.html#15">[ thread ]</a>
+              <a href="subject.html#15">[ subject ]</a>
+              <a href="author.html#15">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-08-19 21:23:47 +0200 (Tue, 19 Aug 2008)
+New Revision: 60
+
+Added:
+   trunk/src/platform/at91sam7x/assert.h
+   trunk/src/platform/at91sam7x/pwmc.c
+   trunk/src/platform/at91sam7x/pwmc.h
+   trunk/src/platform/at91sam7x/trace.h
+Modified:
+   trunk/src/platform/at91sam7x/conf.py
+   trunk/src/platform/at91sam7x/platform.c
+   trunk/src/platform/at91sam7x/platform_libs.h
+Log:
+preliminary support for PWM on AT91SAM7X256/AT91SAM7X512
+
+Added: trunk/src/platform/at91sam7x/assert.h
+===================================================================
+--- trunk/src/platform/at91sam7x/assert.h	2008-08-18 21:00:40 UTC (rev 59)
++++ trunk/src/platform/at91sam7x/assert.h	2008-08-19 19:23:47 UTC (rev 60)
+@@ -0,0 +1,90 @@
++/* ----------------------------------------------------------------------------
++ *         ATMEL Microcontroller Software Support 
++ * ----------------------------------------------------------------------------
++ * Copyright (c) 2008, Atmel Corporation
++ *
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * - Redistributions of source code must retain the above copyright notice,
++ * this list of conditions and the disclaimer below.
++ *
++ * Atmel's name may not be used to endorse or promote products derived from
++ * this software without specific prior written permission.
++ *
++ * DISCLAIMER: THIS SOFTWARE IS PROVIDED BY ATMEL &quot;AS IS&quot; AND ANY EXPRESS OR
++ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
++ * DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR ANY DIRECT, INDIRECT,
++ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
++ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
++ * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
++ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ * ----------------------------------------------------------------------------
++ */
++
++/*
++    Title: Assert
++
++    About: Purpose
++        Definition of the ASSERT() macro, which is used for runtime condition
++        verifying.
++
++    About: Usage
++        1 - Use &lt;ASSERT&gt; in your code to check the value of function parameters,
++            return values, etc. *Warning:* the ASSERT condition must not have
++            any side-effect; otherwise, the program may not work properly
++            anymore when assertions are disabled.
++        2 - Use SANITY_CHECK to perform checks with a default error message
++            (outputs the file and line number where the error occured). This 
++            reduces memory overhead caused by assertion error strings.
++        3 - Initialize the &lt;DBGU&gt; to see failed assertions at run-time.
++        4 - Disable assertions by defining the NOASSERT symbol at compilation
++            time.
++*/
++
++#ifndef ASSERT_H
++#define ASSERT_H
++
++//------------------------------------------------------------------------------
++//         Headers
++//------------------------------------------------------------------------------
++
++#include &lt;stdio.h&gt;
++
++//------------------------------------------------------------------------------
++//         Definitions
++//------------------------------------------------------------------------------
++/*
++    Macro: ASSERT
++        Check that the given condition is true, otherwise displays an error
++        message and stops the program execution.
++
++    Parameters:
++        condition - Condition to verify.
++        string - Formatted string to output if the condition fails.
++        ... - Additional arguments depending on the formatted string.
++*/
++#if !defined(NOASSERT) &amp;&amp; !defined(NOTRACE)
++
++    //char sanityError[] = &quot;Sanity check failed at %s:%d\n\r&quot;;
++
++    #define ASSERT(condition, ...)  { \
++        if (!(condition)) { \
++            printf(__VA_ARGS__); \
++            while (1); \
++        } \
++    }
++    #define SANITY_ERROR            &quot;Sanity check failed at %s:%d\n\r&quot;
++    #define SANITY_CHECK(condition) ASSERT(condition, SANITY_ERROR, __FILE__, __LINE__)
++#else
++    #define ASSERT(...)
++    #define SANITY_CHECK(...)
++#endif
++
++#endif //#ifndef ASSERT_H
++
+
+Modified: trunk/src/platform/at91sam7x/conf.py
+===================================================================
+--- trunk/src/platform/at91sam7x/conf.py	2008-08-18 21:00:40 UTC (rev 59)
++++ trunk/src/platform/at91sam7x/conf.py	2008-08-19 19:23:47 UTC (rev 60)
+@@ -2,7 +2,7 @@
+ 
+ cpumode = ARGUMENTS.get( 'cpumode', 'thumb' ).lower()
+ 
+-specific_files = &quot;board_cstartup.s board_lowlevel.c board_memories.c usart.c pmc.c pio.c platform.c tc.c&quot;
++specific_files = &quot;board_cstartup.s board_lowlevel.c board_memories.c usart.c pmc.c pio.c platform.c tc.c pwmc.c&quot;
+ if cputype == 'at91sam7x256':
+   ldscript = &quot;flash256.lds&quot;
+ elif cputype == 'at91sam7x512':
+@@ -20,6 +20,8 @@
+   print &quot;Invalid CPU mode %s&quot;, cpumode
+   sys.exit( -1 )
+   
++cdefs = cdefs + ' -DNOASSERT -DNOTRACE'
++  
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+
+Modified: trunk/src/platform/at91sam7x/platform.c
+===================================================================
+--- trunk/src/platform/at91sam7x/platform.c	2008-08-18 21:00:40 UTC (rev 59)
++++ trunk/src/platform/at91sam7x/platform.c	2008-08-19 19:23:47 UTC (rev 60)
+@@ -9,6 +9,8 @@
+ #include &quot;genstd.h&quot;
+ #include &quot;tc.h&quot;
+ #include &quot;stacks.h&quot;
++#include &quot;pwmc.h&quot;
++#include &quot;board.h&quot;
+ #include &lt;reent.h&gt;
+ #include &lt;errno.h&gt;
+ #include &lt;string.h&gt;
+@@ -49,14 +51,15 @@
+       AT91C_US_PAR_NONE | AT91C_US_NBSTOP_1_BIT | AT91C_US_CHMODE_NORMAL;
+       
+   // Enable the peripherals we use in the PMC
+-  PMC_EnablePeripheral(AT91C_ID_US0);  
+-  PMC_EnablePeripheral(AT91C_ID_US1);
+-  PMC_EnablePeripheral(AT91C_ID_PIOA);
+-  PMC_EnablePeripheral(AT91C_ID_PIOB);
+-  PMC_EnablePeripheral(AT91C_ID_TC0);
+-  PMC_EnablePeripheral(AT91C_ID_TC1);
+-  PMC_EnablePeripheral(AT91C_ID_TC2);
+- 
++  PMC_EnablePeripheral( AT91C_ID_US0 );  
++  PMC_EnablePeripheral( AT91C_ID_US1 );
++  PMC_EnablePeripheral( AT91C_ID_PIOA );
++  PMC_EnablePeripheral( AT91C_ID_PIOB );
++  PMC_EnablePeripheral( AT91C_ID_TC0 );
++  PMC_EnablePeripheral( AT91C_ID_TC1 );
++  PMC_EnablePeripheral( AT91C_ID_TC2 );
++  PMC_EnablePeripheral( AT91C_ID_PWMC );
++  
+   // Configure pins
+   PIO_Configure(platform_uart_pins[ 0 ], PIO_LISTSIZE(platform_uart_pins[ 0 ]));
+     
+@@ -71,6 +74,13 @@
+   AT91C_BASE_TCB-&gt;TCB_BMR = 7;
+   for( i = 0; i &lt; 3; i ++ )
+     TC_Configure( ( AT91S_TC* )timer_base[ i ], AT91C_TC_CLKS_TIMER_DIV5_CLOCK | AT91C_TC_WAVE );
++        
++  // PWM setup (only the clocks are set at this point)
++  PWMC_ConfigureClocks( BOARD_MCK, BOARD_MCK, BOARD_MCK );
++  PWMC_ConfigureChannel( 0, AT91C_PWMC_CPRE_MCKA, 0, 0 );
++  PWMC_ConfigureChannel( 1, AT91C_PWMC_CPRE_MCKA, 0, 0 );  
++  PWMC_ConfigureChannel( 2, AT91C_PWMC_CPRE_MCKB, 0, 0 );
++  PWMC_ConfigureChannel( 3, AT91C_PWMC_CPRE_MCKB, 0, 0 );    
+   
+   // Set the send/recv functions                          
+   std_set_send_func( uart_send );
+@@ -257,6 +267,7 @@
+ 
+ // ****************************************************************************
+ // Timer functions
++
+ static const unsigned clkdivs[] = { 2, 8, 32, 128, 1024 };
+ 
+ // Helper: get timer clock
+@@ -356,6 +367,95 @@
+ }
+ 
+ // ****************************************************************************
++// PWMs
++
++// PWM0, PWM1 -&gt; they can modify CLKA and are statically assigned to CLKA
++// PWM2, PWM3 -&gt; they can modify CLKB and are statically assigned to CLKB
++
++#define PLATFORM_NUM_PWMS               4
++
++// PWM pins
++static const Pin pwm_pins[] = { PIN_PWMC_PWM0, PIN_PWMC_PWM1, PIN_PWMC_PWM2, PIN_PWMC_PWM3 };
++
++// Helper function: return the PWM clock
++static u32 platform_pwm_get_clock( unsigned id )
++{
++  u32 cfg = AT91C_BASE_PWMC-&gt;PWMC_CH[ id ].PWMC_CMR;
++  u16 clkdata;
++  
++  clkdata = cfg &amp; 0x0F;
++  if( clkdata &lt; 11 )
++    return BOARD_MCK / ( 1 &lt;&lt; clkdata );
++  else
++  {
++    // clka / clkb
++    cfg = AT91C_BASE_PWMC-&gt;PWMC_MR;
++    if( clkdata == 12 ) // clkb
++      cfg &gt;&gt;= 16;
++    clkdata = cfg &amp; 0x0FFF;
++    return BOARD_MCK / ( ( clkdata &amp; 0xFF ) * ( 1 &lt;&lt; ( clkdata &gt;&gt; 8 ) ) );
++  }
++}
++
++// Helper function: set the PWM clock
++static u32 platform_pwm_set_clock( unsigned id, u32 clock )
++{
++  if( id &lt; 2 )
++    PWMC_ConfigureClocks( clock, 0, BOARD_MCK );
++  else
++    PWMC_ConfigureClocks( 0, clock, BOARD_MCK );
++  return platform_pwm_get_clock( id );
++}
++
++int platform_pwm_exists( unsigned id )
++{
++  return id &lt; PLATFORM_NUM_PWMS; 
++}
++
++u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
++{
++  u32 pwmclk = platform_pwm_get_clock( id );
++  u32 period;  
++
++  // Compute period
++  period = pwmclk / frequency;
++  // Set the period
++  PWMC_SetPeriod( id, period );
++  // Set duty cycle
++  PWMC_SetDutyCycle( id, ( period * duty ) / 100 );
++  // Return actual frequency
++  return pwmclk / period;
++}
++
++u32 platform_pwm_op( unsigned id, int op, u32 data )
++{
++  u32 res = 0;
++  
++  switch( op )
++  {
++    case PLATFORM_PWM_OP_SET_CLOCK:
++      res = platform_pwm_set_clock( id, data );
++      break;
++      
++    case PLATFORM_PWM_OP_GET_CLOCK:
++      res = platform_pwm_get_clock( id );
++      break;
++      
++    case PLATFORM_PWM_OP_START:
++      PIO_Configure( pwm_pins + id, 1 );    
++      PWMC_EnableChannel( id );
++      break;
++      
++    case PLATFORM_PWM_OP_STOP:
++      PWMC_DisableChannel( id );
++      platform_pio_op( 1, 1 &lt;&lt; ( 19 + id ), PLATFORM_IO_PIN_DIR_INPUT );
++      break;
++  }
++  
++  return res;
++}
++
++// ****************************************************************************
+ // Platform data functions
+ 
+ const char* platform_pd_get_platform_name()
+
+Modified: trunk/src/platform/at91sam7x/platform_libs.h
+===================================================================
+--- trunk/src/platform/at91sam7x/platform_libs.h	2008-08-18 21:00:40 UTC (rev 59)
++++ trunk/src/platform/at91sam7x/platform_libs.h	2008-08-19 19:23:47 UTC (rev 60)
+@@ -10,6 +10,8 @@
+   { AUXLIB_TMR, luaopen_tmr },\
+   { AUXLIB_PD, luaopen_pd },\
+   { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term }
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PWM, luaopen_pwm },\
++  { AUXLIB_PACK, luaopen_pack }
+   
+ #endif
+
+Added: trunk/src/platform/at91sam7x/pwmc.c
+===================================================================
+--- trunk/src/platform/at91sam7x/pwmc.c	2008-08-18 21:00:40 UTC (rev 59)
++++ trunk/src/platform/at91sam7x/pwmc.c	2008-08-19 19:23:47 UTC (rev 60)
+@@ -0,0 +1,239 @@
++/* ----------------------------------------------------------------------------
++ *         ATMEL Microcontroller Software Support 
++ * ----------------------------------------------------------------------------
++ * Copyright (c) 2008, Atmel Corporation
++ *
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * - Redistributions of source code must retain the above copyright notice,
++ * this list of conditions and the disclaimer below.
++ *
++ * Atmel's name may not be used to endorse or promote products derived from
++ * this software without specific prior written permission.
++ *
++ * DISCLAIMER: THIS SOFTWARE IS PROVIDED BY ATMEL &quot;AS IS&quot; AND ANY EXPRESS OR
++ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
++ * DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR ANY DIRECT, INDIRECT,
++ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
++ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
++ * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
++ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ * ----------------------------------------------------------------------------
++ */
++
++//------------------------------------------------------------------------------
++//         Headers
++//------------------------------------------------------------------------------
++
++#include &quot;pwmc.h&quot;
++#include &quot;board.h&quot;
++#include &quot;assert.h&quot;
++#include &quot;trace.h&quot;
++
++//------------------------------------------------------------------------------
++//         Local functions
++//------------------------------------------------------------------------------
++
++//------------------------------------------------------------------------------
++/// Finds a prescaler/divisor couple to generate the desired frequency from
++/// MCK.
++/// Returns the value to enter in PWMC_MR or 0 if the configuration cannot be
++/// met.
++/// \param frequency  Desired frequency in Hz.
++/// \param mck  Master clock frequency in Hz.
++//------------------------------------------------------------------------------
++static unsigned short FindClockConfiguration(
++    unsigned int frequency,
++    unsigned int mck)
++{
++    unsigned int divisors[11] = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024};
++    unsigned char divisor = 0;
++    unsigned int prescaler;
++
++    SANITY_CHECK(frequency &lt; mck);
++
++    // Find prescaler and divisor values
++    prescaler = (mck / divisors[divisor]) / frequency;
++    while ((prescaler &gt; 255) &amp;&amp; (divisor &lt; 11)) {
++
++        divisor++;
++        prescaler = (mck / divisors[divisor]) / frequency;
++    }
++
++    // Return result
++    if (divisor &lt; 11) {
++
++        trace_LOG(trace_DEBUG, &quot;-D- Found divisor=%u and prescaler=%u for freq=%uHz\n\r&quot;,
++                  divisors[divisor], prescaler, frequency);
++        return prescaler | (divisor &lt;&lt; 8);
++    }
++    else {
++
++        return 0;
++    }
++}
++
++//------------------------------------------------------------------------------
++//         Global functions
++//------------------------------------------------------------------------------
++
++//------------------------------------------------------------------------------
++/// Configures PWM a channel with the given parameters.
++/// The PWM controller must have been clocked in the PMC prior to calling this
++/// function.
++/// \param channel  Channel number.
++/// \param prescaler  Channel prescaler.
++/// \param alignment  Channel alignment.
++/// \param polarity  Channel polarity.
++//------------------------------------------------------------------------------
++void PWMC_ConfigureChannel(
++    unsigned char channel,
++    unsigned int prescaler,
++    unsigned int alignment,
++    unsigned int polarity)
++{
++    SANITY_CHECK(prescaler &lt; AT91C_PWMC_CPRE_MCKB);
++    SANITY_CHECK((alignment &amp; ~AT91C_PWMC_CALG) == 0);
++    SANITY_CHECK((polarity &amp; ~AT91C_PWMC_CPOL) == 0);
++
++    // Disable channel
++    AT91C_BASE_PWMC-&gt;PWMC_DIS = 1 &lt;&lt; channel;
++
++    // Configure channel
++    AT91C_BASE_PWMC-&gt;PWMC_CH[channel].PWMC_CMR = prescaler | alignment | polarity;
++}
++
++//------------------------------------------------------------------------------
++/// Configures PWM clocks A &amp; B to run at the given frequencies. This function
++/// finds the best MCK divisor and prescaler values automatically.
++/// \param clka  Desired clock A frequency (0 if not used).
++/// \param clkb  Desired clock B frequency (0 if not used).
++/// \param mck  Master clock frequency.
++//------------------------------------------------------------------------------
++void PWMC_ConfigureClocks(unsigned int clka, unsigned int clkb, unsigned int mck)
++{
++    unsigned int mode;
++    unsigned int result;
++
++    // Clock A
++    mode = AT91C_BASE_PWMC-&gt;PWMC_MR;
++    if (clka != 0) {
++
++        result = FindClockConfiguration(clka, mck);
++        ASSERT(result != 0, &quot;-F- Could not generate the desired PWM frequency (%uHz)\n\r&quot;, clka);
++        mode = ( mode &amp; ~0xFFFF ) | result;
++    }
++
++    // Clock B
++    if (clkb != 0) {
++
++        result = FindClockConfiguration(clkb, mck);
++        ASSERT(result != 0, &quot;-F- Could not generate the desired PWM frequency (%uHz)\n\r&quot;, clkb);
++        mode = ( mode &amp; ~0xFFFF0000 ) | ( result &lt;&lt; 16 );
++    }
++
++    // Configure clocks
++    trace_LOG(trace_DEBUG, &quot;-D- Setting PWMC_MR = 0x%08X\n\r&quot;, mode);
++    AT91C_BASE_PWMC-&gt;PWMC_MR = mode;
++}
++
++//------------------------------------------------------------------------------
++/// Sets the period value used by a PWM channel. This function writes directly
++/// to the CPRD register if the channel is disabled; otherwise, it uses the
++/// update register CUPD.
++/// \param channel  Channel number.
++/// \param period  Period value.
++//------------------------------------------------------------------------------
++void PWMC_SetPeriod(unsigned char channel, unsigned short period)
++{
++    // If channel is disabled, write to CPRD
++    if ((AT91C_BASE_PWMC-&gt;PWMC_SR &amp; (1 &lt;&lt; channel)) == 0) {
++
++        AT91C_BASE_PWMC-&gt;PWMC_CH[channel].PWMC_CPRDR = period;
++    }
++    // Otherwise use update register
++    else {
++
++        AT91C_BASE_PWMC-&gt;PWMC_CH[channel].PWMC_CMR |= AT91C_PWMC_CPD;
++        AT91C_BASE_PWMC-&gt;PWMC_CH[channel].PWMC_CUPDR = period;
++    }
++}
++
++//------------------------------------------------------------------------------
++/// Sets the duty cycle used by a PWM channel. This function writes directly to
++/// the CDTY register if the channel is disabled; otherwise it uses the
++/// update register CUPD.
++/// Note that the duty cycle must always be inferior or equal to the channel
++/// period.
++/// \param channel  Channel number.
++/// \param duty  Duty cycle value.
++//------------------------------------------------------------------------------
++void PWMC_SetDutyCycle(unsigned char channel, unsigned short duty)
++{
++    SANITY_CHECK(duty &lt;= AT91C_BASE_PWMC-&gt;PWMC_CH[channel].PWMC_CPRDR);
++
++    // SAM7S errata
++#if defined(at91sam7s16) || defined(at91sam7s161) || defined(at91sam7s32) \
++    || defined(at91sam7s321) || defined(at91sam7s64) || defined(at91sam7s128) \
++    || defined(at91sam7s256) || defined(at91sam7s512)
++    ASSERT(duty &gt; 0, &quot;-F- Duty cycle value 0 is not permitted on SAM7S chips.\n\r&quot;);
++    ASSERT((duty &gt; 1) || (AT91C_BASE_PWMC-&gt;PWMC_CH[channel].PWMC_CMR &amp; AT91C_PWMC_CALG),
++           &quot;-F- Duty cycle value 1 is not permitted in left-aligned mode on SAM7S chips.\n\r&quot;);
++#endif
++
++    // If channel is disabled, write to CDTY
++    if ((AT91C_BASE_PWMC-&gt;PWMC_SR &amp; (1 &lt;&lt; channel)) == 0) {
++
++        AT91C_BASE_PWMC-&gt;PWMC_CH[channel].PWMC_CDTYR = duty;
++    }
++    // Otherwise use update register
++    else {
++
++        AT91C_BASE_PWMC-&gt;PWMC_CH[channel].PWMC_CMR &amp;= ~AT91C_PWMC_CPD;
++        AT91C_BASE_PWMC-&gt;PWMC_CH[channel].PWMC_CUPDR = duty;
++    }
++}
++
++//------------------------------------------------------------------------------
++/// Enables the given PWM channel. This does NOT enable the corresponding pin;
++/// this must be done in the user code.
++/// \param channel  Channel number.
++//------------------------------------------------------------------------------
++void PWMC_EnableChannel(unsigned char channel)
++{
++    AT91C_BASE_PWMC-&gt;PWMC_ENA = 1 &lt;&lt; channel;
++}
++
++//------------------------------------------------------------------------------
++/// Disables the given PWM channel.
++/// \param channel  Channel number.
++//------------------------------------------------------------------------------
++void PWMC_DisableChannel(unsigned char channel)
++{
++    AT91C_BASE_PWMC-&gt;PWMC_DIS = 1 &lt;&lt; channel;
++}
++
++//------------------------------------------------------------------------------
++/// Enables the period interrupt for the given PWM channel.
++/// \param channel  Channel number.
++//------------------------------------------------------------------------------
++void PWMC_EnableChannelIt(unsigned char channel)
++{
++    AT91C_BASE_PWMC-&gt;PWMC_IER = 1 &lt;&lt; channel;
++}
++
++//------------------------------------------------------------------------------
++/// Disables the period interrupt for the given PWM channel.
++/// \param channel  Channel number.
++//------------------------------------------------------------------------------
++void PWMC_DisableChannelIt(unsigned char channel)
++{
++    AT91C_BASE_PWMC-&gt;PWMC_IDR = 1 &lt;&lt; channel;
++}
++
+
+Added: trunk/src/platform/at91sam7x/pwmc.h
+===================================================================
+--- trunk/src/platform/at91sam7x/pwmc.h	2008-08-18 21:00:40 UTC (rev 59)
++++ trunk/src/platform/at91sam7x/pwmc.h	2008-08-19 19:23:47 UTC (rev 60)
+@@ -0,0 +1,61 @@
++/* ----------------------------------------------------------------------------
++ *         ATMEL Microcontroller Software Support 
++ * ----------------------------------------------------------------------------
++ * Copyright (c) 2008, Atmel Corporation
++ *
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * - Redistributions of source code must retain the above copyright notice,
++ * this list of conditions and the disclaimer below.
++ *
++ * Atmel's name may not be used to endorse or promote products derived from
++ * this software without specific prior written permission.
++ *
++ * DISCLAIMER: THIS SOFTWARE IS PROVIDED BY ATMEL &quot;AS IS&quot; AND ANY EXPRESS OR
++ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
++ * DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR ANY DIRECT, INDIRECT,
++ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
++ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
++ * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
++ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ * ----------------------------------------------------------------------------
++ */
++
++#ifndef PWMC_H
++#define PWMC_H
++
++//------------------------------------------------------------------------------
++//         Global functions
++//------------------------------------------------------------------------------
++
++extern void PWMC_ConfigureChannel(
++    unsigned char channel,
++    unsigned int prescaler,
++    unsigned int alignment,
++    unsigned int polarity);
++
++extern void PWMC_ConfigureClocks
++    (unsigned int clka,
++     unsigned int clkb,
++     unsigned int mck);
++
++extern void PWMC_SetPeriod(unsigned char channel, unsigned short period);
++
++extern void PWMC_SetDutyCycle(unsigned char channel, unsigned short duty);
++
++extern void PWMC_EnableChannel(unsigned char channel);
++
++extern void PWMC_DisableChannel(unsigned char channel);
++
++extern void PWMC_EnableChannelIt(unsigned char channel);
++
++extern void PWMC_DisableChannelIt(unsigned char channel);
++
++#endif //#ifndef PWMC_H
++
+
+Added: trunk/src/platform/at91sam7x/trace.h
+===================================================================
+--- trunk/src/platform/at91sam7x/trace.h	2008-08-18 21:00:40 UTC (rev 59)
++++ trunk/src/platform/at91sam7x/trace.h	2008-08-19 19:23:47 UTC (rev 60)
+@@ -0,0 +1,134 @@
++/* ----------------------------------------------------------------------------
++ *         ATMEL Microcontroller Software Support 
++ * ----------------------------------------------------------------------------
++ * Copyright (c) 2008, Atmel Corporation
++ *
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * - Redistributions of source code must retain the above copyright notice,
++ * this list of conditions and the disclaimer below.
++ *
++ * Atmel's name may not be used to endorse or promote products derived from
++ * this software without specific prior written permission.
++ *
++ * DISCLAIMER: THIS SOFTWARE IS PROVIDED BY ATMEL &quot;AS IS&quot; AND ANY EXPRESS OR
++ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
++ * DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR ANY DIRECT, INDIRECT,
++ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
++ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
++ * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
++ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ * ----------------------------------------------------------------------------
++ */
++
++/*
++    Title: Trace
++
++    About: Purpose
++        Standard output methods for reporting debug information, warnings and
++        errors, which can be turned on/off.
++
++    About: Usage
++        1 - Initialize the DBGU using &lt;trace_CONFIGURE&gt;.
++        2 - Uses the &lt;trace_LOG&gt; macro to output traces throughout the program.
++        3 - Turn off all traces by defining the NOTRACE symbol during
++            compilation.
++        4 - Disable a group of trace by changing the value of &lt;trace_LEVEL&gt;
++            during compilation; traces with a level below &lt;trace_LEVEL&gt; are not
++            generated.
++*/
++
++#ifndef TRACE_H
++#define TRACE_H
++
++//------------------------------------------------------------------------------
++//         Headers
++//------------------------------------------------------------------------------
++
++#if !defined(NOTRACE)
++    #include &lt;board.h&gt;
++    #include &lt;dbgu/dbgu.h&gt;
++    #include &lt;pio/pio.h&gt;
++    #include &lt;stdio.h&gt;
++#endif
++
++//------------------------------------------------------------------------------
++//         Definitions
++//------------------------------------------------------------------------------
++/*
++    Constants: Trace levels
++        trace_FATAL - Indicates a major error which prevents the program from
++            going any further.
++        trace_ERROR - Indicates an error which may not stop the program
++            execution, but which indicates there is a problem with the code.
++        trace_WARNING - Indicates that a minor error has happened. In most case
++            it can be discarded safely; it may even be expected.
++        trace_INFO - Informational trace about the program execution. Should
++            enable the user to see the execution flow.
++        trace_DEBUG - Traces whose only purpose is for debugging the program,
++            and which do not produce meaningful information otherwise.
++*/
++#define trace_DEBUG                     0
++#define trace_INFO                      1
++#define trace_WARNING                   2
++#define trace_ERROR                     3
++#define trace_FATAL                     4
++
++/*
++    Constant: trace_LEVEL
++        Minimum level of traces that are output. By default, all traces are
++        output; change the value of this symbol during compilation for a more
++        restrictive behavior.
++*/
++#if !defined(trace_LEVEL)
++    #define trace_LEVEL                     0
++#endif
++
++/*
++    Macro: trace_CONFIGURE
++        Initializes the DBGU unless the NOTRACE symbol has been defined.
++
++    Parameters:
++        mode - DBGU mode.
++        baudrate - DBGU baudrate.
++        mck - Master clock frequency.
++*/
++#if !defined(NOTRACE)
++    #define trace_CONFIGURE(mode, baudrate, mck) { \
++        const Pin pinsDbgu[] = {PINS_DBGU}; \
++        PIO_Configure(pinsDbgu, PIO_LISTSIZE(pinsDbgu)); \
++        DBGU_Configure(mode, baudrate, mck); \
++    }
++#else
++    #define trace_CONFIGURE(...)
++#endif
++
++/*
++    Macro: trace_LOG
++        Outputs a formatted string using &lt;printf&gt; if the log level is high
++        enough. Can be disabled by defining the NOTRACE symbol during
++        compilation.
++
++    Parameters:
++        level - Trace level (see &lt;Trace levels&gt;).
++        format - Formatted string to output.
++        ... - Additional parameters, depending on the formatted string.
++*/
++#if !defined(NOTRACE)
++    #define trace_LOG(level, ...) { \
++        if (level &gt;= trace_LEVEL) { \
++            printf(__VA_ARGS__); \
++        } \
++    }
++#else
++    #define trace_LOG(...)
++#endif
++
++#endif //#ifndef TRACE_H
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000014.html">[Elua-svn] r59 - in trunk: files src
+</A></li>
+	<LI>Next message: <A HREF="000016.html">[Elua-svn] r61 - in trunk: inc src/platform/at91sam7x	src/platform/lm3s src/platform/lpc288x
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#15">[ date ]</a>
+              <a href="thread.html#15">[ thread ]</a>
+              <a href="subject.html#15">[ subject ]</a>
+              <a href="author.html#15">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

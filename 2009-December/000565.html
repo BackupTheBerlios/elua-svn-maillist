@@ -1,0 +1,172 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r609 - branches/eagle_mmc/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r609%20-%20branches/eagle_mmc/src/platform/lm3s&In-Reply-To=%3C200912240045.nBO0jFxm002707%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000564.html">
+   <LINK REL="Next"  HREF="000566.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r609 - branches/eagle_mmc/src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r609%20-%20branches/eagle_mmc/src/platform/lm3s&In-Reply-To=%3C200912240045.nBO0jFxm002707%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r609 - branches/eagle_mmc/src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Dec 24 01:45:15 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000564.html">[Elua-svn] r608 - branches/pre0.7/doc
+</A></li>
+        <LI>Next message: <A HREF="000566.html">[Elua-svn] r610 - in branches/eagle_mmc: . doc doc/eluadoc doc/en	doc/images doc/pt inc romfs src src/lua src/modules	src/platform/lm3s src/platform/lpc24xx src/platform/stm32 test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#565">[ date ]</a>
+              <a href="thread.html#565">[ thread ]</a>
+              <a href="subject.html#565">[ subject ]</a>
+              <a href="author.html#565">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-24 01:44:59 +0100 (Thu, 24 Dec 2009)
+New Revision: 609
+
+Removed:
+   branches/eagle_mmc/src/platform/lm3s/jtag.c
+   branches/eagle_mmc/src/platform/lm3s/jtag.h
+Log:
+Not needed for mmc functionality.  Inclusion of this setup should be
+considered separately.
+
+Deleted: branches/eagle_mmc/src/platform/lm3s/jtag.c
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/jtag.c	2009-12-24 00:13:32 UTC (rev 608)
++++ branches/eagle_mmc/src/platform/lm3s/jtag.c	2009-12-24 00:44:59 UTC (rev 609)
+@@ -1,66 +0,0 @@
+-/*
+-  jtag.c - JTAG utilities for LM3s hosts
+-*/
+-
+-#include &quot;jtag.h&quot;
+-
+-/* -------------------- JTAG functions -------------------- */
+-/* Enable JTAG pins */
+-void JtagEnable(void)
+-{
+-    /* Change PB7 and PC0-3 for JTAG */
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_CR) = 0x80;
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_AFSEL) |= 0x80;
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_CR) = 0x00;
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_LOCK) = 0;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_CR) = 0x01;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_AFSEL) |= 0x01;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_CR) = 0x02;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_AFSEL) |= 0x02;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_CR) = 0x04;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_AFSEL) |= 0x04;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_CR) = 0x08;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_AFSEL) |= 0x08;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_CR) = 0x00;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = 0;
+-}
+-
+-/* Set JTAG pins for use as GPIO */
+-void JtagDisable(void)
+-{
+-    /* Enable GPIO ports B and C */
+-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
+-    /* Change PB7 and PC0-3 for GPIO input */
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_CR) = 0x80;
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_AFSEL) &amp;= 0x7f;
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_CR) = 0x00;
+-    HWREG(GPIO_PORTB_BASE + GPIO_O_LOCK) = 0;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_CR) = 0x01;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_AFSEL) &amp;= 0xfe;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_CR) = 0x02;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_AFSEL) &amp;= 0xfd;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_CR) = 0x04;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_AFSEL) &amp;= 0xfb;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_CR) = 0x08;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_AFSEL) &amp;= 0xf7;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_CR) = 0x00;
+-    HWREG(GPIO_PORTC_BASE + GPIO_O_LOCK) = 0;
+-    GPIOPinTypeGPIOInput(GPIO_PORTB_BASE, GPIO_PIN_7);
+-    GPIOPinTypeGPIOInput(GPIO_PORTC_BASE, (GPIO_PIN_0 | GPIO_PIN_1 |
+-                                           GPIO_PIN_2 | GPIO_PIN_3));
+-}
+
+Deleted: branches/eagle_mmc/src/platform/lm3s/jtag.h
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/jtag.h	2009-12-24 00:13:32 UTC (rev 608)
++++ branches/eagle_mmc/src/platform/lm3s/jtag.h	2009-12-24 00:44:59 UTC (rev 609)
+@@ -1,22 +0,0 @@
+-/*
+-  jtag.h - JTAG declarations for LM3S hosts
+-*/
+-
+-#ifndef _JTAG_H
+-#define _JTAG_H
+-
+-#include &quot;hw_gpio.h&quot;
+-#include &quot;hw_ints.h&quot;
+-#include &quot;hw_memmap.h&quot;
+-#include &quot;hw_types.h&quot;
+-#include &quot;gpio.h&quot;
+-#include &quot;interrupt.h&quot;
+-#include &quot;sysctl.h&quot;
+-
+-/* API function declarations */
+-
+-/* -------------------- JTAG functions -------------------- */
+-void JtagEnable(void);
+-void JtagDisable(void);
+-
+-#endif /* _JTAG_H */
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000564.html">[Elua-svn] r608 - branches/pre0.7/doc
+</A></li>
+	<LI>Next message: <A HREF="000566.html">[Elua-svn] r610 - in branches/eagle_mmc: . doc doc/eluadoc doc/en	doc/images doc/pt inc romfs src src/lua src/modules	src/platform/lm3s src/platform/lpc24xx src/platform/stm32 test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#565">[ date ]</a>
+              <a href="thread.html#565">[ thread ]</a>
+              <a href="subject.html#565">[ subject ]</a>
+              <a href="author.html#565">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

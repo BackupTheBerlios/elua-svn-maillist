@@ -1,0 +1,227 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r125 - in trunk: inc src
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r125%20-%20in%20trunk%3A%20inc%20src&In-Reply-To=%3C200811241348.mAODmkO4003744%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000080.html">
+   <LINK REL="Next"  HREF="000082.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r125 - in trunk: inc src</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r125%20-%20in%20trunk%3A%20inc%20src&In-Reply-To=%3C200811241348.mAODmkO4003744%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r125 - in trunk: inc src">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Mon Nov 24 14:48:46 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000080.html">[Elua-svn] r124 - in trunk: . src/lua src/modules src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000082.html">[Elua-svn] r126 - trunk/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#81">[ date ]</a>
+              <a href="thread.html#81">[ thread ]</a>
+              <a href="subject.html#81">[ subject ]</a>
+              <a href="author.html#81">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2008-11-24 14:48:46 +0100 (Mon, 24 Nov 2008)
+New Revision: 125
+
+Modified:
+   trunk/inc/romfs.h
+   trunk/src/romfs.c
+   trunk/src/shell.c
+Log:
+Code added for an &quot;ls&quot; (or &quot;dir&quot;) shell command
+
+
+Modified: trunk/inc/romfs.h
+===================================================================
+--- trunk/inc/romfs.h	2008-11-12 04:53:10 UTC (rev 124)
++++ trunk/inc/romfs.h	2008-11-24 13:48:46 UTC (rev 125)
+@@ -9,11 +9,13 @@
+ #define MAX_FNAME_LENGTH      14
+ 
+ /*******************************************************************************
+-We assume that the &quot;filesystem&quot; resides in a contiguous zone of memory, with the
+-following structure:
++The Read-Only &quot;filesystem&quot; resides in a contiguous zone of memory, with the
++following structure, repeated for each file:
+ 
+-filename (ASCIIZ, max length is MAX_FNAME_LENGTH defined in &quot;netdefs.h&quot;, empty if last file)
+-file size (2 bytes)
++Filename: ASCIIZ, max length is MAX_FNAME_LENGTH defined here, empty if last file
++File size: (2 bytes)
++File data: (file size bytes)
++
+ *******************************************************************************/
+ 
+ enum
+@@ -34,8 +36,9 @@
+   u16 size;
+   p_read_fs_byte p_read_func;
+ } FS;
+-
++  
+ // FS functions
+ DM_DEVICE* romfs_init();
++u16 romfs_get_dir_entry(u16 offset, char *fname, int *fsize);
+ 
+ #endif
+
+Modified: trunk/src/romfs.c
+===================================================================
+--- trunk/src/romfs.c	2008-11-12 04:53:10 UTC (rev 124)
++++ trunk/src/romfs.c	2008-11-24 13:48:46 UTC (rev 125)
+@@ -37,6 +37,11 @@
+   memset( romfs_fd_table + fd, 0, sizeof( FS ) );
+ }
+ 
++
++
++  
++
++
+ // Open the given file, returning one of FS_FILE_NOT_FOUND, FS_FILE_ALREADY_OPENED
+ // or FS_FILE_OK
+ u8 romfs_open_file( const char* fname, p_read_fs_byte p_read_func, FS* pfs )
+@@ -160,6 +165,7 @@
+     return -1;  
+ }
+ 
++
+ // Our UART device descriptor structure
+ static DM_DEVICE romfs_device = 
+ {
+@@ -176,6 +182,28 @@
+   return &amp;romfs_device;
+ }
+ 
++
++// Retrieves file name and size from ROMFS entry at romfiles[offset]
++// Returns the next file entry offset or null on last entry
++u16 romfs_get_dir_entry( u16 offset, char *fname, int *fsize )
++{
++  u16 i;
++  int j;
++  
++  i = offset;
++  j = 0;
++  if ( romfs_read( i ) != 0 )
++  {
++    while ( ( fname[j++] = romfs_read( i++ )));
++    *fsize = (int) ( romfs_read( i ) + ( romfs_read( i+1 ) &lt;&lt; 8 ) );
++    return (u16) ( i + 2 + *fsize );
++  }
++  else
++    return 0;  
++}
++
++
++
+ #else // #ifdef BUILD_ROMFS
+ 
+ DM_DEVICE* romfs_init()
+
+Modified: trunk/src/shell.c
+===================================================================
+--- trunk/src/shell.c	2008-11-12 04:53:10 UTC (rev 124)
++++ trunk/src/shell.c	2008-11-24 13:48:46 UTC (rev 125)
+@@ -11,6 +11,7 @@
+ #include &lt;stdlib.h&gt;
+ #include &quot;platform.h&quot;
+ #include &quot;elua_net.h&quot;
++#include &quot;romfs.h&quot;
+ 
+ #include &quot;platform_conf.h&quot;
+ #ifdef BUILD_SHELL
+@@ -46,11 +47,12 @@
+ {
+   args = args;
+   printf( &quot;Shell commands:\n&quot; );
+-  printf( &quot;  help - print this help\n&quot; );
++  printf( &quot;  exit       - exit from this shell\n&quot; );
++  printf( &quot;  help       - print this help\n&quot; );
++  printf( &quot;  ls or dir  - lists ROMFS files and sizes\n&quot; );
+   printf( &quot;  lua [args] - run Lua with the given arguments\n&quot; );
+-  printf( &quot;  recv - receive a file (XMODEM) and execute it\n&quot; );
+-  printf( &quot;  ver - print eLua version\n&quot; );
+-  printf( &quot;  exit - exit from this shell\n&quot; );
++  printf( &quot;  recv       - receive a file (XMODEM) and execute it\n&quot; );
++  printf( &quot;  ver        - print eLua version\n&quot; );
+ }
+ 
+ // 'lua' handler
+@@ -164,6 +166,22 @@
+   printf( &quot;For more information go to <A HREF="http://elua.berlios.de\n">http://elua.berlios.de\n</A>&quot; );
+ }
+ 
++
++// 'ls' and 'dir' handler
++static void shell_ls( char* args )
++{
++  u16 offset;
++  char fname[MAX_FNAME_LENGTH + 1];
++  int size;
++  
++  args = args;
++  offset = 0;
++  while ( offset = romfs_get_dir_entry( offset, fname, &amp;size ) )
++    printf(&quot; %s   %d bytes \n&quot;, fname, size);
++}
++
++
++
+ // Insert shell commands here
+ static const SHELL_COMMAND shell_commands[] = 
+ {
+@@ -172,9 +190,12 @@
+   { &quot;recv&quot;, shell_recv },
+   { &quot;ver&quot;, shell_ver },
+   { &quot;exit&quot;, NULL },
++  { &quot;ls&quot;, shell_ls },
++  { &quot;dir&quot;, shell_ls },
+   { NULL, NULL }
+ };
+ 
++
+ // Execute the eLua &quot;shell&quot; in an infinite loop
+ void shell_start()
+ {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000080.html">[Elua-svn] r124 - in trunk: . src/lua src/modules src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000082.html">[Elua-svn] r126 - trunk/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#81">[ date ]</a>
+              <a href="thread.html#81">[ thread ]</a>
+              <a href="subject.html#81">[ subject ]</a>
+              <a href="author.html#81">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

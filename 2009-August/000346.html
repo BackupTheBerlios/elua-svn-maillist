@@ -1,0 +1,191 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r390 - trunk/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r390%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200908071036.n77Aa8pu015548%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000345.html">
+   <LINK REL="Next"  HREF="000347.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r390 - trunk/src/platform/lm3s</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r390%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200908071036.n77Aa8pu015548%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r390 - trunk/src/platform/lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Aug  7 12:36:08 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000345.html">[Elua-svn] r389 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000347.html">[Elua-svn] r391 - in tags/pre0.6/doc: . en luadoc pt wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#346">[ date ]</a>
+              <a href="thread.html#346">[ thread ]</a>
+              <a href="subject.html#346">[ subject ]</a>
+              <a href="author.html#346">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-08-07 12:36:04 +0200 (Fri, 07 Aug 2009)
+New Revision: 390
+
+Modified:
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/platform_conf.h
+Log:
+another small SPI fix :), also added platform-specified modules (will update the docs soon)
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-08-07 09:20:00 UTC (rev 389)
++++ trunk/src/platform/lm3s/platform.c	2009-08-07 10:36:04 UTC (rev 390)
+@@ -16,6 +16,9 @@
+ #include &quot;platform_conf.h&quot;
+ #include &quot;common.h&quot;
+ #include &quot;math.h&quot;
++#include &quot;lua.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ // Platform specific includes
+ #include &quot;hw_ints.h&quot;
+@@ -145,11 +148,6 @@
+                                     SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF, SYSCTL_PERIPH_GPIOG, SYSCTL_PERIPH_GPIOH };
+ #endif
+ 
+-
+-
+-
+-
+-
+ static void pios_init()
+ {
+   unsigned i;
+@@ -240,9 +238,9 @@
+   unsigned protocol;
+ 
+   if( cpol == 0 )
+-    protocol == cpha ? SSI_FRF_MOTO_MODE_1 : SSI_FRF_MOTO_MODE_0;
++    protocol = cpha ? SSI_FRF_MOTO_MODE_1 : SSI_FRF_MOTO_MODE_0;
+   else
+-    protocol == cpha ? SSI_FRF_MOTO_MODE_3 : SSI_FRF_MOTO_MODE_2;
++    protocol = cpha ? SSI_FRF_MOTO_MODE_3 : SSI_FRF_MOTO_MODE_2;
+   mode = mode == PLATFORM_SPI_MASTER ? SSI_MODE_MASTER : SSI_MODE_SLAVE;
+   MAP_SSIDisable( spi_base[ id ] );
+ 
+@@ -945,3 +943,46 @@
+ {
+ }
+ #endif // #ifdef ELUA_UIP
++
++// ****************************************************************************
++// Platform specific modules go here
++
++#ifdef ENABLE_DISP
++
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++extern const LUA_REG_TYPE disp_map[];
++
++const LUA_REG_TYPE platform_map[] =
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;disp&quot; ), LROVAL( disp_map ) },
++#endif
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_platform( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_register( L, PS_LIB_TABLE_NAME, luaopen_platform );
++
++  // Setup the new tables (pin and port) inside pio
++  lua_newtable( L );
++  luaL_register( L, NULL, disp_map );
++  lua_setfield( L, -2, &quot;disp&quot; );
++
++  return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
++}
++
++#else // #ifdef ENABLE_DISP
++
++LUALIB_API int luaopen_platform( lua_State *L )
++{
++  return 0;
++}
++
++#endif // #ifdef ENABLE_DISP
++
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2009-08-07 09:20:00 UTC (rev 389)
++++ trunk/src/platform/lm3s/platform_conf.h	2009-08-07 10:36:04 UTC (rev 390)
+@@ -36,13 +36,8 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#ifdef ENABLE_DISP
+-#define AUXLIB_DISP   &quot;disp&quot;
+-LUALIB_API int ( luaopen_disp )( lua_State* L );
+-#define DISPLINE _ROM( AUXLIB_DISP, luaopen_disp, disp_map )
+-#else
+-#define DISPLINE
+-#endif
++// The name of the platform specific libs table
++#define PS_LIB_TABLE_NAME   &quot;lm3s&quot;
+ 
+ #ifdef FORLM3S6918
+ #define PWMLINE
+@@ -70,9 +65,9 @@
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
+   _ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )\
+-  DISPLINE\
+-  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+-  
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
++  _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
++
+ // *****************************************************************************
+ // Configuration data
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000345.html">[Elua-svn] r389 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000347.html">[Elua-svn] r391 - in tags/pre0.6/doc: . en luadoc pt wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#346">[ date ]</a>
+              <a href="thread.html#346">[ thread ]</a>
+              <a href="subject.html#346">[ subject ]</a>
+              <a href="author.html#346">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

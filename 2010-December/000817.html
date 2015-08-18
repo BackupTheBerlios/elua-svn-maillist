@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r864 - in branches/remotefs_int: rfs_server	src/platform/i386 src/platform/sim src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r864%20-%20in%20branches/remotefs_int%3A%20rfs_server%0A%09src/platform/i386%20src/platform/sim%20src/platform/stm32&In-Reply-To=%3C20101218162512.C0DDA480ED2%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000816.html">
+   <LINK REL="Next"  HREF="000818.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r864 - in branches/remotefs_int: rfs_server	src/platform/i386 src/platform/sim src/platform/stm32</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r864%20-%20in%20branches/remotefs_int%3A%20rfs_server%0A%09src/platform/i386%20src/platform/sim%20src/platform/stm32&In-Reply-To=%3C20101218162512.C0DDA480ED2%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r864 - in branches/remotefs_int: rfs_server	src/platform/i386 src/platform/sim src/platform/stm32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Dec 18 17:25:12 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000816.html">[Elua-svn] r863 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000818.html">[Elua-svn] r865 - branches/remotefs_int/src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#817">[ date ]</a>
+              <a href="thread.html#817">[ thread ]</a>
+              <a href="subject.html#817">[ subject ]</a>
+              <a href="author.html#817">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-12-18 17:25:12 +0100 (Sat, 18 Dec 2010)
+New Revision: 864
+
+Modified:
+   branches/remotefs_int/rfs_server/serial_posix.c
+   branches/remotefs_int/src/platform/i386/platform_conf.h
+   branches/remotefs_int/src/platform/sim/platform_conf.h
+   branches/remotefs_int/src/platform/stm32/platform.c
+   branches/remotefs_int/src/platform/stm32/platform_int.c
+Log:
+attempt to fix bug(s) with RFS server and STM32 platform
+
+Modified: branches/remotefs_int/rfs_server/serial_posix.c
+===================================================================
+--- branches/remotefs_int/rfs_server/serial_posix.c	2010-12-17 07:08:29 UTC (rev 863)
++++ branches/remotefs_int/rfs_server/serial_posix.c	2010-12-18 16:25:12 UTC (rev 864)
+@@ -72,6 +72,7 @@
+ 
+   usleep( 200000 );
+   tcgetattr( hnd, &amp;termdata );
++  tcdrain( hnd );
+ 
+   // Baud rate
+   cfsetispeed( &amp;termdata, ser_baud_to_id( baud ) );
+@@ -106,6 +107,7 @@
+   // Disable HW and SW flow control
+   termdata.c_cflag &amp;= ~CRTSCTS;
+   termdata.c_iflag &amp;= ~( IXON | IXOFF | IXANY );
++  termdata.c_iflag |= IGNBRK;
+ 
+   // Raw input
+   termdata.c_lflag &amp;= ~( ICANON | ECHO | ECHOE | ISIG );
+@@ -168,6 +170,7 @@
+   u32 res;
+   
+   res = ( u32 )write( ( int )id, src, size );
++  tcdrain( ( int )id );
+   return res;
+ }
+ 
+
+Modified: branches/remotefs_int/src/platform/i386/platform_conf.h
+===================================================================
+--- branches/remotefs_int/src/platform/i386/platform_conf.h	2010-12-17 07:08:29 UTC (rev 863)
++++ branches/remotefs_int/src/platform/i386/platform_conf.h	2010-12-18 16:25:12 UTC (rev 864)
+@@ -28,6 +28,7 @@
+ 
+ // Bogus defines for common.c
+ #define CON_UART_ID           0
++#define CON_UART_SPEED        0
+ #define CON_TIMER_ID          0
+ 
+ // *****************************************************************************
+
+Modified: branches/remotefs_int/src/platform/sim/platform_conf.h
+===================================================================
+--- branches/remotefs_int/src/platform/sim/platform_conf.h	2010-12-17 07:08:29 UTC (rev 863)
++++ branches/remotefs_int/src/platform/sim/platform_conf.h	2010-12-18 16:25:12 UTC (rev 864)
+@@ -31,6 +31,7 @@
+ 
+ // Bogus defines for common.c
+ #define CON_UART_ID           0
++#define CON_UART_SPEED        0
+ #define CON_TIMER_ID          0
+ 
+ // *****************************************************************************
+
+Modified: branches/remotefs_int/src/platform/stm32/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform.c	2010-12-17 07:08:29 UTC (rev 863)
++++ branches/remotefs_int/src/platform/stm32/platform.c	2010-12-18 16:25:12 UTC (rev 864)
+@@ -140,12 +140,21 @@
+ #endif
+ 
+   /* Configure the NVIC Preemption Priority Bits */
+-  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
++  /* Priority group 0 disables interrupt nesting completely */
++  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
+ 
++  // Lower the priority of the SysTick interrupt to let the
++  // UART interrupt preempt it
++  nvic_init_structure.NVIC_IRQChannel = SysTick_IRQn;
++  nvic_init_structure.NVIC_IRQChannelPreemptionPriority = 0; 
++  nvic_init_structure.NVIC_IRQChannelSubPriority = 1; 
++  nvic_init_structure.NVIC_IRQChannelCmd = ENABLE; 
++  NVIC_Init(&amp;nvic_init_structure);
++
+ #ifdef BUILD_ADC  
+   nvic_init_structure_adc.NVIC_IRQChannel = DMA1_Channel1_IRQn; 
+-  nvic_init_structure_adc.NVIC_IRQChannelPreemptionPriority = 1; 
+-  nvic_init_structure_adc.NVIC_IRQChannelSubPriority = 3; 
++  nvic_init_structure_adc.NVIC_IRQChannelPreemptionPriority = 0; 
++  nvic_init_structure_adc.NVIC_IRQChannelSubPriority = 2; 
+   nvic_init_structure_adc.NVIC_IRQChannelCmd = DISABLE; 
+   NVIC_Init(&amp;nvic_init_structure_adc);
+ #endif
+
+Modified: branches/remotefs_int/src/platform/stm32/platform_int.c
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform_int.c	2010-12-17 07:08:29 UTC (rev 863)
++++ branches/remotefs_int/src/platform/stm32/platform_int.c	2010-12-18 16:25:12 UTC (rev 864)
+@@ -16,8 +16,13 @@
+ 
+ static void all_usart_irqhandler( int resnum )
+ {
++  int temp;
++
++  temp = USART_GetFlagStatus( stm32_usart[ resnum ], USART_FLAG_ORE );
+   cmn_int_handler( INT_UART_RX, resnum );
+-  USART_ClearITPendingBit( stm32_usart[ resnum ], USART_IT_RXNE );  
++  if( temp == SET )
++    for( temp = 0; temp &lt; 10; temp ++ )
++      platform_s_uart_send( temp, '@' );
+ }
+ 
+ void USART1_IRQHandler()
+@@ -104,8 +109,8 @@
+   unsigned i;
+   
+   // Enable all USART interrupts in the NVIC
+-
+-  nvic_init_structure.NVIC_IRQChannelSubPriority = 2;
++  nvic_init_structure.NVIC_IRQChannelPreemptionPriority = 0;
++  nvic_init_structure.NVIC_IRQChannelSubPriority = 0;
+   nvic_init_structure.NVIC_IRQChannelCmd = ENABLE;  
+   for( i = 0; i &lt; sizeof( uart_irq_table ) / sizeof( u8 ); i ++ )
+   {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000816.html">[Elua-svn] r863 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000818.html">[Elua-svn] r865 - branches/remotefs_int/src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#817">[ date ]</a>
+              <a href="thread.html#817">[ thread ]</a>
+              <a href="subject.html#817">[ subject ]</a>
+              <a href="author.html#817">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

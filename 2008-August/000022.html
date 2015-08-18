@@ -1,0 +1,865 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r67 - in trunk: . examples inc src src/modules	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r67%20-%20in%20trunk%3A%20.%20examples%20inc%20src%20src/modules%0A%09src/platform/at91sam7x%20src/platform/lm3s%20src/platform/lpc288x%0A%09src/platform/str9&In-Reply-To=%3C200808272005.m7RK5AeL002041%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000021.html">
+   <LINK REL="Next"  HREF="000023.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r67 - in trunk: . examples inc src src/modules	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str9</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r67%20-%20in%20trunk%3A%20.%20examples%20inc%20src%20src/modules%0A%09src/platform/at91sam7x%20src/platform/lm3s%20src/platform/lpc288x%0A%09src/platform/str9&In-Reply-To=%3C200808272005.m7RK5AeL002041%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r67 - in trunk: . examples inc src src/modules	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Aug 27 22:05:10 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000021.html">[Elua-svn] r66 - in trunk/src: . newlib
+</A></li>
+        <LI>Next message: <A HREF="000023.html">[Elua-svn] r68 - trunk/examples
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#22">[ date ]</a>
+              <a href="thread.html#22">[ thread ]</a>
+              <a href="subject.html#22">[ subject ]</a>
+              <a href="author.html#22">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-08-27 22:05:09 +0200 (Wed, 27 Aug 2008)
+New Revision: 67
+
+Modified:
+   trunk/SConstruct
+   trunk/examples/hangman.lua
+   trunk/examples/info.lua
+   trunk/examples/led.lua
+   trunk/examples/piano.lua
+   trunk/inc/platform.h
+   trunk/src/main.c
+   trunk/src/modules/pd.c
+   trunk/src/modules/pio.c
+   trunk/src/platform/at91sam7x/conf.py
+   trunk/src/platform/at91sam7x/platform.c
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lpc288x/platform.c
+   trunk/src/platform/str9/platform.c
+Log:
+- added &quot;board&quot; as a compile time parameter, it will specify a name for the board on which eLua works. This helps if the same CPU is used on more than one board with different
+  I/O setup. 
+- the pd() module has a new method (board) and gets it CPU, platform and board name directly from the build system (command line macros). It's much easier to work like this.
+- the samples (examples/) were updated to check pd.board() rather than pd.platform()/pd.cpu(), which is a much more logical way to do things, since it ties the sample to a 
+  specific I/O configuration, not with a CPU.
+- updated PWM code for AT91SAM7X, now the &quot;piano&quot; example works for both LM3Sxxxx and AT91SAM7X256.
+- added 3 new methods to the PIO module: pullup(), pulldown(), ad nopullup(), their meaning is obvious.
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/SConstruct	2008-08-27 20:05:09 UTC (rev 67)
+@@ -1,16 +1,26 @@
+ import os, sys 
+ target = ARGUMENTS.get( 'target', 'lua' ).lower() 
+-cputype = ARGUMENTS.get( 'cpu', 'at91sam7x256' ).lower()
++cputype = ARGUMENTS.get( 'cpu', 'at91sam7x256' ).upper()
+ allocator = ARGUMENTS.get( 'allocator', '' ).lower()
++boardname = ARGUMENTS.get( 'board' , '').upper()
+ 
+ # List of platform/CPU combinations
+-cpu_list = { 'at91sam7x' : [ 'at91sam7x256', 'at91sam7x512' ], 
+-              'lm3s' : [ 'lm3s8962', 'lm3s6965' ], 
+-              'str9' : [ 'str912fw44' ],
+-              'i386' : [ 'i386' ],
+-              'lpc288x' : [ 'lpc2888' ]
++cpu_list = { 'at91sam7x' : [ 'AT91SAM7X256', 'AT91SAM7X512' ], 
++              'lm3s' : [ 'LM3S8962', 'LM3S6965' ], 
++              'str9' : [ 'STR912FW44' ],
++              'i386' : [ 'I386' ],
++              'lpc288x' : [ 'LPC2888' ]
+             }
+ 
++# List of default board names
++board_list = { 'SAM7-EX256' : [ 'AT91SAM7X256', 'AT91SAM7X512' ],        
++               'EK-LM3S8962' : [ 'LM3S8962' ],
++               'EK-LM3S6965' : [ 'LM3S6965' ],
++               'STR9-comStick' : [ 'STR912FW44' ],
++               'PC' : [ 'I386' ],
++               'LPC-H2888' : [ 'LPC2888' ]
++            }
++
+ platform = None        
+ # Look for the given CPU in the list of platforms            
+ for p, v in cpu_list.items():
+@@ -27,9 +37,19 @@
+     print
+   sys.exit( -1 )
+ 
++# If the board is not specified, use the default value
++if boardname == '':
++  for b, v in board_list.items():
++    if cputype in v:
++      boardname = b
++      break
++  else:
++    print &quot;Please specify a board&quot;
++    sys.exit( -1 )
++
+ # CPU/allocator mapping (if allocator not specified)
+ if allocator == '':
+-  if cputype in [ 'lpc2888' ]:
++  if cputype == 'LPC2888':
+     allocator = 'multiple'
+   else:
+     allocator = 'newlib'
+@@ -39,8 +59,8 @@
+   sys.exit( -1 )
+ 
+     
+-output = 'elua_' + target + '_' + cputype 
+-cdefs = '-D%s' % cputype
++output = 'elua_' + target + '_' + cputype.lower()
++cdefs = '-DELUA_CPU=%s -DELUA_BOARD=%s -DELUA_PLATFORM=%s' % ( cputype, boardname, platform.upper() )
+ if allocator == 'multiple':
+   cdefs = cdefs + &quot; -DUSE_MULTIPLE_ALLOCATOR&quot;
+ 
+
+Modified: trunk/examples/hangman.lua
+===================================================================
+--- trunk/examples/hangman.lua	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/examples/hangman.lua	2008-08-27 20:05:09 UTC (rev 67)
+@@ -8,7 +8,6 @@
+   return
+ end
+ 
+-
+ local h, w = term.lines(), term.cols()
+ local tries = 0
+ 
+
+Modified: trunk/examples/info.lua
+===================================================================
+--- trunk/examples/info.lua	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/examples/info.lua	2008-08-27 20:05:09 UTC (rev 67)
+@@ -1,3 +1,4 @@
+ print( &quot;I'm running on platform &quot; .. pd.platform() )
+ print( &quot;The CPU is a &quot; .. pd.cpu() )
+ print( &quot;The CPU clock is &quot; .. pd.clock() )
++print( &quot;The board name is &quot; .. pd.board() )
+
+Modified: trunk/examples/led.lua
+===================================================================
+--- trunk/examples/led.lua	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/examples/led.lua	2008-08-27 20:05:09 UTC (rev 67)
+@@ -1,21 +1,21 @@
+ -- eLua test 
+ 
+-if pd.platform() == &quot;AT91SAM7X&quot; then
++if pd.board() == &quot;SAM7-EX256&quot; then
+   ledpin = pio.PB_20
+-elseif pd.platform() == &quot;LM3S&quot; then
++elseif pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+   ledpin = pio.PF_0
+-elseif pd.platform() == &quot;STR9&quot; then
++elseif pd.board() == &quot;STR9-comStick&quot; then
+   ledpin = pio.P9_0
+ else
+-  print( &quot;\nError: Unknown platform &quot; .. pd.platform() .. &quot; !\n&quot; )
++  print( &quot;\nError: Unknown board &quot; .. pd.board() .. &quot; !\n&quot; )
+   return
+ end
+ 
+ function cycle()
+   pio.set( ledpin )
+-  tmr.delay( tmr.TMR0, 500000 )
++  tmr.delay( 0, 500000 )
+   pio.clear( ledpin )
+-  tmr.delay( tmr.TMR0, 500000 )
++  tmr.delay( 0, 500000 )
+ end
+ 
+ pio.output( ledpin )
+@@ -23,6 +23,6 @@
+ print &quot;Watch your LED blinking :)&quot;
+ print &quot;Press any key to end this demo.\n&quot;
+ 
+-while uart.recv( uart.UART0, 0, 0 ) &lt; 0 do
++while uart.recv( 0, 0, 0 ) &lt; 0 do
+   cycle()
+ end
+
+Modified: trunk/examples/piano.lua
+===================================================================
+--- trunk/examples/piano.lua	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/examples/piano.lua	2008-08-27 20:05:09 UTC (rev 67)
+@@ -1,87 +1 @@
+--- &quot;Piano&quot; in eLua, showing yet another use for the PWM module :)
+--- [TODO] platform/module check
+-
+-local oct, pause = 4, 0
+-local pwmid, tmrid = 1, 0
+-
+--- Mapping between keys and note offsets
+-local offsets = { a = 0, w = 1, s = 2, d = 3, r = 4, f = 5, t = 6, g = 7, h = 8,
+-  u = 9, j = 10, i = 11, k = 12, o = 13, l = 14, [&quot;;&quot;] = 15, [&quot;[&quot;] = 16, [&quot;'&quot;] = 17,
+-  [&quot;]&quot;] = 18, [&quot;\\&quot;] = 19 }
+-  
+--- Write the curent octave
+-function show_octave()
+-  term.putstrxy( 2, 4, &quot;Oct: &quot; .. tostring( oct ) .. &quot;(+/-)&quot; )
+-  term.gotoxy( 2, 19 )  
+-end
+-
+--- Write the current pause between notes
+-function show_pause()
+-  term.gotoxy( 2, 5 )
+-  term.clreol()
+-  term.putstrxy( 2, 5, &quot;Pause between notes: &quot; .. tostring( pause ) .. &quot;ms (&lt;/&gt;)&quot; )
+-  term.gotoxy( 2, 19 )  
+-end
+-
+--- Show the main interface
+-function show_all()
+-  term.putstrxy( 2, 2, &quot;eLua piano demo&quot; )  
+-  show_octave()
+-  show_pause()
+-  term.putstrxy( 4,  7, &quot; w   r  t   u  i  o   [  ]  &quot; )
+-  term.putstrxy( 4,  8, &quot; |   |  |   |  |  |   |  |  &quot; )
+-  term.putstrxy( 4,  9, &quot; A#  C# D#  F# G# A#  C# D# &quot; )
+-  term.putstrxy( 4, 10, &quot;A  BC  D  EF  G  A  BC  D  E&quot; )
+-  term.putstrxy( 4, 11, &quot;|  ||  |  ||  |  |  ||  |  |&quot; )
+-  term.putstrxy( 4, 12, &quot;a  sd  f  gh  j  k  l;  '  \\&quot; )  
+-  term.putstrxy( 2, 14, &quot;Use above keys to play notes.&quot; )
+-  term.putstrxy( 2, 15, &quot;+/- to change octave.&quot; )
+-  term.putstrxy( 2, 16, &quot;&lt;/&gt; to change pause between notes.&quot; )
+-  term.putstrxy( 2, 17, &quot;Space to stop playing.&quot; ) 
+-  term.putstrxy( 2, 18, &quot;ESC to exit.&quot; ) 
+-  term.gotoxy( 2, 19 )
+-end
+-
+--- Conversion of note to frequency
+-function note_to_freq( index )
+-  return 55 * 2 ^ ( ( index + ( oct - 1 ) * 12 ) / 12 )
+-end
+-
+--- Entry point
+-term.clrscr()
+-pwm.setclock( pwmid, 1000000 )
+-show_all()
+-while true do
+-  local key = term.getch( term.WAIT )
+-  if key == term.KC_ESC then break end
+-  local res, strkey = pcall( string.char, key )
+-  if res then     
+-    if offsets[ strkey ] ~= nil then
+-      local freq = note_to_freq( offsets[ strkey ] )
+-      pwm.stop( pwmid )
+-      if pause &gt; 0 then
+-        tmr.delay( tmrid, pause * 1000 )
+-      end
+-      pwm.setup( pwmid, freq, 50 )
+-      pwm.start( pwmid )
+-    elseif strkey == &quot;&gt;&quot; then
+-      pause = pause &lt; 1000 and pause + 10 or pause
+-      show_pause()
+-    elseif strkey == &quot;&lt;&quot; then
+-      pause = pause &gt; 0 and pause - 10 or pause
+-      show_pause() 
+-    elseif strkey == &quot;+&quot; then
+-      oct = oct &lt; 7 and oct + 1 or oct
+-      show_octave()
+-    elseif strkey == &quot;-&quot; then
+-      oct = oct &gt; 1 and oct - 1 or oct
+-      show_octave()
+-    elseif strkey == &quot; &quot; then
+-      pwm.stop( pwmid )
+-    end
+-  end  
+-end
+-
+-term.clrscr()
+-term.gotoxy( 1, 1 )
+- 
++-- &quot;Piano&quot; in eLua, showing yet another use for the PWM module :)
+
+local pwmid, tmrid
+
+if not math then
+  print &quot;This example required floating point Lua (integer Lua not supported)&quot; 
+  return
+end
+  
+if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+  pwmid, tmrid = 1, 1
+elseif pd.board() == &quot;SAM7-EX256&quot; then
+  pwmid, tmrid = 0, 1
+  tmr.setclock( 1, 1000000 )
+else
+  print( pd.board() .. &quot; not supported with this example\n&quot; )
+  return
+end
+
+local oct, pause = 4, 0
+
+-- Mapping between keys and note offsets
+local offsets = { a = 0, w = 1, s = 2, d = 3, r = 4, f = 5, t = 6, g = 7, h = 8,
+  u = 9, j = 10, i = 11, k = 12, o = 13, l = 14, [&quot;;&quot;] = 15, [&quot;[&quot;] = 16, [&quot;'&quot;] = 17,
+  [&quot;]&quot;] = 18, [&quot;\\&quot;] = 19 }
+  
+-- Write the curent octave
+function show_octave()
+  term.putstrxy( 2, 4, &quot;Oct: &quot; .. tostring( oct ) .. &quot;(+/-)&quot; )
+  term.gotoxy( 2, 19 )  
+end
+
+-- Write the current pause between notes
+function show_pause()
+  term.gotoxy( 2, 5 )
+  term.clreol()
+  term.putstrxy( 2, 5!
+ , &quot;Pause between notes: &quot; .. tostring( pause ) .. &quot;ms (&lt;/&gt;)&quot; )
+  term.gotoxy( 2, 19 )  
+end
+
+-- Show the main interface
+function show_all()
+  term.putstrxy( 2, 2, &quot;eLua piano demo&quot; )  
+  show_octave()
+  show_pause()
+  term.putstrxy( 4,  7, &quot; w   r  t   u  i  o   [  ]  &quot; )
+  term.putstrxy( 4,  8, &quot; |   |  |   |  |  |   |  |  &quot; )
+  term.putstrxy( 4,  9, &quot; A#  C# D#  F# G# A#  C# D# &quot; )
+  term.putstrxy( 4, 10, &quot;A  BC  D  EF  G  A  BC  D  E&quot; )
+  term.putstrxy( 4, 11, &quot;|  ||  |  ||  |  |  ||  |  |&quot; )
+  term.putstrxy( 4, 12, &quot;a  sd  f  gh  j  k  l;  '  \\&quot; )  
+  term.putstrxy( 2, 14, &quot;Use above keys to play notes.&quot; )
+  term.putstrxy( 2, 15, &quot;+/- to change octave.&quot; )
+  term.putstrxy( 2, 16, &quot;&lt;/&gt; to change pause between notes.&quot; )
+  term.putstrxy( 2, 17, &quot;Space to stop playing.&quot; ) 
+  term.putstrxy( 2, 18, &quot;ESC to exit.&quot; ) 
+  term.gotoxy( 2, 19 )
+end
+
+-- Conversion of note to frequency
+function note_to_freq( index )
+  return 55 * 2 ^ ( ( index + ( oct - 1 ) * 12 ) / 12 )
+end
+
+-- Entr!
+ y point
+term.clrscr()
+pwm.setclock( pwmid, 1000000 )
+show_all(!
+ )
+while 
+true do
+  local key = term.getch( term.WAIT )
+  if key == term.KC_ESC then break end
+  local res, strkey = pcall( string.char, key )
+  if res then     
+    if offsets[ strkey ] ~= nil then
+      local freq = note_to_freq( offsets[ strkey ] )
+      pwm.stop( pwmid )
+      if pause &gt; 0 then
+        tmr.delay( tmrid, pause * 1000 )
+      end
+      pwm.setup( pwmid, freq, 50 )
+      pwm.start( pwmid )
+    elseif strkey == &quot;&gt;&quot; then
+      pause = pause &lt; 1000 and pause + 10 or pause
+      show_pause()
+    elseif strkey == &quot;&lt;&quot; then
+      pause = pause &gt; 0 and pause - 10 or pause
+      show_pause() 
+    elseif strkey == &quot;+&quot; then
+      oct = oct &lt; 7 and oct + 1 or oct
+      show_octave()
+    elseif strkey == &quot;-&quot; then
+      oct = oct &gt; 1 and oct - 1 or oct
+      show_octave()
+    elseif strkey == &quot; &quot; then
+      pwm.stop( pwmid )
+    end
+  end  
+end
+
+pwm.stop( pwmid )
+term.clrscr()
+term.gotoxy( 1, 1 )
+\ No newline at end of file
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/inc/platform.h	2008-08-27 20:05:09 UTC (rev 67)
+@@ -46,6 +46,9 @@
+   PLATFORM_IO_PIN_GET,
+   PLATFORM_IO_PIN_DIR_INPUT,
+   PLATFORM_IO_PIN_DIR_OUTPUT,
++  PLATFORM_IO_PIN_PULLUP,
++  PLATFORM_IO_PIN_PULLDOWN,
++  PLATFORM_IO_PIN_NOPULL,
+   // Port operations
+   PLATFORM_IO_PORT_SET_VALUE,
+   PLATFORM_IO_PORT_GET_VALUE,
+@@ -165,8 +168,6 @@
+ // Platform data subsection
+ // Contains functions for platform identification
+ 
+-const char* platform_pd_get_platform_name();
+-const char* platform_pd_get_cpu_name();
+ u32 platform_pd_get_cpu_frequency();
+ 
+ // *****************************************************************************
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/src/main.c	2008-08-27 20:05:09 UTC (rev 67)
+@@ -177,8 +177,6 @@
+   // Initialize terminal
+   term_init( TERMINAL_LINES, TERMINAL_COLS, term_out, term_in, term_translate );
+   
+-  printf( &quot;.text ends at %p\n&quot;, etext );
+-  
+   // Autorun: if &quot;autorun.lua&quot; is found in the ROM file system, run it first
+   if( ( fp = fopen( &quot;/rom/autorun.lua&quot;, &quot;r&quot; ) ) != NULL )
+   {
+
+Modified: trunk/src/modules/pd.c
+===================================================================
+--- trunk/src/modules/pd.c	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/src/modules/pd.c	2008-08-27 20:05:09 UTC (rev 67)
+@@ -6,20 +6,29 @@
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
+ 
++#define MACRO_NAME( x ) MACRO_AGAIN( x )
++#define MACRO_AGAIN( x ) #x
++
+ // Lua: platform = platform()
+ static int pd_platform( lua_State* L )
+ {
+-  lua_pushstring( L, platform_pd_get_platform_name() );
++  lua_pushstring( L, MACRO_NAME( ELUA_PLATFORM ) );
+   return 1;
+ }
+ 
+ // Lua: cpuname = cpu()
+ static int pd_cpu( lua_State* L )
+ {
+-  lua_pushstring( L, platform_pd_get_cpu_name() );
++  lua_pushstring( L, MACRO_NAME( ELUA_CPU ) ); 
+   return 1;
+ }
+ 
++// Lua: boardname = board()
++static int pd_board( lua_State* L )
++{
++  lua_pushstring( L, MACRO_NAME( ELUA_BOARD ) );
++  return 1;
++}
+ // Lua: speed = frequency()
+ static int pd_clock( lua_State* L )
+ {
+@@ -32,6 +41,7 @@
+ {
+   { &quot;platform&quot;,  pd_platform }, 
+   { &quot;cpu&quot;, pd_cpu },
++  { &quot;board&quot;, pd_board },
+   { &quot;clock&quot;, pd_clock },
+   { NULL, NULL }
+ };
+
+Modified: trunk/src/modules/pio.c
+===================================================================
+--- trunk/src/modules/pio.c	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/src/modules/pio.c	2008-08-27 20:05:09 UTC (rev 67)
+@@ -188,6 +188,24 @@
+   return 1;
+ }
+ 
++// Lua: pullup( pin1, pin2, ... )
++static int pio_pin_pullup( lua_State* L )
++{
++  return pioh_set_pins( L, 1, PLATFORM_IO_PIN_PULLUP );
++}
++
++// Lua: pulldown( pin1, pin2, ... )
++static int pio_pin_pulldown( lua_State* L )
++{
++  return pioh_set_pins( L, 1, PLATFORM_IO_PIN_PULLDOWN );
++}
++
++// Lua: nopull( pin1, pin2, ... )
++static int pio_pin_nopull( lua_State* L )
++{
++  return pioh_set_pins( L, 1, PLATFORM_IO_PIN_NOPULL );
++}
++
+ // Module function map
+ static const luaL_reg pio_map[] = 
+ {
+@@ -201,6 +219,9 @@
+   { &quot;getport&quot;, pio_get_port },
+   { &quot;port_input&quot;, pio_port_input },
+   { &quot;port_output&quot;, pio_port_output },
++  { &quot;pullup&quot;, pio_pin_pullup },
++  { &quot;pulldown&quot;, pio_pin_pulldown },
++  { &quot;nopull&quot;, pio_pin_nopull },
+   { &quot;port&quot;, pio_port },
+   { &quot;pin&quot;, pio_pin },
+   { NULL, NULL }
+
+Modified: trunk/src/platform/at91sam7x/conf.py
+===================================================================
+--- trunk/src/platform/at91sam7x/conf.py	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/src/platform/at91sam7x/conf.py	2008-08-27 20:05:09 UTC (rev 67)
+@@ -3,12 +3,14 @@
+ cpumode = ARGUMENTS.get( 'cpumode', 'thumb' ).lower()
+ 
+ specific_files = &quot;board_cstartup.s board_lowlevel.c board_memories.c usart.c pmc.c pio.c platform.c tc.c pwmc.c&quot;
+-if cputype == 'at91sam7x256':
++if cputype == 'AT91SAM7X256':
+   ldscript = &quot;flash256.lds&quot;
+-elif cputype == 'at91sam7x512':
++  cdefs = cdefs + &quot; -Dat91sam7x256&quot;
++elif cputype == 'AT91SAM7X512':
+   ldscript = &quot;flash512.lds&quot;
++  cdefs = cdefs + &quot; -Dat91sam7x512&quot;
+ else:
+-  print &quot;Invalid AT91SAM7X CPU %s&quot;, cputype
++  print &quot;Invalid AT91SAM7X CPU %s&quot; % cputype
+   sys.exit( -1 )  
+   
+ # Check CPU mode
+
+Modified: trunk/src/platform/at91sam7x/platform.c
+===================================================================
+--- trunk/src/platform/at91sam7x/platform.c	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/src/platform/at91sam7x/platform.c	2008-08-27 20:05:09 UTC (rev 67)
+@@ -80,6 +80,11 @@
+   PWMC_ConfigureChannel( 1, AT91C_PWMC_CPRE_MCKA, 0, 0 );  
+   PWMC_ConfigureChannel( 2, AT91C_PWMC_CPRE_MCKB, 0, 0 );
+   PWMC_ConfigureChannel( 3, AT91C_PWMC_CPRE_MCKB, 0, 0 );    
++  for( i = 0; i &lt; 4; i ++ )
++  {
++    PWMC_EnableChannel( i );
++    PWMC_EnableChannelIt( i );
++  }
+   
+   // Set the send/recv functions                          
+   std_set_send_func( uart_send );
+@@ -155,6 +160,14 @@
+     case PLATFORM_IO_PIN_GET:
+       retval = PIO_Get( pin ) ? 1 : 0;
+       break;
++      
++    case PLATFORM_IO_PIN_PULLUP:
++      pin-&gt;pio-&gt;PIO_PPUER = pinmask;
++      break;
++      
++    case PLATFORM_IO_PIN_NOPULL:
++      pin-&gt;pio-&gt;PIO_PPUDR = pinmask;
++      break;
+   }
+   return retval;
+ }
+@@ -415,11 +428,14 @@
+ {
+   u32 pwmclk = platform_pwm_get_clock( id );
+   u32 period;  
+-
++  volatile u32 dummy;
++  
+   // Compute period
+   period = pwmclk / frequency;
+   // Set the period
++  dummy = AT91C_BASE_PWMC-&gt;PWMC_ISR;
+   PWMC_SetPeriod( id, period );
++  while( ( AT91C_BASE_PWMC-&gt;PWMC_ISR &amp; ( 1 &lt;&lt; id ) ) == 0 );
+   // Set duty cycle
+   PWMC_SetDutyCycle( id, ( period * duty ) / 100 );
+   // Return actual frequency
+@@ -429,7 +445,7 @@
+ u32 platform_pwm_op( unsigned id, int op, u32 data )
+ {
+   u32 res = 0;
+-  
++    
+   switch( op )
+   {
+     case PLATFORM_PWM_OP_SET_CLOCK:
+@@ -442,11 +458,10 @@
+       
+     case PLATFORM_PWM_OP_START:
+       PIO_Configure( pwm_pins + id, 1 );    
+-      PWMC_EnableChannel( id );
++      res = AT91C_BASE_PWMC-&gt;PWMC_ISR;
+       break;
+       
+     case PLATFORM_PWM_OP_STOP:
+-      PWMC_DisableChannel( id );
+       platform_pio_op( 1, 1 &lt;&lt; ( 19 + id ), PLATFORM_IO_PIN_DIR_INPUT );
+       break;
+   }
+@@ -457,20 +472,6 @@
+ // ****************************************************************************
+ // Platform data functions
+ 
+-const char* platform_pd_get_platform_name()
+-{
+-  return &quot;AT91SAM7X&quot;;
+-}
+-
+-const char* platform_pd_get_cpu_name()
+-{
+-#ifdef at91sam7x256
+-  return &quot;AT91SAM7X256&quot;;
+-#else
+-  return &quot;AT91SAM7X512&quot;;
+-#endif
+-}
+-
+ u32 platform_pd_get_cpu_frequency()
+ {
+   return BOARD_MCK;
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/src/platform/lm3s/platform.c	2008-08-27 20:05:09 UTC (rev 67)
+@@ -78,26 +78,16 @@
+ 
+ // ****************************************************************************
+ // PIO
++// Same configuration on LM3S8962 and LM3S6965
+ 
+ static const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE, 
+                                 GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE };
+ static const u32 pio_sysctl[] = { SYSCTL_PERIPH_GPIOA, SYSCTL_PERIPH_GPIOB, SYSCTL_PERIPH_GPIOC, SYSCTL_PERIPH_GPIOD, 
+                                   SYSCTL_PERIPH_GPIOE, SYSCTL_PERIPH_GPIOF, SYSCTL_PERIPH_GPIOG, SYSCTL_PERIPH_GPIOH };
+-
+-#ifdef lm3s8962
++static const u8 pio_port_pins[] = { 8, 8, 8, 8, 4, 4, 2, 0 };
+ #define PIOS_COUNT 42
+ #define PIOS_PORT_COUNT 7
+-static const u8 pio_port_pins[] = { 8, 8, 8, 8,
+-                                    4, 4, 2, 0 };
+-#endif
+ 
+-#ifdef lm3s6965
+-#define PIOS_COUNT 42
+-#define PIOS_PORT_COUNT 7
+-static const u8 pio_port_pins[] = { 8, 8, 8, 8,
+-                                    4, 4, 2, 0 };
+-#endif
+-
+ static void pios_init()
+ {
+   unsigned i;
+@@ -163,22 +153,26 @@
+     case PLATFORM_IO_PIN_GET:
+       retval = GPIOPinRead( base, pinmask ) ? 1 : 0;
+       break;
++      
++    case PLATFORM_IO_PIN_PULLUP:
++    case PLATFORM_IO_PIN_PULLDOWN:
++      GPIOPadConfigSet( base, pinmask, GPIO_STRENGTH_8MA, op == PLATFORM_IO_PIN_PULLUP ? GPIO_PIN_TYPE_STD_WPU : GPIO_PIN_TYPE_STD_WPD );
++      retval = 1;
++      break;
++      
++    case PLATFORM_IO_PIN_NOPULL:
++      GPIOPadConfigSet( base, pinmask, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD );
++      retval = 1;
++      break;
+   }
+   return retval;
+ }
+ 
+ // ****************************************************************************
+ // SPI
++// Same configuration on LM3S8962 and LM3S6965
+ 
+-#ifdef lm3s8962
+-#define SPIS_COUNT 1
+-#endif
+-
+-#ifdef lm3s6965
+-#define SPIS_COUNT 1
+-#endif
+-
+-// All possible LM3S uarts defs
++// All possible LM3S SPIs defs
+ // FIXME this anticipates support for a platform with 2 SPI port
+ //  PIN info extracted from LM3S6950 and 5769 datasheets
+ static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE };
+@@ -188,6 +182,7 @@
+                                     GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 };
+ //                                  SSIxClk      SSIxFss      SSIxRx       SSIxTx
+ static const u8 spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_0 };
++#define SPIS_COUNT 		1
+ 
+ static void spis_init()
+ {
+@@ -218,7 +213,7 @@
+   GPIOPinTypeSSI( spi_gpio_base[ id ], spi_gpio_pins[ id ] );
+   
+   // FIXME: not sure this is always &quot;right&quot;
+-  GPIOPadConfigSet(spi_gpio_base[ id ], spi_gpio_clk_pin[ id ], GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU);    
++  GPIOPadConfigSet(spi_gpio_base[ id ], spi_gpio_clk_pin[ id ], GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);    
+ 
+   SSIConfigSetExpClk( spi_base[ id ], SysCtlClockGet(), protocol, mode, clock, databits );
+   SSIEnable( spi_base[ id ] );
+@@ -241,15 +236,14 @@
+ 
+ // ****************************************************************************
+ // UART
++// Different configurations for LM3S8962 (2 UARTs) and LM3S6965 (3 UARTs)
+ 
+-#ifdef lm3s8962
+-#define UARTS_COUNT 2
++#if ELUA_CPU == LM3S8962
++  #define UARTS_COUNT 2
++#elif ELUA_CPU == LM3S6965
++  #define UARTS_COUNT 3
+ #endif
+ 
+-#ifdef lm3s6965
+-#define UARTS_COUNT 3
+-#endif
+-
+ // All possible LM3S uarts defs
+ static const u32 uart_base[] = { UART0_BASE, UART1_BASE, UART2_BASE };
+ static const u32 uart_sysctl[] = { SYSCTL_PERIPH_UART0, SYSCTL_PERIPH_UART1, SYSCTL_PERIPH_UART2 };
+@@ -348,18 +342,12 @@
+ 
+ // ****************************************************************************
+ // Timers
++// Same on LM3S8962 and LM3S6965
+ 
+-#ifdef lm3s8962
+-#define TIMERS_COUNT 4
+-#endif
+-
+-#ifdef lm3s6965
+-#define TIMERS_COUNT 4
+-#endif
+-
+ // All possible LM3S timers defs
+ static const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE };
+ static const u32 timer_sysctl[] = { SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, SYSCTL_PERIPH_TIMER3 };
++#define TIMERS_COUNT			4
+ 
+ static void timers_init()
+ {
+@@ -438,6 +426,7 @@
+ 
+ // ****************************************************************************
+ // PWMs
++// Same on LM3S8962 and LM3S6965
+ 
+ #define PLATFORM_NUM_PWMS               6
+ 
+@@ -538,21 +527,6 @@
+ // ****************************************************************************
+ // Platform data
+ 
+-const char* platform_pd_get_platform_name()
+-{
+-  return &quot;LM3S&quot;;
+-}
+-
+-const char* platform_pd_get_cpu_name()
+-{
+-#ifdef lm3s8962
+-  return &quot;LM3S8962&quot;;
+-#endif
+-#ifdef lm3s6965
+-  return &quot;LM3S6965&quot;;
+-#endif
+-}
+-
+ u32 platform_pd_get_cpu_frequency()
+ {
+   return SysCtlClockGet();
+
+Modified: trunk/src/platform/lpc288x/platform.c
+===================================================================
+--- trunk/src/platform/lpc288x/platform.c	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/src/platform/lpc288x/platform.c	2008-08-27 20:05:09 UTC (rev 67)
+@@ -284,16 +284,6 @@
+ // ****************************************************************************
+ // Platform data functions
+ 
+-const char* platform_pd_get_platform_name()
+-{
+-  return &quot;LPC288x&quot;;
+-}
+-
+-const char* platform_pd_get_cpu_name()
+-{
+-  return &quot;LPC2888&quot;;
+-}
+-
+ u32 platform_pd_get_cpu_frequency()
+ {
+   return Fcclk;
+
+Modified: trunk/src/platform/str9/platform.c
+===================================================================
+--- trunk/src/platform/str9/platform.c	2008-08-27 13:48:28 UTC (rev 66)
++++ trunk/src/platform/str9/platform.c	2008-08-27 20:05:09 UTC (rev 67)
+@@ -402,16 +402,6 @@
+ // ****************************************************************************
+ // Platform data functions
+ 
+-const char* platform_pd_get_platform_name()
+-{
+-  return &quot;STR9&quot;;
+-}
+-
+-const char* platform_pd_get_cpu_name()
+-{
+-  return &quot;STR912FW44X&quot;;
+-}
+-
+ u32 platform_pd_get_cpu_frequency()
+ {
+   return SCU_GetMCLKFreqValue() * 1000;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000021.html">[Elua-svn] r66 - in trunk/src: . newlib
+</A></li>
+	<LI>Next message: <A HREF="000023.html">[Elua-svn] r68 - trunk/examples
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#22">[ date ]</a>
+              <a href="thread.html#22">[ thread ]</a>
+              <a href="subject.html#22">[ subject ]</a>
+              <a href="author.html#22">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

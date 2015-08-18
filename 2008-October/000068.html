@@ -1,0 +1,1159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r112 - in trunk: . docs inc romfs src src/lua	src/modules src/newlib src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r112%20-%20in%20trunk%3A%20.%20docs%20inc%20romfs%20src%20src/lua%0A%09src/modules%20src/newlib%20src/platform/lm3s&In-Reply-To=%3C200810312132.m9VLWGUk015026%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000067.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r112 - in trunk: . docs inc romfs src src/lua	src/modules src/newlib src/platform/lm3s</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r112%20-%20in%20trunk%3A%20.%20docs%20inc%20romfs%20src%20src/lua%0A%09src/modules%20src/newlib%20src/platform/lm3s&In-Reply-To=%3C200810312132.m9VLWGUk015026%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r112 - in trunk: . docs inc romfs src src/lua	src/modules src/newlib src/platform/lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Oct 31 22:32:16 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000067.html">[Elua-svn] r111 - in trunk: romfs src
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#68">[ date ]</a>
+              <a href="thread.html#68">[ thread ]</a>
+              <a href="subject.html#68">[ subject ]</a>
+              <a href="author.html#68">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-10-31 22:32:15 +0100 (Fri, 31 Oct 2008)
+New Revision: 112
+
+Added:
+   trunk/docs/crosscompilation.txt
+   trunk/docs/tcpip_in_elua.txt
+   trunk/romfs/morse.lua
+Modified:
+   trunk/LICENSE
+   trunk/docs/adding_a_new_platform.txt
+   trunk/docs/building.txt
+   trunk/docs/console_input_output.txt
+   trunk/docs/elua_components.txt
+   trunk/docs/generic_modules.txt
+   trunk/docs/platform_interface.txt
+   trunk/docs/platform_modules.txt
+   trunk/docs/terminal_support.txt
+   trunk/inc/shell.h
+   trunk/inc/xmodem.h
+   trunk/src/elua_uip.c
+   trunk/src/lua/linit.c
+   trunk/src/main.c
+   trunk/src/modules/net.c
+   trunk/src/newlib/genstd.c
+   trunk/src/platform/lm3s/platform_conf.h
+   trunk/src/shell.c
+   trunk/src/xmodem.c
+Log:
+multiple changes, documentation updated, getting ready for the new release
+
+Modified: trunk/LICENSE
+===================================================================
+--- trunk/LICENSE	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/LICENSE	2008-10-31 21:32:15 UTC (rev 112)
+@@ -16,6 +16,9 @@
+ The multiple memory allocator (dlmalloc) is written by Doug Lea and it's
+ placed on the public domain.
+ 
++uIP (the TCP/IP stack used by eLua) is written by Adam Dunkels and released 
++under a BSD license. The eLua version is slightly modified.
++
+ The rest of the code is licensed under GPL, listed below.
+ 
+ ================================================================================
+
+Modified: trunk/docs/adding_a_new_platform.txt
+===================================================================
+--- trunk/docs/adding_a_new_platform.txt	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/docs/adding_a_new_platform.txt	2008-10-31 21:32:15 UTC (rev 112)
+@@ -45,8 +45,8 @@
+     conf.py file and modify it to suit your needs, it's easier this way.
+   - type.h: data types used by eLua, declared in a platform independent way. 
+     Again, start from an existent type.h file and modify it if needed.
+-  - platform_libs.h: see &quot;platform modules.txt&quot; for details.
+-  - build.h: see &quot;elua_components.txt&quot; for details.
++  - platform_conf.h: see &quot;platform modules.txt&quot;, &quot;elua_components.txt&quot; and
++    &quot;tcpip_in_elua.txt&quot; for details
+ 
+ 4. implement the platform interface functions (see &quot;platform interface.txt&quot;). By
+    convention, they should be implemented in a file called &quot;platform.c&quot;. Note that
+
+Modified: trunk/docs/building.txt
+===================================================================
+--- trunk/docs/building.txt	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/docs/building.txt	2008-10-31 21:32:15 UTC (rev 112)
+@@ -60,9 +60,9 @@
+ 
+ $ scons [target=lua | lualong] 
+   [cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | 
+-        lm3s6965 | lpc2888 ]
++        lm3s6965 | lpc2888 | str711fr2 ]
+   [board=ek-lm3s8962 | ek-lm3s6965 | str9-comstick | sam7-ex256 | lpc-h2888 | 
+-        pc]
++        | mod711 | pc]
+   [cpumode=arm | thumb] 
+   [allocator = newlib | multiple]
+   [prog]
+
+Modified: trunk/docs/console_input_output.txt
+===================================================================
+--- trunk/docs/console_input_output.txt	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/docs/console_input_output.txt	2008-10-31 21:32:15 UTC (rev 112)
+@@ -3,6 +3,10 @@
+ Console input/output in eLua
+ ================================================================================
+ 
++NOTE: this document describes the terminal support over serial connections
++only. Refer to docs/elua_components.txt to learn how to enable console
++support over TCP/IP instead of serial connections.
++
+ The console input/output is handled by a generic layer (src/newlib/genstd.c) 
+ that can be adapted to a variety of input/output devices. It needs just two
+ functions, one for displaying characters and another one for receiving input:
+
+Added: trunk/docs/crosscompilation.txt
+===================================================================
+--- trunk/docs/crosscompilation.txt	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/docs/crosscompilation.txt	2008-10-31 21:32:15 UTC (rev 112)
+@@ -0,0 +1,53 @@
++(NOTE: view this file with a monospaced font)
++
++Cross-compiling Lua programs
++================================================================================
++&quot;Cross compilation&quot; is the process of compiling a program on one system for a 
++different system. For example, the process of compiling the eLua binary image on
++a PC is cross-compiling. Lua can be cross-compiled, too. By cross-compiling Lua
++to bytecode on a PC and executing the resulting bytecode directly on your eLua
++board you have two advantages:
++
++- speed: the Lua interpreter on the eLua board doesn't have to compile your Lua
++  source code, it just executes the compiled bytecode
++- memory: this is more important. If you're exectuing bytecode directly, no more
++  memory is &quot;wasted&quot; on the eLua board for compiling the Lua code to bytecode.
++  Many times this could be a &quot;life saver&quot;. If you're trying to run Lua code
++  directly on your board and you're getting &quot;not enough memory&quot; errors, you 
++  might be able to overcome this by compiling the Lua program on the PC and 
++  running the bytecode instead.
++
++But for this cross-compilation to work, the two Lua targets must be compatible
++(they should have the same data types, with the same size, and the same memory
++representation). This isn't completely true for Intel and ARM targets, as gcc
++for ARM uses a very specific representation for double numbers (called FPA
++format) by default, which makes bytecode files generated on the PC useless on
++ARM boards. To overcome this, a &quot;Lua cross-compilation&quot; patch was posted on the
++Lua mailing list a while ago, and it was further modified as part of the eLua
++project to work with ARM targets. This is how to use it (the following 
++instructions were tested on Linux, not Windows, but they should work on Windows 
++too with little or no tweaking):
++
++- first, make sure that your PC has already a build system intalled (gcc,
++  binutils, libc, headers...). You'll also need &quot;scons&quot;. The good news is that 
++  you should have it already installed, since otherwise you won't be able to 
++  build even regular eLua.
++
++- from the eLua base directory, issue this command:
++
++  $ scons -f cross-lua.py
++
++  You should get a file called &quot;luac&quot; in the same directory after this.
++
++- to compile your Lua code (in &lt;source&gt;.lua), issue this command:
++
++  $ ./luac -s -ccn float_arm 64 -o &lt;source&gt;.luac &lt;source&gt;.lua
++  if you're using &quot;regular&quot; (floating point) Lua, or:
++
++  $ ./luac -s -ccn int 32 -o &lt;source&gt;.luac &lt;source&gt;.lua
++  if you're using int-ony Lua.
++
++- that's it! You can use the resulting file (&lt;source&gt;.luac) in two ways:
++
++  - &quot;recv&quot; it (docs/the_elua_shell.txt)
++  - copy it to the ROM file system (docs/the_rom_file_system.txt)
+
+Modified: trunk/docs/elua_components.txt
+===================================================================
+--- trunk/docs/elua_components.txt	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/docs/elua_components.txt	2008-10-31 21:32:15 UTC (rev 112)
+@@ -14,38 +14,37 @@
+ to each other, since the components are not connected with the platform 
+ interface (docs/platform_interface.txt) in any way.
+ To use this feature, every platform (src/platform/[name]) must include a file
+-named &quot;build.h&quot; that specifies what components should be built for that 
+-platform. For example, the LM3S &quot;build.h&quot; file might look like this:
++named &quot;platform_conf.h&quot; that specifies (among other things) what components 
++should be built for that platform. For example, the LM3S &quot;platform_conf.h&quot; file 
++might look like this:
+ 
+-(BEGIN src/platform/lm3s/build.h)
++(BEGIN src/platform/lm3s/platform_conf.h)
+ // Define here what components you want for this platform
+ 
+-#ifndef __BUILD_H__
+-#define __BUILD_H__
++#ifndef __PLATFORM_CONF_H__
++#define __PLATFORM_CONF_H__
+ 
+ #define BUILD_XMODEM
+ #define BUILD_SHELL
+ #define BUILD_ROMFS
+ #define BUILD_TERM
++........................................
++(END src/platform/lm3s/platform_conf.h)
+ 
+-#endif
+-(END src/platform/lm3s/build.h)
+-
+ In this case, the XMODEM, SHELL, ROMFS and TERM components will be built. On the
+-other hand, the i386 &quot;build.h&quot; will probably have less components:
++other hand, the i386 &quot;platform_conf.h&quot; will probably have less components:
+ 
+-(BEGIN src/platform/i386/build.h)
++(BEGIN src/platform/i386/platform_conf.h)
+ // Define here what components you want for this platform
+ 
+-#ifndef __BUILD_H__
+-#define __BUILD_H__
++#ifndef __PLATFORM_CONF_H__
++#define __PLATFORM_CONF_H__
+ 
+ #define BUILD_ROMFS
+ #define BUILD_SHELL
++........................................
++(END src/platform/i386/platform_conf.h)
+ 
+-#endif
+-(END src/platform/i386/build.h)
+-
+ You don't need to modify any other part of your code, just rebuild your image
+ after you made changes to this file (docs/building.txt)
+ Below you can find a list of eLua components and their functionality.
+@@ -55,20 +54,64 @@
+ The XMODEM component enables eLua to receive Lua source files via its shell and 
+ execute them (docs/the_elua_shell.txt). If you don't need to use &quot;recv&quot; from the
+ shell you can skip this component.
++To enable: 
++  #define BUILD_XMODEM
+ 
++Also, XMODEM is configured with a number of constants also defined in
++platform_conf.h. They are:
++
++XMODEM_UART_ID : the id of the UART on which XMODEM runs
++XMODEM_TIMER_ID : the id of the timer used by the XMODEM implementation
++
++
+ SHELL
+ ================================================================================
+ This enables the build of the eLua shell (docs/the_elua_shell.txt). If you don't
+ need the shell, don't enable this component. eLua will execute the &quot;lua&quot; command
+-at startup if the eLua shell is not built.
++at startup if the eLua shell is not built. The shell comes in two flavours: over
++a serial line or over TCP/IP (currently you can't have both at the same time).
++To enable shell over a serial line:
++  #define BUILD_SHELL
++  #define BUILD_CON_GENERIC
++To enable shell over TCP/IP:
++  #define BUILD_SHELL
++  #define BUILD_CON_TCP
+ 
+ ROMFS
+ ================================================================================
+ If you need to use the ROM file system (docs/the_rom_file_system.txt) enable
+ this component, otherwise you can skip it.
++To enable: 
++  #define BUILD_ROMFS
+ 
+ TERM
+ ================================================================================
+ The TERM module adds support for ANSI terminals. See docs/terminal_support.txt
+ for details. If you don't need it, and if you're willing to miss the opportunity
+ of playing hangman in eLua (examples/hangman.lua) you can skip this component :)
++To enable: 
++  #define BUILD_TERM
++
++Also, TERM is configured with a number of constants also defined in 
++platform_conf.h. THey are:
++
++TERM_UART_ID - the id of the UART on which TERM runs
++TERM_TIMER_ID - the id of the timer used by the TERM implementation
++TERM_LINES - number of lines in the terminal emulator
++TERM_COLS - number of columns in the terminal emulator
++TERM_TIMEOUT - inter-key timeout (used to detect keys that send multiple codes,
++  such as up/down/left/right keys).
++
++IMPORTANT NOTE: TERM doesn't currently work over TCP/IP. 
++
++uIP
++================================================================================
++uIP is the TCP/IP stack used curently by eLua to provide networking support
++(docs/tcpip_in_elua.txt). You can enable the TCP/IP stack and two of its services 
++(the DHCP client and the DNS resolver).
++To enable uIP (thus TCP/IP support): 
++  #define BUILD_UIP
++To enable the DHCP client:
++  #define BUILD_DHCPC
++To enable the DNS resolver:
++  #define BUILD_DNS
+
+Modified: trunk/docs/generic_modules.txt
+===================================================================
+--- trunk/docs/generic_modules.txt	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/docs/generic_modules.txt	2008-10-31 21:32:15 UTC (rev 112)
+@@ -106,3 +106,70 @@
+ these kind of functions are rarely needed in an embedded environment, the &quot;math&quot;
+ module can be enabled and disabled just like the other generic and platform 
+ modules in eLua.
++
++The &quot;net&quot; module
++================================================================================
++TCP/IP networking support is provided to eLua via the &quot;net&quot; module. It contains
++a small set of function, tailored for embedded systems (lighter and less resource
++demanding).
++
++IMPORTANT NOTE: TCP/IP support in eLua is still largely experimental.
++
++Sock = socket( type ): creates a new socket and returns its identifier. type can
++be either net.SOCK_STREAM or net.SOCK_DGRAM, but currently only TCP/IP sockets
++(SOCK_STREAM) are implemented.
++
++Res = close( socket ): closes the given socket, returning an error status.
++
++IP = packip( ip0, ip1, ip2, ip3 ) or IP = packip( &quot;ipstring&quot; ): packs the given
++IP (either in unpacked form or as a string) returning a value that completely
++identifies that IP (it's not actually a new IP datatype, just a 32-bit number).
++
++IP0, IP1, IP2, IP3 = unpackip( ip, &quot;*n&quot; ) or IPString = unpackip( ip, &quot;*s&quot; ):
++unpacks the given IP value, returning it either as 4 numbers or as a string.
++
++Sock, RemoteIp, Err = accept( port, [timer_id, timeout] ): listens on the 
++specified port, waiting for connections. If timer ID and timeout are specified,
++it uses the specified timer to wait for a connection for at most &quot;timeout&quot; 
++microseconds. Returns the socket descriptor for the new connection, the IP of
++the remote end, and an error status.
++
++Sent, Res = send( sock, string ): send the given &quot;string&quot; on the specified
++socket, returning the number of bytes actually send and an error status.
++
++Data, Res = recv( sock, maxsize, [timer_id, timeout] ) or
++Data, Res = recv( sock, &quot;*l&quot;, [timer_id, timeout] ): read data from the 
++socket. The first form reads up to a maximum size specified by &quot;maxsize&quot;, the
++second form reads a single line (until '\n' is received, ignoring any '\r'
++chars in the stream). 
++IMPORTANT NOTE: currently, the &quot;*l&quot; (line) mode is partially broken, in that it 
++might loose some of the data sent by the remote end. If the remote end sends
++more than one line, only the first is kept, the rest is ignored. For example, 
++if the remote sends &quot;line\n&quot;, everything is OK, but if the remote sends
++&quot;line1\nline2\n&quot;, &quot;line1&quot; is returned correctly after calling &quot;recv&quot; once, but
++&quot;line2&quot; won't be returned after calling &quot;recv&quot; again. This is due to the &quot;single
++buffer&quot; design of uIP. If you want to make sure you receive all the data you're
++looking for, use the first form of recv, specifying a maximum size. &quot;*l&quot; is only
++usable for line-oriented conversations (like you'd find in a command line shell,
++for example).
++
++IP = lookup( &quot;hostname&quot; ): invokes the DNS resolver to find the IP address of
++&quot;hostname&quot;.
++
++Err = connect( sock, ip, port ): connects the specified socket (that must be
++created previously using &quot;socket&quot;) to the specified host and port. Returns an
++error status.
++
++The error status is defined in inc/elua_net.h in one enum:
++
++(BEGIN inc/elua_net.h)
++// eLua net error codes
++enum
++{
++  ELUA_NET_ERR_OK = 0,
++  ELUA_NET_ERR_TIMEDOUT,
++  ELUA_NET_ERR_CLOSED,
++  ELUA_NET_ERR_ABORTED,
++  ELUA_NET_ERR_OVERFLOW
++};
++(END inc/elua_net.h)
+
+Modified: trunk/docs/platform_interface.txt
+===================================================================
+--- trunk/docs/platform_interface.txt	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/docs/platform_interface.txt	2008-10-31 21:32:15 UTC (rev 112)
+@@ -185,17 +185,6 @@
+ 
+ ================================================================================
+ 
+-u32         platform_pd_get_cpu_frequency();
+-
+-TYPE: optional
+-USED BY MODULE: pd
+-
+-PURPOSE: platform data. This function is part of the &quot;pd&quot; module that is used to
+-identify the platform on which eLua runs. Its purpose is to return the platform's 
+-CPU frequency in Hz.
+-
+-================================================================================
+-
+ int platform_pwm_exists( unsigned id );
+ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty );
+ u32 platform_pwm_op( unsigned id, int op, u32 data );
+@@ -222,3 +211,48 @@
+   PLATFORM_PWM_OP_GET_CLOCK             // Get the base clock of the PWM block
+ };
+ (END inc/platform.h) 
++
++================================================================================
++
++void platform_cpu_enable_interrupts();
++void platform_cpu_disable_interrupts();
++u32 platform_cpu_get_frequency();
++
++TYPE: optional
++USED BY MODULE: cpu
++
++PURPOSE: CPU interfacing. It allows the user to control some of the CPU functions
++directly from Lua. platform_cpu_enable_interrupts() enables the CPU interrupts
++(globally), while platform_cpu_disable_interrupts() disables them. 
++platform_cpu_get_frequency() returns the CPU &quot;core&quot; frequency in Hz.
++
++================================================================================
++
++void platform_eth_send_packet( const void* src, u32 size );
++u32 platform_eth_get_packet_nb( void* buf, u32 maxlen );
++void platform_eth_force_interrupt();
++u32 platform_eth_get_elapsed_time();
++
++TYPE: optional
++USED BY MODULE: net, also used by the generic TCP/IP support
++
++PURPOSE: network support. These functions are used by uIP (the TCP/IP stack of
++eLua) to implement TCP/IP services on top of the Ethernet ones (for platforms
++that have an integrated Ethernet controller, or are using an external Ethernet
++controller). 
++platform_eth_send_packet() sends the packet pointed by &quot;src&quot; with size &quot;size&quot;
++over the network.
++platform_eth_get_packet_nb() reads an Ethernet packet in &quot;buf&quot;, without 
++exceeding &quot;maxlen&quot; of data. If an Ethernet packet is not available when this
++function is called, it returns 0 immediately (non-blocking receive), otherwise
++it returns a negative integer if the packet size is too large or the length of
++the packet if it fits in &quot;maxlen&quot; bytes.
++platform_eth_force_interrupt() is used to force an Ethernet receive interrupt.
++This is needed because uIP's processing function is called from this Ethernet
++interrupt handler alone.
++platform_eth_get_elapsed_time() will return the approximate time (in ms) that
++passed since the last call to platform_eth_get_elapsed_time(). It is used by uIP
++to process periodic events.
++
++For an example of how these functions should be implemented, take a look at the
++LM3S backend (src/platform/lm3s/platform.c)
+
+Modified: trunk/docs/platform_modules.txt
+===================================================================
+--- trunk/docs/platform_modules.txt	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/docs/platform_modules.txt	2008-10-31 21:32:15 UTC (rev 112)
+@@ -31,35 +31,30 @@
+ the &quot;pio&quot; module (although this is technically possible by providing &quot;bogus&quot; 
+ platform interface functions, the  module won't be able to do anything on a i386 
+ CPU, unless you want to &quot;emulate&quot; it via the parallel port or some other 
+-peripheral). To accomodate this, each platform must provide a &quot;platform_libs.h&quot; 
+-(src/platform/&lt;your platform&gt;) which lists the modules that are used for that 
+-specific platform. For example, if we want to enable only the PIO module for the
+-AT91SAM7X platform, to the &quot;platform_libs.h&quot; file would look like this:
++peripheral). To accomodate this, each platform must provide a &quot;platform_conf.h&quot; 
++(src/platform/&lt;your platform&gt;) which (amongst other things) lists the modules 
++that are used for that specific platform. For example, if we want to enable 
++only the PIO module for the AT91SAM7X platform, the &quot;platform_conf.h&quot; file 
++would look like this:
+ 
+-(BEGIN src/platform/at91sam7x/platform_libs.h)
++(BEGIN src/platform/at91sam7x/platform_conf.h)
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#ifndef __PLATFORM_LIBS_H__
+-#define __PLATFORM_LIBS_H__
++#ifndef __PLATFORM_CONF_H__
++#define __PLATFORM_CONF_H__
+ 
+ #include &quot;auxmods.h&quot;
+ 
++...............................................................
++
+ #define LUA_PLATFORM_LIBS\
+   { AUXLIB_PIO, luaopen_pio }
+   
+ #endif
+-(END src/platform/at91sam7x/platform_libs.h)
++(END src/platform/at91sam7x/platform_conf.h)
+ 
+ On the other hand, for a platform that doesn't need to enable any modules at
+-all, this can be an empty file:
+-
+-// Auxiliary libraries that will be compiled for this platform
+-
+-#ifndef __PLATFORM_LIBS_H__
+-#define __PLATFORM_LIBS_H__
+-  
+-#endif
+-
++all, you don't even need to define the LUA_PLATFORM_LIBS macro.
+ This is why some of platform functions described in &quot;platform interface.txt&quot; are
+ optional. If there are no modules that use them in one platform, then you don't
+ need to define them at all for that platform, not even as &quot;bogus&quot; functions.
+@@ -199,8 +194,6 @@
+ 
+ Board = pd.board(): returns the CPU board (f.e. EK-LM3S8962)
+ 
+-Clock = pd.clock(): returns the platform CPU clock.
+-
+ ================================================================================
+ === The PWM module
+ ================================================================================
+@@ -220,3 +213,55 @@
+   the given clock. In returns the actual clock set on the PWM block.
+ 
+ Data = pwm.getclock( id ): returns the base clock of the PWM block 'id'.
++
++================================================================================
++=== The CPU module
++================================================================================
++
++It brings low level CPU access to Lua (read/write memory, enable/disable 
++interrupts).
++
++w32( address, data ) : write the 32-bit data at the specified address
++
++w16( address, data ) : write the 16-bit data at the specified address
++
++w8( address, data ) : write the 8-bit data at the specified address
++
++Data = r32( address ) : reads 32-bit data from the specified address
++
++Data = r16( address ) : reads 16-bit data from the specified address
++
++Data = r8( address ) : reads 8-bit data from the specified address
++
++cli(): disable CPU interrupts
++
++sei(): enable CPU interrupts
++
++Clock = clock(): returns the CPU frequency
++
++Also, you can expose as many CPU constants (for example memory mapped registers)
++as you want to this module. You might want to use this feature to access some 
++CPU memory areas (as defined in the CPU header files from the CPU support 
++package) directly from Lua. To do this, you'll need to define the 
++PLATFORM_CPU_CONSTANTS macro in the platform's platform_conf.h file 
++(src/platform/&lt;platform name&gt;/platform_conf.h). Include all your constants in a 
++_C( &lt;constant name&gt; ) definition, and then build your project.
++For example, let's suppose that your CPU's interrupt controler has 3 memory
++mapped registers: INT_REG_ENABLE, INT_REG_DISABLE and INT_REG_MASK. If you want
++to access them from Lua, locate the header that defines the values of these
++registers (I'll assume its name is &quot;cpu.h&quot;) and add these lines to the
++platform_conf.h:
++
++#include &quot;cpu.h&quot;
++
++#define PLATFORM_CPU_CONSTANTS\
++  _C( INT_REG_ENABLE ),\
++  _C( INT_REG_DISABLE ),\
++  _C( INT_REG_MASK )
++
++After this you'll be able to access the regs directly from Lua, like this:
++
++data = cpu.r32( cpu.INT_REG_ENABLE )
++cpu.w32( cpu.INT_REG_ENABLE, data )
++
++For a &quot;real-life&quot; example, see the src/platform/lm3s/platform_conf.h file.
+
+Added: trunk/docs/tcpip_in_elua.txt
+===================================================================
+--- trunk/docs/tcpip_in_elua.txt	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/docs/tcpip_in_elua.txt	2008-10-31 21:32:15 UTC (rev 112)
+@@ -0,0 +1,79 @@
++(NOTE: view this file with a monospaced font)
++
++TCP/IP in eLua
++================================================================================
++
++eLua's TCP/IP support was designed with flexibility and ease of use in mind. It
++might not provide all the functions of a &quot;full-fledged&quot; TCP/IP stack, but it's 
++still fully functional and probably easier to use than a &quot;regular&quot; (POSIX) TCP/IP
++stack. These are the services provided by the TCP/IP stack:
++
++- a set of functions for network access (defined in inc/elua_net.h)
++- a DHCP client
++- a DNS resolver
++- a module (&quot;net&quot;) which can be used from Lua to access the network functions
++- a Telnet miniclient, which is used to support the eLua shell via TCP/IP instead
++  of serial connections.
++
++For more details about the networking API, consult docs/generic_modules.txt.
++
++TCP/IP configuration
++================================================================================
++
++To configure the TCP/IP subsystem, edit src/platform/[platform]/platform_conf.h
++and:
++
++1. #define BUILD_UIP to enable TCP/IP support
++2. if you'll be using the DHCP client, just #define BUILD_DHCPC to build the 
++   DHCP client. In any case, you must also define a static network configuration:
++
++  #define ELUA_CONF_IPADDR0 ... ELUA_CONF_IPADDR3 : the IP address
++  #define ELUA_CONF_NETMASK0 ... ELUA_CONF_NETMASK3 : the network mask
++  #define ELUA_CONF_DEFGW0 ... ELUA_CONF_DEFGW3 : the default gateway
++  #define ELUA_CONF_DNS0 ... ELUA_CONF_DNS3 : the DNS server  
++
++  Note that you must define both BUILD_DHCPC and the ELUA_CONF_* macros. If the
++  DHCP client fails to obtain a valid IP address, the static configuration will 
++  be used instead. To use only the static configuration (and make the eLua image
++  size a bit smaller) don't define the BUILD_DHCPC client.
++
++3. #define BUILD_DNS if you want support for the DNS server.
++4. #define BUILD_CON_TCP if you want support for shell over telnet instead of
++   serial. Note that you must NOT define BUILD_CON_GENERIC in this case.
++
++TCP/IP implementation internals
++================================================================================
++The TCP/IP support was designed in such a way that it doesn't require a specific
++TCP/IP stack implementation. To work with eLua, a TCP/IP stack must simply 
++implement all the functions defined in the inc/elua_net.h file. This allows for
++easy integration of more than one TCP/IP stack. Currently only uIP is used in 
++eLua, but lwIP (and possibly others) are planned to be added at some point.
++Another key point of the TCP/IP implementation (and of the whole eLua design
++for that matter) is that it should be as platform independent as possible: write
++everything in a platform-independent manner, except for some functions (as few as
++possible and as simple as possible) that must be implemented by each platform).
++To illustrate the above, a short overview of the uIP integration is given below.
++
++uIP in eLua
++================================================================================
++
++uIP (<A HREF="http://www.sics.se/~adam/uip/index.php/Main_Page">http://www.sics.se/~adam/uip/index.php/Main_Page</A>) is a minimalistic TCP/IP
++stack designed specifically for resource constrained embedded systems. While the
++design and implementation of uIP are an excellent example of what can be done
++with a few kilobytes of memory, it has a number of quirks that make it hard to
++integrate with eLua. First, it uses a callback approach, as opposed to the 
++sequential approach of &quot;regular&quot; TCP/IP stacks. It provides a &quot;protosocket&quot; 
++library that can be used to write uIP applications in a more &quot;traditional&quot; way,
++but it's quite restrictive. So, to use it with eLua, a translation layer was
++needed. It is implemented in src/elua_uip.c, and its sole purpose is to &quot;adapt&quot;
++the uIP stack to the eLua model: implement the functions in inc/elua_net.h and
++you're ready to use the stack. In this case the &quot;adaption layer&quot; is quite large
++because of uIP's callback-based design.
++To make the uIP implementation as platform-independent as possible, a special
++networking layer is added to the platform interface (docs/platform_interface.txt
++for details). There are only 4 functions that must be implemented by a backend
++to use the networking layer. They might change as more TCP/IP stacks are added
++to eLua, but probably the networking layer won't get much bigger than it is now.
++
++For a more in-depth understanding of how the networking layer is implemented,
++look at the LM3S implementation in src/platform/lm3s/platform.c.
+
+Modified: trunk/docs/terminal_support.txt
+===================================================================
+--- trunk/docs/terminal_support.txt	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/docs/terminal_support.txt	2008-10-31 21:32:15 UTC (rev 112)
+@@ -3,6 +3,8 @@
+ Terminal support in eLua
+ ================================================================================
+ 
++NOTE: currently, this only works over serial connections (not over TCP/IP)
++
+ Besides standard stdio/stdout/stderr support (docs/console_input_output.txt), 
+ eLua provides the &quot;term&quot; module to access ANSI compatible terminal emulators. 
+ It is designed to be as flexible as possible, thus allowing a large number of
+
+Modified: trunk/inc/shell.h
+===================================================================
+--- trunk/inc/shell.h	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/inc/shell.h	2008-10-31 21:32:15 UTC (rev 112)
+@@ -8,7 +8,7 @@
+ #define SHELL_MAXSIZE       50
+ #define SHELL_MAX_LUA_ARGS  8
+ 
+-int shell_init( unsigned maxprog );
++int shell_init();
+ void shell_start();
+ 
+ #endif // #ifndef __SHELL_H__
+
+Modified: trunk/inc/xmodem.h
+===================================================================
+--- trunk/inc/xmodem.h	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/inc/xmodem.h	2008-10-31 21:32:15 UTC (rev 112)
+@@ -37,6 +37,11 @@
+ 
+ #include &quot;type.h&quot;
+ 
++// XMODEM constants
++#define XMODEM_INITIAL_BUFFER_SIZE    1024
++#define XMODEM_INCREMENT_AMMOUNT      512
++#define XMODEM_BUFFER_SIZE            128
++
+ // xmodem control characters
+ #define SOH       0x01
+ #define STX       0x02
+@@ -61,7 +66,7 @@
+ typedef int ( *p_xm_recv_func )( u32 );
+ 
+ //! xmodem receive
+-long xmodem_receive( char* dest, u32 limit );
++long xmodem_receive( char** dest );
+ 
+ //! initialize xmodem stream I/O routines
+ void xmodem_init( p_xm_send_func send_func, p_xm_recv_func recv_func );
+
+Added: trunk/romfs/morse.lua
+===================================================================
+--- trunk/romfs/morse.lua	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/romfs/morse.lua	2008-10-31 21:32:15 UTC (rev 112)
+@@ -0,0 +1,124 @@
++-------------------------------------------------------------------------------
++-- eLua Morse Demo
++--
++-- Dado Sutter         sep 2008
++-------------------------------------------------------------------------------
++
++------------ User Adjusted Variables ------------
++
++local dotDelay, playFreq, playFreqSave = 90000, 880, 880
++local freqStep, dotDelayStep = 220, 10000
++
++------------ Program Variables ------------
++local pwmid, ledpin= 1, pio.PF_0
++
++-- Morse Alphabet
++local Morse = {
++  A='.-',
++  B='-...',
++  C='-.-.',
++  D='-..',
++  E='.',
++  F='..-.',
++  G='--.',
++  H='....',
++  I='..',
++  J='.---',
++  K='-.-',
++  L='.-..',
++  M='--',
++  N='-.',
++  O='---',
++  P='.--.',
++  Q='--.-',
++  R='.-.',
++  S='...',
++  T='-',
++  U='..-',
++  V='...-',
++  W='.--',
++  X='-..-',
++  Y='-.--',
++  Z='--..'
++}
++
++------------ Auxiliar Functions ------------
++
++local function play(m)
++  term.putstr(m)
++  if m == ' ' then
++    tmr.delay(0, 2 * dotDelay)
++  else
++    pio.set(ledpin)
++    pwm.start(pwmid)
++    tmr.delay(0, m == '.' and dotDelay or 3 * dotDelay)
++    pwm.stop(pwmid)
++    pio.clear(ledpin)
++    tmr.delay(0, dotDelay)
++  end
++end
++
++local function HandleKbd(k)
++  if k == term.KC_ESC then
++    return true
++  elseif k == term.KC_UP then                 -- Speed up
++    dotDelay = dotDelay + dotDelayStep
++  elseif k == term.KC_DOWN then               -- Speed down
++    dotDelay = dotDelay - dotDelayStep
++  elseif k &gt; 0 and k &lt; 256 then
++    if string.char(k) == '+' then             -- Frequency up
++      playFreq = playFreq + freqStep
++    elseif string.char(k) == '-' then         -- Frequency down
++      playFreq = playFreq - freqStep
++    elseif string.char(k) == 's' then         -- Sound on/off
++      if playFreq == 0 then
++        playFreq = playFreqSave
++      else
++        playFreqSave = playFreq
++        playFreq = 0
++      end
++    end
++  end
++  pwm.setup(pwmid, playFreq, 50)
++end
++
++------------ Main Program ------------
++pio.output(ledpin)
++pwm.setup( pwmid, playFreq, 50 )
++
++while true do
++  term.clrscr()
++  term.gotoxy(0, 0)
++  print(&quot;Welcome to eLua Morse Playing on &quot; .. pd.cpu())
++  io.write(&quot;Enter phrase (empty phrase to exit): &quot;)
++  local msg, enabled = io.read(), true
++  if #msg == 0 then break end
++
++  term.putstr('   ')
++  while term.getch(term.NOWAIT) ~= -1 do end        -- flush
++
++  while enabled do                                  -- Main Loop
++    for i = 1, #msg do                              -- msg loop
++      local ch = msg:sub(i, i):upper()
++      term.putstr(ch)                               -- show what will be played
++      if ch ~= ' ' and Morse[ch] then
++        for j = 1, #Morse[ch] do                    -- Morse symbol loop
++          play(Morse[ch]:sub(j,j))                  -- play each morse symbol
++        end
++      else
++        play(' ') play(' ')                         -- Between words
++      end
++      play(' ')                                     -- Extra between words &amp; lett
++      key = term.getch(term.NOWAIT)                 -- Handle UI actions
++      if key ~= -1 then
++        if HandleKbd(key) then
++          enabled = false
++          break
++        end
++      end
++    end
++    if not enabled then break end
++    print()
++    play(' ') play(' ') play(' ')                  -- Between sentences
++  end
++end
+
+Modified: trunk/src/elua_uip.c
+===================================================================
+--- trunk/src/elua_uip.c	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/src/elua_uip.c	2008-10-31 21:32:15 UTC (rev 112)
+@@ -146,6 +146,8 @@
+ // DHCP callback
+ 
+ #ifdef BUILD_DHCPC
++static void elua_uip_conf_static();
++
+ void dhcpc_configured(const struct dhcpc_state *s)
+ {
+   if( s-&gt;ipaddr[ 0 ] != 0 )
+@@ -156,6 +158,8 @@
+     resolv_conf( ( u16_t* )s-&gt;dnsaddr );
+     elua_uip_configured = 1;
+   }
++  else
++    elua_uip_conf_static();
+ }
+ #endif
+ 
+@@ -444,6 +448,20 @@
+   }
+ }
+ 
++static void elua_uip_conf_static()
++{
++  uip_ipaddr_t ipaddr;
++  uip_ipaddr( ipaddr, ELUA_CONF_IPADDR0, ELUA_CONF_IPADDR1, ELUA_CONF_IPADDR2, ELUA_CONF_IPADDR3 );
++  uip_sethostaddr( ipaddr );
++  uip_ipaddr( ipaddr, ELUA_CONF_NETMASK0, ELUA_CONF_NETMASK1, ELUA_CONF_NETMASK2, ELUA_CONF_NETMASK3 );
++  uip_setnetmask( ipaddr ); 
++  uip_ipaddr( ipaddr, ELUA_CONF_DEFGW0, ELUA_CONF_DEFGW1, ELUA_CONF_DEFGW2, ELUA_CONF_DEFGW3 );
++  uip_setdraddr( ipaddr );    
++  uip_ipaddr( ipaddr, ELUA_CONF_DNS0, ELUA_CONF_DNS1, ELUA_CONF_DNS2, ELUA_CONF_DNS3 );
++  resolv_conf( ipaddr );  
++  elua_uip_configured = 1;
++}
++
+ // Init application
+ void elua_uip_init( const struct uip_eth_addr *paddr )
+ {
+@@ -458,16 +476,7 @@
+   dhcpc_init( paddr-&gt;addr, sizeof( *paddr ) );
+   dhcpc_request();
+ #else
+-  uip_ipaddr_t ipaddr;
+-  uip_ipaddr( ipaddr, ELUA_CONF_IPADDR0, ELUA_CONF_IPADDR1, ELUA_CONF_IPADDR2, ELUA_CONF_IPADDR3 );
+-  uip_sethostaddr( ipaddr );
+-  uip_ipaddr( ipaddr, ELUA_CONF_NETMASK0, ELUA_CONF_NETMASK1, ELUA_CONF_NETMASK2, ELUA_CONF_NETMASK3 );
+-  uip_setnetmask( ipaddr ); 
+-  uip_ipaddr( ipaddr, ELUA_CONF_DEFGW0, ELUA_CONF_DEFGW1, ELUA_CONF_DEFGW2, ELUA_CONF_DEFGW3 );
+-  uip_setdraddr( ipaddr );    
+-  uip_ipaddr( ipaddr, ELUA_CONF_DNS0, ELUA_CONF_DNS1, ELUA_CONF_DNS2, ELUA_CONF_DNS3 );
+-  resolv_conf( ipaddr );  
+-  elua_uip_configured = 1;
++  elua_uip_conf_static();
+ #endif
+   
+   resolv_init();
+
+Modified: trunk/src/lua/linit.c
+===================================================================
+--- trunk/src/lua/linit.c	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/src/lua/linit.c	2008-10-31 21:32:15 UTC (rev 112)
+@@ -23,7 +23,7 @@
+   {LUA_IOLIBNAME, luaopen_io},
+ //  {LUA_OSLIBNAME, luaopen_os},
+   {LUA_STRLIBNAME, luaopen_string},
+-  {LUA_DBLIBNAME, luaopen_debug},
++//  {LUA_DBLIBNAME, luaopen_debug},
+ #ifdef LUA_PLATFORM_LIBS  
+   LUA_PLATFORM_LIBS,
+ #endif 
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/src/main.c	2008-10-31 21:32:15 UTC (rev 112)
+@@ -20,10 +20,6 @@
+ // ****************************************************************************
+ // XMODEM support code
+ 
+-// Maximum file size that can be received via XMODEM
+-// Should be a multiple of 128
+-#define XMODEM_MAX_FILE_SIZE    4096
+-
+ #ifdef BUILD_XMODEM
+ 
+ static void xmodem_send( u8 data )
+@@ -179,7 +175,7 @@
+   }
+   
+   // Run the shell
+-  if( shell_init( XMODEM_MAX_FILE_SIZE ) == 0 )
++  if( shell_init() == 0 )
+   {
+     printf( &quot;Unable to initialize the eLua shell!\n&quot; );
+     // Start Lua directly
+
+Modified: trunk/src/modules/net.c
+===================================================================
+--- trunk/src/modules/net.c	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/src/modules/net.c	2008-10-31 21:32:15 UTC (rev 112)
+@@ -65,7 +65,7 @@
+   return 2;  
+ }
+ 
+-// Lua: sockno, err = connect( sock, iptype, port )
++// Lua: err = connect( sock, iptype, port )
+ // &quot;iptype&quot; is actually an int returned by &quot;net.packip&quot;
+ static int net_connect( lua_State *L )
+ {
+@@ -74,9 +74,9 @@
+   u16 port = ( int )luaL_checkinteger( L, 3 );
+   
+   ip.ipaddr = ( u32 )luaL_checkinteger( L, 2 );
+-  lua_pushinteger( L, elua_net_connect( sock, ip, port ) );
++  elua_net_connect( sock, ip, port );
+   lua_pushinteger( L, elua_net_get_last_err( sock ) );
+-  return 2;  
++  return 1;  
+ }
+ 
+ // Lua: data = packip( ip0, ip1, ip2, ip3 ), or
+
+Modified: trunk/src/newlib/genstd.c
+===================================================================
+--- trunk/src/newlib/genstd.c	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/src/newlib/genstd.c	2008-10-31 21:32:15 UTC (rev 112)
+@@ -55,7 +55,7 @@
+       }      
+       continue;
+     }
+-    if( !isprint( c ) &amp;&amp; c != '\r' &amp;&amp; c != '\n' &amp;&amp; c != STD_CTRLZ_CODE )
++    if( !isprint( c ) &amp;&amp; c != '\n' &amp;&amp; c != STD_CTRLZ_CODE )
+       continue;
+     if( c == STD_CTRLZ_CODE )
+       return 0;
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/src/platform/lm3s/platform_conf.h	2008-10-31 21:32:15 UTC (rev 112)
+@@ -53,7 +53,7 @@
+ #define ELUA_CONF_IPADDR0         192
+ #define ELUA_CONF_IPADDR1         168
+ #define ELUA_CONF_IPADDR2         1
+-#define ELUA_CONF_IPADDR3         13
++#define ELUA_CONF_IPADDR3         218
+ 
+ #define ELUA_CONF_NETMASK0        255
+ #define ELUA_CONF_NETMASK1        255
+
+Modified: trunk/src/shell.c
+===================================================================
+--- trunk/src/shell.c	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/src/shell.c	2008-10-31 21:32:15 UTC (rev 112)
+@@ -37,7 +37,6 @@
+ 
+ // Shell data
+ static char* shell_prog;
+-static unsigned shell_max_prog;
+ 
+ // ****************************************************************************
+ // Shell functions
+@@ -114,22 +113,21 @@
+   long actsize;
+   lua_State* L;   
+ 
+-  if( ( shell_prog = malloc( shell_max_prog ) ) == NULL )
++  if( ( shell_prog = malloc( XMODEM_INITIAL_BUFFER_SIZE ) ) == NULL )
+   {
+     printf( &quot;Unable to allocate memory\n&quot; );
+     return;
+   }
+   printf( &quot;Waiting for file ... &quot; );
+-  while( 1 )
++  if( ( actsize = xmodem_receive( &amp;shell_prog ) ) &lt; 0 )
+   {
+-    actsize = xmodem_receive( shell_prog, shell_max_prog );
+-    if( actsize &gt; 0 )
+-      break;
++    free( shell_prog );
++    shell_prog = NULL;
+     if( actsize == XMODEM_ERROR_OUTOFMEM )
+-    {
+-      printf( &quot;file too big\n ... &quot; ); 
+-      printf( &quot;Waiting for file ... &quot; );
+-    }
++      printf( &quot;file too big\n&quot; ); 
++    else
++      printf( &quot;XMODEM error\n&quot; );
++    return;
+   }
+   // Eliminate the XMODEM padding bytes
+   p = shell_prog + actsize - 1;
+@@ -291,18 +289,16 @@
+ }
+ 
+ // Initialize the shell, returning 1 for OK and 0 for error
+-int shell_init( unsigned maxprog )
++int shell_init()
+ {
+   shell_prog = NULL;
+-  shell_max_prog = maxprog;
+   return 1;
+ }
+ 
+ #else // #ifdef BUILD_SHELL
+ 
+-int shell_init( unsigned maxprog )
++int shell_init()
+ {
+-  maxprog = maxprog;
+   return 0;
+ }
+ 
+
+Modified: trunk/src/xmodem.c
+===================================================================
+--- trunk/src/xmodem.c	2008-10-27 19:20:23 UTC (rev 111)
++++ trunk/src/xmodem.c	2008-10-31 21:32:15 UTC (rev 112)
+@@ -18,6 +18,7 @@
+ //*****************************************************************************
+ 
+ #include &lt;string.h&gt;
++#include &lt;stdlib.h&gt;
+ #include &quot;xmodem.h&quot;
+ #include &quot;platform.h&quot;
+ 
+@@ -25,8 +26,6 @@
+ #ifdef BUILD_XMODEM
+ 
+ #define XMODEM_BUFFER_SIZE    128
+-
+-// pointers to stream I/O functions
+ static p_xm_send_func xmodem_out_func;
+ static p_xm_recv_func xmodem_in_func;
+ 
+@@ -93,7 +92,7 @@
+   xmodem_in_func = recv_func;
+ }
+ 
+-long xmodem_receive( char* dest, u32 limit )
++long xmodem_receive( char** dest )
+ {
+   unsigned char xmbuf[XMODEM_BUFFER_SIZE+6];
+   unsigned char seqnum=1;     // xmodem sequence number starts at 1
+@@ -103,7 +102,8 @@
+   unsigned char crcflag=0;
+   unsigned long totalbytes=0;
+   int i,c;
+-
++  u32 limit = XMODEM_INITIAL_BUFFER_SIZE;
++  
+   while(retry &gt; 0)
+   {
+     // solicit a connection/packet
+@@ -177,14 +177,18 @@
+         // write/deliver data
+         if( totalbytes + pktsize &gt; limit )
+         {
+-          // Cancel transmission
+-          xmodem_flush();
+-          xmodem_out_func(CAN);
+-          xmodem_out_func(CAN);
+-          xmodem_out_func(CAN);    
+-          return XMODEM_ERROR_OUTOFMEM;    
++          limit += XMODEM_INCREMENT_AMMOUNT;
++          if( ( *dest = realloc( *dest, limit ) ) == NULL )
++          {
++            // Cancel transmission
++            xmodem_flush();
++            xmodem_out_func(CAN);
++            xmodem_out_func(CAN);
++            xmodem_out_func(CAN);    
++            return XMODEM_ERROR_OUTOFMEM;   
++          }
+         }
+-        memcpy( dest + totalbytes, xmbuf + 3, pktsize );
++        memcpy( *dest + totalbytes, xmbuf + 3, pktsize );
+         totalbytes += pktsize;
+         // next sequence number
+         seqnum++;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000067.html">[Elua-svn] r111 - in trunk: romfs src
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#68">[ date ]</a>
+              <a href="thread.html#68">[ thread ]</a>
+              <a href="subject.html#68">[ subject ]</a>
+              <a href="author.html#68">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,382 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r604 - in branches/pre0.7: . doc doc/en src/lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r604%20-%20in%20branches/pre0.7%3A%20.%20doc%20doc/en%20src/lua&In-Reply-To=%3C200912230011.nBN0BPbD011443%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000559.html">
+   <LINK REL="Next"  HREF="000561.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r604 - in branches/pre0.7: . doc doc/en src/lua</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r604%20-%20in%20branches/pre0.7%3A%20.%20doc%20doc/en%20src/lua&In-Reply-To=%3C200912230011.nBN0BPbD011443%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r604 - in branches/pre0.7: . doc doc/en src/lua">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Dec 23 01:11:25 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000559.html">[Elua-svn] r603 - branches/pre0.7/src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000561.html">[Elua-svn] r605 - in branches/pre0.7: doc/eluadoc doc/en src	src/modules src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#560">[ date ]</a>
+              <a href="thread.html#560">[ thread ]</a>
+              <a href="subject.html#560">[ subject ]</a>
+              <a href="author.html#560">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-12-23 01:11:21 +0100 (Wed, 23 Dec 2009)
+New Revision: 604
+
+Added:
+   branches/pre0.7/doc/en/building_unix.html
+   branches/pre0.7/doc/en/building_win.html
+Modified:
+   branches/pre0.7/SConstruct
+   branches/pre0.7/doc/docdata.lua
+   branches/pre0.7/doc/en/arch_romfs.html
+   branches/pre0.7/doc/en/building.html
+   branches/pre0.7/doc/en/faq.html
+   branches/pre0.7/doc/en/news.html
+   branches/pre0.7/src/lua/luaconf.h
+Log:
+added Windows build instructions; added documentation about the new ROMFS modes; updated the FAQ
+
+Modified: branches/pre0.7/SConstruct
+===================================================================
+--- branches/pre0.7/SConstruct	2009-12-20 16:47:25 UTC (rev 603)
++++ branches/pre0.7/SConstruct	2009-12-23 00:11:21 UTC (rev 604)
+@@ -239,7 +239,7 @@
+     print &quot;The eLua cross compiler was not found.&quot;
+     print &quot;Build it by running 'scons -f cross-lua.py'&quot;
+     sys.exit( -1 )
+-  compcmd = './luac.cross -ccn %s -cce %s -o %%s -s %%s' % ( toolset[ 'cross_%s' % target ], toolset[ 'cross_cpumode' ] )
++  compcmd = os.path.join( os.getcwd(), 'luac.cross -ccn %s -cce %s -o %%s -s %%s' % ( toolset[ 'cross_%s' % target ], toolset[ 'cross_cpumode' ] ) )
+ elif romfsmode == 'compress':
+   compcmd = 'lua luasrcdiet.lua --quiet --maximum --opt-comments --opt-whitespace --opt-emptylines --opt-eols --opt-strings --opt-numbers --opt-locals -o %s %s'
+ 
+
+Modified: branches/pre0.7/doc/docdata.lua
+===================================================================
+--- branches/pre0.7/doc/docdata.lua	2009-12-20 16:47:25 UTC (rev 603)
++++ branches/pre0.7/doc/docdata.lua	2009-12-23 00:11:21 UTC (rev 604)
+@@ -110,7 +110,12 @@
+           { &quot;Cross-compiling&quot;, &quot;using.html#cross&quot; },
+         },
+       },
+-      { { &quot;Building eLua&quot;, &quot;Build de eLua&quot; }, &quot;building.html&quot; },
++      { { &quot;Building eLua&quot;, &quot;Build de eLua&quot; }, &quot;building.html&quot;,
++        {
++          { &quot;Building eLua in Linux&quot;, &quot;building_unix.html&quot; },
++          { &quot;Building eLua in Windows&quot;, &quot;building_win.html&quot; },
++        },  
++      },
+       { { &quot;Code examples&quot;, &quot;Exemplos de C&#243;digo&quot; }, &quot;examples.html&quot; },
+       { { &quot;FAQ&quot;, &quot;Perguntas Frequentes (FAQ)&quot; }, &quot;faq.html&quot; },
+       { { &quot;Tutorials&quot;, &quot;Tutoriais&quot; }, &quot;tutorials.html&quot;,
+
+Modified: branches/pre0.7/doc/en/arch_romfs.html
+===================================================================
+--- branches/pre0.7/doc/en/arch_romfs.html	2009-12-20 16:47:25 UTC (rev 603)
++++ branches/pre0.7/doc/en/arch_romfs.html	2009-12-23 00:11:21 UTC (rev 604)
+@@ -55,5 +55,21 @@
+  &lt;p&gt;&lt;pre&gt;&lt;code&gt;eLua# lua /rom/bisect.lua&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
+ &lt;p&gt;Or directly from Lua:&lt;/p&gt;
+  &lt;p&gt;&lt;pre&gt;&lt;code&gt;&gt; dofile &quot;/rom/bisect.lua&quot;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;a name=&quot;mode&quot; /&gt;&lt;h2&gt;ROMFS modes&lt;/h2&gt;
++&lt;p&gt;Starting with version 0.7, the ROMFS can be added to the &lt;b&gt;eLua&lt;/b&gt; binary image in 3 different ways:&lt;/p&gt;
++&lt;ul&gt;
++  &lt;li&gt;&lt;b&gt;verbatim&lt;/b&gt;: this is the default option. All the files are copied to the ROMFS directly, without any processing.&lt;/li&gt;
++  &lt;li&gt;&lt;b&gt;compress&lt;/b&gt;: compress the Lua source code by using &lt;a href=&quot;<A HREF="http://luaforge.net/projects/luasrcdiet/">http://luaforge.net/projects/luasrcdiet/</A>&quot;&gt;LuaSrcDiet&lt;/a&gt; (included in &lt;b&gt;eLua&lt;/b&gt;), a program
++  that can decrease the size of a Lua source file by applying different transformations. Every
++  Lua source file (extension &lt;b&gt;.lua&lt;/b&gt;) from ROMFS is fed through LuaSrcDiet and the result is written in the &lt;b&gt;eLua&lt;/b&gt; binary image. This option can yield
++  pretty good compression, the only downside being that the compressed Lua source files aren't generally easily readable. However, this isn't really a problem in
++  most practical cases.&lt;/li&gt;
++  &lt;li&gt;&lt;b&gt;compile&lt;/b&gt;: precompile the Lua source code to bytecode. Every Lua source file (extension &lt;b&gt;.lua&lt;/b&gt;) from ROMFS is fed through the Lua cross compiler
++  (see &lt;a href=&quot;using.html#cross&quot;&gt;here&lt;/a&gt; for details on cross compilation and its benefits) and the result is written in the &lt;b&gt;eLua&lt;/b&gt; binary image. This option
++  might decrease or increase the physical size of the ROMFS image, but its real benefits are increased speed (because &lt;b&gt;eLua&lt;/b&gt; doesn't need to compile the Lua
++  code to bytecode first) and decreased RAM consumption (the Lua parser might get quite memory-hungry at times, which in turn might lead to stack overflows and very
++  hard to find bugs). &lt;/li&gt;
++&lt;/ul&gt;
++&lt;p&gt;See &lt;a href=&quot;building.html#buildoptions&quot;&gt;here&lt;/a&gt; for instructions on how to specify the ROMFS compilation mode.&lt;/p&gt;
+ $$FOOTER$$
+-
++ 
+\ No newline at end of file
+
+Modified: branches/pre0.7/doc/en/building.html
+===================================================================
+--- branches/pre0.7/doc/en/building.html	2009-12-20 16:47:25 UTC (rev 603)
++++ branches/pre0.7/doc/en/building.html	2009-12-23 00:11:21 UTC (rev 604)
+@@ -1,49 +1,10 @@
+ $$HEADER$$
+ &lt;h3&gt;Building eLua&lt;/h3&gt;
+-&lt;p&gt;If you decide to build your own &lt;b&gt;eLua&lt;/b&gt;
+-binary image (instead of &lt;a href=&quot;downloads.html&quot;&gt;downloading
+-one&lt;/a&gt;) you need to check a few things first:
+-&lt;/p&gt;
+-&lt;ul&gt;
+-&lt;li&gt;you're using Linux. Compiling under windows should be
+-possible, however this isn't tested. We are in Ubuntu, so what
+-we use is&nbsp;&quot;apt-get&quot;. If you're using a distro with a different
+-package
+-manager you'll need to translate the &quot;apt-get&quot; calls to your specific
+-distribution.&lt;/li&gt;
+-&lt;li&gt;you have a toolchain (compiler, linker, assembler and
+-standard C libraries) for your target. Check &lt;a href=&quot;toolchains.html&quot;&gt;the toolchains page&lt;/a&gt; for
+-toolchain instructions. Please note that even if you already have a
+-compiled toolchain, the differences in the Newlib configure flags
+-(mainly the --disable-newlib-supplied-syscalls flags) might prevent &lt;b&gt;eLua&lt;/b&gt;
+-for building properly on your machine.&lt;/li&gt;
+-&lt;li&gt;you set your platform configuration options properly. Check
+-the next paragraph for instructions on how to configure your build.&lt;/li&gt;
+-&lt;li&gt;Python - It should be already installed. If it's not, use
+-apt-get to install it:
+-&lt;pre&gt;&lt;code&gt;$ sudo apt-get install python&lt;/code&gt;&lt;/pre&gt;
+-&lt;/li&gt;
+-&lt;li&gt;Scons - &lt;b&gt;eLua&lt;/b&gt; uses scons instead of make
+-and makefiles, because we find scons much more &quot;natural&quot; and easier to
+-use than make. To install it:
+-&lt;pre&gt;&lt;code&gt;$ sudo apt-get install scons&lt;/code&gt;&lt;/pre&gt;
+-&lt;/li&gt;
+-&lt;li&gt;your toolchain's &quot;bin&quot; directory (this is generally
+-something like /usr/local/cross-arm/bin, where /usr/local/cross-arm is
+-the directory in which you installed your toolchain) must be in $PATH.
+-&lt;/li&gt;
+-&lt;li&gt;if you're building for the i386 platform, you'll also need
+-&quot;nasm&quot;:
+-&lt;pre&gt;&lt;code&gt;$ sudo apt-get install nasm&lt;/code&gt;&lt;/pre&gt;
+-&lt;/li&gt;
+-&lt;/ul&gt;
+-&lt;p&gt;For each platform, &lt;b&gt;eLua&lt;/b&gt; assumes a certain
+-name for the toolchain components, as shown below.
+-&lt;/p&gt;
+-&lt;p&gt;If your toolchain uses different names, you have to modify the
+-toolchain definition in SConstruct. See the &lt;a href=&quot;toolchains.html&quot;&gt;toolchains instructions&lt;/a&gt; for
+-details.&lt;/p&gt;
+-&lt;h3&gt;Configuring the build image&lt;/h3&gt;
++&lt;p&gt;If you decide to build your own &lt;b&gt;eLua&lt;/b&gt; binary image (instead of &lt;a href=&quot;downloads.html&quot;&gt;downloading
++one&lt;/a&gt;) you need to download the source code (see &lt;a href=&quot;downloads.html#source&quot;&gt;here&lt;/a&gt; for details) and follow the 
++platform specific eLua build instructions (provided for &lt;a href=&quot;build_unix.html&quot;&gt;Linux&lt;/a&gt; and &lt;a href=&quot;build_win.html&quot;&gt;Windows&lt;/a&gt;) to setup your build environment. 
++Then follow the instructions below to build your eLua binary image.&lt;/p&gt;
++&lt;a name=&quot;configuring&quot; /&gt;&lt;h3&gt;Configuring the build image&lt;/h3&gt;
+ &lt;p&gt;&lt;b&gt;eLua&lt;/b&gt; has a very flexible build system that
+ can be used to select the components that are going to be part of the &lt;b&gt;eLua&lt;/b&gt;
+ binary image and to set the compile time (static) configuration.
+@@ -326,7 +287,7 @@
+ One more thing you might want to configure for your build is the
+ contents of the ROM file system. See the &lt;a href=&quot;arch_romfs.html&quot;&gt;ROMFS
+ documentation&lt;/a&gt; for details on how to do this.&lt;/p&gt;
+-&lt;h3&gt;Invoking the build system&lt;/h3&gt;
++&lt;a name=&quot;buildoptions&quot; /&gt;&lt;h3&gt;Invoking the build system&lt;/h3&gt;
+ &lt;p&gt;Once you have everything in place, all you have to do is to
+ invoke the build system (scons) with the right arguments. This is a
+ fairly easy step, although it might look intimidating because of the
+@@ -336,7 +297,7 @@
+ aparent complexity. The examples at the end of this section will show
+ how easy it is to use the build system in practice.
+ &lt;/p&gt;
+-&lt;pre&gt;&lt;code&gt;$ scons &lt;br&gt; [target=lua | lualong]&lt;br&gt; [cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | &lt;br&gt; lm3s6965 | lm3s6918 | lpc2888 | str711fr2 | at32uc3a0512 | stm32f103ze&lt;br&gt; [board=ek-lm3s8962 | ek-lm3s6965 | eagle-100 | str9-comstick | sam7-ex256 | &lt;br&gt; lpc-h2888 | mod711 | pc | atevk1100 | stm3210e-eval ]&lt;br&gt; [cpumode=arm | thumb] &lt;br&gt; [allocator = newlib | multiple | simple]&lt;br&gt; [toolchain = &lt;toolchain name&gt;]&lt;br&gt; [optram = 0 | 1]&lt;br&gt; [prog]&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;
++&lt;pre&gt;&lt;code&gt;$ scons &lt;br&gt; [target=lua | lualong]&lt;br&gt; [cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | &lt;br&gt; lm3s6965 | lm3s6918 | lpc2888 | str711fr2 | at32uc3a0512 | stm32f103ze&lt;br&gt; [board=ek-lm3s8962 | ek-lm3s6965 | eagle-100 | str9-comstick | sam7-ex256 | &lt;br&gt; lpc-h2888 | mod711 | pc | atevk1100 | stm3210e-eval ]&lt;br&gt; [cpumode=arm | thumb] &lt;br&gt; [allocator = newlib | multiple | simple]&lt;br&gt; [toolchain = &lt;toolchain name&gt;]&lt;br&gt; [optram = 0 | 1]&lt;br&gt; [romfs = verbatim | compress | compile]&lt;br&gt; [prog]&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;
+ &lt;p&gt;Your build target is specified by two paramters: cpu and
+ board. &quot;cpu&quot; gives the name of your CPU, and &quot;board&quot; the name of the
+ board. A board can be associated with more than one CPU. This allows
+@@ -389,6 +350,7 @@
+ build also the platform-specific programming file where appropriate
+ (for example, on a AT91SAM7X256 this results in a .bin file that can be
+ programmed in the CPU). &lt;/li&gt;
++&lt;li&gt;&lt;b&gt;romfs = verbatim | compress | compile&lt;/b&gt;: ROMFS compilation mode, check &lt;a href=&quot;arch_romfs.html#mode&quot;&gt;here&lt;/a&gt; for details (&lt;b&gt;new in 0.7&lt;/b&gt;).&lt;/li&gt; 
+ &lt;/ul&gt;
+ &lt;p&gt;The output will be a file named elua_&lt;i&gt;[target]&lt;/i&gt;_&lt;i&gt;[cpu]&lt;/i&gt;.elf
+ (and also another file with the same name but ending in .bin/.hex if
+
+Added: branches/pre0.7/doc/en/building_unix.html
+===================================================================
+--- branches/pre0.7/doc/en/building_unix.html	2009-12-20 16:47:25 UTC (rev 603)
++++ branches/pre0.7/doc/en/building_unix.html	2009-12-23 00:11:21 UTC (rev 604)
+@@ -0,0 +1,36 @@
++$$HEADER$$
++&lt;h3&gt;Building eLua in Linux&lt;/h3&gt;
++&lt;p&gt;Building &lt;b&gt;eLua&lt;/b&gt; in Linux is fairly easy. This tutorial assumes that Ubuntu is used for building, however any distro should be fine, you just need to 
++convert the &quot;apt-get&quot; calls to your distro's package manager equivalent. You need a few packages installed to build &lt;b&gt;eLua&lt;/b&gt;:&lt;/p&gt;
++&lt;ul&gt;
++&lt;li&gt;&lt;b&gt;a toolchain&lt;/b&gt;: check &lt;a href=&quot;toolchains.html&quot;&gt;the toolchains page&lt;/a&gt; for
++toolchain instructions. Please note that even if you already have a
++compiled toolchain, the differences in the Newlib configure flags
++(mainly the --disable-newlib-supplied-syscalls flags) might prevent &lt;b&gt;eLua&lt;/b&gt;
++for building properly on your machine.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;Python&lt;/b&gt; : it should be already installed. If it's not, use
++apt-get to install it:
++&lt;pre&gt;&lt;code&gt;$ sudo apt-get install python&lt;/code&gt;&lt;/pre&gt;
++&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;scons&lt;/b&gt; - &lt;b&gt;eLua&lt;/b&gt; uses scons instead of make
++and makefiles, because we find scons much more &quot;natural&quot; and easier to
++use than make. To install it:
++&lt;pre&gt;&lt;code&gt;$ sudo apt-get install scons&lt;/code&gt;&lt;/pre&gt;
++&lt;/li&gt;
++&lt;li&gt;your toolchain's &quot;bin&quot; directory (this is generally
++something like /usr/local/cross-arm/bin, where /usr/local/cross-arm is
++the directory in which you installed your toolchain) must be in $PATH.
++&lt;/li&gt;
++&lt;li&gt;if you're building for the i386 platform, you'll also need
++&quot;nasm&quot;:
++&lt;pre&gt;&lt;code&gt;$ sudo apt-get install nasm&lt;/code&gt;&lt;/pre&gt;
++&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;gcc&lt;/b&gt;: if you want to use the ROMFS precompile feature (see &lt;a href=&quot;arch_romfs.html#mode&quot;&gt;here&lt;/a&gt; for details) you need to build an image of the &lt;b&gt;eLua&lt;/b&gt; cross compiler, and you need an i386
++toolchain for this. It should be already installed, but if you want to be on the safe side do this:
++  &lt;pre&gt;&lt;code&gt;sudo apt-get install build-essential&lt;/code&gt;&lt;/pre&gt;
++  Then build the &lt;b&gt;eLua&lt;/b&gt; cross compiler by executing this command: 
++  &lt;pre&gt;&lt;code&gt;scons -f cross-lua.py&lt;/code&gt;&lt;/pre&gt;
++&lt;/li&gt;
++&lt;/ul&gt;
++&lt;p&gt;After you setup your build environment as described above, follow &lt;a href=&quot;building.html#configuring&quot;&gt;this tutorial&lt;/a&gt; to build your &lt;b&gt;eLua&lt;/b&gt; image.&lt;/p&gt;
++$$FOOTER$$
+
+Added: branches/pre0.7/doc/en/building_win.html
+===================================================================
+--- branches/pre0.7/doc/en/building_win.html	2009-12-20 16:47:25 UTC (rev 603)
++++ branches/pre0.7/doc/en/building_win.html	2009-12-23 00:11:21 UTC (rev 604)
+@@ -0,0 +1,34 @@
++$$HEADER$$
++&lt;h3&gt;Building eLua in Windows&lt;/h3&gt;
++&lt;p&gt;Starting with version 0.7, building &lt;b&gt;eLua&lt;/b&gt; in Windows is officialy supported. The following instructions were tested in Windows 7 Professional, but they
++should work with little or no modification in any version of Windows 7, Vista or XP. You need to download and install a few things first:&lt;/p&gt; 
++&lt;ul&gt;
++&lt;li&gt;&lt;b&gt;a toolchain&lt;/b&gt;: building a GCC-based toolchain under Windows is possible, but not easy. We found that the easiest thing to do is to download a pre-built toolchain 
++and install it. Currently, all the targets supported by &lt;b&gt;eLua&lt;/b&gt; (except i386) have at least one toolchain that runs under Windows:
++&lt;ul&gt; 
++  &lt;li&gt;For ARM7, ARM9 and Cortex-M3 targets, you can download and install the CodeSourcery Lite Edition (supported by &lt;b&gt;eLua&lt;/b&gt; out of the box) from 
++  &lt;a href=&quot;<A HREF="http://www.codesourcery.com/sgpp/lite/arm/portal/subscription?@template=lite">http://www.codesourcery.com/sgpp/lite/arm/portal/subscription?@template=lite</A>&quot;&gt;here&lt;/a&gt;. For reference, the version used in this tutorial is 
++  &quot;Sourcery G++ Lite 2009q3-68 for ARM EABI&quot;. Future (and some previous) versions of this toolchain should also work. Remember to specify 
++  &lt;code&gt;toolchain=codesourcery&lt;/code&gt; when using this toolchain (see &lt;a href=&quot;building.html#buildoptions&quot;&gt;here&lt;/a&gt; for details).&lt;/li&gt;
++  &lt;li&gt;AVR32 has its own Windows based GNU toolchain that can be downloaded from Atmel &lt;a href=&quot;<A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=4118">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=4118</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
++&lt;/ul&gt;&lt;/li&gt;   
++&lt;li&gt;&lt;b&gt;Python&lt;/b&gt;: my favourite Windows distribution of Python is &lt;a href=&quot;<A HREF="http://www.activestate.com/activepython/">http://www.activestate.com/activepython/</A>&quot;&gt;ActivePython&lt;/a&gt;. Simply download it and install it. ActivePython
++2.6.4.8 will be used in this tutorial. Other Python distribution might work equally well.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;scons&lt;/b&gt;: download the Windows installer package from &lt;a href=&quot;<A HREF="http://www.scons.org/download.php">http://www.scons.org/download.php</A>&quot;&gt;here&lt;/a&gt;. For this tutorial, scons 1.2.0 will be used. Remember to install
++scons &lt;b&gt;after&lt;/b&gt; you install Python. &lt;/li&gt;
++&lt;li&gt;&lt;b&gt;lua&lt;/b&gt;: a very good and versatile Lua distribution for Windows is &quot;Lua for Windows&quot;, it can be downloaded from &lt;a href=&quot;<A HREF="http://luaforwindows.luaforge.net/">http://luaforwindows.luaforge.net/</A>&quot;&gt;here&lt;/a&gt;. Besides
++Lua itself, it includes a lot of very useful Lua modules, so I highly recommend it. Version 5.1.4.30 of Lua for Windows will be used in this tutorial.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;svn&lt;/b&gt;: if you need to checkout the &lt;b&gt;eLua&lt;/b&gt; source code from the SVN repository, you need to install SVN for windows. There are a few precompiled SVN packages for
++Windows available, I'm using the Tigris binaries that can be downloaded from &lt;a href=&quot;<A HREF="http://subversion.tigris.org/servlets/ProjectDocumentList?folderID=8100">http://subversion.tigris.org/servlets/ProjectDocumentList?folderID=8100</A>&quot;&gt;here&lt;/a&gt;. In this
++tutorial I'll use version 1.6.6.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;gcc&lt;/b&gt;: if you want to use the ROMFS precompile feature (see &lt;a href=&quot;arch_romfs.html#mode&quot;&gt;here&lt;/a&gt; for details) you need to build an image of the &lt;b&gt;eLua&lt;/b&gt; cross compiler, and you need an i386
++toolchain for this. I'm using MinGW for this task, it can be downloaded from &lt;a href=&quot;<A HREF="http://www.mingw.org/">http://www.mingw.org/</A>&quot;&gt;here&lt;/a&gt;. This tutorial uses MinGW version 5.1.6. Note that you
++don't need to install MSYS, MinGW should be enough. Cygwin should work equally well, or even Microsoft's Visual Studio (not tested). To build the cross compiler, run
++this command from the command line:
++  &lt;pre&gt;&lt;code&gt;scons -f cross-lua.py&lt;/code&gt;&lt;/pre&gt;
++&lt;/li&gt;
++&lt;/ul&gt;
++&lt;p&gt;Make sure that all the programs listed above are added to %PATH%. Most of them do this automatically, or have an option to do this automatically, but some
++(for example MinGW) do not and you need to add them to %PATH% manually.&lt;/p&gt; 
++&lt;p&gt;After you setup your build environment as described above, follow &lt;a href=&quot;building.html#configuring&quot;&gt;this tutorial&lt;/a&gt; to build your &lt;b&gt;eLua&lt;/b&gt; image.&lt;/p&gt;
++$$FOOTER$$
+
+Modified: branches/pre0.7/doc/en/faq.html
+===================================================================
+--- branches/pre0.7/doc/en/faq.html	2009-12-20 16:47:25 UTC (rev 603)
++++ branches/pre0.7/doc/en/faq.html	2009-12-23 00:11:21 UTC (rev 604)
+@@ -15,6 +15,7 @@
+   &lt;li&gt;&lt;a href=&quot;#windows&quot;&gt;All your tutorials give instructions on how to compile eLua under Linux, yet you seem to use a lot of Windows tools. 
+   How come?&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#cygwin&quot;&gt;Will you ever post instructions about how to compile toolchains under Cygwin in Windows?&lt;/a&gt;&lt;/li&gt;
++  &lt;li&gt;&lt;a href=&quot;#wincomp&quot;&gt;Is it possible to compile eLua under Windows?&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#bytecode&quot;&gt;I know that Lua can be compiled to bytecode, so I compiled one of the eLua examples with luac and tried to run it on 
+   my eLua board, but it didn't work. Is this a bug in eLua?&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#outofmemory&quot;&gt;I get &quot;out of memory&quot; errors when I run my Lua programs, what should I do?&lt;/a&gt;&lt;/li&gt;
+@@ -78,8 +79,8 @@
+   would increase the code size and complexity too much. These are some caveats that come to mind (note that these are only a few examples, the complete 
+   list is much longer):&lt;/p&gt;
+ &lt;ul&gt;
+-  &lt;li&gt;&lt;b&gt;timers&lt;/b&gt;: from all the platforms on which &lt;b&gt;eLua&lt;/b&gt; runs, only the Luminary Cortex CPUs has rock solid 32-bit timers. You can do pretty much 
+-  everything you need with them. All the other platforms have 16-bit timers, which imposes some limits on the range of delays you can achieve with them. 
++  &lt;li&gt;&lt;b&gt;timers&lt;/b&gt;: some CPUs, like the Luminary Cortex CPUs, have rock solid 32-bit timers. You can do pretty much 
++  everything you need with them. Most platforms have only 16-bit timers though, which imposes some limits on the range of delays you can achieve with them. 
+   Make sure to use tmr.mindelay(id) and tmr.maxdelay(id) to check the actual resolution of your timers, and adapt your code accordingly. To 'compensate' 
+   for this, it's not possible to change the base timer frequency on the Cortex CPUs, but it is possible on most other platforms :) So be sure to also check 
+   the result of tmr.setclock(id)&lt;/li&gt;
+@@ -114,6 +115,9 @@
+   over Windows when it comes to developing applications. Also, I noticed that the GNU based toolchains are noticeable slower on Cygwin than on Linux, so 
+   experimenting with them can prove frustrating. Also, compiling under Linux and Cygwin should be quite similar,so try starting from my Linux based 
+   tutorials, they might work as well on Cygwin.&lt;/p&gt;
++  
++&lt;a name =&quot;wincomp /&quot;&gt;&lt;h2&gt;Is it possible to compile eLua under Windows?&lt;/h2&gt;
++&lt;p&gt;Starting with version 0.7, compiling &lt;b&gt;eLua&lt;/b&gt; under Windows is officialy supported, check &lt;a href=&quot;building_win.html&quot;&gt;here&lt;/a&gt; for details.&lt;/p&gt;
+ 
+ &lt;a name=&quot;bytecode&quot; /&gt;&lt;h2&gt;I know that Lua can be compiled to bytecode, so I compiled one of the eLua examples with luac and tried to run it on my eLua
+   board, but it didn't work. Is this a bug in eLua?&lt;/h2&gt;
+
+Modified: branches/pre0.7/doc/en/news.html
+===================================================================
+--- branches/pre0.7/doc/en/news.html	2009-12-20 16:47:25 UTC (rev 603)
++++ branches/pre0.7/doc/en/news.html	2009-12-23 00:11:21 UTC (rev 604)
+@@ -6,15 +6,15 @@
+ &lt;p&gt;Version 0.7 is released. The main changes are described below:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;Added the &lt;a href=&quot;<A HREF="http://lua-users.org/wiki/EmergencyGarbageCollector">http://lua-users.org/wiki/EmergencyGarbageCollector</A>&quot;&gt;Lua EGC&lt;/a&gt; (Emergency Garbage Collection) patch&lt;/li&gt;
+-  &lt;li&gt;Added generic and portable SD/MMC Card FAT File System support&lt;/li&gt;
+-  &lt;li&gt;Added &lt;a href=&quot;<A HREF="http://fanplastic.org/2009/05/11/lua-rpc/">http://fanplastic.org/2009/05/11/lua-rpc/</A>&quot;&gt;LuaRPC&lt;/a&gt; support. Remote procedure calls in the embedded world&lt;/li&gt;
++  &lt;li&gt;???? Added generic and portable SD/MMC Card FAT File System support&lt;/li&gt;
++  &lt;li&gt;Added &lt;a href=&quot;<A HREF="http://fanplastic.org/2009/05/11/lua-rpc/">http://fanplastic.org/2009/05/11/lua-rpc/</A>&quot;&gt;LuaRPC&lt;/a&gt; support (remote procedure calls in the embedded world)&lt;/li&gt;
+   &lt;li&gt;New eLua shell cat/type command, lists text file contents&lt;/li&gt;
+   &lt;li&gt;Added support for &lt;a href=&quot;<A HREF="http://www.olimex.com/dev/str-e912.html">http://www.olimex.com/dev/str-e912.html</A>&quot;&gt;Olimex STR-E912&lt;/a&gt; board, ST Electronics STR912FW44X MCU&lt;/li&gt;
+   &lt;li&gt;Added support for the &lt;a href=&quot;<A HREF="http://www.giga.puc-rio.br/site/embedded/eluademoboard">http://www.giga.puc-rio.br/site/embedded/eluademoboard</A>&quot;&gt;PUC-Rio  eLua&lt;/a&gt; board, NXP LPC2468 MCU&lt;/li&gt;
++  &lt;li&gt;Compiling &lt;b&gt;eLua&lt;/b&gt; under Windows is now officialy supported, tutorial added &lt;a href=&quot;build_win.html&quot;&gt;here&lt;/a&gt;&lt;/li&gt;
++  &lt;li&gt;New ROMFS build modes: compress and compile (see &lt;a href=&quot;arch_romfs.html#mode&quot;&gt;here&lt;/a&gt; for details)&lt;/li&gt;
+   &lt;li&gt;More portuguese content translations&lt;/li&gt;
+   &lt;li&gt;ADC module and doc enhancements&lt;/li&gt;
+-  &lt;li&gt;Please check our &lt;a href=&quot;versionhistory.html&quot;&gt;Version History page&lt;/a&gt;
+-  to see the full details of the changes.&lt;/li&gt;
+ &lt;/ul&gt;
+ 
+ &lt;h2&gt;06 October 2009&lt;/h2&gt;
+
+Modified: branches/pre0.7/src/lua/luaconf.h
+===================================================================
+--- branches/pre0.7/src/lua/luaconf.h	2009-12-20 16:47:25 UTC (rev 603)
++++ branches/pre0.7/src/lua/luaconf.h	2009-12-23 00:11:21 UTC (rev 604)
+@@ -826,7 +826,7 @@
+ ** without modifying the main part of the file.
+ */
+ 
+-#if !defined(LUA_CROSS_COMPILER) || defined(_WIN32)
++#if !defined(LUA_CROSS_COMPILER)
+ typedef short int16_t;
+ typedef long int32_t;
+ #endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000559.html">[Elua-svn] r603 - branches/pre0.7/src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000561.html">[Elua-svn] r605 - in branches/pre0.7: doc/eluadoc doc/en src	src/modules src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#560">[ date ]</a>
+              <a href="thread.html#560">[ thread ]</a>
+              <a href="subject.html#560">[ subject ]</a>
+              <a href="author.html#560">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

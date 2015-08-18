@@ -1,0 +1,4784 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r151 - in trunk: . inc romfs src/lua src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/stm32	src/platform/str7 src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r151%20-%20in%20trunk%3A%20.%20inc%20romfs%20src/lua%20src/modules%0A%09src/platform/at91sam7x%20src/platform/avr32%20src/platform/i386%0A%09src/platform/lm3s%20src/platform/lpc288x%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9&In-Reply-To=%3C200901112043.n0BKh69r017644%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000106.html">
+   <LINK REL="Next"  HREF="000108.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r151 - in trunk: . inc romfs src/lua src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/stm32	src/platform/str7 src/platform/str9</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r151%20-%20in%20trunk%3A%20.%20inc%20romfs%20src/lua%20src/modules%0A%09src/platform/at91sam7x%20src/platform/avr32%20src/platform/i386%0A%09src/platform/lm3s%20src/platform/lpc288x%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9&In-Reply-To=%3C200901112043.n0BKh69r017644%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r151 - in trunk: . inc romfs src/lua src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/stm32	src/platform/str7 src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Jan 11 21:43:06 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000106.html">[Elua-svn] r150 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000108.html">[Elua-svn] r152 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#107">[ date ]</a>
+              <a href="thread.html#107">[ thread ]</a>
+              <a href="subject.html#107">[ subject ]</a>
+              <a href="author.html#107">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-01-11 21:43:02 +0100 (Sun, 11 Jan 2009)
+New Revision: 151
+
+Added:
+   trunk/romfs/dualpwm.lua
+   trunk/src/lua/lrodefs.h
+   trunk/src/lua/lrotable.c
+   trunk/src/lua/lrotable.h
+   trunk/src/platform/lm3s/disp.c
+   trunk/src/platform/lm3s/disp.h
+Removed:
+   trunk/src/modules/disp.c
+   trunk/src/modules/lm3s.c
+   trunk/src/modules/modcommon.c
+Modified:
+   trunk/SConstruct
+   trunk/inc/platform.h
+   trunk/romfs/index.pht
+   trunk/src/lua/Makefile
+   trunk/src/lua/lapi.c
+   trunk/src/lua/lauxlib.c
+   trunk/src/lua/lauxlib.h
+   trunk/src/lua/lbaselib.c
+   trunk/src/lua/ldblib.c
+   trunk/src/lua/ldebug.c
+   trunk/src/lua/ldo.c
+   trunk/src/lua/lgc.c
+   trunk/src/lua/linit.c
+   trunk/src/lua/liolib.c
+   trunk/src/lua/lmathlib.c
+   trunk/src/lua/loadlib.c
+   trunk/src/lua/lobject.c
+   trunk/src/lua/lobject.h
+   trunk/src/lua/loslib.c
+   trunk/src/lua/lstate.h
+   trunk/src/lua/lstrlib.c
+   trunk/src/lua/ltable.c
+   trunk/src/lua/ltable.h
+   trunk/src/lua/ltablib.c
+   trunk/src/lua/ltm.c
+   trunk/src/lua/ltm.h
+   trunk/src/lua/lua.c
+   trunk/src/lua/lua.h
+   trunk/src/lua/luaconf.h
+   trunk/src/lua/lvm.c
+   trunk/src/modules/auxmods.h
+   trunk/src/modules/bit.c
+   trunk/src/modules/cpu.c
+   trunk/src/modules/lpack.c
+   trunk/src/modules/net.c
+   trunk/src/modules/pd.c
+   trunk/src/modules/pio.c
+   trunk/src/modules/pwm.c
+   trunk/src/modules/spi.c
+   trunk/src/modules/term.c
+   trunk/src/modules/tmr.c
+   trunk/src/modules/uart.c
+   trunk/src/platform/at91sam7x/flash256.lds
+   trunk/src/platform/at91sam7x/flash512.lds
+   trunk/src/platform/at91sam7x/platform.c
+   trunk/src/platform/at91sam7x/platform_conf.h
+   trunk/src/platform/avr32/at32uc3a0512.ld
+   trunk/src/platform/avr32/conf.py
+   trunk/src/platform/avr32/crt0.s
+   trunk/src/platform/avr32/platform_conf.h
+   trunk/src/platform/i386/i386.ld
+   trunk/src/platform/i386/platform_conf.h
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/lm3s.ld
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/platform_conf.h
+   trunk/src/platform/lpc288x/lpc2888.lds
+   trunk/src/platform/lpc288x/lpc28xx.s
+   trunk/src/platform/lpc288x/platform.c
+   trunk/src/platform/lpc288x/platform_conf.h
+   trunk/src/platform/lpc288x/stacks.h
+   trunk/src/platform/stm32/conf.py
+   trunk/src/platform/stm32/lua_lcd.c
+   trunk/src/platform/stm32/platform_conf.h
+   trunk/src/platform/stm32/stm32.ld
+   trunk/src/platform/str7/crt0.s
+   trunk/src/platform/str7/platform.c
+   trunk/src/platform/str7/platform_conf.h
+   trunk/src/platform/str7/str711fr2.lds
+   trunk/src/platform/str9/platform_conf.h
+   trunk/src/platform/str9/str912fw44.lds
+Log:
+- Lua Tiny RAM (LTR) patch is now integrated in eLua and is enabled by default
+- all eLua modules updated to work with LTR
+- &quot;cpu&quot; module added to avr32, at91sam7x, str7
+- &quot;disp&quot; module no longer generic (now stays in src/modules/lm3s). For this reason, the &quot;disp&quot; platform interface was also removed.
+- the &quot;modcommon&quot; mechanism in STM32 (ROM loader) was depreciated in favour of the Lua Tiny RAM patch (and the &quot;stm3210lcd&quot; module from the STM32 backend now uses LTR).
+- small bugfixes
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/SConstruct	2009-01-11 20:43:02 UTC (rev 151)
+@@ -3,6 +3,7 @@
+ cputype = ARGUMENTS.get( 'cpu', '' ).upper()
+ allocator = ARGUMENTS.get( 'allocator', '' ).lower()
+ boardname = ARGUMENTS.get( 'board' , '').upper()
++optram = int( ARGUMENTS.get( 'optram', '1' ) )
+ 
+ # ROMFS file list
+ romfs = { 'bisect' : [ 'bisect.lua' ],
+@@ -15,7 +16,8 @@
+           'tvbgone' : [ 'tvbgone.lua', 'codes.bin' ],
+           'hello' : [ 'hello.lua' ],
+           'info' : [ 'info.lua' ],
+-          'morse' : [ 'mose.lua' ]
++          'morse' : [ 'morse.lua' ],
++          'dualpwm' : [ 'dualpwm.lua' ]
+         }
+ 
+ # List of platform/CPU combinations
+@@ -41,20 +43,6 @@
+                'ATEVK1100' : [ 'AT32UC3A0512' ]
+             }
+ 
+-# ROMFS file list
+-romfs = { 'bisect' : [ 'bisect.lua' ],
+-          'hangman' : [ 'hangman.lua' ],
+-          'lhttpd' : [ 'index.pht', 'lhttpd.lua', 'test.lua' ],
+-          'pong' : [ 'pong.lua', 'LM3S.lua' ],
+-          'led' : [ 'led.lua' ],
+-          'piano' : [ 'piano.lua' ],
+-          'pwmled' : [ 'pwmled.lua' ],
+-          'tvbgone' : [ 'tvbgone.lua', 'codes.bin' ],
+-          'hello' : [ 'hello.lua' ],
+-          'info' : [ 'info.lua' ],
+-          'morse' : [ 'morse.lua' ]
+-        }
+-
+ # List of board/romfs data combinations
+ file_list = { 'SAM7-EX256' : [ 'bisect', 'hangman' , 'led', 'piano', 'hello', 'info', 'morse' ],
+               'EK-LM3S8962' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse' ],
+@@ -62,7 +50,7 @@
+               'STR9-COMSTICK' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'PC' : [ 'bisect', 'hello', 'info' ],
+               'LPC-H2888' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+-              'MOD711' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
++              'MOD711' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'dualpwm' ],
+               'STM3210E-EVAL' : [ 'bisect', 'hello', 'info' ],
+               'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ]
+             }
+@@ -149,7 +137,7 @@
+ # Lua source files and include path
+ lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
+    lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
+-   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c&quot;&quot;&quot;
++   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c lrotable.c&quot;&quot;&quot;
+ if target == 'lualong' or target == 'lua':
+   lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
+   local_include = &quot;-Iinc -Iinc/newlib -Isrc/lua&quot;
+@@ -159,6 +147,7 @@
+   print &quot;Invalid target&quot;, target
+   sys.exit( 1 )
+ local_include = local_include + &quot; -Isrc/modules -Isrc/platform/%s&quot; % platform
++cdefs = cdefs + &quot; -DLUA_OPTIMIZE_MEMORY=%d&quot; % ( optram != 0 and 2 or 0 )
+ 
+ # Additional libraries
+ local_libs = ''
+@@ -175,7 +164,7 @@
+ local_include = local_include + &quot; -Isrc/uip&quot;
+ 
+ # Lua module files
+-module_names = &quot;disp.c modcommon.c pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c&quot;
++module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c&quot;
+ module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+ 
+ # Optimizer flags (speed or size)
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/inc/platform.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -148,21 +148,6 @@
+ u32 platform_timer_get_diff_us( unsigned id, timer_data_type end, timer_data_type start );
+ 
+ // *****************************************************************************
+-// OLED DISP subsection
+-
+-
+-void platform_disp_init( unsigned long freq );
+-void platform_disp_clear( void );
+-void platform_disp_stringDraw( const char *str, unsigned long x, unsigned long y, unsigned char level );
+-void platform_disp_imageDraw( const unsigned char *img, unsigned long x, unsigned long y,
+-                              unsigned long width, unsigned long height);                             
+-void platform_disp_enable( unsigned long freq );
+-void platform_disp_disable( void );
+-void platform_disp_displayOn( void );
+-void platform_disp_displayOff( void );
+- 
+-
+-// *****************************************************************************
+ // PWM subsection
+ 
+ // There are 16 &quot;virtual&quot; PWM channels (PWM0...PWM15)
+
+Added: trunk/romfs/dualpwm.lua
+===================================================================
+--- trunk/romfs/dualpwm.lua	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/romfs/dualpwm.lua	2009-01-11 20:43:02 UTC (rev 151)
+@@ -0,0 +1,29 @@
++-- Control LED intensity with PWM on two channels
++
++local pwmid1, pwmid2, tmrid = 0, 1, 3
++
++if pd.board() ~= &quot;MOD711&quot; then
++  print &quot;Unsopported board&quot;
++  return
++end
++ 
++print &quot;Control LED with PWM (fade up/down)&quot;
++print &quot;Press any key to exit&quot;
++local crtduty, incr = 10, 5
++pwm.setup( pwmid1, 50000, crtduty )
++pwm.setup( pwmid2, 50000, 100 - crtduty )
++pwm.start( pwmid1 )
++pwm.start( pwmid2 )
++while uart.recv( 1, 0, 0 ) &lt; 0 do
++  if crtduty == 95 or crtduty == 5 then
++    incr = -incr
++  end
++  crtduty = crtduty + incr
++  pwm.setup( pwmid1, 50000, crtduty )
++  pwm.setup( pwmid2, 50000, 100 - crtduty )  
++  tmr.delay( tmrid, 50000 )
++end
++
++pwm.stop( pwmid1 )
++pwm.stop( pwmid2 )
++
+
+Modified: trunk/romfs/index.pht
+===================================================================
+--- trunk/romfs/index.pht	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/romfs/index.pht	2009-01-11 20:43:02 UTC (rev 151)
+@@ -19,7 +19,7 @@
+ &lt;/table&gt;
+ &lt;br&gt;
+ And now let's test CGI. Use the form below to control the on-board LED.&lt;br&gt;&lt;br&gt;
+-&lt;form method=&quot;get&quot; action=&quot;<A HREF="http://elua/index.pht">http://elua/index.pht</A>&quot; name=&quot;led&quot;&gt;
++&lt;form method=&quot;get&quot; action=&quot;/index.pht&quot; name=&quot;led&quot;&gt;
+ &lt;table width=&quot;400&quot; border=&quot;0&quot; cellpadding=&quot;2&quot; cellspacing=&quot;2&quot;&gt;
+ &lt;tbody&gt;
+ &lt;tr&gt;
+
+Modified: trunk/src/lua/Makefile
+===================================================================
+--- trunk/src/lua/Makefile	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/Makefile	2009-01-11 20:43:02 UTC (rev 151)
+@@ -8,7 +8,7 @@
+ PLAT= none
+ 
+ CC= gcc
+-CFLAGS= -O2 -Wall $(MYCFLAGS)
++CFLAGS= -O2 -Wall $(MYCFLAGS) -DLUA_OPTIMIZE_MEMORY=2
+ AR= ar rcu
+ RANLIB= ranlib
+ RM= rm -f
+@@ -25,7 +25,7 @@
+ LUA_A=	liblua.a
+ CORE_O=	lapi.o lcode.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o \
+ 	lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o  \
+-	lundump.o lvm.o lzio.o
++	lundump.o lvm.o lzio.o lrotable.o
+ LIB_O=	lauxlib.o lbaselib.o ldblib.o liolib.o lmathlib.o loslib.o ltablib.o \
+ 	lstrlib.o loadlib.o linit.o
+ 
+@@ -122,13 +122,14 @@
+ 
+ lapi.o: lapi.c lua.h luaconf.h lapi.h lobject.h llimits.h ldebug.h \
+   lstate.h ltm.h lzio.h lmem.h ldo.h lfunc.h lgc.h lstring.h ltable.h \
+-  lundump.h lvm.h
+-lauxlib.o: lauxlib.c lua.h luaconf.h lauxlib.h
+-lbaselib.o: lbaselib.c lua.h luaconf.h lauxlib.h lualib.h
++  lundump.h lvm.h lrotable.h
++lauxlib.o: lauxlib.c lua.h luaconf.h lauxlib.h lrotable.h
++lbaselib.o: lbaselib.c lua.h luaconf.h lauxlib.h lualib.h lrotable.h \
++  lrodefs.h
+ lcode.o: lcode.c lua.h luaconf.h lcode.h llex.h lobject.h llimits.h \
+   lzio.h lmem.h lopcodes.h lparser.h ldebug.h lstate.h ltm.h ldo.h lgc.h \
+   ltable.h
+-ldblib.o: ldblib.c lua.h luaconf.h lauxlib.h lualib.h
++ldblib.o: ldblib.c lua.h luaconf.h lauxlib.h lualib.h lrotable.h lrodefs.h
+ ldebug.o: ldebug.c lua.h luaconf.h lapi.h lobject.h llimits.h lcode.h \
+   llex.h lzio.h lmem.h lopcodes.h lparser.h ldebug.h lstate.h ltm.h ldo.h \
+   lfunc.h lstring.h lgc.h ltable.h lvm.h
+@@ -140,19 +141,20 @@
+ lfunc.o: lfunc.c lua.h luaconf.h lfunc.h lobject.h llimits.h lgc.h lmem.h \
+   lstate.h ltm.h lzio.h
+ lgc.o: lgc.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h ltm.h \
+-  lzio.h lmem.h ldo.h lfunc.h lgc.h lstring.h ltable.h
+-linit.o: linit.c lua.h luaconf.h lualib.h lauxlib.h
+-liolib.o: liolib.c lua.h luaconf.h lauxlib.h lualib.h
++  lzio.h lmem.h ldo.h lfunc.h lgc.h lstring.h ltable.h lrotable.h
++linit.o: linit.c lua.h luaconf.h lualib.h lauxlib.h lrotable.h
++liolib.o: liolib.c lua.h luaconf.h lauxlib.h lualib.h lrotable.h lrodefs.h
+ llex.o: llex.c lua.h luaconf.h ldo.h lobject.h llimits.h lstate.h ltm.h \
+   lzio.h lmem.h llex.h lparser.h lstring.h lgc.h ltable.h
+-lmathlib.o: lmathlib.c lua.h luaconf.h lauxlib.h lualib.h
++lmathlib.o: lmathlib.c lua.h luaconf.h lauxlib.h lualib.h lrotable.h \
++  lrodefs.h
+ lmem.o: lmem.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h \
+   ltm.h lzio.h lmem.h ldo.h
+-loadlib.o: loadlib.c lua.h luaconf.h lauxlib.h lualib.h
++loadlib.o: loadlib.c lua.h luaconf.h lauxlib.h lualib.h lrotable.h
+ lobject.o: lobject.c lua.h luaconf.h ldo.h lobject.h llimits.h lstate.h \
+   ltm.h lzio.h lmem.h lstring.h lgc.h lvm.h
+ lopcodes.o: lopcodes.c lopcodes.h llimits.h lua.h luaconf.h
+-loslib.o: loslib.c lua.h luaconf.h lauxlib.h lualib.h
++loslib.o: loslib.c lua.h luaconf.h lauxlib.h lualib.h lrotable.h lrodefs.h 
+ lparser.o: lparser.c lua.h luaconf.h lcode.h llex.h lobject.h llimits.h \
+   lzio.h lmem.h lopcodes.h lparser.h ldebug.h lstate.h ltm.h ldo.h \
+   lfunc.h lstring.h lgc.h ltable.h
+@@ -160,12 +162,14 @@
+   ltm.h lzio.h lmem.h ldo.h lfunc.h lgc.h llex.h lstring.h ltable.h
+ lstring.o: lstring.c lua.h luaconf.h lmem.h llimits.h lobject.h lstate.h \
+   ltm.h lzio.h lstring.h lgc.h
+-lstrlib.o: lstrlib.c lua.h luaconf.h lauxlib.h lualib.h
++lstrlib.o: lstrlib.c lua.h luaconf.h lauxlib.h lualib.h lrotable.h \
++  lrodefs.h
+ ltable.o: ltable.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h \
+-  ltm.h lzio.h lmem.h ldo.h lgc.h ltable.h
+-ltablib.o: ltablib.c lua.h luaconf.h lauxlib.h lualib.h
++  ltm.h lzio.h lmem.h ldo.h lgc.h ltable.h lrotable.h
++ltablib.o: ltablib.c lua.h luaconf.h lauxlib.h lualib.h lrotable.h \
++  lrodefs.h
+ ltm.o: ltm.c lua.h luaconf.h lobject.h llimits.h lstate.h ltm.h lzio.h \
+-  lmem.h lstring.h lgc.h ltable.h
++  lmem.h lstring.h lgc.h ltable.h lrotable.h
+ lua.o: lua.c lua.h luaconf.h lauxlib.h lualib.h
+ luac.o: luac.c lua.h luaconf.h lauxlib.h ldo.h lobject.h llimits.h \
+   lstate.h ltm.h lzio.h lmem.h lfunc.h lopcodes.h lstring.h lgc.h \
+@@ -173,10 +177,13 @@
+ lundump.o: lundump.c lua.h luaconf.h ldebug.h lstate.h lobject.h \
+   llimits.h ltm.h lzio.h lmem.h ldo.h lfunc.h lstring.h lgc.h lundump.h
+ lvm.o: lvm.c lua.h luaconf.h ldebug.h lstate.h lobject.h llimits.h ltm.h \
+-  lzio.h lmem.h ldo.h lfunc.h lgc.h lopcodes.h lstring.h ltable.h lvm.h
++  lzio.h lmem.h ldo.h lfunc.h lgc.h lopcodes.h lstring.h ltable.h lvm.h \
++  lrotable.h
+ lzio.o: lzio.c lua.h luaconf.h llimits.h lmem.h lstate.h lobject.h ltm.h \
+   lzio.h
+ print.o: print.c ldebug.h lstate.h lua.h luaconf.h lobject.h llimits.h \
+   ltm.h lzio.h lmem.h lopcodes.h lundump.h
++lrotable.o: lrotable.c lua.h lrotable.h lauxlib.h lobject.h lstring.h \
++  lobject.h lapi.h
+ 
+ # (end of Makefile)
+
+Modified: trunk/src/lua/lapi.c
+===================================================================
+--- trunk/src/lua/lapi.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lapi.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -28,9 +28,9 @@
+ #include &quot;ltm.h&quot;
+ #include &quot;lundump.h&quot;
+ #include &quot;lvm.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ 
+-
+ const char lua_ident[] =
+   &quot;$Lua: &quot; LUA_RELEASE &quot; &quot; LUA_COPYRIGHT &quot; $\n&quot;
+   &quot;$Authors: &quot; LUA_AUTHORS &quot; $\n&quot;
+@@ -61,12 +61,13 @@
+     case LUA_REGISTRYINDEX: return registry(L);
+     case LUA_ENVIRONINDEX: {
+       Closure *func = curr_func(L);
+-      sethvalue(L, &amp;L-&gt;env, func-&gt;c.env);
++      sethvalue(L, &amp;L-&gt;env, func ? func-&gt;c.env : hvalue(gt(L)));
+       return &amp;L-&gt;env;
+     }
+     case LUA_GLOBALSINDEX: return gt(L);
+     default: {
+       Closure *func = curr_func(L);
++      if (!func) return cast(TValue *, luaO_nilobject);
+       idx = LUA_GLOBALSINDEX - idx;
+       return (idx &lt;= func-&gt;c.nupvalues)
+                 ? &amp;func-&gt;c.upvalue[idx-1]
+@@ -81,7 +82,7 @@
+     return hvalue(gt(L));  /* use global table as environment */
+   else {
+     Closure *func = curr_func(L);
+-    return func-&gt;c.env;
++    return func ? func-&gt;c.env : hvalue(gt(L));
+   }
+ }
+ 
+@@ -211,13 +212,17 @@
+   api_checkvalidindex(L, o);
+   if (idx == LUA_ENVIRONINDEX) {
+     Closure *func = curr_func(L);
+-    api_check(L, ttistable(L-&gt;top - 1)); 
+-    func-&gt;c.env = hvalue(L-&gt;top - 1);
+-    luaC_barrier(L, func, L-&gt;top - 1);
++    if (!func)
++      luaG_runerror(L, &quot;attempt to set environment on lightfunction&quot;);
++    else {
++      api_check(L, ttistable(L-&gt;top - 1)); 
++      func-&gt;c.env = hvalue(L-&gt;top - 1);
++      luaC_barrier(L, func, L-&gt;top - 1);
++    }
+   }
+   else {
+     setobj(L, o, L-&gt;top - 1);
+-    if (idx &lt; LUA_GLOBALSINDEX)  /* function upvalue? */
++    if (curr_func(L) &amp;&amp; idx &lt; LUA_GLOBALSINDEX)  /* function upvalue? */
+       luaC_barrier(L, curr_func(L), L-&gt;top - 1);
+   }
+   L-&gt;top--;
+@@ -364,6 +369,7 @@
+     case LUA_TSTRING: return tsvalue(o)-&gt;len;
+     case LUA_TUSERDATA: return uvalue(o)-&gt;len;
+     case LUA_TTABLE: return luaH_getn(hvalue(o));
++    case LUA_TROTABLE: return luaH_getn_ro(rvalue(o));
+     case LUA_TNUMBER: {
+       size_t l;
+       lua_lock(L);  /* `luaV_tostring' may create a new string */
+@@ -407,6 +413,9 @@
+     case LUA_TUSERDATA:
+     case LUA_TLIGHTUSERDATA:
+       return lua_touserdata(L, idx);
++    case LUA_TROTABLE: 
++    case LUA_TLIGHTFUNCTION:
++      return pvalue(o);
+     default: return NULL;
+   }
+ }
+@@ -515,7 +524,21 @@
+   lua_unlock(L);
+ }
+ 
++LUA_API void lua_pushrotable (lua_State *L, void *p) {
++  lua_lock(L);
++  setrvalue(L-&gt;top, p);
++  api_incr_top(L);
++  lua_unlock(L);
++}
+ 
++LUA_API void lua_pushlightfunction(lua_State *L, void *p) {
++  lua_lock(L);
++  setfvalue(L-&gt;top, p);
++  api_incr_top(L);
++  lua_unlock(L);
++}
++
++
+ LUA_API int lua_pushthread (lua_State *L) {
+   lua_lock(L);
+   setthvalue(L, L-&gt;top, L);
+@@ -556,10 +579,12 @@
+ 
+ LUA_API void lua_rawget (lua_State *L, int idx) {
+   StkId t;
++  const TValue *res;
+   lua_lock(L);
+   t = index2adr(L, idx);
+-  api_check(L, ttistable(t));
+-  setobj2s(L, L-&gt;top - 1, luaH_get(hvalue(t), L-&gt;top - 1));
++  api_check(L, ttistable(t) || ttisrotable(t));
++  res = ttistable(t) ? luaH_get(hvalue(t), L-&gt;top - 1) : luaH_get_ro(rvalue(t), L-&gt;top - 1);
++  setobj2s(L, L-&gt;top - 1, res);    
+   lua_unlock(L);
+ }
+ 
+@@ -568,8 +593,8 @@
+   StkId o;
+   lua_lock(L);
+   o = index2adr(L, idx);
+-  api_check(L, ttistable(o));
+-  setobj2s(L, L-&gt;top, luaH_getnum(hvalue(o), n));
++  api_check(L, ttistable(o) || ttisrotable(o));
++  setobj2s(L, L-&gt;top, ttistable(o) ? luaH_getnum(hvalue(o), n) : luaH_getnum_ro(rvalue(o), n))
+   api_incr_top(L);
+   lua_unlock(L);
+ }
+@@ -597,6 +622,9 @@
+     case LUA_TUSERDATA:
+       mt = uvalue(obj)-&gt;metatable;
+       break;
++    case LUA_TROTABLE:
++      mt = (Table*)luaR_getmeta(rvalue(obj));
++      break; 
+     default:
+       mt = G(L)-&gt;mt[ttype(obj)];
+       break;
+@@ -604,7 +632,10 @@
+   if (mt == NULL)
+     res = 0;
+   else {
+-    sethvalue(L, L-&gt;top, mt);
++    if(luaR_isrotable(mt))
++      setrvalue(L-&gt;top, mt)
++    else
++      sethvalue(L, L-&gt;top, mt)
+     api_incr_top(L);
+     res = 1;
+   }
+@@ -697,6 +728,7 @@
+ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
+   TValue *obj;
+   Table *mt;
++  int isrometa = 0;
+   lua_lock(L);
+   api_checknelems(L, 1);
+   obj = index2adr(L, objindex);
+@@ -704,19 +736,24 @@
+   if (ttisnil(L-&gt;top - 1))
+     mt = NULL;
+   else {
+-    api_check(L, ttistable(L-&gt;top - 1));
+-    mt = hvalue(L-&gt;top - 1);
++    api_check(L, ttistable(L-&gt;top - 1) || ttisrotable(L-&gt;top - 1));
++    if (ttistable(L-&gt;top - 1))
++      mt = hvalue(L-&gt;top - 1);
++    else {
++      mt = (Table*)rvalue(L-&gt;top - 1);
++      isrometa = 1;
++    }
+   }
+   switch (ttype(obj)) {
+     case LUA_TTABLE: {
+       hvalue(obj)-&gt;metatable = mt;
+-      if (mt)
++      if (mt &amp;&amp; !isrometa)
+         luaC_objbarriert(L, hvalue(obj), mt);
+       break;
+     }
+     case LUA_TUSERDATA: {
+       uvalue(obj)-&gt;metatable = mt;
+-      if (mt)
++      if (mt &amp;&amp; !isrometa)
+         luaC_objbarrier(L, rawuvalue(obj), mt);
+       break;
+     }
+@@ -975,8 +1012,8 @@
+   int more;
+   lua_lock(L);
+   t = index2adr(L, idx);
+-  api_check(L, ttistable(t));
+-  more = luaH_next(L, hvalue(t), L-&gt;top - 1);
++  api_check(L, ttistable(t) || ttisrotable(t));
++  more = ttistable(t) ? luaH_next(L, hvalue(t), L-&gt;top - 1) : luaH_next_ro(L, rvalue(t), L-&gt;top - 1);
+   if (more) {
+     api_incr_top(L);
+   }
+
+Modified: trunk/src/lua/lauxlib.c
+===================================================================
+--- trunk/src/lua/lauxlib.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lauxlib.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -22,6 +22,8 @@
+ 
+ #include &quot;lua.h&quot;
+ 
++#include &quot;lrotable.h&quot;
++
+ #include &quot;lauxlib.h&quot;
+ 
+ 
+@@ -32,6 +34,9 @@
+ #define abs_index(L, i)		((i) &gt; 0 || (i) &lt;= LUA_REGISTRYINDEX ? (i) : \
+ 					lua_gettop(L) + (i) + 1)
+ 
++// Parameters for luaI_openlib
++#define LUA_USECCLOSURES          0
++#define LUA_USELIGHTFUNCTIONS     1
+ 
+ /*
+ ** {======================================================
+@@ -120,6 +125,16 @@
+   return 1;
+ }
+ 
++LUALIB_API int luaL_rometatable (lua_State *L, const char* tname, void *p) {
++  lua_getfield(L, LUA_REGISTRYINDEX, tname);  /* get registry.name */
++  if (!lua_isnil(L, -1))  /* name already in use? */
++    return 0;  /* leave previous value on top, but return 0 */
++  lua_pop(L, 1);
++  lua_pushrotable(L, p);
++  lua_pushvalue(L, -1);
++  lua_setfield(L, LUA_REGISTRYINDEX, tname);  /* registry.name = metatable */
++  return 1;
++}
+ 
+ LUALIB_API void *luaL_checkudata (lua_State *L, int ud, const char *tname) {
+   void *p = lua_touserdata(L, ud);
+@@ -148,7 +163,23 @@
+     tag_error(L, narg, t);
+ }
+ 
++LUALIB_API void luaL_checkanyfunction (lua_State *L, int narg) {
++  if (lua_type(L, narg) != LUA_TFUNCTION &amp;&amp; lua_type(L, narg) != LUA_TLIGHTFUNCTION) {
++    const char *msg = lua_pushfstring(L, &quot;function or lightfunction expected, got %s&quot;,
++                                      luaL_typename(L, narg));
++    luaL_argerror(L, narg, msg);    
++  }
++}
+ 
++LUALIB_API void luaL_checkanytable (lua_State *L, int narg) {
++  if (lua_type(L, narg) != LUA_TTABLE &amp;&amp; lua_type(L, narg) != LUA_TROTABLE) {
++    const char *msg = lua_pushfstring(L, &quot;table or rotable expected, got %s&quot;,
++                                      luaL_typename(L, narg));
++    luaL_argerror(L, narg, msg);    
++  }
++}
++
++
+ LUALIB_API void luaL_checkany (lua_State *L, int narg) {
+   if (lua_type(L, narg) == LUA_TNONE)
+     luaL_argerror(L, narg, &quot;value expected&quot;);
+@@ -228,9 +259,17 @@
+ 
+ LUALIB_API void (luaL_register) (lua_State *L, const char *libname,
+                                 const luaL_Reg *l) {
+-  luaI_openlib(L, libname, l, 0);
++  luaI_openlib(L, libname, l, 0, LUA_USECCLOSURES);
+ }
+ 
++LUALIB_API void (luaL_register_light) (lua_State *L, const char *libname,
++                                const luaL_Reg *l) {
++#if LUA_OPTIMIZE_MEMORY &gt; 0                              
++  luaI_openlib(L, libname, l, 0, LUA_USELIGHTFUNCTIONS);
++#else
++  luaI_openlib(L, libname, l, 0, LUA_USECCLOSURES);
++#endif  
++}
+ 
+ static int libsize (const luaL_Reg *l) {
+   int size = 0;
+@@ -240,7 +279,7 @@
+ 
+ 
+ LUALIB_API void luaI_openlib (lua_State *L, const char *libname,
+-                              const luaL_Reg *l, int nup) {
++                              const luaL_Reg *l, int nup, int ftype) {
+   if (libname) {
+     int size = libsize(l);
+     /* check whether lib already exists */
+@@ -261,7 +300,10 @@
+     int i;
+     for (i=0; i&lt;nup; i++)  /* copy upvalues to the top */
+       lua_pushvalue(L, -nup);
+-    lua_pushcclosure(L, l-&gt;func, nup);
++    if (ftype == LUA_USELIGHTFUNCTIONS)
++      lua_pushlightfunction(L, l-&gt;func);
++    else
++      lua_pushcclosure(L, l-&gt;func, nup);
+     lua_setfield(L, -(nup+2), l-&gt;name);
+   }
+   lua_pop(L, nup);  /* remove upvalues */
+@@ -363,6 +405,14 @@
+     if (e == NULL) e = fname + strlen(fname);
+     lua_pushlstring(L, fname, e - fname);
+     lua_rawget(L, -2);
++    if (lua_isnil(L, -1)) {
++      /* If looking for a global variable, check the rotables too */
++      void *ptable = luaR_findglobal(fname, e - fname);
++      if (ptable) {
++        lua_pop(L, 1);
++        lua_pushrotable(L, ptable);
++      }
++    }
+     if (lua_isnil(L, -1)) {  /* no such field? */
+       lua_pop(L, 1);  /* remove this nil */
+       lua_createtable(L, 0, (*e == '.' ? 1 : szhint)); /* new table for field */
+@@ -370,7 +420,7 @@
+       lua_pushvalue(L, -2);
+       lua_settable(L, -4);  /* set new table into field */
+     }
+-    else if (!lua_istable(L, -1)) {  /* field has a non-table value? */
++    else if (!lua_istable(L, -1) &amp;&amp; !lua_isrotable(L, -1)) {  /* field has a non-table value? */
+       lua_pop(L, 2);  /* remove table and value */
+       return fname;  /* return problematic part of the name */
+     }
+
+Modified: trunk/src/lua/lauxlib.h
+===================================================================
+--- trunk/src/lua/lauxlib.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lauxlib.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -40,9 +40,11 @@
+ 
+ 
+ LUALIB_API void (luaI_openlib) (lua_State *L, const char *libname,
+-                                const luaL_Reg *l, int nup);
++                                const luaL_Reg *l, int nup, int ftype);
+ LUALIB_API void (luaL_register) (lua_State *L, const char *libname,
+                                 const luaL_Reg *l);
++LUALIB_API void (luaL_register_light) (lua_State *L, const char *libname,
++                                const luaL_Reg *l);                                
+ LUALIB_API int (luaL_getmetafield) (lua_State *L, int obj, const char *e);
+ LUALIB_API int (luaL_callmeta) (lua_State *L, int obj, const char *e);
+ LUALIB_API int (luaL_typerror) (lua_State *L, int narg, const char *tname);
+@@ -61,8 +63,11 @@
+ LUALIB_API void (luaL_checkstack) (lua_State *L, int sz, const char *msg);
+ LUALIB_API void (luaL_checktype) (lua_State *L, int narg, int t);
+ LUALIB_API void (luaL_checkany) (lua_State *L, int narg);
++LUALIB_API void (luaL_checkanyfunction) (lua_State *L, int narg);
++LUALIB_API void (luaL_checkanytable) (lua_State *L, int narg);
+ 
+ LUALIB_API int   (luaL_newmetatable) (lua_State *L, const char *tname);
++LUALIB_API int   (luaL_rometatable) (lua_State *L, const char* tname, void *p);
+ LUALIB_API void *(luaL_checkudata) (lua_State *L, int ud, const char *tname);
+ 
+ LUALIB_API void (luaL_where) (lua_State *L, int lvl);
+
+Modified: trunk/src/lua/lbaselib.c
+===================================================================
+--- trunk/src/lua/lbaselib.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lbaselib.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -18,6 +18,7 @@
+ 
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lualib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ 
+ 
+@@ -104,7 +105,7 @@
+ static int luaB_setmetatable (lua_State *L) {
+   int t = lua_type(L, 2);
+   luaL_checktype(L, 1, LUA_TTABLE);
+-  luaL_argcheck(L, t == LUA_TNIL || t == LUA_TTABLE, 2,
++  luaL_argcheck(L, t == LUA_TNIL || t == LUA_TTABLE || t == LUA_TROTABLE, 2,
+                     &quot;nil or table expected&quot;);
+   if (luaL_getmetafield(L, 1, &quot;__metatable&quot;))
+     luaL_error(L, &quot;cannot change a protected metatable&quot;);
+@@ -167,7 +168,7 @@
+ 
+ 
+ static int luaB_rawget (lua_State *L) {
+-  luaL_checktype(L, 1, LUA_TTABLE);
++  luaL_checkanytable(L, 1);
+   luaL_checkany(L, 2);
+   lua_settop(L, 2);
+   lua_rawget(L, 1);
+@@ -224,7 +225,7 @@
+ 
+ 
+ static int luaB_next (lua_State *L) {
+-  luaL_checktype(L, 1, LUA_TTABLE);
++  luaL_checkanytable(L, 1);
+   lua_settop(L, 2);  /* create a 2nd argument if there isn't one */
+   if (lua_next(L, 1))
+     return 2;
+@@ -236,7 +237,7 @@
+ 
+ 
+ static int luaB_pairs (lua_State *L) {
+-  luaL_checktype(L, 1, LUA_TTABLE);
++  luaL_checkanytable(L, 1);
+   lua_pushvalue(L, lua_upvalueindex(1));  /* return generator, */
+   lua_pushvalue(L, 1);  /* state, */
+   lua_pushnil(L);  /* and initial value */
+@@ -246,7 +247,7 @@
+ 
+ static int ipairsaux (lua_State *L) {
+   int i = luaL_checkint(L, 2);
+-  luaL_checktype(L, 1, LUA_TTABLE);
++  luaL_checkanytable(L, 1);
+   i++;  /* next value */
+   lua_pushinteger(L, i);
+   lua_rawgeti(L, 1, i);
+@@ -255,7 +256,7 @@
+ 
+ 
+ static int luaB_ipairs (lua_State *L) {
+-  luaL_checktype(L, 1, LUA_TTABLE);
++  luaL_checkanytable(L, 1);
+   lua_pushvalue(L, lua_upvalueindex(1));  /* return generator, */
+   lua_pushvalue(L, 1);  /* state, */
+   lua_pushinteger(L, 0);  /* and initial value */
+@@ -443,32 +444,70 @@
+   return 1;
+ }
+ 
++#define LUA_BASELIB_FUNCLIST\
++  {LSTRKEY(&quot;assert&quot;), LFUNCVAL(luaB_assert)},\
++  {LSTRKEY(&quot;collectgarbage&quot;), LFUNCVAL(luaB_collectgarbage)},\
++  {LSTRKEY(&quot;dofile&quot;), LFUNCVAL(luaB_dofile)},\
++  {LSTRKEY(&quot;error&quot;), LFUNCVAL(luaB_error)},\
++  {LSTRKEY(&quot;gcinfo&quot;), LFUNCVAL(luaB_gcinfo)},\
++  {LSTRKEY(&quot;getfenv&quot;), LFUNCVAL(luaB_getfenv)},\
++  {LSTRKEY(&quot;getmetatable&quot;), LFUNCVAL(luaB_getmetatable)},\
++  {LSTRKEY(&quot;loadfile&quot;), LFUNCVAL(luaB_loadfile)},\
++  {LSTRKEY(&quot;load&quot;), LFUNCVAL(luaB_load)},\
++  {LSTRKEY(&quot;loadstring&quot;), LFUNCVAL(luaB_loadstring)},\
++  {LSTRKEY(&quot;next&quot;), LFUNCVAL(luaB_next)},\
++  {LSTRKEY(&quot;pcall&quot;), LFUNCVAL(luaB_pcall)},\
++  {LSTRKEY(&quot;print&quot;), LFUNCVAL(luaB_print)},\
++  {LSTRKEY(&quot;rawequal&quot;), LFUNCVAL(luaB_rawequal)},\
++  {LSTRKEY(&quot;rawget&quot;), LFUNCVAL(luaB_rawget)},\
++  {LSTRKEY(&quot;rawset&quot;), LFUNCVAL(luaB_rawset)},\
++  {LSTRKEY(&quot;select&quot;), LFUNCVAL(luaB_select)},\
++  {LSTRKEY(&quot;setfenv&quot;), LFUNCVAL(luaB_setfenv)},\
++  {LSTRKEY(&quot;setmetatable&quot;), LFUNCVAL(luaB_setmetatable)},\
++  {LSTRKEY(&quot;tonumber&quot;), LFUNCVAL(luaB_tonumber)},\
++  {LSTRKEY(&quot;tostring&quot;), LFUNCVAL(luaB_tostring)},\
++  {LSTRKEY(&quot;type&quot;), LFUNCVAL(luaB_type)},\
++  {LSTRKEY(&quot;unpack&quot;), LFUNCVAL(luaB_unpack)},\
++  {LSTRKEY(&quot;xpcall&quot;), LFUNCVAL(luaB_xpcall)}
++  
++#if LUA_OPTIMIZE_MEMORY == 2
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE base_funcs_list[] = {
++  LUA_BASELIB_FUNCLIST,
++  {LNILKEY, LNILVAL}
++};
++#endif
+ 
++
++static int luaB_index(lua_State *L) {
++#if LUA_OPTIMIZE_MEMORY == 2
++  int fres;
++  if ((fres = luaR_findfunction(L, base_funcs_list)) != 0)
++    return fres;
++#endif  
++  const char *keyname = luaL_checkstring(L, 2);
++  if (!strcmp(keyname, &quot;_VERSION&quot;)) {
++    lua_pushliteral(L, LUA_VERSION);
++    return 1;
++  }
++  void *res = luaR_findglobal(keyname, strlen(keyname));
++  if (!res)
++    return 0;
++  else {
++    lua_pushrotable(L, res);
++    return 1;
++  }
++}
++
+ static const luaL_Reg base_funcs[] = {
+-  {&quot;assert&quot;, luaB_assert},
+-  {&quot;collectgarbage&quot;, luaB_collectgarbage},
+-  {&quot;dofile&quot;, luaB_dofile},
+-  {&quot;error&quot;, luaB_error},
+-  {&quot;gcinfo&quot;, luaB_gcinfo},
+-  {&quot;getfenv&quot;, luaB_getfenv},
+-  {&quot;getmetatable&quot;, luaB_getmetatable},
+-  {&quot;loadfile&quot;, luaB_loadfile},
+-  {&quot;load&quot;, luaB_load},
+-  {&quot;loadstring&quot;, luaB_loadstring},
+-  {&quot;next&quot;, luaB_next},
+-  {&quot;pcall&quot;, luaB_pcall},
+-  {&quot;print&quot;, luaB_print},
+-  {&quot;rawequal&quot;, luaB_rawequal},
+-  {&quot;rawget&quot;, luaB_rawget},
+-  {&quot;rawset&quot;, luaB_rawset},
+-  {&quot;select&quot;, luaB_select},
+-  {&quot;setfenv&quot;, luaB_setfenv},
+-  {&quot;setmetatable&quot;, luaB_setmetatable},
+-  {&quot;tonumber&quot;, luaB_tonumber},
+-  {&quot;tostring&quot;, luaB_tostring},
+-  {&quot;type&quot;, luaB_type},
+-  {&quot;unpack&quot;, luaB_unpack},
+-  {&quot;xpcall&quot;, luaB_xpcall},
++#if LUA_OPTIMIZE_MEMORY != 2
++#undef MIN_OPT_LEVEL
++#define MIN_OPT_LEVEL 0
++#include &quot;lrodefs.h&quot;
++  LUA_BASELIB_FUNCLIST,
++#endif
++  {&quot;__index&quot;, luaB_index},
+   {NULL, NULL}
+ };
+ 
+@@ -601,15 +640,17 @@
+   return 1;
+ }
+ 
+-
+-static const luaL_Reg co_funcs[] = {
+-  {&quot;create&quot;, luaB_cocreate},
+-  {&quot;resume&quot;, luaB_coresume},
+-  {&quot;running&quot;, luaB_corunning},
+-  {&quot;status&quot;, luaB_costatus},
+-  {&quot;wrap&quot;, luaB_cowrap},
+-  {&quot;yield&quot;, luaB_yield},
+-  {NULL, NULL}
++#undef MIN_OPT_LEVEL
++#define MIN_OPT_LEVEL 1
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE co_funcs[] = {
++  {LSTRKEY(&quot;create&quot;), LFUNCVAL(luaB_cocreate)},
++  {LSTRKEY(&quot;resume&quot;), LFUNCVAL(luaB_coresume)},
++  {LSTRKEY(&quot;running&quot;), LFUNCVAL(luaB_corunning)},
++  {LSTRKEY(&quot;status&quot;), LFUNCVAL(luaB_costatus)},
++  {LSTRKEY(&quot;wrap&quot;), LFUNCVAL(luaB_cowrap)},
++  {LSTRKEY(&quot;yield&quot;), LFUNCVAL(luaB_yield)},
++  {LNILKEY, LNILVAL}
+ };
+ 
+ /* }====================================================== */
+@@ -628,9 +669,14 @@
+   lua_pushvalue(L, LUA_GLOBALSINDEX);
+   lua_setglobal(L, &quot;_G&quot;);
+   /* open lib into global table */
+-  luaL_register(L, &quot;_G&quot;, base_funcs);
++  luaL_register_light(L, &quot;_G&quot;, base_funcs);
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  lua_pushvalue(L, -1);
++  lua_setmetatable(L, -2);  
++#else
+   lua_pushliteral(L, LUA_VERSION);
+   lua_setglobal(L, &quot;_VERSION&quot;);  /* set global _VERSION */
++#endif
+   /* `ipairs' and `pairs' need auxliliary functions as upvalues */
+   auxopen(L, &quot;ipairs&quot;, luaB_ipairs, ipairsaux);
+   auxopen(L, &quot;pairs&quot;, luaB_pairs, luaB_next);
+@@ -647,7 +693,10 @@
+ 
+ LUALIB_API int luaopen_base (lua_State *L) {
+   base_open(L);
++#if LUA_OPTIMIZE_MEMORY == 0
+   luaL_register(L, LUA_COLIBNAME, co_funcs);
+   return 2;
++#else
++  return 1;
++#endif
+ }
+-
+
+Modified: trunk/src/lua/ldblib.c
+===================================================================
+--- trunk/src/lua/ldblib.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/ldblib.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -16,6 +16,7 @@
+ 
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lualib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ 
+ 
+@@ -106,7 +107,7 @@
+       return 1;
+     }
+   }
+-  else if (lua_isfunction(L, arg+1)) {
++  else if (lua_isfunction(L, arg+1) || lua_islightfunction(L, arg+1)) {
+     lua_pushfstring(L, &quot;&gt;%s&quot;, options);
+     options = lua_tostring(L, -1);
+     lua_pushvalue(L, arg+1);
+@@ -264,7 +265,7 @@
+   }
+   else {
+     const char *smask = luaL_checkstring(L, arg+2);
+-    luaL_checktype(L, arg+1, LUA_TFUNCTION);
++    luaL_checkanyfunction(L, arg+1);
+     count = luaL_optint(L, arg+3, 0);
+     func = hookf; mask = makemask(smask, count);
+   }
+@@ -370,28 +371,26 @@
+   return 1;
+ }
+ 
+-
+-static const luaL_Reg dblib[] = {
+-  {&quot;debug&quot;, db_debug},
+-  {&quot;getfenv&quot;, db_getfenv},
+-  {&quot;gethook&quot;, db_gethook},
+-  {&quot;getinfo&quot;, db_getinfo},
+-  {&quot;getlocal&quot;, db_getlocal},
+-  {&quot;getregistry&quot;, db_getregistry},
+-  {&quot;getmetatable&quot;, db_getmetatable},
+-  {&quot;getupvalue&quot;, db_getupvalue},
+-  {&quot;setfenv&quot;, db_setfenv},
+-  {&quot;sethook&quot;, db_sethook},
+-  {&quot;setlocal&quot;, db_setlocal},
+-  {&quot;setmetatable&quot;, db_setmetatable},
+-  {&quot;setupvalue&quot;, db_setupvalue},
+-  {&quot;traceback&quot;, db_errorfb},
+-  {NULL, NULL}
++#define MIN_OPT_LEVEL 1
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE dblib[] = {
++  {LSTRKEY(&quot;debug&quot;), LFUNCVAL(db_debug)},
++  {LSTRKEY(&quot;getfenv&quot;), LFUNCVAL(db_getfenv)},
++  {LSTRKEY(&quot;gethook&quot;), LFUNCVAL(db_gethook)},
++  {LSTRKEY(&quot;getinfo&quot;), LFUNCVAL(db_getinfo)},
++  {LSTRKEY(&quot;getlocal&quot;), LFUNCVAL(db_getlocal)},
++  {LSTRKEY(&quot;getregistry&quot;), LFUNCVAL(db_getregistry)},
++  {LSTRKEY(&quot;getmetatable&quot;), LFUNCVAL(db_getmetatable)},
++  {LSTRKEY(&quot;getupvalue&quot;), LFUNCVAL(db_getupvalue)},
++  {LSTRKEY(&quot;setfenv&quot;), LFUNCVAL(db_setfenv)},
++  {LSTRKEY(&quot;sethook&quot;), LFUNCVAL(db_sethook)},
++  {LSTRKEY(&quot;setlocal&quot;), LFUNCVAL(db_setlocal)},
++  {LSTRKEY(&quot;setmetatable&quot;), LFUNCVAL(db_setmetatable)},
++  {LSTRKEY(&quot;setupvalue&quot;), LFUNCVAL(db_setupvalue)},
++  {LSTRKEY(&quot;traceback&quot;), LFUNCVAL(db_errorfb)},
++  {LNILKEY, LNILVAL}
+ };
+ 
+-
+ LUALIB_API int luaopen_debug (lua_State *L) {
+-  luaL_register(L, LUA_DBLIBNAME, dblib);
+-  return 1;
++  LREGISTER(L, LUA_DBLIBNAME, dblib);
+ }
+-
+
+Modified: trunk/src/lua/ldebug.c
+===================================================================
+--- trunk/src/lua/ldebug.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/ldebug.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -147,8 +147,8 @@
+ }
+ 
+ 
+-static void funcinfo (lua_Debug *ar, Closure *cl) {
+-  if (cl-&gt;c.isC) {
++static void funcinfo (lua_Debug *ar, Closure *cl, void *plight) {
++  if (plight || cl-&gt;c.isC) {
+     ar-&gt;source = &quot;=[C]&quot;;
+     ar-&gt;linedefined = -1;
+     ar-&gt;lastlinedefined = -1;
+@@ -191,16 +191,16 @@
+ 
+ 
+ static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
+-                    Closure *f, CallInfo *ci) {
++                    Closure *f, void *plight, CallInfo *ci) {
+   int status = 1;
+-  if (f == NULL) {
++  if (plight == NULL &amp;&amp; f == NULL) {
+     info_tailcall(ar);
+     return status;
+   }
+   for (; *what; what++) {
+     switch (*what) {
+       case 'S': {
+-        funcinfo(ar, f);
++        funcinfo(ar, f, plight);
+         break;
+       }
+       case 'l': {
+@@ -208,7 +208,7 @@
+         break;
+       }
+       case 'u': {
+-        ar-&gt;nups = f-&gt;c.nupvalues;
++        ar-&gt;nups = f ? f-&gt;c.nupvalues : 0;
+         break;
+       }
+       case 'n': {
+@@ -233,23 +233,34 @@
+   int status;
+   Closure *f = NULL;
+   CallInfo *ci = NULL;
++  void *plight = NULL;
+   lua_lock(L);
+   if (*what == '&gt;') {
+     StkId func = L-&gt;top - 1;
+-    luai_apicheck(L, ttisfunction(func));
++    luai_apicheck(L, ttisfunction(func) || ttislightfunction(func));
+     what++;  /* skip the '&gt;' */
+-    f = clvalue(func);
++    if (ttisfunction(func))
++      f = clvalue(func);
++    else
++      plight = fvalue(func);
+     L-&gt;top--;  /* pop function */
+   }
+   else if (ar-&gt;i_ci != 0) {  /* no tail call? */
+     ci = L-&gt;base_ci + ar-&gt;i_ci;
+-    lua_assert(ttisfunction(ci-&gt;func));
+-    f = clvalue(ci-&gt;func);
++    lua_assert(ttisfunction(ci-&gt;func) || ttislightfunction(ci-&gt;func));
++    if (ttisfunction(ci-&gt;func))
++      f = clvalue(ci-&gt;func);
++    else
++      plight = fvalue(ci-&gt;func);
+   }
+-  status = auxgetinfo(L, what, ar, f, ci);
++  status = auxgetinfo(L, what, ar, f, plight, ci);
+   if (strchr(what, 'f')) {
+-    if (f == NULL) setnilvalue(L-&gt;top);
+-    else setclvalue(L, L-&gt;top, f);
++    if (f != NULL) 
++      setclvalue(L, L-&gt;top, f)
++    else if (plight != NULL)
++      setfvalue(L-&gt;top, plight)
++    else
++      setnilvalue(L-&gt;top);
+     incr_top(L);
+   }
+   if (strchr(what, 'L'))
+@@ -618,7 +629,7 @@
+ void luaG_errormsg (lua_State *L) {
+   if (L-&gt;errfunc != 0) {  /* is there an error handling function? */
+     StkId errfunc = restorestack(L, L-&gt;errfunc);
+-    if (!ttisfunction(errfunc)) luaD_throw(L, LUA_ERRERR);
++    if (!ttisfunction(errfunc) &amp;&amp; !ttislightfunction(errfunc)) luaD_throw(L, LUA_ERRERR);
+     setobjs2s(L, L-&gt;top, L-&gt;top - 1);  /* move argument */
+     setobjs2s(L, L-&gt;top - 1, errfunc);  /* push function */
+     incr_top(L);
+
+Modified: trunk/src/lua/ldo.c
+===================================================================
+--- trunk/src/lua/ldo.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/ldo.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -262,14 +262,15 @@
+ 
+ 
+ int luaD_precall (lua_State *L, StkId func, int nresults) {
+-  LClosure *cl;
+   ptrdiff_t funcr;
+-  if (!ttisfunction(func)) /* `func' is not a function? */
++  LClosure *cl = NULL;
++  if (!ttisfunction(func) &amp;&amp; !ttislightfunction(func)) /* `func' is not a function? */
+     func = tryfuncTM(L, func);  /* check the `function' tag method */
+   funcr = savestack(L, func);
+-  cl = &amp;clvalue(func)-&gt;l;
++  if (ttisfunction(func))
++    cl = &amp;clvalue(func)-&gt;l;
+   L-&gt;ci-&gt;savedpc = L-&gt;savedpc;
+-  if (!cl-&gt;isC) {  /* Lua function? prepare its call */
++  if (cl &amp;&amp; !cl-&gt;isC) {  /* Lua function? prepare its call */
+     CallInfo *ci;
+     StkId st, base;
+     Proto *p = cl-&gt;p;
+@@ -316,7 +317,10 @@
+     if (L-&gt;hookmask &amp; LUA_MASKCALL)
+       luaD_callhook(L, LUA_HOOKCALL, -1);
+     lua_unlock(L);
+-    n = (*curr_func(L)-&gt;c.f)(L);  /* do the actual call */
++    if (ttisfunction(func))
++      n = (*curr_func(L)-&gt;c.f)(L);  /* do the actual call */
++    else
++      n = ((lua_CFunction)fvalue(func))(L);  /* do the actual call */    
+     lua_lock(L);
+     if (n &lt; 0)  /* yielding? */
+       return PCRYIELD;
+
+Modified: trunk/src/lua/lgc.c
+===================================================================
+--- trunk/src/lua/lgc.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lgc.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -21,8 +21,8 @@
+ #include &quot;lstring.h&quot;
+ #include &quot;ltable.h&quot;
+ #include &quot;ltm.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+-
+ #define GCSTEPSIZE	1024u
+ #define GCSWEEPMAX	40
+ #define GCSWEEPCOST	10
+@@ -76,7 +76,7 @@
+     case LUA_TUSERDATA: {
+       Table *mt = gco2u(o)-&gt;metatable;
+       gray2black(o);  /* udata are never gray */
+-      if (mt) markobject(g, mt);
++      if (mt &amp;&amp; !luaR_isrotable(mt)) markobject(g, mt);
+       markobject(g, gco2u(o)-&gt;env);
+       return;
+     }
+@@ -160,7 +160,7 @@
+   int weakkey = 0;
+   int weakvalue = 0;
+   const TValue *mode;
+-  if (h-&gt;metatable)
++  if (h-&gt;metatable &amp;&amp; !luaR_isrotable(h-&gt;metatable))
+     markobject(g, h-&gt;metatable);
+   mode = gfasttm(g, h-&gt;metatable, TM_MODE);
+   if (mode &amp;&amp; ttisstring(mode)) {  /* is there a weak mode? */
+@@ -493,7 +493,7 @@
+ static void markmt (global_State *g) {
+   int i;
+   for (i=0; i&lt;NUM_TAGS; i++)
+-    if (g-&gt;mt[i]) markobject(g, g-&gt;mt[i]);
++    if (g-&gt;mt[i] &amp;&amp; !luaR_isrotable(g-&gt;mt[i])) markobject(g, g-&gt;mt[i]);
+ }
+ 
+ 
+
+Modified: trunk/src/lua/linit.c
+===================================================================
+--- trunk/src/lua/linit.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/linit.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -4,6 +4,7 @@
+ ** See Copyright Notice in lua.h
+ */
+ 
++
+ #define linit_c
+ #define LUA_LIB
+ 
+@@ -11,6 +12,8 @@
+ 
+ #include &quot;lualib.h&quot;
+ #include &quot;lauxlib.h&quot;
++#include &quot;lrotable.h&quot;
++#include &quot;luaconf.h&quot;
+ 
+ #ifndef LUA_CROSS_COMPILER
+ #include &quot;platform_conf.h&quot;
+@@ -19,17 +22,48 @@
+ static const luaL_Reg lualibs[] = {
+   {&quot;&quot;, luaopen_base},
+   {LUA_LOADLIBNAME, luaopen_package},
+-  {LUA_TABLIBNAME, luaopen_table},
+   {LUA_IOLIBNAME, luaopen_io},
+-//  {LUA_OSLIBNAME, luaopen_os},
+-  {LUA_STRLIBNAME, luaopen_string},
+-//  {LUA_DBLIBNAME, luaopen_debug},
+-#ifdef LUA_PLATFORM_LIBS  
+-  LUA_PLATFORM_LIBS,
++  {LUA_STRLIBNAME, luaopen_string},    
++#if LUA_OPTIMIZE_MEMORY == 0
++  {LUA_MATHLIBNAME, luaopen_math},
++  {LUA_TABLIBNAME, luaopen_table},  
++  {LUA_DBLIBNAME, luaopen_debug},  
++#endif
++#ifdef LUA_PLATFORM_LIBS_REG
++  LUA_PLATFORM_LIBS_REG,
+ #endif 
++#if defined(LUA_PLATFORM_LIBS_ROM) &amp;&amp; LUA_OPTIMIZE_MEMORY != 2
++#define _ROM( name, openf, table ) { name, openf },
++  LUA_PLATFORM_LIBS_ROM
++#endif
+   {NULL, NULL}
+ };
+ 
++extern const luaR_entry strlib[];
++extern const luaR_entry syslib[];
++extern const luaR_entry tab_funcs[];
++extern const luaR_entry dblib[];
++extern const luaR_entry co_funcs[];
++#if defined(LUA_PLATFORM_LIBS_ROM) &amp;&amp; LUA_OPTIMIZE_MEMORY == 2
++#undef _ROM
++#define _ROM( name, openf, table ) extern const luaR_entry table[];
++LUA_PLATFORM_LIBS_ROM;
++#endif
++const luaR_table lua_rotable[] = 
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  {LUA_STRLIBNAME, strlib},
++  {LUA_TABLIBNAME, tab_funcs},
++  {LUA_DBLIBNAME, dblib},
++  {LUA_COLIBNAME, co_funcs},
++#if defined(LUA_PLATFORM_LIBS_ROM) &amp;&amp; LUA_OPTIMIZE_MEMORY == 2
++#undef _ROM
++#define _ROM( name, openf, table ) { name, table },
++LUA_PLATFORM_LIBS_ROM
++#endif
++#endif
++  {NULL, NULL}
++};
+ 
+ LUALIB_API void luaL_openlibs (lua_State *L) {
+   const luaL_Reg *lib = lualibs;
+@@ -39,4 +73,3 @@
+     lua_call(L, 1, 0);
+   }
+ }
+-
+
+Modified: trunk/src/lua/liolib.c
+===================================================================
+--- trunk/src/lua/liolib.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/liolib.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -17,16 +17,25 @@
+ 
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lualib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ 
+-
+ #define IO_INPUT	1
+ #define IO_OUTPUT	2
++#define IO_STDERR	0
+ 
++#if LUA_OPTIMIZE_MEMORY != 2
++#define LUA_IO_GETFIELD(f)	lua_rawgeti(L, LUA_ENVIRONINDEX, f)
++#define LUA_IO_SETFIELD(f)  lua_rawseti(L, LUA_ENVIRONINDEX, f)
++#else
++#define LUA_IO_GETFIELD(f)  lua_rawgeti(L, LUA_REGISTRYINDEX, liolib_keys[f])
++#define LUA_IO_SETFIELD(f)  lua_rawseti(L, LUA_REGISTRYINDEX, liolib_keys[f])
++#endif
+ 
+ static const char *const fnames[] = {&quot;input&quot;, &quot;output&quot;};
++/* &quot;Pseudo-random&quot; keys for the registry */
++static const int liolib_keys[] = {(int)&amp;luaL_callmeta, (int)&amp;luaL_typerror, (int)&amp;luaL_argerror};
+ 
+-
+ static int pushresult (lua_State *L, int i, const char *filename) {
+   int en = errno;  /* calls to Lua API may change this value */
+   if (i) {
+@@ -92,6 +101,7 @@
+ }
+ 
+ 
++#if LUA_OPTIMIZE_MEMORY != 2
+ /*
+ ** function to (not) close the standard files stdin, stdout, and stderr
+ */
+@@ -122,18 +132,31 @@
+   *p = NULL;
+   return pushresult(L, ok, NULL);
+ }
++#endif
+ 
+-
+ static int aux_close (lua_State *L) {
++#if LUA_OPTIMIZE_MEMORY != 2
+   lua_getfenv(L, 1);
+   lua_getfield(L, -1, &quot;__close&quot;);
+   return (lua_tocfunction(L, -1))(L);
++#else
++  FILE **p = tofilep(L);
++  if(*p == stdin || *p == stdout || *p == stderr)
++  {
++    lua_pushnil(L);
++    lua_pushliteral(L, &quot;cannot close standard file&quot;);
++    return 2;  
++  }
++  int ok = (fclose(*p) == 0);
++  *p = NULL;
++  return pushresult(L, ok, NULL);
++#endif 
+ }
+ 
+ 
+ static int io_close (lua_State *L) {
+   if (lua_isnone(L, 1))
+-    lua_rawgeti(L, LUA_ENVIRONINDEX, IO_OUTPUT);
++    LUA_IO_GETFIELD(IO_OUTPUT);
+   tofile(L);  /* make sure argument is a file */
+   return aux_close(L);
+ }
+@@ -189,7 +212,7 @@
+ 
+ static FILE *getiofile (lua_State *L, int findex) {
+   FILE *f;
+-  lua_rawgeti(L, LUA_ENVIRONINDEX, findex);
++  LUA_IO_GETFIELD(findex);
+   f = *(FILE **)lua_touserdata(L, -1);
+   if (f == NULL)
+     luaL_error(L, &quot;standard %s file is closed&quot;, fnames[findex - 1]);
+@@ -210,10 +233,10 @@
+       tofile(L);  /* check that it's a valid file handle */
+       lua_pushvalue(L, 1);
+     }
+-    lua_rawseti(L, LUA_ENVIRONINDEX, f);
++    LUA_IO_SETFIELD(f);
+   }
+   /* return current value */
+-  lua_rawgeti(L, LUA_ENVIRONINDEX, f);
++  LUA_IO_GETFIELD(f);
+   return 1;
+ }
+ 
+@@ -248,7 +271,7 @@
+ static int io_lines (lua_State *L) {
+   if (lua_isnoneornil(L, 1)) {  /* no arguments? */
+     /* will iterate over default input */
+-    lua_rawgeti(L, LUA_ENVIRONINDEX, IO_INPUT);
++    LUA_IO_GETFIELD(IO_INPUT);
+     return f_lines(L);
+   }
+   else {
+@@ -473,47 +496,73 @@
+   return pushresult(L, fflush(tofile(L)) == 0, NULL);
+ }
+ 
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++#if LUA_OPTIMIZE_MEMORY == 2
++const LUA_REG_TYPE iolib_funcs[] = {
++#else
++const LUA_REG_TYPE iolib[] = {
++#endif
++  {LSTRKEY(&quot;close&quot;), LFUNCVAL(io_close)},
++  {LSTRKEY(&quot;flush&quot;), LFUNCVAL(io_flush)},
++  {LSTRKEY(&quot;input&quot;), LFUNCVAL(io_input)},
++  {LSTRKEY(&quot;lines&quot;), LFUNCVAL(io_lines)},
++  {LSTRKEY(&quot;open&quot;), LFUNCVAL(io_open)},
++  {LSTRKEY(&quot;output&quot;), LFUNCVAL(io_output)},
++  {LSTRKEY(&quot;popen&quot;), LFUNCVAL(io_popen)},
++  {LSTRKEY(&quot;read&quot;), LFUNCVAL(io_read)},
++  {LSTRKEY(&quot;tmpfile&quot;), LFUNCVAL(io_tmpfile)},
++  {LSTRKEY(&quot;type&quot;), LFUNCVAL(io_type)},
++  {LSTRKEY(&quot;write&quot;), LFUNCVAL(io_write)},
++  {LNILKEY, LNILVAL}
++};
+ 
+-static const luaL_Reg iolib[] = {
+-  {&quot;close&quot;, io_close},
+-  {&quot;flush&quot;, io_flush},
+-  {&quot;input&quot;, io_input},
+-  {&quot;lines&quot;, io_lines},
+-  {&quot;open&quot;, io_open},
+-  {&quot;output&quot;, io_output},
+-  {&quot;popen&quot;, io_popen},
+-  {&quot;read&quot;, io_read},
+-  {&quot;tmpfile&quot;, io_tmpfile},
+-  {&quot;type&quot;, io_type},
+-  {&quot;write&quot;, io_write},
++#if LUA_OPTIMIZE_MEMORY == 2
++static int luaL_index(lua_State *L)
++{
++  return luaR_findfunction(L, iolib_funcs);
++}
++  
++const luaL_Reg iolib[] = {
++  {&quot;__index&quot;, luaL_index},
+   {NULL, NULL}
+ };
++#endif
+ 
+-
+-static const luaL_Reg flib[] = {
+-  {&quot;close&quot;, io_close},
+-  {&quot;flush&quot;, f_flush},
+-  {&quot;lines&quot;, f_lines},
+-  {&quot;read&quot;, f_read},
+-  {&quot;seek&quot;, f_seek},
+-  {&quot;setvbuf&quot;, f_setvbuf},
+-  {&quot;write&quot;, f_write},
+-  {&quot;__gc&quot;, io_gc},
+-  {&quot;__tostring&quot;, io_tostring},
+-  {NULL, NULL}
++#undef MIN_OPT_LEVEL
++#define MIN_OPT_LEVEL 1
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE flib[] = {
++  {LSTRKEY(&quot;close&quot;), LFUNCVAL(io_close)},
++  {LSTRKEY(&quot;flush&quot;), LFUNCVAL(f_flush)},
++  {LSTRKEY(&quot;lines&quot;), LFUNCVAL(f_lines)},
++  {LSTRKEY(&quot;read&quot;), LFUNCVAL(f_read)},
++  {LSTRKEY(&quot;seek&quot;), LFUNCVAL(f_seek)},
++  {LSTRKEY(&quot;setvbuf&quot;), LFUNCVAL(f_setvbuf)},
++  {LSTRKEY(&quot;write&quot;), LFUNCVAL(f_write)},
++  {LSTRKEY(&quot;__gc&quot;), LFUNCVAL(io_gc)},
++  {LSTRKEY(&quot;__tostring&quot;), LFUNCVAL(io_tostring)},
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  {LSTRKEY(&quot;__index&quot;), LROVAL(flib)},
++#endif
++  {LNILKEY, LNILVAL}
+ };
+ 
+-
+ static void createmeta (lua_State *L) {
++#if LUA_OPTIMIZE_MEMORY == 0
+   luaL_newmetatable(L, LUA_FILEHANDLE);  /* create metatable for file handles */
+   lua_pushvalue(L, -1);  /* push metatable */
+   lua_setfield(L, -2, &quot;__index&quot;);  /* metatable.__index = metatable */
+   luaL_register(L, NULL, flib);  /* file methods */
++#else
++  luaL_rometatable(L, LUA_FILEHANDLE, (void*)flib);  /* create metatable for file handles */
++#endif
+ }
+ 
+ 
+ static void createstdfile (lua_State *L, FILE *f, int k, const char *fname) {
+   *newfile(L) = f;
++#if LUA_OPTIMIZE_MEMORY != 2
+   if (k &gt; 0) {
+     lua_pushvalue(L, -1);
+     lua_rawseti(L, LUA_ENVIRONINDEX, k);
+@@ -521,33 +570,45 @@
+   lua_pushvalue(L, -2);  /* copy environment */
+   lua_setfenv(L, -2);  /* set it */
+   lua_setfield(L, -3, fname);
++#else
++  lua_pushvalue(L, -1);
++  lua_rawseti(L, LUA_REGISTRYINDEX, liolib_keys[k]);
++  lua_setfield(L, -2, fname);
++#endif
+ }
+ 
+-
++#if LUA_OPTIMIZE_MEMORY != 2
+ static void newfenv (lua_State *L, lua_CFunction cls) {
+   lua_createtable(L, 0, 1);
+   lua_pushcfunction(L, cls);
+   lua_setfield(L, -2, &quot;__close&quot;);
+ }
++#endif
+ 
+-
+ LUALIB_API int luaopen_io (lua_State *L) {
+   createmeta(L);
++#if LUA_OPTIMIZE_MEMORY != 2
+   /* create (private) environment (with fields IO_INPUT, IO_OUTPUT, __close) */
+   newfenv(L, io_fclose);
+   lua_replace(L, LUA_ENVIRONINDEX);
+   /* open library */
+   luaL_register(L, LUA_IOLIBNAME, iolib);
++  newfenv(L, io_noclose);  /* close function for default files */
++#else
++  luaL_register_light(L, LUA_IOLIBNAME, iolib);
++  lua_pushvalue(L, -1);
++  lua_setmetatable(L, -2);
++#endif
+   /* create (and set) default files */
+-  newfenv(L, io_noclose);  /* close function for default files */
+   createstdfile(L, stdin, IO_INPUT, &quot;stdin&quot;);
+   createstdfile(L, stdout, IO_OUTPUT, &quot;stdout&quot;);
+-  createstdfile(L, stderr, 0, &quot;stderr&quot;);
++  createstdfile(L, stderr, IO_STDERR, &quot;stderr&quot;);
++#if LUA_OPTIMIZE_MEMORY != 2
+   lua_pop(L, 1);  /* pop environment for default files */
+   lua_getfield(L, -1, &quot;popen&quot;);
+   newfenv(L, io_pclose);  /* create environment for 'popen' */
+   lua_setfenv(L, -2);  /* set fenv for 'popen' */
+   lua_pop(L, 1);  /* pop 'popen' */
++#endif
+   return 1;
+ }
+-
+
+Modified: trunk/src/lua/lmathlib.c
+===================================================================
+--- trunk/src/lua/lmathlib.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lmathlib.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -15,8 +15,8 @@
+ 
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lualib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+-
+ #undef PI
+ #define PI (3.14159265358979323846)
+ #define RADIANS_PER_DEGREE (PI/180.0)
+@@ -211,37 +211,45 @@
+   return 0;
+ }
+ 
+-
+-static const luaL_Reg mathlib[] = {
+-  {&quot;abs&quot;,   math_abs},
+-  {&quot;acos&quot;,  math_acos},
+-  {&quot;asin&quot;,  math_asin},
+-  {&quot;atan2&quot;, math_atan2},
+-  {&quot;atan&quot;,  math_atan},
+-  {&quot;ceil&quot;,  math_ceil},
+-  {&quot;cosh&quot;,   math_cosh},
+-  {&quot;cos&quot;,   math_cos},
+-  {&quot;deg&quot;,   math_deg},
+-  {&quot;exp&quot;,   math_exp},
+-  {&quot;floor&quot;, math_floor},
+-  {&quot;fmod&quot;,   math_fmod},
+-  {&quot;frexp&quot;, math_frexp},
+-  {&quot;ldexp&quot;, math_ldexp},
+-  {&quot;log10&quot;, math_log10},
+-  {&quot;log&quot;,   math_log},
+-  {&quot;max&quot;,   math_max},
+-  {&quot;min&quot;,   math_min},
+-  {&quot;modf&quot;,   math_modf},
+-  {&quot;pow&quot;,   math_pow},
+-  {&quot;rad&quot;,   math_rad},
+-  {&quot;random&quot;,     math_random},
+-  {&quot;randomseed&quot;, math_randomseed},
+-  {&quot;sinh&quot;,   math_sinh},
+-  {&quot;sin&quot;,   math_sin},
+-  {&quot;sqrt&quot;,  math_sqrt},
+-  {&quot;tanh&quot;,   math_tanh},
+-  {&quot;tan&quot;,   math_tan},
+-  {NULL, NULL}
++#define MIN_OPT_LEVEL 1
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE math_map[] = {
++  {LSTRKEY(&quot;abs&quot;),   LFUNCVAL(math_abs)},
++  {LSTRKEY(&quot;acos&quot;),  LFUNCVAL(math_acos)},
++  {LSTRKEY(&quot;asin&quot;),  LFUNCVAL(math_asin)},
++  {LSTRKEY(&quot;atan2&quot;), LFUNCVAL(math_atan2)},
++  {LSTRKEY(&quot;atan&quot;),  LFUNCVAL(math_atan)},
++  {LSTRKEY(&quot;ceil&quot;),  LFUNCVAL(math_ceil)},
++  {LSTRKEY(&quot;cosh&quot;),  LFUNCVAL(math_cosh)},
++  {LSTRKEY(&quot;cos&quot;),   LFUNCVAL(math_cos)},
++  {LSTRKEY(&quot;deg&quot;),   LFUNCVAL(math_deg)},
++  {LSTRKEY(&quot;exp&quot;),   LFUNCVAL(math_exp)},
++  {LSTRKEY(&quot;floor&quot;), LFUNCVAL(math_floor)},
++  {LSTRKEY(&quot;fmod&quot;),  LFUNCVAL(math_fmod)},
++#if LUA_OPTIMIZE_MEMORY &gt; 0 &amp;&amp; defined(LUA_COMPAT_MOD)
++  {LSTRKEY(&quot;mod&quot;),   LFUNCVAL(math_fmod)}, 
++#endif
++  {LSTRKEY(&quot;frexp&quot;), LFUNCVAL(math_frexp)},
++  {LSTRKEY(&quot;ldexp&quot;), LFUNCVAL(math_ldexp)},
++  {LSTRKEY(&quot;log10&quot;), LFUNCVAL(math_log10)},
++  {LSTRKEY(&quot;log&quot;),   LFUNCVAL(math_log)},
++  {LSTRKEY(&quot;max&quot;),   LFUNCVAL(math_max)},
++  {LSTRKEY(&quot;min&quot;),   LFUNCVAL(math_min)},
++  {LSTRKEY(&quot;modf&quot;),   LFUNCVAL(math_modf)},
++  {LSTRKEY(&quot;pow&quot;),   LFUNCVAL(math_pow)},
++  {LSTRKEY(&quot;rad&quot;),   LFUNCVAL(math_rad)},
++  {LSTRKEY(&quot;random&quot;),     LFUNCVAL(math_random)},
++  {LSTRKEY(&quot;randomseed&quot;), LFUNCVAL(math_randomseed)},
++  {LSTRKEY(&quot;sinh&quot;),   LFUNCVAL(math_sinh)},
++  {LSTRKEY(&quot;sin&quot;),   LFUNCVAL(math_sin)},
++  {LSTRKEY(&quot;sqrt&quot;),  LFUNCVAL(math_sqrt)},
++  {LSTRKEY(&quot;tanh&quot;),   LFUNCVAL(math_tanh)},
++  {LSTRKEY(&quot;tan&quot;),   LFUNCVAL(math_tan)},
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  {LSTRKEY(&quot;pi&quot;),    LNUMVAL(PI)},
++  {LSTRKEY(&quot;huge&quot;),  LNUMVAL(HUGE_VAL)},
++#endif
++  {LNILKEY, LNILVAL}
+ };
+ 
+ 
+@@ -250,7 +258,10 @@
+ */
+ LUALIB_API int luaopen_math (lua_State *L) {
+ #if !defined LUA_NUMBER_INTEGRAL
+-  luaL_register(L, LUA_MATHLIBNAME, mathlib);
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_register(L, LUA_MATHLIBNAME, math_map);
+   lua_pushnumber(L, PI);
+   lua_setfield(L, -2, &quot;pi&quot;);
+   lua_pushnumber(L, HUGE_VAL);
+@@ -258,8 +269,9 @@
+ #if defined(LUA_COMPAT_MOD)
+   lua_getfield(L, -1, &quot;fmod&quot;);
+   lua_setfield(L, -2, &quot;mod&quot;);
++#endif // #if defined(LUA_COMPAT_MOD)
+   return 1;
+-#endif // #if defined(LUA_COMPAT_MOD)
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
+ #else // #if !defined LUA_NUMBER_INTEGRAL
+   return 0;
+ #endif // #if !defined LUA_NUMBER_INTEGRAL
+
+Modified: trunk/src/lua/loadlib.c
+===================================================================
+--- trunk/src/lua/loadlib.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/loadlib.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -20,8 +20,8 @@
+ 
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lualib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+-
+ /* prefix for open functions in C libraries */
+ #define LUA_POF		&quot;luaopen_&quot;
+ 
+@@ -459,6 +459,12 @@
+       luaL_error(L, &quot;loop or previous error loading module &quot; LUA_QS, name);
+     return 1;  /* package is already loaded */
+   }
++  /* Is this a readonly table? */
++  void *res = luaR_findglobal(name, strlen(name));
++  if (res) {
++    lua_pushrotable(L, res);
++    return 1;
++  }
+   /* else must load it; iterate over available loaders */
+   lua_getfield(L, LUA_ENVIRONINDEX, &quot;loaders&quot;);
+   if (!lua_istable(L, -1))
+@@ -543,6 +549,8 @@
+ 
+ static int ll_module (lua_State *L) {
+   const char *modname = luaL_checkstring(L, 1);
++  if (luaR_findglobal(modname, strlen(modname)))
++    return 0;
+   int loaded = lua_gettop(L) + 1;  /* index of _LOADED table */
+   lua_getfield(L, LUA_REGISTRYINDEX, &quot;_LOADED&quot;);
+   lua_getfield(L, loaded, modname);  /* get _LOADED[modname] */
+@@ -623,15 +631,25 @@
+ static const lua_CFunction loaders[] =
+   {loader_preload, loader_Lua, loader_C, loader_Croot, NULL};
+ 
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++const luaR_entry lmt[] = {
++  {LRO_STRKEY(&quot;__gc&quot;), LRO_FUNCVAL(gctm)},
++  {LRO_NILKEY, LRO_NILVAL}
++};
++#endif
+ 
+ LUALIB_API int luaopen_package (lua_State *L) {
+   int i;
+   /* create new type _LOADLIB */
++#if LUA_OPTIMIZE_MEMORY == 0
+   luaL_newmetatable(L, &quot;_LOADLIB&quot;);
+-  lua_pushcfunction(L, gctm);
++  lua_pushlightfunction(L, gctm);
+   lua_setfield(L, -2, &quot;__gc&quot;);
++#else
++  luaL_rometatable(L, &quot;_LOADLIB&quot;, (void*)lmt);
++#endif
+   /* create `package' table */
+-  luaL_register(L, LUA_LOADLIBNAME, pk_funcs);
++  luaL_register_light(L, LUA_LOADLIBNAME, pk_funcs);
+ #if defined(LUA_COMPAT_LOADLIB) 
+   lua_getfield(L, -1, &quot;loadlib&quot;);
+   lua_setfield(L, LUA_GLOBALSINDEX, &quot;loadlib&quot;);
+
+Modified: trunk/src/lua/lobject.c
+===================================================================
+--- trunk/src/lua/lobject.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lobject.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -79,6 +79,8 @@
+     case LUA_TBOOLEAN:
+       return bvalue(t1) == bvalue(t2);  /* boolean true must be 1 !! */
+     case LUA_TLIGHTUSERDATA:
++    case LUA_TROTABLE:
++    case LUA_TLIGHTFUNCTION:
+       return pvalue(t1) == pvalue(t2);
+     default:
+       lua_assert(iscollectable(t1));
+
+Modified: trunk/src/lua/lobject.h
+===================================================================
+--- trunk/src/lua/lobject.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lobject.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -74,7 +74,6 @@
+   TValuefields;
+ } TValue;
+ 
+-
+ /* Macros to test type */
+ #define ttisnil(o)	(ttype(o) == LUA_TNIL)
+ #define ttisnumber(o)	(ttype(o) == LUA_TNUMBER)
+@@ -85,11 +84,15 @@
+ #define ttisuserdata(o)	(ttype(o) == LUA_TUSERDATA)
+ #define ttisthread(o)	(ttype(o) == LUA_TTHREAD)
+ #define ttislightuserdata(o)	(ttype(o) == LUA_TLIGHTUSERDATA)
++#define ttisrotable(o) (ttype(o) == LUA_TROTABLE)
++#define ttislightfunction(o)  (ttype(o) == LUA_TLIGHTFUNCTION)
+ 
+ /* Macros to access values */
+ #define ttype(o)	((o)-&gt;tt)
+ #define gcvalue(o)	check_exp(iscollectable(o), (o)-&gt;value.gc)
+ #define pvalue(o)	check_exp(ttislightuserdata(o), (o)-&gt;value.p)
++#define rvalue(o)	check_exp(ttisrotable(o), (o)-&gt;value.p)
++#define fvalue(o) check_exp(ttislightfunction(o), (o)-&gt;value.p)
+ #define nvalue(o)	check_exp(ttisnumber(o), (o)-&gt;value.n)
+ #define rawtsvalue(o)	check_exp(ttisstring(o), &amp;(o)-&gt;value.gc-&gt;ts)
+ #define tsvalue(o)	(&amp;rawtsvalue(o)-&gt;tsv)
+@@ -121,6 +124,12 @@
+ 
+ #define setpvalue(obj,x) \
+   { TValue *i_o=(obj); i_o-&gt;value.p=(x); i_o-&gt;tt=LUA_TLIGHTUSERDATA; }
++  
++#define setrvalue(obj,x) \
++  { TValue *i_o=(obj); i_o-&gt;value.p=(x); i_o-&gt;tt=LUA_TROTABLE; }
++  
++#define setfvalue(obj,x) \
++  { TValue *i_o=(obj); i_o-&gt;value.p=(x); i_o-&gt;tt=LUA_TLIGHTFUNCTION; }
+ 
+ #define setbvalue(obj,x) \
+   { TValue *i_o=(obj); i_o-&gt;value.b=(x); i_o-&gt;tt=LUA_TBOOLEAN; }
+@@ -312,7 +321,7 @@
+ } Closure;
+ 
+ 
+-#define iscfunction(o)	(ttype(o) == LUA_TFUNCTION &amp;&amp; clvalue(o)-&gt;c.isC)
++#define iscfunction(o)	((ttype(o) == LUA_TFUNCTION &amp;&amp; clvalue(o)-&gt;c.isC)||(ttype(o)==LUA_TLIGHTFUNCTION))
+ #define isLfunction(o)	(ttype(o) == LUA_TFUNCTION &amp;&amp; !clvalue(o)-&gt;c.isC)
+ 
+ 
+@@ -348,7 +357,6 @@
+ } Table;
+ 
+ 
+-
+ /*
+ ** `module' operation for hashing (size is always a power of 2)
+ */
+
+Modified: trunk/src/lua/loslib.c
+===================================================================
+--- trunk/src/lua/loslib.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/loslib.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -18,6 +18,7 @@
+ 
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lualib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ 
+ static int os_pushresult (lua_State *L, int i, const char *filename) {
+@@ -218,21 +219,23 @@
+   exit(luaL_optint(L, 1, EXIT_SUCCESS));
+ }
+ 
+-static const luaL_Reg syslib[] = {
+-  {&quot;clock&quot;,     os_clock},
+-  {&quot;date&quot;,      os_date},
+-#if !defined LUA_NUMBER_INTEGRAL  
+-  {&quot;difftime&quot;,  os_difftime},
++#define MIN_OPT_LEVEL 1
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE syslib[] = {
++  {LSTRKEY(&quot;clock&quot;),     LFUNCVAL(os_clock)},
++  {LSTRKEY(&quot;date&quot;),      LFUNCVAL(os_date)},
++#if !defined LUA_NUMBER_INTEGRAL
++  {LSTRKEY(&quot;difftime&quot;),  LFUNCVAL(os_difftime)},
+ #endif
+-  {&quot;execute&quot;,   os_execute},
+-  {&quot;exit&quot;,      os_exit},
+-  {&quot;getenv&quot;,    os_getenv},
+-  {&quot;remove&quot;,    os_remove},
+-  {&quot;rename&quot;,    os_rename},
+-  {&quot;setlocale&quot;, os_setlocale},
+-  {&quot;time&quot;,      os_time},
+-  {&quot;tmpname&quot;,   os_tmpname},
+-  {NULL, NULL}
++  {LSTRKEY(&quot;execute&quot;),   LFUNCVAL(os_execute)},
++  {LSTRKEY(&quot;exit&quot;),      LFUNCVAL(os_exit)},
++  {LSTRKEY(&quot;getenv&quot;),    LFUNCVAL(os_getenv)},
++  {LSTRKEY(&quot;remove&quot;),    LFUNCVAL(os_remove)},
++  {LSTRKEY(&quot;rename&quot;),    LFUNCVAL(os_rename)},
++  {LSTRKEY(&quot;setlocale&quot;), LFUNCVAL(os_setlocale)},
++  {LSTRKEY(&quot;time&quot;),      LFUNCVAL(os_time)},
++  {LSTRKEY(&quot;tmpname&quot;),   LFUNCVAL(os_tmpname)},
++  {LNILKEY, LNILVAL}
+ };
+ 
+ /* }====================================================== */
+@@ -240,7 +243,5 @@
+ 
+ 
+ LUALIB_API int luaopen_os (lua_State *L) {
+-  luaL_register(L, LUA_OSLIBNAME, syslib);
+-  return 1;
++  LREGISTER(L, LUA_OSLIBNAME, syslib);
+ }
+-
+
+Added: trunk/src/lua/lrodefs.h
+===================================================================
+--- trunk/src/lua/lrodefs.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lrodefs.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -0,0 +1,34 @@
++/* Read-only tables helper */
++
++#undef LUA_REG_TYPE
++#undef LSTRKEY
++#undef LNILKEY
++#undef LNUMKEY
++#undef LFUNCVAL
++#undef LNUMVAL
++#undef LROVAL
++#undef LNILVAL
++#undef LREGISTER
++
++#if (MIN_OPT_LEVEL &gt; 0) &amp;&amp; (LUA_OPTIMIZE_MEMORY &gt;= MIN_OPT_LEVEL)
++#define LUA_REG_TYPE                luaR_entry 
++#define LSTRKEY                     LRO_STRKEY
++#define LNUMKEY                     LRO_NUMKEY
++#define LNILKEY                     LRO_NILKEY
++#define LFUNCVAL                    LRO_FUNCVAL
++#define LNUMVAL                     LRO_NUMVAL
++#define LROVAL                      LRO_ROVAL
++#define LNILVAL                     LRO_NILVAL
++#define LREGISTER(L, name, table)\
++  return 0
++#else
++#define LUA_REG_TYPE                luaL_reg
++#define LSTRKEY(x)                  x
++#define LNILKEY                     NULL
++#define LFUNCVAL(x)                 x
++#define LNILVAL                     NULL
++#define LREGISTER(L, name, table)\
++  luaL_register(L, name, table);\
++  return 1
++#endif
++
+
+Added: trunk/src/lua/lrotable.c
+===================================================================
+--- trunk/src/lua/lrotable.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lrotable.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -0,0 +1,134 @@
++/* Read-only tables for Lua */
++
++#include &lt;string.h&gt;
++#include &quot;lrotable.h&quot;
++#include &quot;lua.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;lstring.h&quot;
++#include &quot;lobject.h&quot;
++#include &quot;lapi.h&quot;
++
++/* Local defines */
++#define LUAR_FINDFUNCTION     0
++#define LUAR_FINDVALUE        1
++
++/* Externally defined read-only table array */
++extern const luaR_table lua_rotable[];
++
++/* Find a global &quot;read only table&quot; in the constant lua_rotable array */
++void* luaR_findglobal(const char *name, unsigned len) {
++  unsigned i;    
++  
++  if (strlen(name) &gt; LUA_MAX_ROTABLE_NAME)
++    return NULL;
++  for (i=0; lua_rotable[i].name; i ++)
++    if (*lua_rotable[i].name != '\0' &amp;&amp; strlen(lua_rotable[i].name) == len &amp;&amp; !strncmp(lua_rotable[i].name, name, len)) {
++      return (void*)(lua_rotable[i].pentries);
++    }
++  return NULL;
++}
++
++/* Find an entry in a rotable and return it */
++static const TValue* luaR_auxfind(const luaR_entry *pentry, const char *strkey, luaR_numkey numkey, unsigned *ppos) {
++  const TValue *res = NULL;
++  unsigned i = 0;
++  
++  if (pentry == NULL)
++    return NULL;  
++  while(pentry-&gt;key.type != LUA_TNIL) {
++    if ((strkey &amp;&amp; (pentry-&gt;key.type == LUA_TSTRING) &amp;&amp; (!strcmp(pentry-&gt;key.strkey, strkey))) || 
++        (!strkey &amp;&amp; (pentry-&gt;key.type == LUA_TNUMBER) &amp;&amp; ((luaR_numkey)pentry-&gt;key.numkey == numkey))) {
++      res = &amp;pentry-&gt;value;
++      break;
++    }
++    i ++; pentry ++;
++  }
++  if (res &amp;&amp; ppos)
++    *ppos = i;   
++  return res;
++}
++
++int luaR_findfunction(lua_State *L, const luaR_entry *ptable) {
++  const TValue *res = NULL;
++  const char *key = luaL_checkstring(L, 2);
++    
++  res = luaR_auxfind(ptable, key, 0, NULL);  
++  if (res &amp;&amp; ttislightfunction(res)) {
++    luaA_pushobject(L, res);
++    return 1;
++  }
++  else
++    return 0;
++}
++
++/* Find an entry in a rotable and return its type 
++   If &quot;strkey&quot; is not NULL, the function will look for a string key,
++   otherwise it will look for a number key */
++const TValue* luaR_findentry(void *data, const char *strkey, luaR_numkey numkey, unsigned *ppos) {
++  return luaR_auxfind((const luaR_entry*)data, strkey, numkey, ppos);
++}
++
++/* Find the metatable of a given table */
++void* luaR_getmeta(void *data) {
++#ifdef LUA_META_ROTABLES
++  const TValue *res = luaR_auxfind((const luaR_entry*)data, &quot;__metatable&quot;, 0, NULL);
++  return res &amp;&amp; ttisrotable(res) ? rvalue(res) : NULL;
++#else
++  return NULL;
++#endif
++}
++
++static void luaR_next_helper(lua_State *L, const luaR_entry *pentries, int pos, TValue *key, TValue *val) {
++  setnilvalue(key);
++  setnilvalue(val);
++  if (pentries[pos].key.type != LUA_TNIL) {
++    /* Found an entry */
++    if (pentries[pos].key.type == LUA_TSTRING)
++      setsvalue(L, key, luaS_new(L, pentries[pos].key.strkey))
++    else
++      setnvalue(key, (lua_Number)pentries[pos].key.numkey)
++   setobj2s(L, val, &amp;pentries[pos].value);
++  }
++}
++/* next (used for iteration) */
++void luaR_next(lua_State *L, void *data, TValue *key, TValue *val) {
++  const luaR_entry* pentries = (const luaR_entry*)data;
++  char strkey[LUA_MAX_ROTABLE_NAME + 1], *pstrkey = NULL;
++  luaR_numkey numkey = 0;
++  unsigned keypos;
++  
++  /* Special case: if key is nil, return the first element of the rotable */
++  if (ttisnil(key)) 
++    luaR_next_helper(L, pentries, 0, key, val);
++  else if (ttisstring(key) || ttisnumber(key)) {
++    /* Find the previoud key again */  
++    if (ttisstring(key)) {
++      luaR_getcstr(strkey, rawtsvalue(key), LUA_MAX_ROTABLE_NAME);          
++      pstrkey = strkey;
++    } else   
++      numkey = (luaR_numkey)nvalue(key);
++    luaR_findentry(data, pstrkey, numkey, &amp;keypos);
++    /* Advance to next key */
++    keypos ++;    
++    luaR_next_helper(L, pentries, keypos, key, val);
++  }
++}
++
++/* Convert a Lua string to a C string */
++void luaR_getcstr(char *dest, const TString *src, size_t maxsize) {
++  if (src-&gt;tsv.len+1 &gt; maxsize)
++    dest[0] = '\0';
++  else {
++    memcpy(dest, getstr(src), src-&gt;tsv.len);
++    dest[src-&gt;tsv.len] = '\0';
++  } 
++}
++
++/* Return 1 if the given pointer is a rotable */
++#ifdef LUA_META_ROTABLES
++extern char stext[];
++extern char etext[];
++int luaR_isrotable(void *p) {
++  return stext &lt;= ( char* )p &amp;&amp; ( char* )p &lt;= etext;
++}
++#endif
+
+Added: trunk/src/lua/lrotable.h
+===================================================================
+--- trunk/src/lua/lrotable.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lrotable.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -0,0 +1,64 @@
++/* Read-only tables for Lua */
++
++#ifndef lrotable_h
++#define lrotable_h
++
++#include &quot;lua.h&quot;
++#include &quot;llimits.h&quot;
++#include &quot;lobject.h&quot;
++#include &quot;luaconf.h&quot;
++
++/* Macros one can use to define rotable entries */
++#define LRO_FUNCVAL(v)  {{.p = v}, LUA_TLIGHTFUNCTION}
++#define LRO_NUMVAL(v)   {{.n = v}, LUA_TNUMBER}
++#define LRO_ROVAL(v)    {{.p = ( void* )v}, LUA_TROTABLE}
++#define LRO_NILVAL      {{.p = NULL}, LUA_TNIL}
++
++#define LRO_STRKEY(k)   {LUA_TSTRING, {.strkey = k}}
++#define LRO_NUMKEY(k)   {LUA_TNUMBER, {.numkey = k}}
++#define LRO_NILKEY      {LUA_TNIL, {.strkey=NULL}}
++
++/* Maximum length of a rotable name */
++#define LUA_MAX_ROTABLE_NAME      16
++
++/* Type of a numeric key in a rotable */
++typedef int luaR_numkey;
++
++/* The next structure defines the type of a key */
++typedef struct
++{
++  int type;
++  union
++  {
++    const char*   strkey;
++    luaR_numkey   numkey;
++  };
++} luaR_key;
++
++/* An entry in the read only table */
++typedef struct
++{
++  const luaR_key key;
++  const TValue value;
++} luaR_entry;
++
++/* A rotable */
++typedef struct
++{
++  const char *name;
++  const luaR_entry *pentries;
++} luaR_table;
++
++void* luaR_findglobal(const char *key, unsigned len);
++int luaR_findfunction(lua_State *L, const luaR_entry *ptable);
++const TValue* luaR_findentry(void *data, const char *strkey, luaR_numkey numkey, unsigned *ppos);
++void luaR_getcstr(char *dest, const TString *src, size_t maxsize);
++void luaR_next(lua_State *L, void *data, TValue *key, TValue *val);
++void* luaR_getmeta(void *data);
++#ifdef LUA_META_ROTABLES
++int luaR_isrotable(void *p);
++#else
++#define luaR_isrotable(p)     (0)
++#endif
++
++#endif
+
+Modified: trunk/src/lua/lstate.h
+===================================================================
+--- trunk/src/lua/lstate.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lstate.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -56,9 +56,9 @@
+ 
+ 
+ 
+-#define curr_func(L)	(clvalue(L-&gt;ci-&gt;func))
+-#define ci_func(ci)	(clvalue((ci)-&gt;func))
+-#define f_isLua(ci)	(!ci_func(ci)-&gt;c.isC)
++#define curr_func(L)	(ttisfunction(L-&gt;ci-&gt;func) ? clvalue(L-&gt;ci-&gt;func) : NULL)
++#define ci_func(ci)	(ttisfunction((ci)-&gt;func) ? clvalue((ci)-&gt;func) : NULL)
++#define f_isLua(ci)	(!ttislightfunction((ci)-&gt;func) &amp;&amp; !ci_func(ci)-&gt;c.isC)
+ #define isLua(ci)	(ttisfunction((ci)-&gt;func) &amp;&amp; f_isLua(ci))
+ 
+ 
+@@ -161,7 +161,6 @@
+ /* macro to convert any Lua object into a GCObject */
+ #define obj2gco(v)	(cast(GCObject *, (v)))
+ 
+-
+ LUAI_FUNC lua_State *luaE_newthread (lua_State *L);
+ LUAI_FUNC void luaE_freethread (lua_State *L, lua_State *L1);
+ 
+
+Modified: trunk/src/lua/lstrlib.c
+===================================================================
+--- trunk/src/lua/lstrlib.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lstrlib.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -18,8 +18,8 @@
+ 
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lualib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+-
+ /* macro to `unsign' a character */
+ #define uchar(c)        ((unsigned char)(c))
+ 
+@@ -580,13 +580,13 @@
+   return 1;
+ }
+ 
+-
++#if LUA_OPTIMIZE_MEMORY == 0 || !defined(LUA_COMPAT_GFIND)
+ static int gfind_nodef (lua_State *L) {
+   return luaL_error(L, LUA_QL(&quot;string.gfind&quot;) &quot; was renamed to &quot;
+                        LUA_QL(&quot;string.gmatch&quot;));
+ }
++#endif
+ 
+-
+ static void add_s (MatchState *ms, luaL_Buffer *b, const char *s,
+                                                    const char *e) {
+   size_t l, i;
+@@ -618,7 +618,8 @@
+       add_s(ms, b, s, e);
+       return;
+     }
+-    case LUA_TFUNCTION: {
++    case LUA_TFUNCTION:
++    case LUA_TLIGHTFUNCTION: {
+       int n;
+       lua_pushvalue(L, 3);
+       n = push_captures(ms, s, e);
+@@ -652,8 +653,9 @@
+   MatchState ms;
+   luaL_Buffer b;
+   luaL_argcheck(L, tr == LUA_TNUMBER || tr == LUA_TSTRING ||
+-                   tr == LUA_TFUNCTION || tr == LUA_TTABLE, 3,
+-                      &quot;string/function/table expected&quot;);
++                   tr == LUA_TFUNCTION || tr == LUA_TTABLE ||
++                   tr == LUA_TLIGHTFUNCTION, 3,
++                   &quot;string/function/table/lightfunction expected&quot;);
+   luaL_buffinit(L, &amp;b);
+   ms.L = L;
+   ms.src_init = src;
+@@ -823,27 +825,36 @@
+   return 1;
+ }
+ 
+-
+-static const luaL_Reg strlib[] = {
+-  {&quot;byte&quot;, str_byte},
+-  {&quot;char&quot;, str_char},
+-  {&quot;dump&quot;, str_dump},
+-  {&quot;find&quot;, str_find},
+-  {&quot;format&quot;, str_format},
+-  {&quot;gfind&quot;, gfind_nodef},
+-  {&quot;gmatch&quot;, gmatch},
+-  {&quot;gsub&quot;, str_gsub},
+-  {&quot;len&quot;, str_len},
+-  {&quot;lower&quot;, str_lower},
+-  {&quot;match&quot;, str_match},
+-  {&quot;rep&quot;, str_rep},
+-  {&quot;reverse&quot;, str_reverse},
+-  {&quot;sub&quot;, str_sub},
+-  {&quot;upper&quot;, str_upper},
+-  {NULL, NULL}
++#define MIN_OPT_LEVEL 1
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE strlib[] = {
++  {LSTRKEY(&quot;byte&quot;), LFUNCVAL(str_byte)},
++  {LSTRKEY(&quot;char&quot;), LFUNCVAL(str_char)},
++  {LSTRKEY(&quot;dump&quot;), LFUNCVAL(str_dump)},
++  {LSTRKEY(&quot;find&quot;), LFUNCVAL(str_find)},
++  {LSTRKEY(&quot;format&quot;), LFUNCVAL(str_format)},
++#if LUA_OPTIMIZE_MEMORY &gt; 0 &amp;&amp; defined(LUA_COMPAT_GFIND)
++  {LSTRKEY(&quot;gfind&quot;), LFUNCVAL(gmatch)},
++#else
++  {LSTRKEY(&quot;gfind&quot;), LFUNCVAL(gfind_nodef)},
++#endif
++  {LSTRKEY(&quot;gmatch&quot;), LFUNCVAL(gmatch)},
++  {LSTRKEY(&quot;gsub&quot;), LFUNCVAL(str_gsub)},
++  {LSTRKEY(&quot;len&quot;), LFUNCVAL(str_len)},
++  {LSTRKEY(&quot;lower&quot;), LFUNCVAL(str_lower)},
++  {LSTRKEY(&quot;match&quot;), LFUNCVAL(str_match)},
++  {LSTRKEY(&quot;rep&quot;), LFUNCVAL(str_rep)},
++  {LSTRKEY(&quot;reverse&quot;), LFUNCVAL(str_reverse)},
++  {LSTRKEY(&quot;sub&quot;), LFUNCVAL(str_sub)},
++  {LSTRKEY(&quot;upper&quot;), LFUNCVAL(str_upper)},
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  {LSTRKEY(&quot;__index&quot;), LROVAL(strlib)},
++#endif
++  {LNILKEY, LNILVAL}
+ };
+ 
+ 
++#if LUA_OPTIMIZE_MEMORY != 2
+ static void createmetatable (lua_State *L) {
+   lua_createtable(L, 0, 1);  /* create metatable for strings */
+   lua_pushliteral(L, &quot;&quot;);  /* dummy string */
+@@ -854,12 +865,13 @@
+   lua_setfield(L, -2, &quot;__index&quot;);  /* ...is the __index metamethod */
+   lua_pop(L, 1);  /* pop metatable */
+ }
++#endif
+ 
+-
+ /*
+ ** Open string library
+ */
+ LUALIB_API int luaopen_string (lua_State *L) {
++#if LUA_OPTIMIZE_MEMORY == 0
+   luaL_register(L, LUA_STRLIBNAME, strlib);
+ #if defined(LUA_COMPAT_GFIND)
+   lua_getfield(L, -1, &quot;gmatch&quot;);
+@@ -867,5 +879,12 @@
+ #endif
+   createmetatable(L);
+   return 1;
++#else
++  lua_pushliteral(L,&quot;&quot;);
++  lua_pushrotable(L, (void*)strlib);
++  lua_setmetatable(L, -2);
++  lua_pop(L,1);
++  return 0;  
++#endif
+ }
+ 
+
+Modified: trunk/src/lua/ltable.c
+===================================================================
+--- trunk/src/lua/ltable.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/ltable.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -33,8 +33,8 @@
+ #include &quot;lobject.h&quot;
+ #include &quot;lstate.h&quot;
+ #include &quot;ltable.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+-
+ /*
+ ** max size of array part is 2^MAXBITS
+ */
+@@ -106,6 +106,8 @@
+     case LUA_TBOOLEAN:
+       return hashboolean(t, bvalue(key));
+     case LUA_TLIGHTUSERDATA:
++    case LUA_TROTABLE:
++    case LUA_TLIGHTFUNCTION:
+       return hashpointer(t, pvalue(key));
+     default:
+       return hashpointer(t, gcvalue(key));
+@@ -179,6 +181,12 @@
+ }
+ 
+ 
++int luaH_next_ro (lua_State *L, void *t, StkId key) {
++  luaR_next(L, t, key, key+1);
++  return ttisnil(key) ? 0 : 1;
++}
++
++
+ /*
+ ** {=============================================================
+ ** Rehash
+@@ -448,7 +456,13 @@
+   }
+ }
+ 
++/* same thing for rotables */
++const TValue *luaH_getnum_ro (void *t, int key) {
++  const TValue *res = luaR_findentry(t, NULL, key, NULL);
++  return res ? res : luaO_nilobject;
++}
+ 
++
+ /*
+ ** search function for strings
+ */
+@@ -462,7 +476,18 @@
+   return luaO_nilobject;
+ }
+ 
++/* same thing for rotables */
++const TValue *luaH_getstr_ro (void *t, TString *key) {
++  char keyname[LUA_MAX_ROTABLE_NAME + 1];
++  const TValue *res;  
++  if (!t)
++    return luaO_nilobject;
++  luaR_getcstr(keyname, key, LUA_MAX_ROTABLE_NAME);   
++  res = luaR_findentry(t, keyname, 0, NULL);
++  return res ? res : luaO_nilobject;
++}
+ 
++
+ /*
+ ** main search function
+ */
+@@ -490,7 +515,26 @@
+   }
+ }
+ 
++/* same thing for rotables */
++const TValue *luaH_get_ro (void *t, const TValue *key) {
++  switch (ttype(key)) {
++    case LUA_TNIL: return luaO_nilobject;
++    case LUA_TSTRING: return luaH_getstr_ro(t, rawtsvalue(key));
++    case LUA_TNUMBER: {
++      int k;
++      lua_Number n = nvalue(key);
++      lua_number2int(k, n);
++      if (luai_numeq(cast_num(k), nvalue(key))) /* index is int? */
++        return luaH_getnum_ro(t, k);  /* use specialized version */
++      /* else go through */
++    }
++    default: {
++      return luaO_nilobject;
++    }
++  }
++}
+ 
++
+ TValue *luaH_set (lua_State *L, Table *t, const TValue *key) {
+   const TValue *p = luaH_get(t, key);
+   t-&gt;flags = 0;
+@@ -575,8 +619,15 @@
+   else return unbound_search(t, j);
+ }
+ 
++/* same thing for rotables */
++int luaH_getn_ro (void *t) {
++  int i = 1, len=0;
++  
++  while(luaR_findentry(t, NULL, i ++, NULL))
++    len ++;
++  return len;
++}
+ 
+-
+ #if defined(LUA_DEBUG)
+ 
+ Node *luaH_mainposition (const Table *t, const TValue *key) {
+
+Modified: trunk/src/lua/ltable.h
+===================================================================
+--- trunk/src/lua/ltable.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/ltable.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -19,18 +19,22 @@
+ 
+ 
+ LUAI_FUNC const TValue *luaH_getnum (Table *t, int key);
++LUAI_FUNC const TValue *luaH_getnum_ro (void *t, int key);
+ LUAI_FUNC TValue *luaH_setnum (lua_State *L, Table *t, int key);
+ LUAI_FUNC const TValue *luaH_getstr (Table *t, TString *key);
++LUAI_FUNC const TValue *luaH_getstr_ro (void *t, TString *key);
+ LUAI_FUNC TValue *luaH_setstr (lua_State *L, Table *t, TString *key);
+ LUAI_FUNC const TValue *luaH_get (Table *t, const TValue *key);
++LUAI_FUNC const TValue *luaH_get_ro (void *t, const TValue *key);
+ LUAI_FUNC TValue *luaH_set (lua_State *L, Table *t, const TValue *key);
+ LUAI_FUNC Table *luaH_new (lua_State *L, int narray, int lnhash);
+ LUAI_FUNC void luaH_resizearray (lua_State *L, Table *t, int nasize);
+ LUAI_FUNC void luaH_free (lua_State *L, Table *t);
+ LUAI_FUNC int luaH_next (lua_State *L, Table *t, StkId key);
++LUAI_FUNC int luaH_next_ro (lua_State *L, void *t, StkId key);
+ LUAI_FUNC int luaH_getn (Table *t);
++LUAI_FUNC int luaH_getn_ro (void *t);
+ 
+-
+ #if defined(LUA_DEBUG)
+ LUAI_FUNC Node *luaH_mainposition (const Table *t, const TValue *key);
+ LUAI_FUNC int luaH_isdummy (Node *n);
+
+Modified: trunk/src/lua/ltablib.c
+===================================================================
+--- trunk/src/lua/ltablib.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/ltablib.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -14,6 +14,7 @@
+ 
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lualib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ 
+ #define aux_getn(L,n)	(luaL_checktype(L, n, LUA_TTABLE), luaL_getn(L, n))
+@@ -22,7 +23,7 @@
+ static int foreachi (lua_State *L) {
+   int i;
+   int n = aux_getn(L, 1);
+-  luaL_checktype(L, 2, LUA_TFUNCTION);
++  luaL_checkanyfunction(L, 2);
+   for (i=1; i &lt;= n; i++) {
+     lua_pushvalue(L, 2);  /* function */
+     lua_pushinteger(L, i);  /* 1st argument */
+@@ -38,7 +39,7 @@
+ 
+ static int foreach (lua_State *L) {
+   luaL_checktype(L, 1, LUA_TTABLE);
+-  luaL_checktype(L, 2, LUA_TFUNCTION);
++  luaL_checkanyfunction(L, 2);
+   lua_pushnil(L);  /* first key */
+   while (lua_next(L, 1)) {
+     lua_pushvalue(L, 2);  /* function */
+@@ -266,22 +267,21 @@
+ /* }====================================================== */
+ 
+ 
+-static const luaL_Reg tab_funcs[] = {
+-  {&quot;concat&quot;, tconcat},
+-  {&quot;foreach&quot;, foreach},
+-  {&quot;foreachi&quot;, foreachi},
+-  {&quot;getn&quot;, getn},
+-  {&quot;maxn&quot;, maxn},
+-  {&quot;insert&quot;, tinsert},
+-  {&quot;remove&quot;, tremove},
+-  {&quot;setn&quot;, setn},
+-  {&quot;sort&quot;, sort},
+-  {NULL, NULL}
++#define MIN_OPT_LEVEL 1
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE tab_funcs[] = {
++  {LSTRKEY(&quot;concat&quot;), LFUNCVAL(tconcat)},
++  {LSTRKEY(&quot;foreach&quot;), LFUNCVAL(foreach)},
++  {LSTRKEY(&quot;foreachi&quot;), LFUNCVAL(foreachi)},
++  {LSTRKEY(&quot;getn&quot;), LFUNCVAL(getn)},
++  {LSTRKEY(&quot;maxn&quot;), LFUNCVAL(maxn)},
++  {LSTRKEY(&quot;insert&quot;), LFUNCVAL(tinsert)},
++  {LSTRKEY(&quot;remove&quot;), LFUNCVAL(tremove)},
++  {LSTRKEY(&quot;setn&quot;), LFUNCVAL(setn)},
++  {LSTRKEY(&quot;sort&quot;), LFUNCVAL(sort)},
++  {LNILKEY, LNILVAL}
+ };
+ 
+-
+ LUALIB_API int luaopen_table (lua_State *L) {
+-  luaL_register(L, LUA_TABLIBNAME, tab_funcs);
+-  return 1;
++  LREGISTER(L, LUA_TABLIBNAME, tab_funcs);
+ }
+-
+
+Modified: trunk/src/lua/ltm.c
+===================================================================
+--- trunk/src/lua/ltm.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/ltm.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -17,11 +17,12 @@
+ #include &quot;lstring.h&quot;
+ #include &quot;ltable.h&quot;
+ #include &quot;ltm.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ 
+ 
+ const char *const luaT_typenames[] = {
+-  &quot;nil&quot;, &quot;boolean&quot;, &quot;userdata&quot;, &quot;number&quot;,
++  &quot;nil&quot;, &quot;boolean&quot;, &quot;romtable&quot;, &quot;lightfunction&quot;, &quot;userdata&quot;, &quot;number&quot;,
+   &quot;string&quot;, &quot;table&quot;, &quot;function&quot;, &quot;userdata&quot;, &quot;thread&quot;,
+   &quot;proto&quot;, &quot;upval&quot;
+ };
+@@ -48,10 +49,11 @@
+ ** tag methods
+ */
+ const TValue *luaT_gettm (Table *events, TMS event, TString *ename) {
+-  const TValue *tm = luaH_getstr(events, ename);
++  const TValue *tm = luaR_isrotable(events) ? luaH_getstr_ro(events, ename) : luaH_getstr(events, ename); 
+   lua_assert(event &lt;= TM_EQ);
+   if (ttisnil(tm)) {  /* no tag method? */
+-    events-&gt;flags |= cast_byte(1u&lt;&lt;event);  /* cache this fact */
++    if (!luaR_isrotable(events))
++      events-&gt;flags |= cast_byte(1u&lt;&lt;event);  /* cache this fact */
+     return NULL;
+   }
+   else return tm;
+@@ -64,12 +66,19 @@
+     case LUA_TTABLE:
+       mt = hvalue(o)-&gt;metatable;
+       break;
++    case LUA_TROTABLE:
++      mt = (Table*)luaR_getmeta(rvalue(o));
++      break;
+     case LUA_TUSERDATA:
+       mt = uvalue(o)-&gt;metatable;
+       break;
+     default:
+       mt = G(L)-&gt;mt[ttype(o)];
+   }
+-  return (mt ? luaH_getstr(mt, G(L)-&gt;tmname[event]) : luaO_nilobject);
++  if (!mt)
++    return luaO_nilobject;
++  else if (luaR_isrotable(mt))
++    return luaH_getstr_ro(mt, G(L)-&gt;tmname[event]);
++  else
++    return luaH_getstr(mt, G(L)-&gt;tmname[event]);
+ }
+-
+
+Modified: trunk/src/lua/ltm.h
+===================================================================
+--- trunk/src/lua/ltm.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/ltm.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -39,7 +39,7 @@
+ 
+ 
+ #define gfasttm(g,et,e) ((et) == NULL ? NULL : \
+-  ((et)-&gt;flags &amp; (1u&lt;&lt;(e))) ? NULL : luaT_gettm(et, e, (g)-&gt;tmname[e]))
++  !luaR_isrotable(et) &amp;&amp; ((et)-&gt;flags &amp; (1u&lt;&lt;(e))) ? NULL : luaT_gettm(et, e, (g)-&gt;tmname[e]))
+ 
+ #define fasttm(l,et,e)	gfasttm(G(l), et, e)
+ 
+
+Modified: trunk/src/lua/lua.c
+===================================================================
+--- trunk/src/lua/lua.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lua.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -77,12 +77,12 @@
+   if (!lua_isstring(L, 1))  /* 'message' not a string? */
+     return 1;  /* keep it intact */
+   lua_getfield(L, LUA_GLOBALSINDEX, &quot;debug&quot;);
+-  if (!lua_istable(L, -1)) {
++  if (!lua_istable(L, -1) &amp;&amp; !lua_isrotable(L, -1)) {
+     lua_pop(L, 1);
+     return 1;
+   }
+   lua_getfield(L, -1, &quot;traceback&quot;);
+-  if (!lua_isfunction(L, -1)) {
++  if (!lua_isfunction(L, -1) &amp;&amp; !lua_islightfunction(L, -1)) {
+     lua_pop(L, 2);
+     return 1;
+   }
+
+Modified: trunk/src/lua/lua.h
+===================================================================
+--- trunk/src/lua/lua.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lua.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -73,16 +73,16 @@
+ 
+ #define LUA_TNIL		0
+ #define LUA_TBOOLEAN		1
+-#define LUA_TLIGHTUSERDATA	2
+-#define LUA_TNUMBER		3
+-#define LUA_TSTRING		4
+-#define LUA_TTABLE		5
+-#define LUA_TFUNCTION		6
+-#define LUA_TUSERDATA		7
+-#define LUA_TTHREAD		8
++#define LUA_TROTABLE  2
++#define LUA_TLIGHTFUNCTION  3
++#define LUA_TLIGHTUSERDATA	4
++#define LUA_TNUMBER		5
++#define LUA_TSTRING		6
++#define LUA_TTABLE		7
++#define LUA_TFUNCTION		8
++#define LUA_TUSERDATA		9
++#define LUA_TTHREAD		10
+ 
+-
+-
+ /* minimum Lua stack available to a C function */
+ #define LUA_MINSTACK	20
+ 
+@@ -168,6 +168,8 @@
+ LUA_API void  (lua_pushcclosure) (lua_State *L, lua_CFunction fn, int n);
+ LUA_API void  (lua_pushboolean) (lua_State *L, int b);
+ LUA_API void  (lua_pushlightuserdata) (lua_State *L, void *p);
++LUA_API void  (lua_pushlightfunction) (lua_State *L, void *p);
++LUA_API void  (lua_pushrotable) (lua_State *L, void *p);
+ LUA_API int   (lua_pushthread) (lua_State *L);
+ 
+ 
+@@ -262,7 +264,9 @@
+ #define lua_strlen(L,i)		lua_objlen(L, (i))
+ 
+ #define lua_isfunction(L,n)	(lua_type(L, (n)) == LUA_TFUNCTION)
++#define lua_islightfunction(L,n) (lua_type(L, (n)) == LUA_TLIGHTFUNCTION)
+ #define lua_istable(L,n)	(lua_type(L, (n)) == LUA_TTABLE)
++#define lua_isrotable(L,n)	(lua_type(L, (n)) == LUA_TROTABLE)
+ #define lua_islightuserdata(L,n)	(lua_type(L, (n)) == LUA_TLIGHTUSERDATA)
+ #define lua_isnil(L,n)		(lua_type(L, (n)) == LUA_TNIL)
+ #define lua_isboolean(L,n)	(lua_type(L, (n)) == LUA_TBOOLEAN)
+
+Modified: trunk/src/lua/luaconf.h
+===================================================================
+--- trunk/src/lua/luaconf.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/luaconf.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -814,6 +814,8 @@
+ 
+ #endif
+ 
++
++
+ /* =================================================================== */
+ 
+ /*
+@@ -826,4 +828,13 @@
+ typedef long int32_t;
+ #endif
+ 
++/* If you define the next macro you'll get the ability to set rotables as
++   metatables for tables/userdata/types (but the VM might run slower)
++*/
++#define LUA_META_ROTABLES   
++
++#if LUA_OPTIMIZE_MEMORY == 2 &amp;&amp; LUA_USE_POPEN
++#error &quot;Pipes not supported in aggresive optimization mode (LUA_OPTIMIZE_MEMORY=2)&quot;
+ #endif
++
++#endif
+
+Modified: trunk/src/lua/lvm.c
+===================================================================
+--- trunk/src/lua/lvm.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/lua/lvm.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -25,9 +25,9 @@
+ #include &quot;ltable.h&quot;
+ #include &quot;ltm.h&quot;
+ #include &quot;lvm.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ 
+-
+ /* limit for table tag-method chains (to avoid loops) */
+ #define MAXTAGLOOP	100
+ 
+@@ -128,19 +128,19 @@
+   int loop;
+   for (loop = 0; loop &lt; MAXTAGLOOP; loop++) {
+     const TValue *tm;
+-    if (ttistable(t)) {  /* `t' is a table? */
+-      Table *h = hvalue(t);
+-      const TValue *res = luaH_get(h, key); /* do a primitive get */
++    if (ttistable(t) || ttisrotable(t)) {  /* `t' is a table? */
++      void *h = ttistable(t) ? hvalue(t) : rvalue(t);
++      const TValue *res = ttistable(t) ? luaH_get((Table*)h, key) : luaH_get_ro(h, key); /* do a primitive get */
+       if (!ttisnil(res) ||  /* result is no nil? */
+-          (tm = fasttm(L, h-&gt;metatable, TM_INDEX)) == NULL) { /* or no TM? */
++          (tm = fasttm(L, ttistable(t) ? ((Table*)h)-&gt;metatable : (Table*)h, TM_INDEX)) == NULL) { /* or no TM? */
+         setobj2s(L, val, res);
+         return;
+-      }
++      }      
+       /* else will try the tag method */
+     }
+     else if (ttisnil(tm = luaT_gettmbyobj(L, t, TM_INDEX)))
+-      luaG_typeerror(L, t, &quot;index&quot;);
+-    if (ttisfunction(tm)) {
++        luaG_typeerror(L, t, &quot;index&quot;);
++    if (ttisfunction(tm) || ttislightfunction(tm)) {
+       callTMres(L, val, tm, t, key);
+       return;
+     }
+@@ -274,7 +274,10 @@
+     case LUA_TNIL: return 1;
+     case LUA_TNUMBER: return luai_numeq(nvalue(t1), nvalue(t2));
+     case LUA_TBOOLEAN: return bvalue(t1) == bvalue(t2);  /* true must be 1 !! */
+-    case LUA_TLIGHTUSERDATA: return pvalue(t1) == pvalue(t2);
++    case LUA_TLIGHTUSERDATA: 
++    case LUA_TROTABLE:
++    case LUA_TLIGHTFUNCTION:
++      return pvalue(t1) == pvalue(t2);
+     case LUA_TUSERDATA: {
+       if (uvalue(t1) == uvalue(t2)) return 1;
+       tm = get_compTM(L, uvalue(t1)-&gt;metatable, uvalue(t2)-&gt;metatable,
+@@ -529,8 +532,9 @@
+       case OP_LEN: {
+         const TValue *rb = RB(i);
+         switch (ttype(rb)) {
+-          case LUA_TTABLE: {
+-            setnvalue(ra, cast_num(luaH_getn(hvalue(rb))));
++          case LUA_TTABLE: 
++          case LUA_TROTABLE: {
++            setnvalue(ra, ttistable(rb) ? cast_num(luaH_getn(hvalue(rb))) : cast_num(luaH_getn_ro(rvalue(rb))));
+             break;
+           }
+           case LUA_TSTRING: {
+
+Modified: trunk/src/modules/auxmods.h
+===================================================================
+--- trunk/src/modules/auxmods.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/auxmods.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -39,12 +39,6 @@
+ #define AUXLIB_CPU      &quot;cpu&quot;
+ LUALIB_API int ( luaopen_cpu )( lua_State* L );
+ 
+-#define AUXLIB_MOD      &quot;mod&quot;
+-LUALIB_API int ( luaopen_mod )( lua_State* L );
+-
+-#define AUXLIB_DISP     &quot;disp&quot;
+-LUALIB_API int ( luaopen_disp )( lua_State* L );
+-
+ // Helper macros
+ 
+ #define MOD_CHECK_ID( mod, id )\
+
+Modified: trunk/src/modules/bit.c
+===================================================================
+--- trunk/src/modules/bit.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/bit.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -9,6 +9,7 @@
+ #include &lt;limits.h&gt;
+ #include &quot;auxmods.h&quot;
+ #include &quot;type.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ /* FIXME: Assume size_t is an unsigned lua_Integer */
+ typedef size_t lua_UInteger;
+@@ -123,23 +124,24 @@
+   return 1; 
+ }
+ 
+-static const struct luaL_reg bitlib[] = {
+-  {&quot;bnot&quot;,    bit_bnot},
+-  {&quot;band&quot;,    bit_band},
+-  {&quot;bor&quot;,     bit_bor},
+-  {&quot;bxor&quot;,    bit_bxor},
+-  {&quot;lshift&quot;,  bit_lshift},
+-  {&quot;rshift&quot;,  bit_rshift},
+-  {&quot;arshift&quot;, bit_arshift},
+-  {&quot;bit&quot;,     bit_bit},
+-  {&quot;set&quot;,     bit_set},
+-  {&quot;clear&quot;,   bit_clear},
+-  {&quot;isset&quot;,   bit_isset},
+-  {&quot;isclear&quot;, bit_isclear},
+-  {NULL, NULL}
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE bit_map[] = {
++  { LSTRKEY( &quot;bnot&quot; ),    LFUNCVAL( bit_bnot ) },
++  { LSTRKEY( &quot;band&quot; ),    LFUNCVAL( bit_band ) },
++  { LSTRKEY( &quot;bor&quot; ),     LFUNCVAL( bit_bor ) },
++  { LSTRKEY( &quot;bxor&quot; ),    LFUNCVAL( bit_bxor ) },
++  { LSTRKEY( &quot;lshift&quot; ),  LFUNCVAL( bit_lshift ) },
++  { LSTRKEY( &quot;rshift&quot; ),  LFUNCVAL( bit_rshift ) },
++  { LSTRKEY( &quot;arshift&quot; ), LFUNCVAL( bit_arshift ) },
++  { LSTRKEY( &quot;bit&quot; ),     LFUNCVAL( bit_bit ) },
++  { LSTRKEY( &quot;set&quot; ),     LFUNCVAL( bit_set ) },
++  { LSTRKEY( &quot;clear&quot; ),   LFUNCVAL( bit_clear ) },
++  { LSTRKEY( &quot;isset&quot; ),   LFUNCVAL( bit_isset ) },
++  { LSTRKEY( &quot;isclear&quot; ), LFUNCVAL( bit_isclear ) },
++  { LNILKEY, LNILVAL}
+ };
+ 
+ LUALIB_API int luaopen_bit (lua_State *L) {
+-  luaL_register(L, &quot;bit&quot;, bitlib);
+-  return 1;
++  LREGISTER( L, &quot;bit&quot;, bit_map );
+ }
+
+Modified: trunk/src/modules/cpu.c
+===================================================================
+--- trunk/src/modules/cpu.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/cpu.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -5,6 +5,7 @@
+ #include &quot;lauxlib.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
++#include &quot;lrotable.h&quot;
+ #include &lt;string.h&gt; 
+ 
+ #define _C( x ) { #x, x }
+@@ -95,11 +96,10 @@
+   u32 val;
+ } cpu_const_t;
+ 
++#ifdef PLATFORM_CPU_CONSTANTS
+ static const cpu_const_t cpu_constants[] = 
+ {
+-#ifdef PLATFORM_CPU_CONSTANTS
+   PLATFORM_CPU_CONSTANTS,
+-#endif
+   { NULL, 0 }
+ };
+ 
+@@ -119,38 +119,45 @@
+   }
+   return 0;
+ }
++#endif
+ 
+-// Metatable data
+-static const luaL_reg cpu_mt_map[] =
+-{
+-  { &quot;__index&quot;, cpu_mt_index },
+-  { NULL, NULL }
+-};
+-
+ // Module function map
+-static const luaL_reg cpu_map[] = 
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE cpu_map[] = 
+ {
+-  { &quot;w32&quot;, cpu_w32 },
+-  { &quot;r32&quot;, cpu_r32 },
+-  { &quot;w16&quot;, cpu_w16 },
+-  { &quot;r16&quot;, cpu_r16 },
+-  { &quot;w8&quot;, cpu_w8 },
+-  { &quot;r8&quot;, cpu_r8 },
+-  { &quot;cli&quot;, cpu_cli },
+-  { &quot;sei&quot;, cpu_sei },
+-  { &quot;clock&quot;, cpu_clock },
+-  { NULL, NULL }
++  { LSTRKEY( &quot;w32&quot; ), LFUNCVAL( cpu_w32 ) },
++  { LSTRKEY( &quot;r32&quot; ), LFUNCVAL( cpu_r32 ) },
++  { LSTRKEY( &quot;w16&quot; ), LFUNCVAL( cpu_w16 ) },
++  { LSTRKEY( &quot;r16&quot; ), LFUNCVAL( cpu_r16 ) },
++  { LSTRKEY( &quot;w8&quot; ), LFUNCVAL( cpu_w8 ) },
++  { LSTRKEY( &quot;r8&quot; ), LFUNCVAL( cpu_r8 ) },
++  { LSTRKEY( &quot;cli&quot; ), LFUNCVAL( cpu_cli ) },
++  { LSTRKEY( &quot;sei&quot; ), LFUNCVAL( cpu_sei ) },
++  { LSTRKEY( &quot;clock&quot; ), LFUNCVAL( cpu_clock ) },
++#if defined( PLATFORM_CPU_CONSTANTS ) &amp;&amp; LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;__metatable&quot; ), LROVAL( cpu_map ) },
++#endif
++#ifdef PLATFORM_CPU_CONSTANTS
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( cpu_mt_index ) },
++#endif
++  { LNILKEY, LNILVAL }
+ };
+ 
+ LUALIB_API int luaopen_cpu( lua_State *L )
+ {
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+   // Register methods
+   luaL_register( L, AUXLIB_CPU, cpu_map );
+   
+-  // Create and set metatable
+-  lua_newtable( L );
+-  luaL_register( L, NULL, cpu_mt_map );  
+-  lua_setmetatable( L, -2 );  
++#ifdef PLATFORM_CPU_CONSTANTS
++  // Set table as its own metatable
++  lua_pushvalue( L, -1 );
++  lua_setmetatable( L, -2 );
++#endif // #ifdef PLATFORM_CPU_CONSTANTS
+   
+   return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
+ }
+
+Deleted: trunk/src/modules/disp.c
+===================================================================
+--- trunk/src/modules/disp.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/disp.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -1,108 +0,0 @@
+-// Module for interfacing with Lua DISP code
+-
+-#include &quot;lua.h&quot;
+-#include &quot;lualib.h&quot;
+-#include &quot;lauxlib.h&quot;
+-#include &quot;platform.h&quot;
+-#include &quot;auxmods.h&quot;
+-
+-
+-//Lua: init(frequency)
+-static int disp_init(lua_State *L) {
+-  unsigned long freq;
+-  
+-  freq = luaL_checkinteger(L, 1);
+-  platform_disp_init(freq);
+-  return 0;
+-   
+-}
+-
+-//Lua: enable
+-static int disp_enable(lua_State *L) {
+-  unsigned long freq;
+-  
+-  luaL_checkinteger(L, 1);
+-  platform_disp_enable(freq);
+-  return 0;
+-}
+-
+-//Lua: disable   
+-static int disp_disable(lua_State *L) {    
+-  platform_disp_disable();
+-  return 0; 
+-}
+-   
+-//Lua: on
+-static int disp_on(lua_State *L) {
+-  platform_disp_displayOn();    
+-  return 0; 
+-}
+-
+-//Lua: off
+-static int disp_off(lua_State *L) {    
+-  platform_disp_displayOff();
+-  return 0; 
+-}
+-   
+-//Lua: clear
+-static int disp_clear(lua_State *L) {    
+-  platform_disp_clear();
+-  return 0; 
+-}
+-   
+-//Lua: strDraw
+-static int disp_stringDraw(lua_State *L) {
+-  const char *str;
+-  unsigned long x; 
+-  unsigned long y;
+-  unsigned char lvl;
+-  
+-  str   = luaL_checkstring(L, 1);         
+-  x     = luaL_checkinteger(L, 2);
+-  y     = luaL_checkinteger(L, 3);
+-  lvl   = (unsigned char) luaL_checkinteger(L, 4);    
+-  platform_disp_stringDraw(str, x, y, lvl);
+-  return 0; 
+-}
+-   
+-//Lua: enable
+-static int disp_imageDraw(lua_State *L) {    
+-  const char *img;
+-  unsigned long x;
+-  unsigned long y;
+-  unsigned long width;
+-  unsigned long height;
+-  
+-  img    = luaL_checkstring(L, 1);
+-  x      = luaL_checkinteger(L, 2);
+-  y      = luaL_checkinteger(L, 3);
+-  width  = luaL_checkinteger(L, 4);
+-  height = luaL_checkinteger(L, 5);
+-  platform_disp_imageDraw(img, x, y, width, height);
+-  return 0; 
+-}
+-   
+-   
+-
+-   
+-// Module function map
+-static const luaL_reg disp_map[] =
+-{
+-  { &quot;init&quot;,  disp_init },
+-  { &quot;enable&quot;,  disp_enable },
+-  { &quot;disable&quot;, disp_disable },
+-  { &quot;on&quot;, disp_on },    
+-  { &quot;off&quot;, disp_off },
+-  { &quot;clear&quot;, disp_clear },
+-  { &quot;stringdraw&quot;, disp_stringDraw },
+-  { &quot;imgagedraw&quot;, disp_imageDraw },  
+-  { NULL, NULL }
+-};
+-
+-LUALIB_API int luaopen_disp( lua_State *L )
+-{
+-  luaL_register( L, AUXLIB_DISP, disp_map );
+-  return 1;
+-}  
+-
+-
+
+Deleted: trunk/src/modules/lm3s.c
+===================================================================
+--- trunk/src/modules/lm3s.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/lm3s.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -1,107 +0,0 @@
+-// Module for interfacing with Luminary Micro LM3S onboard goodies
+-
+-#include &quot;lua.h&quot;
+-#include &quot;lualib.h&quot;
+-#include &quot;lauxlib.h&quot;
+-#include &quot;platform.h&quot;
+-#include &quot;auxmods.h&quot;
+-
+-
+-//Lua: init(frequency)
+-static int disp_init(lua_State *L) {
+-  unsigned long freq;
+-  
+-  freq = luaL_checkinteger(L, 1);
+-  platform_disp_init(freq);
+-  return 0;
+-   
+-}
+-
+-//Lua: enable
+-static int disp_enable(lua_State *L) {
+-  unsigned long freq;
+-  
+-  luaL_checkinteger(L, 1);
+-  platform_disp_enable(freq);
+-  return 0;
+-}
+-
+-//Lua: disable   
+-static int disp_disable(lua_State *L) {    
+-  platform_disp_disable();
+-  return 0; 
+-}
+-   
+-//Lua: on
+-static int disp_on(lua_State *L) {
+-  platform_disp_displayOn();    
+-  return 0; 
+-}
+-
+-//Lua: off
+-static int disp_off(lua_State *L) {    
+-  platform_disp_displayOff();
+-  return 0; 
+-}
+-   
+-//Lua: clear
+-static int disp_clear(lua_State *L) {    
+-  platform_disp_clear();
+-  return 0; 
+-}
+-   
+-//Lua: strDraw
+-static int disp_stringDraw(lua_State *L) {
+-  const char *str;
+-  unsigned long x; 
+-  unsigned long y;
+-  unsigned char lvl;
+-  
+-  str   = luaL_checkstring(L, 1);         
+-  x     = luaL_checkinteger(L, 2);
+-  y     = luaL_checkinteger(L, 3);
+-  lvl   = (unsigned char) luaL_checkinteger(L, 4);    
+-  platform_disp_stringDraw(str, x, y, lvl);
+-  return 0; 
+-}
+-   
+-//Lua: enable
+-static int disp_imageDraw(lua_State *L) {    
+-  const char *img;
+-  unsigned long x;
+-  unsigned long y;
+-  unsigned long width;
+-  unsigned long height;
+-  
+-  img    = luaL_checkstring(L, 1);
+-  x      = luaL_checkinteger(L, 2);
+-  y      = luaL_checkinteger(L, 3);
+-  width  = luaL_checkinteger(L, 4);
+-  height = luaL_checkinteger(L, 5);
+-  platform_disp_imageDraw(img, x, y, width, height);
+-  return 0; 
+-}
+-   
+-   
+-   
+-// Module function map
+-static const luaL_reg disp_map[] =
+-{
+-  { &quot;init&quot;,  disp_init },
+-  { &quot;enable&quot;,  disp_enable },
+-  { &quot;disable&quot;, disp_disable },
+-  { &quot;on&quot;, disp_on },    
+-  { &quot;off&quot;, disp_off },
+-  { &quot;clear&quot;, disp_clear },
+-  { &quot;stringdraw&quot;, disp_stringDraw },
+-  { &quot;imgagedraw&quot;, disp_imageDraw },  
+-  { NULL, NULL }
+-};
+-
+-LUALIB_API int luaopen_disp( lua_State *L )
+-{
+-  luaL_register( L, AUXLIB_DISP, disp_map );
+-  return 1;
+-}  
+-
+-
+
+Modified: trunk/src/modules/lpack.c
+===================================================================
+--- trunk/src/modules/lpack.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/lpack.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -37,6 +37,7 @@
+ #include &quot;lualib.h&quot;
+ #include &quot;lauxlib.h&quot;
+ #include &quot;auxmods.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ static void badcode(lua_State *L, int c)
+ {
+@@ -254,15 +255,16 @@
+  return 1;
+ }
+ 
+-static const luaL_reg pack_map[] =
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE pack_map[] =
+ {
+-	{&quot;pack&quot;,	l_pack},
+-	{&quot;unpack&quot;,	l_unpack},
+-	{NULL,	NULL}
++	{ LSTRKEY( &quot;pack&quot; ),  LFUNCVAL( l_pack ) },
++	{ LSTRKEY( &quot;unpack&quot; ), LFUNCVAL( l_unpack ) },
++	{ LNILKEY, LNILVAL }
+ };
+ 
+ int luaopen_pack( lua_State *L )
+ {
+-  luaL_register( L, AUXLIB_PACK, pack_map );
+-  return 1;  
++  LREGISTER( L, AUXLIB_PACK, pack_map );
+ }
+
+Deleted: trunk/src/modules/modcommon.c
+===================================================================
+--- trunk/src/modules/modcommon.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/modcommon.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -1,96 +0,0 @@
+-#include &quot;lua.h&quot;
+-#include &quot;lualib.h&quot;
+-#include &quot;lauxlib.h&quot;
+-#include &quot;platform.h&quot;
+-#include &quot;auxmods.h&quot;
+-#include &lt;string.h&gt; 
+-
+-#include &quot;modcommon.h&quot;
+-
+-#define MODCOMMON_CT_NAME &quot;__const_table_&quot;
+-
+-static int const_mt_index(lua_State * L)
+-{
+-	const char * key = luaL_checkstring(L, 2);
+-	const eLua_const_userdata_t * ct;
+-
+-	// Get the const table from the module table
+-	lua_pushliteral(L, MODCOMMON_CT_NAME);
+-	lua_rawget(L, 1);
+-	ct = (eLua_const_userdata_t *)lua_touserdata(L, -1);
+-
+-	if (ct != NULL)
+-	{
+-		int i;
+-
+-		for (i = 0; ct[i].name != NULL; i++)
+-		{
+-			if (strcmp(ct[i].name, key) == 0) // Match
+-			{
+-				lua_pushinteger(L, ct[i].val);
+-				return 1;
+-			}
+-		}
+-		return 0;
+-	}
+-
+-	luaL_error(L, &quot;Could not find constants table!&quot;);
+-
+-	return 0; // Quiet warning
+-}
+-
+-int eLua_register(lua_State * L, const char * name, const luaL_Reg * t)
+-{
+-	// Register methods
+-	luaL_register(L, name, t);
+-
+-	return 1;
+-}
+-
+-int eLua_register_const(lua_State * L, const eLua_const_userdata_t * ct)
+-{
+-
+-	// Metatable data
+-	static const luaL_reg const_mt_map[] =
+-	{
+-	  { &quot;__index&quot;, const_mt_index },
+-	  { NULL, NULL }
+-	};
+-	
+-	// Store the const table in the module table for later use.
+-	lua_pushliteral(L, MODCOMMON_CT_NAME);
+-	lua_pushlightuserdata(L, (eLua_const_userdata_t *)ct);
+-	lua_rawset(L, -3);
+-	
+-	lua_newtable(L);
+-	luaL_register(L, NULL, const_mt_map);
+-	lua_setmetatable(L, -2);
+-
+-	return 1;
+-}
+-
+-extern luaL_reg _lua_init_start;
+-extern luaL_reg _lua_init_end;
+-
+-LUALIB_API int luaopen_mod(lua_State * L)
+-{
+-	luaL_reg * modtab = &amp;_lua_init_start;
+-
+-	printf(&quot;luaopen_mod(%p): lua_init_start = %p, lua_init_end = %p\n&quot;, L, &amp;_lua_init_start, &amp;_lua_init_end);
+-
+-	printf(&quot;luaopen_mod(%p): Setting up package.preload for modules:\n&quot;, L);
+-	
+-	lua_getfield(L, LUA_GLOBALSINDEX, &quot;package&quot;); // Get the package table
+-	lua_getfield(L, -1, &quot;preload&quot;);               // package.preload is now on stack top
+-
+-	for ( ; modtab-&gt;func; modtab++)
+-	{
+-		printf(&quot;\t%s\n&quot;, modtab-&gt;name);
+-		lua_pushcfunction(L, modtab-&gt;func);
+-		lua_setfield(L, -2, modtab-&gt;name);
+-	}
+-
+-	lua_pop(L, 2); // Restore stack position
+-
+-	return 0;
+-}
+
+Modified: trunk/src/modules/net.c
+===================================================================
+--- trunk/src/modules/net.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/net.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -9,6 +9,7 @@
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;stddef.h&gt;
++#include &quot;lrotable.h&quot;
+ 
+ #include &quot;platform_conf.h&quot;
+ #ifdef BUILD_UIP
+@@ -184,22 +185,31 @@
+ }
+ 
+ // Module function map
+-static const luaL_reg net_map[] = 
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE net_map[] = 
+ {
+-  { &quot;accept&quot;, net_accept },
+-  { &quot;packip&quot;, net_packip },
+-  { &quot;unpackip&quot;, net_unpackip },
+-  { &quot;connect&quot;, net_connect },
+-  { &quot;socket&quot;, net_socket },
+-  { &quot;close&quot;, net_close },
+-  { &quot;send&quot;, net_send },
+-  { &quot;recv&quot;, net_recv },
+-  { &quot;lookup&quot;, net_lookup },
+-  { NULL, NULL }
++  { LSTRKEY( &quot;accept&quot; ), LFUNCVAL( net_accept ) },
++  { LSTRKEY( &quot;packip&quot; ), LFUNCVAL( net_packip ) },
++  { LSTRKEY( &quot;unpackip&quot; ), LFUNCVAL( net_unpackip ) },
++  { LSTRKEY( &quot;connect&quot; ), LFUNCVAL( net_connect ) },
++  { LSTRKEY( &quot;socket&quot; ), LFUNCVAL( net_socket ) },
++  { LSTRKEY( &quot;close&quot; ), LFUNCVAL( net_close ) },
++  { LSTRKEY( &quot;send&quot; ), LFUNCVAL( net_send ) },
++  { LSTRKEY( &quot;recv&quot; ), LFUNCVAL( net_recv ) },
++  { LSTRKEY( &quot;lookup&quot; ), LFUNCVAL( net_lookup ) },
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;SOCK_STREAM&quot; ), LNUMVAL( ELUA_NET_SOCK_STREAM ) },
++  { LSTRKEY( &quot;SOCK_DGRAM&quot; ), LNUMVAL( ELUA_NET_SOCK_DGRAM ) },
++#endif
++  { LNILKEY, LNILVAL }
+ };
+ 
+ LUALIB_API int luaopen_net( lua_State *L )
+ {
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+   luaL_register( L, AUXLIB_NET, net_map );  
+ 
+   // Module constants  
+@@ -209,6 +219,7 @@
+   lua_setfield( L, -2, &quot;SOCK_DGRAM&quot; );  
+   
+   return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0  
+ }
+ 
+ #else // #ifdef BUILD_UIP
+
+Modified: trunk/src/modules/pd.c
+===================================================================
+--- trunk/src/modules/pd.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/pd.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -5,6 +5,7 @@
+ #include &quot;lauxlib.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ #define MACRO_NAME( x ) MACRO_AGAIN( x )
+ #define MACRO_AGAIN( x ) #x
+@@ -31,16 +32,17 @@
+ }
+ 
+ // Module function map
+-static const luaL_reg pd_map[] = 
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE pd_map[] = 
+ {
+-  { &quot;platform&quot;,  pd_platform }, 
+-  { &quot;cpu&quot;, pd_cpu },
+-  { &quot;board&quot;, pd_board },
+-  { NULL, NULL }
++  { LSTRKEY( &quot;platform&quot; ), LFUNCVAL( pd_platform ) }, 
++  { LSTRKEY( &quot;cpu&quot; ), LFUNCVAL( pd_cpu ) },
++  { LSTRKEY( &quot;board&quot; ), LFUNCVAL( pd_board ) },
++  { LNILKEY, LNILVAL }
+ };
+ 
+ LUALIB_API int luaopen_pd( lua_State* L )
+ {
+-  luaL_register( L, AUXLIB_PD, pd_map );
+-  return 1;
++  LREGISTER( L, AUXLIB_PD, pd_map );
+ }
+
+Modified: trunk/src/modules/pio.c
+===================================================================
+--- trunk/src/modules/pio.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/pio.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -5,6 +5,8 @@
+ #include &quot;lauxlib.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
++#include &quot;lrotable.h&quot;
++#include &quot;platform_conf.h&quot;
+ #include &lt;stdio.h&gt;
+ #include &lt;ctype.h&gt;
+ #include &lt;string.h&gt;
+@@ -211,27 +213,6 @@
+   return pioh_set_pins( L, 1, PLATFORM_IO_PIN_NOPULL );
+ }
+ 
+-// Module function map
+-static const luaL_reg pio_map[] = 
+-{
+-  { &quot;setpin&quot;,  pio_set_pin_state },
+-  { &quot;set&quot;, pio_set_pin },
+-  { &quot;get&quot;, pio_get_pin },
+-  { &quot;clear&quot;, pio_clear_pin },
+-  { &quot;input&quot;, pio_pin_input },
+-  { &quot;output&quot;, pio_pin_output },
+-  { &quot;setport&quot;, pio_set_port },
+-  { &quot;getport&quot;, pio_get_port },
+-  { &quot;port_input&quot;, pio_port_input },
+-  { &quot;port_output&quot;, pio_port_output },
+-  { &quot;pullup&quot;, pio_pin_pullup },
+-  { &quot;pulldown&quot;, pio_pin_pulldown },
+-  { &quot;nopull&quot;, pio_pin_nopull },
+-  { &quot;port&quot;, pio_port },
+-  { &quot;pin&quot;, pio_pin },
+-  { NULL, NULL }
+-};
+-
+ // __index metafunction for PIO
+ // Look for all Px or Px_y keys and return their correct value
+ static int pio_mt_index( lua_State* L )
+@@ -243,6 +224,8 @@
+     return 0;
+   if( isupper( key[ 1 ] ) ) // PA, PB, ...
+   {
++    if( PIO_PREFIX != 'A' )
++      return 0;
+     port = key[ 1 ] - 'A';
+     if( key[ 2 ] == '\0' )
+       isport = 1;
+@@ -252,7 +235,8 @@
+   }
+   else // P0, P1, ...
+   {
+-    // P0, P1, ...
++    if( PIO_PREFIX != '0' )
++      return 0;
+     if( !strchr( key, '_' ) )   // parse port
+     {
+       if( sscanf( key + 1, &quot;%d%n&quot;, &amp;port, &amp;sz ) != 1  || sz != strlen( key ) - 1 )
+@@ -283,21 +267,44 @@
+   }
+ }
+ 
+-// Metatable data
+-static const luaL_reg pio_mt_map[] =
++// Module function map
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE pio_map[] = 
+ {
+-  { &quot;__index&quot;, pio_mt_index },
+-  { NULL, NULL }
++  { LSTRKEY( &quot;setpin&quot; ), LFUNCVAL( pio_set_pin_state ) },
++  { LSTRKEY( &quot;set&quot; ), LFUNCVAL( pio_set_pin ) },
++  { LSTRKEY( &quot;get&quot; ), LFUNCVAL( pio_get_pin ) },
++  { LSTRKEY( &quot;clear&quot; ), LFUNCVAL( pio_clear_pin ) },
++  { LSTRKEY( &quot;input&quot; ), LFUNCVAL( pio_pin_input ) },
++  { LSTRKEY( &quot;output&quot; ), LFUNCVAL( pio_pin_output ) },
++  { LSTRKEY( &quot;setport&quot; ), LFUNCVAL( pio_set_port ) },
++  { LSTRKEY( &quot;getport&quot; ), LFUNCVAL( pio_get_port ) },
++  { LSTRKEY( &quot;port_input&quot; ), LFUNCVAL( pio_port_input ) },
++  { LSTRKEY( &quot;port_output&quot; ), LFUNCVAL( pio_port_output ) },
++  { LSTRKEY( &quot;pullup&quot; ), LFUNCVAL( pio_pin_pullup ) },
++  { LSTRKEY( &quot;pulldown&quot; ), LFUNCVAL( pio_pin_pulldown ) },
++  { LSTRKEY( &quot;nopull&quot; ), LFUNCVAL( pio_pin_nopull ) },
++  { LSTRKEY( &quot;port&quot; ), LFUNCVAL( pio_port ) },
++  { LSTRKEY( &quot;pin&quot; ), LFUNCVAL( pio_pin ) },
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;__metatable&quot; ), LROVAL( pio_map ) },
++#endif
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( pio_mt_index ) },
++  { LNILKEY, LNILVAL }
+ };
+ 
+ LUALIB_API int luaopen_pio( lua_State *L )
+ {
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+   luaL_register( L, AUXLIB_PIO, pio_map );
+   
+-  // Create and set metatable
+-  lua_newtable( L );
+-  luaL_register( L, NULL, pio_mt_map );  
++  // Set this table as its own metatable
++  lua_pushvalue( L, -1 );
+   lua_setmetatable( L, -2 );
+-
++  
+   return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
+ }
+
+Modified: trunk/src/modules/pwm.c
+===================================================================
+--- trunk/src/modules/pwm.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/pwm.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -5,6 +5,7 @@
+ #include &quot;lauxlib.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ // Lua: realfrequency = setup( id, frequency, duty )
+ static int pwm_setup( lua_State* L )
+@@ -73,18 +74,19 @@
+ }
+ 
+ // Module function map
+-static const luaL_reg pwm_map[] = 
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE pwm_map[] = 
+ {
+-  { &quot;setup&quot;, pwm_setup },
+-  { &quot;start&quot;, pwm_start },
+-  { &quot;stop&quot;, pwm_stop },
+-  { &quot;setclock&quot;, pwm_setclock },
+-  { &quot;getclock&quot;, pwm_getclock },
+-  { NULL, NULL }
++  { LSTRKEY( &quot;setup&quot; ), LFUNCVAL( pwm_setup ) },
++  { LSTRKEY( &quot;start&quot; ), LFUNCVAL( pwm_start ) },
++  { LSTRKEY( &quot;stop&quot; ), LFUNCVAL( pwm_stop ) },
++  { LSTRKEY( &quot;setclock&quot; ), LFUNCVAL( pwm_setclock ) },
++  { LSTRKEY( &quot;getclock&quot; ), LFUNCVAL( pwm_getclock ) },
++  { LNILKEY, LNILVAL }
+ };
+ 
+ LUALIB_API int luaopen_pwm( lua_State *L )
+ {
+-  luaL_register( L, AUXLIB_PWM, pwm_map );
+-  return 1;
++  LREGISTER( L, AUXLIB_PWM, pwm_map );
+ }
+
+Modified: trunk/src/modules/spi.c
+===================================================================
+--- trunk/src/modules/spi.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/spi.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -5,6 +5,7 @@
+ #include &quot;lauxlib.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ // Lua: select( id )
+ static int spi_select( lua_State* L )
+@@ -80,20 +81,29 @@
+ }
+ 
+ // Module function map
+-static const luaL_reg spi_map[] = 
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE spi_map[] = 
+ {
+-  { &quot;setup&quot;,  spi_setup },
+-  { &quot;select&quot;, spi_select },
+-  { &quot;unselect&quot;, spi_unselect },
+-  { &quot;send&quot;, spi_send },  
+-  { &quot;send_recv&quot;, spi_send_recv },    
+-  { NULL, NULL }
++  { LSTRKEY( &quot;setup&quot; ),  LFUNCVAL( spi_setup ) },
++  { LSTRKEY( &quot;select&quot; ),  LFUNCVAL( spi_select ) },
++  { LSTRKEY( &quot;unselect&quot; ),  LFUNCVAL( spi_unselect ) },
++  { LSTRKEY( &quot;send&quot; ),  LFUNCVAL( spi_send ) },  
++  { LSTRKEY( &quot;send_recv&quot; ),  LFUNCVAL( spi_send_recv ) },    
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;MASTER&quot; ), LNUMVAL( PLATFORM_SPI_MASTER ) } ,
++  { LSTRKEY( &quot;SLAVE&quot; ), LNUMVAL( PLATFORM_SPI_SLAVE ) },
++#endif
++  { LNILKEY, LNILVAL }
+ };
+ 
+ LUALIB_API int luaopen_spi( lua_State *L )
+ {
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_register( L, AUXLIB_SPI, spi_map );
+   
+-  luaL_register( L, AUXLIB_SPI, spi_map );
+   // Add the MASTER and SLAVE constants (for spi.setup)
+   lua_pushnumber( L, PLATFORM_SPI_MASTER );
+   lua_setfield( L, -2, &quot;MASTER&quot; );
+@@ -101,4 +111,5 @@
+   lua_setfield( L, -2, &quot;SLAVE&quot; );
+   
+   return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0  
+ }
+
+Modified: trunk/src/modules/term.c
+===================================================================
+--- trunk/src/modules/term.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/term.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -7,6 +7,7 @@
+ #include &quot;auxmods.h&quot;
+ #include &quot;term.h&quot;
+ #include &quot;platform_conf.h&quot;
++#include &quot;lrotable.h&quot;
+ #include &lt;string.h&gt;
+ 
+ // Lua: clrscr()
+@@ -209,45 +210,48 @@
+ }
+ 
+ // Module function map
+-static const luaL_reg term_map[] = 
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE term_map[] = 
+ {
+-  { &quot;clrscr&quot;, luaterm_clrscr },
+-  { &quot;clreol&quot;, luaterm_clreol },
+-  { &quot;gotoxy&quot;, luaterm_gotoxy },
+-  { &quot;up&quot;, luaterm_up },
+-  { &quot;down&quot;, luaterm_down },
+-  { &quot;left&quot;, luaterm_left },
+-  { &quot;right&quot;, luaterm_right },
+-  { &quot;lines&quot;, luaterm_lines },
+-  { &quot;cols&quot;, luaterm_cols },
+-  { &quot;put&quot;, luaterm_put },
+-  { &quot;putstr&quot;, luaterm_putstr },
+-  { &quot;putxy&quot;, luaterm_putxy },
+-  { &quot;putstrxy&quot;, luaterm_putstrxy },
+-  { &quot;cursorx&quot;, luaterm_cx },
+-  { &quot;cursory&quot;, luaterm_cy },
+-  { &quot;getch&quot;, luaterm_getch },
+-  { NULL, NULL }
++  { LSTRKEY( &quot;clrscr&quot; ), LFUNCVAL( luaterm_clrscr ) },
++  { LSTRKEY( &quot;clreol&quot; ), LFUNCVAL( luaterm_clreol ) },
++  { LSTRKEY( &quot;gotoxy&quot; ), LFUNCVAL( luaterm_gotoxy ) },
++  { LSTRKEY( &quot;up&quot; ), LFUNCVAL( luaterm_up ) },
++  { LSTRKEY( &quot;down&quot; ), LFUNCVAL( luaterm_down ) },
++  { LSTRKEY( &quot;left&quot; ), LFUNCVAL( luaterm_left ) },
++  { LSTRKEY( &quot;right&quot; ), LFUNCVAL( luaterm_right ) },
++  { LSTRKEY( &quot;lines&quot; ), LFUNCVAL( luaterm_lines ) },
++  { LSTRKEY( &quot;cols&quot; ), LFUNCVAL( luaterm_cols ) },
++  { LSTRKEY( &quot;put&quot; ), LFUNCVAL( luaterm_put ) },
++  { LSTRKEY( &quot;putstr&quot; ), LFUNCVAL( luaterm_putstr ) },
++  { LSTRKEY( &quot;putxy&quot; ), LFUNCVAL( luaterm_putxy ) },
++  { LSTRKEY( &quot;putstrxy&quot; ), LFUNCVAL( luaterm_putstrxy ) },
++  { LSTRKEY( &quot;cursorx&quot; ), LFUNCVAL( luaterm_cx ) },
++  { LSTRKEY( &quot;cursory&quot; ), LFUNCVAL( luaterm_cy ) },
++  { LSTRKEY( &quot;getch&quot; ), LFUNCVAL( luaterm_getch ) },
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;__metatable&quot; ), LROVAL( term_map ) },
++  { LSTRKEY( &quot;NOWAIT&quot; ), LNUMVAL( TERM_INPUT_DONT_WAIT ) },
++  { LSTRKEY( &quot;WAIT&quot; ), LNUMVAL( TERM_INPUT_WAIT ) },
++#endif
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( term_mt_index ) },
++  { LNILKEY, LNILVAL }
+ };
+ 
+-// Metatable data
+-static const luaL_reg term_mt_map[] =
+-{
+-  { &quot;__index&quot;, term_mt_index },
+-  { NULL, NULL }
+-};
+-
+ LUALIB_API int luaopen_term( lua_State* L )
+ {
+ #ifdef BUILD_TERM
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+   // Register methods
+   luaL_register( L, AUXLIB_TERM, term_map );  
+   
+-  // Create and set metatable
+-  lua_newtable( L );
+-  luaL_register( L, NULL, term_mt_map );  
+-  lua_setmetatable( L, -2 );
+-
++  // Set this table as itw own metatable
++  lua_pushvalue( L, -1 );
++  lua_setmetatable( L, -2 );  
++  
+   // Register the constants for &quot;getch&quot;
+   lua_pushnumber( L, TERM_INPUT_DONT_WAIT );
+   lua_setfield( L, -2, &quot;NOWAIT&quot; );  
+@@ -255,6 +259,7 @@
+   lua_setfield( L, -2, &quot;WAIT&quot; );  
+   
+   return 1;
++#endif // # if LUA_OPTIMIZE_MEMORY &gt; 0
+ #else // #ifdef BUILD_TERM
+   return 0;
+ #endif // #ifdef BUILD_TERM  
+
+Modified: trunk/src/modules/tmr.c
+===================================================================
+--- trunk/src/modules/tmr.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/tmr.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -7,8 +7,13 @@
+ #include &quot;auxmods.h&quot;
+ #include &quot;platform_conf.h&quot;
+ #include &quot;common.h&quot;
++#include &quot;lrotable.h&quot;
+ #include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;string.h&gt;
+ 
++#define MAX_VTIMER_NAME_LEN     6
++
+ // Helper function for the read/start functions
+ static int tmrh_timer_op( lua_State* L, int op )
+ {
+@@ -115,33 +120,62 @@
+   return 1;
+ }
+ 
++#if VTMR_NUM_TIMERS &gt; 0
++// __index metafunction for TMR
++// Look for all VIRTx timer identifiers
++static int tmr_mt_index( lua_State* L )
++{
++  const char *key = luaL_checkstring( L ,2 );
++  char* pend;
++  long res;
++  
++  if( strlen( key ) &gt; MAX_VTIMER_NAME_LEN || strlen( key ) &lt; 5 )
++    return 0;
++  if( strncmp( key, &quot;VIRT&quot;, 4 ) )
++    return 0;  
++  res = strtol( key + 4, &amp;pend, 10 );
++  if( *pend != '\0' )
++    return 0;
++  if( res &gt;= VTMR_NUM_TIMERS )
++    return 0;
++  lua_pushinteger( L, VTMR_FIRST_ID + res );
++  return 1;
++}
++#endif // #if VTMR_NUM_TIMERS &gt; 0
++
+ // Module function map
+-static const luaL_reg tmr_map[] = 
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE tmr_map[] = 
+ {
+-  { &quot;delay&quot;,  tmr_delay },
+-  { &quot;read&quot;, tmr_read },
+-  { &quot;start&quot;, tmr_start },
+-  { &quot;diff&quot;, tmr_diff },  
+-  { &quot;mindelay&quot;, tmr_mindelay },
+-  { &quot;maxdelay&quot;, tmr_maxdelay },
+-  { &quot;setclock&quot;, tmr_setclock },
+-  { &quot;getclock&quot;, tmr_getclock },
+-  { NULL, NULL }
++  { LSTRKEY( &quot;delay&quot; ), LFUNCVAL( tmr_delay ) },
++  { LSTRKEY( &quot;read&quot; ), LFUNCVAL( tmr_read ) },
++  { LSTRKEY( &quot;start&quot; ), LFUNCVAL( tmr_start ) },
++  { LSTRKEY( &quot;diff&quot; ), LFUNCVAL( tmr_diff ) },  
++  { LSTRKEY( &quot;mindelay&quot; ), LFUNCVAL( tmr_mindelay ) },
++  { LSTRKEY( &quot;maxdelay&quot; ), LFUNCVAL( tmr_maxdelay ) },
++  { LSTRKEY( &quot;setclock&quot; ), LFUNCVAL( tmr_setclock ) },
++  { LSTRKEY( &quot;getclock&quot; ), LFUNCVAL( tmr_getclock ) },
++#if LUA_OPTIMIZE_MEMORY &gt; 0 &amp;&amp; VTMR_NUM_TIMERS &gt; 0
++  { LSTRKEY( &quot;__metatable&quot; ), LROVAL( tmr_map ) },
++#endif
++#if VTMR_NUM_TIMERS &gt; 0  
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( tmr_mt_index ) },
++#endif  
++  { LNILKEY, LNILVAL }
+ };
+ 
+ LUALIB_API int luaopen_tmr( lua_State *L )
+ {
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+   luaL_register( L, AUXLIB_TMR, tmr_map );
+ #if VTMR_NUM_TIMERS &gt; 0
+-  unsigned i;
+-  char tname[ 8 ];
+-  for( i = 0; i &lt; VTMR_NUM_TIMERS; i ++ )
+-  {
+-    tname[ 0 ] = tname[ 7 ] = '\0';
+-    snprintf( tname, 7, &quot;VIRT%d&quot;, i );
+-    lua_pushnumber( L, VTMR_FIRST_ID + i );
+-    lua_setfield( L, -2, tname );  
+-  }
+-#endif
++  // Set this table as its own metatable
++  lua_pushvalue( L, -1 );
++  lua_setmetatable( L, -2 );  
++#endif // #if VTMR_NUM_TIMERS &gt; 0
+   return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
+ }
+
+Modified: trunk/src/modules/uart.c
+===================================================================
+--- trunk/src/modules/uart.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/modules/uart.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -5,6 +5,7 @@
+ #include &quot;lauxlib.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ // Lua: actualbaud = setup( id, baud, databits, parity, stopbits )
+ static int uart_setup( lua_State* L )
+@@ -74,17 +75,32 @@
+ }
+ 
+ // Module function map
+-static const luaL_reg uart_map[] = 
++#define MIN_OPT_LEVEL   2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE uart_map[] = 
+ {
+-  { &quot;setup&quot;,  uart_setup },
+-  { &quot;send&quot;, uart_send },
+-  { &quot;recv&quot;, uart_recv },
+-  { &quot;sendstr&quot;, uart_sendstr },
+-  { NULL, NULL }
++  { LSTRKEY( &quot;setup&quot; ),  LFUNCVAL( uart_setup ) },
++  { LSTRKEY( &quot;send&quot; ), LFUNCVAL( uart_send) },
++  { LSTRKEY( &quot;recv&quot; ), LFUNCVAL( uart_recv ) },
++  { LSTRKEY( &quot;sendstr&quot; ), LFUNCVAL( uart_sendstr ) },
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;PAR_EVEN&quot; ), LNUMVAL( PLATFORM_UART_PARITY_EVEN ) },
++  { LSTRKEY( &quot;PAR_ODD&quot; ), LNUMVAL( PLATFORM_UART_PARITY_ODD ) },
++  { LSTRKEY( &quot;PAR_NONE&quot; ), LNUMVAL( PLATFORM_UART_PARITY_NONE ) },
++  { LSTRKEY( &quot;STOP_1&quot; ), LNUMVAL( PLATFORM_UART_STOPBITS_1 ) },
++  { LSTRKEY( &quot;STOP_1_5&quot; ), LNUMVAL( PLATFORM_UART_STOPBITS_1_5 ) },
++  { LSTRKEY( &quot;STOP_2&quot; ), LNUMVAL( PLATFORM_UART_STOPBITS_2 ) },
++  { LSTRKEY( &quot;NO_TIMEOUT&quot; ), LNUMVAL( 0 ) },
++  { LSTRKEY( &quot;INF_TIMEOUT&quot; ), LNUMVAL( PLATFORM_UART_INFINITE_TIMEOUT ) },
++#endif
++  { LNILKEY, LNILVAL }
+ };
+ 
+ LUALIB_API int luaopen_uart( lua_State *L )
+ {
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+   luaL_register( L, AUXLIB_UART, uart_map );
+   
+   // Add the stop bits and parity constants (for uart.setup)
+@@ -108,4 +124,5 @@
+   lua_setfield( L, -2, &quot;INF_TIMEOUT&quot; );
+   
+   return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
+ }
+
+Modified: trunk/src/platform/at91sam7x/flash256.lds
+===================================================================
+--- trunk/src/platform/at91sam7x/flash256.lds	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/at91sam7x/flash256.lds	2009-01-11 20:43:02 UTC (rev 151)
+@@ -51,6 +51,7 @@
+     {
+         . = ALIGN(4);
+         _sfixed = .;
++        PROVIDE(stext = .);
+         KEEP(*(.vectors))
+         KEEP(*(.init))
+         *(.text .text.*)        
+
+Modified: trunk/src/platform/at91sam7x/flash512.lds
+===================================================================
+--- trunk/src/platform/at91sam7x/flash512.lds	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/at91sam7x/flash512.lds	2009-01-11 20:43:02 UTC (rev 151)
+@@ -51,6 +51,7 @@
+     {
+         . = ALIGN(4);
+         _sfixed = .;
++        PROVIDE(stext = .);
+         KEEP(*(.vectors))
+         KEEP(*(.init))
+         *(.text .text.*)        
+
+Modified: trunk/src/platform/at91sam7x/platform.c
+===================================================================
+--- trunk/src/platform/at91sam7x/platform.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/at91sam7x/platform.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -403,3 +403,16 @@
+   
+   return res;
+ }
++
++// ****************************************************************************
++// CPU functions
++
++void platform_cpu_enable_interrupts()
++{
++  AT91C_BASE_AIC-&gt;AIC_DCR &amp;= ~AT91C_AIC_DCR_GMSK; 
++}
++
++void platform_cpu_disable_interrupts()
++{
++  AT91C_BASE_AIC-&gt;AIC_DCR |= AT91C_AIC_DCR_GMSK; 
++}
+
+Modified: trunk/src/platform/at91sam7x/platform_conf.h
+===================================================================
+--- trunk/src/platform/at91sam7x/platform_conf.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/at91sam7x/platform_conf.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -30,16 +30,17 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PWM, luaopen_pwm },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { LUA_MATHLIBNAME, luaopen_math }
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+   
+ // *****************************************************************************
+ // Configuration data
+
+Modified: trunk/src/platform/avr32/at32uc3a0512.ld
+===================================================================
+--- trunk/src/platform/avr32/at32uc3a0512.ld	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/avr32/at32uc3a0512.ld	2009-01-11 20:43:02 UTC (rev 151)
+@@ -9,7 +9,8 @@
+     .text :
+     {
+         . = ALIGN(4);
+-        _text = .;
++        _stext = .;
++        PROVIDE(stext = .);
+         KEEP(*(.start))
+         *(.text .text.*)
+         *(.rodata .rodata.*)
+
+Modified: trunk/src/platform/avr32/conf.py
+===================================================================
+--- trunk/src/platform/avr32/conf.py	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/avr32/conf.py	2009-01-11 20:43:02 UTC (rev 151)
+@@ -11,7 +11,7 @@
+ # Toolset data
+ tools[ 'avr32' ] = {}
+ tools[ 'avr32' ][ 'cccom' ] = &quot;avr32-gcc -mpart=uc3a0512 %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
+-tools[ 'avr32' ][ 'linkcom' ] = &quot;avr32-gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,_stext -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
++tools[ 'avr32' ][ 'linkcom' ] = &quot;avr32-gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,crt0 -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
+ tools[ 'avr32' ][ 'ascom' ] = &quot;avr32-gcc -x assembler-with-cpp %s -mpart=uc3a0512 %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+ 
+ # Programming function
+
+Modified: trunk/src/platform/avr32/crt0.s
+===================================================================
+--- trunk/src/platform/avr32/crt0.s	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/avr32/crt0.s	2009-01-11 20:43:02 UTC (rev 151)
+@@ -49,14 +49,14 @@
+ //! \verbatim
+ 
+ 
+-  // _stext is placed outside the .reset section so that the program entry point
++  // crt0 is placed outside the .reset section so that the program entry point
+   // can be changed without affecting the C runtime startup.
+   .section  .start, &quot;ax&quot;, @progbits
+ 
+ 
+-  .global _stext
+-  .type _stext, @function
+-_stext:
++  .global crt0
++  .type crt0, @function
++crt0:
+   // Set initial stack pointer.
+   lda.w   sp, _sstack
+ 
+
+Modified: trunk/src/platform/avr32/platform_conf.h
+===================================================================
+--- trunk/src/platform/avr32/platform_conf.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/avr32/platform_conf.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -30,17 +30,17 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { AUXLIB_CPU, luaopen_cpu },\
+-  { LUA_MATHLIBNAME, luaopen_math }
+-
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )  
++  
+ // *****************************************************************************
+ // Configuration data
+ 
+
+Modified: trunk/src/platform/i386/i386.ld
+===================================================================
+--- trunk/src/platform/i386/i386.ld	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/i386/i386.ld	2009-01-11 20:43:02 UTC (rev 151)
+@@ -10,12 +10,13 @@
+     .text 0x100000 :
+     {
+         code = .; _code = .; __code = .;
++        PROVIDE(stext = .);
+         *(.text .text.*)
+         *(.rodata .rodata.*)        
+         *(.gnu.linkonce.r.*)    
+         *(.gnu.linkonce.t.*)                    
+         . = ALIGN(4096);
+-        etext = .;
++        PROVIDE(etext = .);
+     }
+ 
+     .data :
+
+Modified: trunk/src/platform/i386/platform_conf.h
+===================================================================
+--- trunk/src/platform/i386/platform_conf.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/i386/platform_conf.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -16,9 +16,9 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { LUA_MATHLIBNAME, luaopen_math }
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+   
+ #define CON_UART_ID           0
+   
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/lm3s/conf.py	2009-01-11 20:43:02 UTC (rev 151)
+@@ -1,6 +1,6 @@
+ # Configuration file for the LM3S microcontroller
+ 
+-specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c rit128x96x4.c&quot;
++specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c rit128x96x4.c disp.c&quot;
+ ldscript = &quot;lm3s.ld&quot;
+   
+ # Prepend with path
+
+Copied: trunk/src/platform/lm3s/disp.c (from rev 141, trunk/src/modules/disp.c)
+===================================================================
+--- trunk/src/modules/disp.c	2009-01-01 00:10:52 UTC (rev 141)
++++ trunk/src/platform/lm3s/disp.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -0,0 +1,106 @@
++// Module for interfacing with Lua DISP code
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;lrotable.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;disp.h&quot;
++
++//Lua: init(frequency)
++static int disp_init(lua_State *L) {
++  unsigned long freq;
++  
++  freq = luaL_checkinteger(L, 1);
++  lm3s_disp_init(freq);
++  return 0;
++   
++}
++
++//Lua: enable
++static int disp_enable(lua_State *L) {
++  unsigned long freq;
++  
++  freq = luaL_checkinteger(L, 1);
++  lm3s_disp_enable(freq);
++  return 0;
++}
++
++//Lua: disable   
++static int disp_disable(lua_State *L) {    
++  lm3s_disp_disable();
++  return 0; 
++}
++   
++//Lua: on
++static int disp_on(lua_State *L) {
++  lm3s_disp_displayOn();    
++  return 0; 
++}
++
++//Lua: off
++static int disp_off(lua_State *L) {    
++  lm3s_disp_displayOff();
++  return 0; 
++}
++   
++//Lua: clear
++static int disp_clear(lua_State *L) {    
++  lm3s_disp_clear();
++  return 0; 
++}
++   
++//Lua: strDraw
++static int disp_stringDraw(lua_State *L) {
++  const char *str;
++  unsigned long x; 
++  unsigned long y;
++  unsigned char lvl;
++  
++  str   = luaL_checkstring(L, 1);         
++  x     = luaL_checkinteger(L, 2);
++  y     = luaL_checkinteger(L, 3);
++  lvl   = (unsigned char) luaL_checkinteger(L, 4);    
++  lm3s_disp_stringDraw(str, x, y, lvl);
++  return 0; 
++}
++   
++//Lua: enable
++static int disp_imageDraw(lua_State *L) {    
++  const char *img;
++  unsigned long x;
++  unsigned long y;
++  unsigned long width;
++  unsigned long height;
++  
++  img    = luaL_checkstring(L, 1);
++  x      = luaL_checkinteger(L, 2);
++  y      = luaL_checkinteger(L, 3);
++  width  = luaL_checkinteger(L, 4);
++  height = luaL_checkinteger(L, 5);
++  lm3s_disp_imageDraw(( const unsigned char* )img, x, y, width, height);
++  return 0; 
++}   
++
++
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;  
++// Module function map
++const LUA_REG_TYPE disp_map[] =
++{
++  { LSTRKEY( &quot;init&quot; ),  LFUNCVAL( disp_init ) },
++  { LSTRKEY( &quot;enable&quot; ),  LFUNCVAL( disp_enable ) },
++  { LSTRKEY( &quot;disable&quot; ), LFUNCVAL( disp_disable ) },
++  { LSTRKEY( &quot;on&quot; ), LFUNCVAL( disp_on ) },    
++  { LSTRKEY( &quot;off&quot; ), LFUNCVAL( disp_off ) },
++  { LSTRKEY( &quot;clear&quot; ), LFUNCVAL( disp_clear ) },
++  { LSTRKEY( &quot;stringdraw&quot; ), LFUNCVAL( disp_stringDraw ) },
++  { LSTRKEY( &quot;imgagedraw&quot; ), LFUNCVAL( disp_imageDraw ) },  
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_disp( lua_State *L )
++{
++  LREGISTER( L, AUXLIB_DISP, disp_map );
++}  
+
+
+Property changes on: trunk/src/platform/lm3s/disp.c
+___________________________________________________________________
+Name: svn:mergeinfo
+   + 
+
+Added: trunk/src/platform/lm3s/disp.h
+===================================================================
+--- trunk/src/platform/lm3s/disp.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/lm3s/disp.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -0,0 +1,16 @@
++// LM3S OLED display support
++
++#ifndef __DISP_H__
++#define __DISP_H__
++
++void lm3s_disp_init( unsigned long freq );
++void lm3s_disp_clear( void );
++void lm3s_disp_stringDraw( const char *str, unsigned long x, unsigned long y, unsigned char level );
++void lm3s_disp_imageDraw( const unsigned char *img, unsigned long x, unsigned long y,
++                              unsigned long width, unsigned long height );                             
++void lm3s_disp_enable( unsigned long freq );
++void lm3s_disp_disable( void );
++void lm3s_disp_displayOn( void );
++void lm3s_disp_displayOff( void );
++
++#endif
+
+Modified: trunk/src/platform/lm3s/lm3s.ld
+===================================================================
+--- trunk/src/platform/lm3s/lm3s.ld	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/lm3s/lm3s.ld	2009-01-11 20:43:02 UTC (rev 151)
+@@ -10,6 +10,7 @@
+     {
+         . = ALIGN(4);
+         _text = .;
++        PROVIDE(stext = .);
+         KEEP(*(.isr_vector))
+         KEEP(*(.init))
+         *(.text .text.*)        
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/lm3s/platform.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -37,6 +37,7 @@
+ #include &quot;elua_net.h&quot;
+ #include &quot;dhcpc.h&quot;
+ #include &quot;rit128x96x4.h&quot;
++#include &quot;disp.h&quot;
+ 
+ // UIP sys tick data
+ // NOTE: when using virtual timers, SYSTICKHZ and VTMR_FREQ_HZ should have the
+@@ -476,44 +477,44 @@
+ // Initially immplementing the funcionalities offered by the RIT128x96x4
+ // OLED display driver.
+ 
+-void platform_disp_init( unsigned long freq ) 
++void lm3s_disp_init( unsigned long freq ) 
+ {
+   RIT128x96x4Init( freq );
+ }
+     
+-void platform_disp_clear() 
++void lm3s_disp_clear() 
+ {  
+   RIT128x96x4Clear();
+ }
+ 
+-void platform_disp_stringDraw( const char *str, unsigned long x, unsigned long y, unsigned char level ) 
++void lm3s_disp_stringDraw( const char *str, unsigned long x, unsigned long y, unsigned char level ) 
+ {
+   RIT128x96x4StringDraw( str, x, y, level );
+ }
+ 
+-void platform_disp_imageDraw( const unsigned char *img, unsigned long x, unsigned long y, 
++void lm3s_disp_imageDraw( const unsigned char *img, unsigned long x, unsigned long y, 
+                               unsigned long width, unsigned long height ) 
+ {
+   RIT128x96x4ImageDraw( img, x, y, width, height );
+ }
+ 
+ 
+-void platform_disp_enable( unsigned long freq ) 
++void lm3s_disp_enable( unsigned long freq ) 
+ {
+   RIT128x96x4Enable( freq );
+ }
+ 
+-void platform_disp_disable() 
++void lm3s_disp_disable() 
+ {
+   RIT128x96x4Disable();
+ }
+ 
+-void platform_disp_displayOn() 
++void lm3s_disp_displayOn() 
+ {
+   RIT128x96x4DisplayOn();
+ }
+ 
+-void platform_disp_displayOff() 
++void lm3s_disp_displayOff() 
+ {
+   RIT128x96x4DisplayOff();
+ }
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/lm3s/platform_conf.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -17,7 +17,7 @@
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+ #define BUILD_UIP
+-//#define BUILD_DHCPC
++#define BUILD_DHCPC
+ #define BUILD_DNS
+ #define BUILD_CON_GENERIC
+ //#define BUILD_CON_TCP
+@@ -36,20 +36,23 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_SPI, luaopen_spi },\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PWM, luaopen_pwm },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { AUXLIB_NET, luaopen_net },\
+-  { AUXLIB_CPU, luaopen_cpu },\
+-  { AUXLIB_DISP, luaopen_disp },\
+-  { LUA_MATHLIBNAME, luaopen_math }
++#define AUXLIB_DISP   &quot;disp&quot;
++LUALIB_API int ( luaopen_disp )( lua_State* L );
++
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_NET, luaopen_net, net_map )\
++  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  _ROM( AUXLIB_DISP, luaopen_disp, disp_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+   
+ // *****************************************************************************
+ // Configuration data
+
+Modified: trunk/src/platform/lpc288x/lpc2888.lds
+===================================================================
+--- trunk/src/platform/lpc288x/lpc2888.lds	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/lpc288x/lpc2888.lds	2009-01-11 20:43:02 UTC (rev 151)
+@@ -13,6 +13,7 @@
+     {
+         . = ALIGN(4);
+         _sfixed = .;
++        PROVIDE(stext = .);
+         KEEP(*(.vectors))
+         *(.text .text.*)        
+         *(.rodata .rodata.*)        
+
+Modified: trunk/src/platform/lpc288x/lpc28xx.s
+===================================================================
+--- trunk/src/platform/lpc288x/lpc28xx.s	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/lpc288x/lpc28xx.s	2009-01-11 20:43:02 UTC (rev 151)
+@@ -227,6 +227,8 @@
+             MOV     R1, #DAIFSR2_Val
+             STR     R1, [R0, #DAIFSR2_OFS]            
+ 
++
++
+ @ Setup Stack for each mode 
+ 
+             LDR     R0, =IRAM_END
+@@ -239,13 +241,7 @@
+ @ Enter Supervisor Mode and set its Stack Pointer
+             MSR     CPSR_c, #Mode_SVC | I_Bit | F_Bit
+             MOV     SP, R0
+-            SUB     R0, R0, #STACK_SIZE_SVC
+ 
+-@ Enter User Mode and set its Stack Pointer
+-            MSR     CPSR_c, #Mode_USR | I_Bit | F_Bit
+-            MOV     SP, R0
+-            SUB     SL, SP, #STACK_SIZE_USR                                                                 
+-                
+ @ Relocate .data section (Copy from ROM to RAM)
+             LDR     R1, =_efixed 
+             LDR     R2, =_srelocate 
+@@ -266,7 +262,7 @@
+ LoopZI:     CMP     R1, R2 
+             STRLO   R0, [R1], #4 
+             BLO     LoopZI 
+-BSSIsEmpty:                
++BSSIsEmpty:          
+ 
+ @ Enter the main C code
+             .extern main
+@@ -279,4 +275,3 @@
+             B       forever                
+             
+ .end
+-          
+\ No newline at end of file
+
+Modified: trunk/src/platform/lpc288x/platform.c
+===================================================================
+--- trunk/src/platform/lpc288x/platform.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/lpc288x/platform.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -22,6 +22,9 @@
+ 
+ int platform_init()
+ {
++   MODE1C_2 = 2;
++   MODE0S_2 = 2;
++                    
+   // Initialize CPU
+   lpc288x_init();
+   
+
+Modified: trunk/src/platform/lpc288x/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc288x/platform_conf.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/lpc288x/platform_conf.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -61,14 +61,14 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { LUA_MATHLIBNAME, luaopen_math }  
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+   
+ #endif // #ifndef __PLATFORM_CONF_H__
+
+Modified: trunk/src/platform/lpc288x/stacks.h
+===================================================================
+--- trunk/src/platform/lpc288x/stacks.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/lpc288x/stacks.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -3,9 +3,8 @@
+ #ifndef __STACKS_H__
+ #define __STACKS_H__
+ 
+-#define STACK_SIZE_USR   256
+-#define STACK_SIZE_SVC   32
++#define STACK_SIZE_SVC   256
+ #define STACK_SIZE_IRQ   32
+-#define STACK_SIZE_TOTAL ( STACK_SIZE_USR + STACK_SIZE_SVC + STACK_SIZE_IRQ )
++#define STACK_SIZE_TOTAL ( STACK_SIZE_SVC + STACK_SIZE_IRQ )
+ 
+ #endif
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/stm32/conf.py	2009-01-11 20:43:02 UTC (rev 151)
+@@ -8,7 +8,7 @@
+ fwlib_files = &quot; &quot;.join(glob.glob(&quot;src/platform/%s/FWLib/library/src/*.c&quot; % platform))
+ #print &quot;FWLib: %s &quot; % fwlib_files 
+ 
+-specific_files = &quot;cortexm3_macro.s stm32f10x_vector.c systick.c platform.c stm32f10x_it.c lcd.c lua_lcd.c lstm32_mod.c&quot;
++specific_files = &quot;cortexm3_macro.s stm32f10x_vector.c systick.c platform.c stm32f10x_it.c lcd.c lua_lcd.c&quot;
+ 
+ ldscript = &quot;stm32.ld&quot;
+   
+
+Modified: trunk/src/platform/stm32/lua_lcd.c
+===================================================================
+--- trunk/src/platform/stm32/lua_lcd.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/stm32/lua_lcd.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -6,10 +6,11 @@
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
+ #include &quot;modcommon.h&quot;
++#include &quot;lrotable.h&quot;
+ #include &lt;stdio.h&gt;
+ #include &lt;ctype.h&gt;
+ #include &lt;string.h&gt;
+-
++#include &quot;platform_conf.h&quot;
+ #include &quot;lcd.h&quot;
+ 
+ #ifdef FORSTM3210E_EVAL
+@@ -72,46 +73,47 @@
+ 	return 0;
+ }
+ 
+-static const eLua_const_userdata_t lcd_constants[] = 
++static int lcd_mt_index( lua_State *L )
+ {
+-	_ELUA_CTE(Line0),
+-	_ELUA_CTE(Line1),
+-	_ELUA_CTE(Line2),
+-	_ELUA_CTE(Line3),
+-	_ELUA_CTE(Line4),
+-	_ELUA_CTE(Line5),
+-	_ELUA_CTE(Line6),
+-	_ELUA_CTE(Line7),
+-	_ELUA_CTE(Line8),
+-	_ELUA_CTE(Line9),
+-	
+-	{ NULL, 0 }
+-};
++  const char *key = luaL_checkstring( L ,2 );
++  int linedata[] = { Line0, Line1, Line2, Line3, Line4, Line5, Line6, Line7, Line8, Line9 };
++  
++  if( strlen( key ) != 5 || strncmp( key, &quot;Line&quot;, 4 ) || !isdigit( key[ 4 ] ) ) 
++    return 0;
++  lua_pushinteger( L, linedata[ key[ 4 ] - '0' ] );
++  return 1;
++}
+ 
+-static const luaL_reg lcd_map[] =
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE lcd_map[] =
+ {
+-	{ &quot;init&quot;, lcd_init },
+-	{ &quot;setforecolor&quot;, lcd_setforecolor },
+-	{ &quot;setbackcolor&quot;, lcd_setbackcolor },
+-	{ &quot;clear&quot;, lcd_clear },
+-	{ &quot;clearline&quot;, lcd_clearline },
+-	{ &quot;print&quot;, lcd_print },
+-
+-	{ NULL, NULL }
++	{ LSTRKEY( &quot;init&quot; ), LFUNCVAL( lcd_init ) },
++	{ LSTRKEY( &quot;setforecolor&quot; ), LFUNCVAL( lcd_setforecolor ) },
++	{ LSTRKEY( &quot;setbackcolor&quot; ), LFUNCVAL( lcd_setbackcolor ) },
++	{ LSTRKEY( &quot;clear&quot; ), LFUNCVAL( lcd_clear ) },
++	{ LSTRKEY( &quot;clearline&quot; ), LFUNCVAL( lcd_clearline ) },
++	{ LSTRKEY( &quot;print&quot; ), LFUNCVAL( lcd_print ) },
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;__metatable&quot; ), LROVAL( lcd_map ) },
++#endif
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( lcd_mt_index ) },
++	{ LNILKEY, LNILVAL }
+ };
+ 
+-//LUALIB_API int luaopen_lcd(lua_State * L) __attribute__ ((section (&quot;.lua_init&quot;)));
+ LUALIB_API int luaopen_lcd(lua_State * L)
+ {
+-	eLua_register(L, &quot;stm3210lcd&quot;, lcd_map);
+-	eLua_register_const(L, lcd_constants);
+-
+-	return 1;
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_register( L, AUXLIB_LCD, lcd_map );
++  
++  // Set this table as its own metatable
++  lua_pushvalue( L, -1 );
++  lua_setmetatable( L, -2 );
++  
++  return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0  
+ }
+ 
+-const luaL_reg lcd_modtab[] __attribute__ ((section (&quot;.lua_init&quot;))) = {
+-	{ &quot;stm3210lcd&quot;, luaopen_lcd }
+-};
+-
+-#endif
+-
++#endif // #ifdef FORSTM3210E_EVAL
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/stm32/platform_conf.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -33,6 +33,10 @@
+ 
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
++
++#define AUXLIB_LCD      &quot;stm3210lcd&quot;
++LUALIB_API int ( luaopen_lcd )( lua_State* L );
++
+ #if 0
+ #define LUA_PLATFORM_LIBS\
+   { AUXLIB_PIO, luaopen_pio },\
+@@ -48,16 +52,16 @@
+   { AUXLIB_CPU, luaopen_cpu },\
+   { LUA_MATHLIBNAME, luaopen_math }
+ #else
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { AUXLIB_CPU, luaopen_cpu },\
+-  { AUXLIB_MOD, luaopen_mod },\
+-  { LUA_MATHLIBNAME, luaopen_math }
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  _ROM( AUXLIB_LCD, luaopen_lcd, lcd_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ #endif
+ 
+ // *****************************************************************************
+
+Modified: trunk/src/platform/stm32/stm32.ld
+===================================================================
+--- trunk/src/platform/stm32/stm32.ld	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/stm32/stm32.ld	2009-01-11 20:43:02 UTC (rev 151)
+@@ -73,21 +73,11 @@
+ 	. = ALIGN(4);
+     } &gt;FLASH
+  
+-    .lua_init :
+-    {
+-	. = ALIGN(4);
+-        _lua_init_start = .;
+-	KEEP(*(.lua_init))
+-        LONG(0x00000000);
+-        LONG(0x00000000);    /* Terminate table */
+-        _lua_init_end = .;
+-	. = ALIGN(4);
+-    } &gt;FLASH  
+     /* the program code is stored in the .text section, which goes to Flash */
+     .text :
+     {
+ 	    . = ALIGN(4);
+-	    
++        PROVIDE(stext = .);	    
+         *(.text)                   /* remaining code */
+         *(.text.*)                   /* remaining code */
+         *(.rodata)                 /* read-only data (constants) */
+@@ -96,7 +86,8 @@
+         *(.glue_7t)
+ 
+ 	    . = ALIGN(4);
+-   	 _etext = .;
++   	  _etext = .;
++     PROVIDE(etext = .);
+ 	    /* This is used by the startup in order to initialize the .data secion */
+    	 _sidata = _etext;
+     } &gt;FLASH
+
+Modified: trunk/src/platform/str7/crt0.s
+===================================================================
+--- trunk/src/platform/str7/crt0.s	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/str7/crt0.s	2009-01-11 20:43:02 UTC (rev 151)
+@@ -87,7 +87,7 @@
+  **************/
+  
+ /* Supervisor mode */
+-        msr     CPSR_c, #ARM_MODE_SVC | F_BIT | I_BIT
++        msr     CPSR_c, #ARM_MODE_SVC
+         ldr     r4, =_sstack        
+         mov     sp, r4
+ 
+
+Modified: trunk/src/platform/str7/platform.c
+===================================================================
+--- trunk/src/platform/str7/platform.c	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/str7/platform.c	2009-01-11 20:43:02 UTC (rev 151)
+@@ -341,3 +341,16 @@
+   
+   return res;
+ }
++
++// ****************************************************************************
++// CPU functions
++
++void platform_cpu_enable_interrupts()
++{
++  EIC-&gt;ICR |= 0x03;
++}
++
++void platform_cpu_disable_interrupts()
++{
++  EIC-&gt;ICR &amp;= ~0x03;
++}
+
+Modified: trunk/src/platform/str7/platform_conf.h
+===================================================================
+--- trunk/src/platform/str7/platform_conf.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/str7/platform_conf.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -29,16 +29,17 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_PWM, luaopen_pwm },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { LUA_MATHLIBNAME, luaopen_math }    
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 
+ // *****************************************************************************
+ // Configuration data
+
+Modified: trunk/src/platform/str7/str711fr2.lds
+===================================================================
+--- trunk/src/platform/str7/str711fr2.lds	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/str7/str711fr2.lds	2009-01-11 20:43:02 UTC (rev 151)
+@@ -14,6 +14,7 @@
+     {
+         . = ALIGN(4);
+         _sfixed = .;
++        PROVIDE(stext = .);
+         KEEP(*(.vectors))
+         KEEP(*(.init))
+         *(.text .text.*)        
+
+Modified: trunk/src/platform/str9/platform_conf.h
+===================================================================
+--- trunk/src/platform/str9/platform_conf.h	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/str9/platform_conf.h	2009-01-11 20:43:02 UTC (rev 151)
+@@ -63,14 +63,14 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio},\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { LUA_MATHLIBNAME, luaopen_math }    
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+   
+ #endif // #ifndef __PLATFORM_CONF_H__
+
+Modified: trunk/src/platform/str9/str912fw44.lds
+===================================================================
+--- trunk/src/platform/str9/str912fw44.lds	2009-01-09 23:22:17 UTC (rev 150)
++++ trunk/src/platform/str9/str912fw44.lds	2009-01-11 20:43:02 UTC (rev 151)
+@@ -13,6 +13,7 @@
+     {
+         . = ALIGN(4);
+         _sfixed = .;
++        PROVIDE(stext = .);
+         KEEP(*(.vectors))
+         *(.text .text.*)        
+         *(.rodata .rodata.*)        
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000106.html">[Elua-svn] r150 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000108.html">[Elua-svn] r152 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#107">[ date ]</a>
+              <a href="thread.html#107">[ thread ]</a>
+              <a href="subject.html#107">[ subject ]</a>
+              <a href="author.html#107">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

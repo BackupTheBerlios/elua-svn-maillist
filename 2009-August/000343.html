@@ -1,0 +1,311 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r387 - in tags/pre0.6: doc doc/luadoc src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r387%20-%20in%20tags/pre0.6%3A%20doc%20doc/luadoc%20src/modules&In-Reply-To=%3C200908061915.n76JFvBA019969%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000341.html">
+   <LINK REL="Next"  HREF="000344.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r387 - in tags/pre0.6: doc doc/luadoc src/modules</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r387%20-%20in%20tags/pre0.6%3A%20doc%20doc/luadoc%20src/modules&In-Reply-To=%3C200908061915.n76JFvBA019969%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r387 - in tags/pre0.6: doc doc/luadoc src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Aug  6 21:15:57 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000341.html">[Elua-svn] r386 - in trunk: romfs src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000344.html">[Elua-svn] r388 - tags/pre0.6/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#343">[ date ]</a>
+              <a href="thread.html#343">[ thread ]</a>
+              <a href="subject.html#343">[ subject ]</a>
+              <a href="author.html#343">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-08-06 21:15:57 +0200 (Thu, 06 Aug 2009)
+New Revision: 387
+
+Added:
+   tags/pre0.6/doc/luadoc/refman_gen_net.lua
+Modified:
+   tags/pre0.6/doc/builddoc.lua
+   tags/pre0.6/doc/luadoc/refman_gen_uart.lua
+   tags/pre0.6/src/modules/net.c
+Log:
+added documentation for the 'net' module
+
+Modified: tags/pre0.6/doc/builddoc.lua
+===================================================================
+--- tags/pre0.6/doc/builddoc.lua	2009-08-03 18:39:43 UTC (rev 386)
++++ tags/pre0.6/doc/builddoc.lua	2009-08-06 19:15:57 UTC (rev 387)
+@@ -7,7 +7,7 @@
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+-  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot; }
++  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot; }
+ }
+ 
+ -- List here all languages for the documentation (make sure to keep English (&quot;en&quot;) the first one)
+
+Added: tags/pre0.6/doc/luadoc/refman_gen_net.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/refman_gen_net.lua	2009-08-03 18:39:43 UTC (rev 386)
++++ tags/pre0.6/doc/luadoc/refman_gen_net.lua	2009-08-06 19:15:57 UTC (rev 387)
+@@ -0,0 +1,163 @@
++-- eLua reference manual - net module
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - net module&quot;,
++
++  -- Menu name
++  menu_name = &quot;net&quot;,
++
++  -- Overview
++  overview = [[This module contains functions for accessing a TCP/IP network from eLua. It can be enabled only if networking support is also enabled
++  (see @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">building.html at building</A>@ for details).&lt;/p&gt;
++  &lt;p&gt;&lt;font color=&quot;red&quot;&gt;&lt;b&gt;NOTE:&lt;/b&gt;&lt;/font&gt; TCP/IP support is $experimental$ in eLua. While functional, it's still slow and suffers from a number of
++  other issues. It will most likely change a lot in the future, so expect major changes to this module as well.&lt;/p&gt;
++  &lt;p&gt;&lt;font color=&quot;red&quot;&gt;&lt;b&gt;NOTE:&lt;/b&gt;&lt;/font&gt; currently, only TCP sockets are supported by eLua.]],
++
++  -- Structures
++  structures =
++  {
++    { text = [[// eLua net error codes
++enum
++{
++  ELUA_NET_ERR_OK = 0,            // exported as $net.ERR_OK$
++  ELUA_NET_ERR_TIMEDOUT,          // exported as $net.ERR_TIMEDOUT$
++  ELUA_NET_ERR_CLOSED,            // exported as $net.ERR_CLOSED$
++  ELUA_NET_ERR_ABORTED,           // exported as $net.ERR_ABORTED$
++  ELUA_NET_ERR_OVERFLOW           // exported as $net.ERR_OVERFLOW$
++};]],
++      name = &quot;Error codes&quot;,
++      desc = &quot;These are the error codes defined by the eLua networking layer and they are also returned by a number of functions in this module.&quot;,
++    }
++  },
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;ip = #net.packip#( ip1, ip2, ip3, ip4 )&quot;,
++      desc = [[Returns an internal representation of an IP address that can be used with all function from the $net$ module that expect an IP address
++argument. The IP is considered to be in the format %ip1.ip2.ip3.ip4%.]],
++      args = 
++      {
++        &quot;$ip1$ - the first part of the IP address.&quot;,
++        &quot;$ip2$ - the second part of the IP address.&quot;,
++        &quot;$ip3$ - the third part of the IP address.&quot;,
++        &quot;$ip4$ - the fourth part of the IP address.&quot;
++      },
++      ret = &quot;An integer that encodes the IP address in an internal format.&quot;
++    },
++
++     { sig = &quot;ip = #net.packip#( 'ip' )&quot;,
++      desc = [[Returns an internal representation of an IP address that can be used with all function from the $net$ module that expect an IP address
++argument. The IP is given as a string.]],
++      args = &quot;$ip$ - the IP address in string format.&quot;,
++      ret = &quot;An integer that encodes the IP address in an internal format.&quot;
++    },
++
++    { sig = &quot;ip1, ip2, ip3, ip4 = #net.unpackip#( ip, '*n' )&quot;,
++      desc = &quot;Returns an unpacked representation of an IP address encoded by @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">net.packip at net.packip</A>@.&quot;,
++      args = &quot;$ip$ - the encoded IP address.&quot;,
++      ret = 
++      {
++        &quot;$ip1$ - the first part of the IP address.&quot;,
++        &quot;$ip2$ - the second part of the IP address.&quot;,
++        &quot;$ip3$ - the third part of the IP address.&quot;,
++        &quot;$ip4$ - the fourth part of the IP address.&quot;
++      }
++    },
++   
++    { sig = &quot;ip = #net.unpackip#( ip, '*s' )&quot;,
++      desc = &quot;Returns an unpacked representation of an IP address encoded by @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">net.packip at net.packip</A>@.&quot;,
++      args = &quot;$ip$ - the encoded IP address.&quot;,
++      ret = &quot;The IP address in string format.&quot;
++    },
++
++
++    { sig = &quot;ip = #net.lookup#( hostname )&quot;,
++      desc = &quot;Does a DNS lookup.&quot;,
++      args = &quot;$hostname$ - the name of the computer.&quot;,
++      ret = &quot;The IP address of the computer.&quot;
++    },
++
++    { sig = &quot;socket = #net.socket#( type )&quot;,
++      desc = &quot;Create a socket for TCP/IP communication.&quot;,
++      args = [[$type$ - can be either $net.SOCK_STREAM$ for TCP sockets or $net.SOCK_DGRAM$ for UDP sockets (&lt;font color=&quot;red&quot;&gt;&lt;b&gt;not yet supported&lt;/b&gt;&lt;/font&gt;).]],
++      ret = &quot;The socket that will be used in subsequent operations.&quot;
++    },
++
++    { sig = &quot;res = #net.close#( socket )&quot;,
++      desc = &quot;Close a socket.&quot;,
++      args = &quot;$socket$ - the socket to close.&quot;,
++      ret = &quot;An error code, as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">error_codes at here</A>@.&quot;
++    },
++
++    { sig = &quot;err = #net.connect#( sock, ip, port )&quot;,
++      desc = &quot;Connect a socket to a remote system.&quot;,
++      args = 
++      {
++        &quot;$sock$ - a socket obtained from @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">net.socket at net.socket</A>@.&quot;,
++        &quot;$ip$ - the IP address obtained from @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">net.packip at net.packip</A>@.&quot;,
++        &quot;$port$ - the port to connecto to.&quot;
++      },
++      ret = &quot;$err$ - the error code, as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">error_codes at here</A>@.&quot;
++    },
++
++    { sig = &quot;socket, remoteip, err = #net.accept#( port, [timer_id, timeout] )&quot;,
++      desc = &quot;Accept a connection from a remote system with an optional timeout.&quot;,
++      args =
++      {
++        &quot;$port$ - the port to wait for connections from the remote system.&quot;,
++        [[$timer_id (optional)$ - the timer ID of the timer used to timeout the accept function after a specified time. If this is specified, $timeout$ must also
++be specified.]],
++        [[$timeout (optional)$ - the timeout after which the accept function returns if no connection was requested. If this is specified, $timer_id$ must also
++be specified.]]
++      },
++      ret =
++      {
++        &quot;$socket$ - the socket created after accepting the remote connection.&quot;,
++        &quot;$remoteip$ - the IP of the remote system.&quot;,
++        &quot;$err$ - an error code, as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">error_codes at here</A>@.&quot;
++      }
++    },
++
++    { sig = &quot;res, err = #net.send#( sock, str )&quot;,
++      desc = &quot;Send data to a socket.&quot;,
++      args = 
++      {
++        &quot;$sock$ - the socket.&quot;,
++        &quot;$str$ - the data to send.&quot;
++      },
++      ret = 
++      {
++        &quot;$res$ - the number of bytes actually sent or -1 for error.&quot;,
++        &quot;$err$ - the error code, as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">error_codes at here</A>@.&quot;
++      }
++    },
++
++    { sig = &quot;res, err = #net.recv#( sock, format, [timer_id, timeout] )&quot;,
++      desc = &quot;Read data from a socket.&quot;,
++      args = 
++      {
++        &quot;$sock$ - the socket.&quot;,
++        [[$format$ - how to read the data. This can be either:&lt;/p&gt;
++&lt;p&gt;
++&lt;ul&gt;
++  &lt;li&gt;$&quot;*l&quot;$: read a line (until the next '\n' character).&lt;/li&gt;
++  &lt;li&gt;$an integer$: read up to that many bytes.&lt;/li&gt;
++&lt;/ul&gt;&lt;/p&gt;&lt;p&gt;]],
++        [[$timer_id (optional)$ - the timer ID of the timer used to timeout the recv function after a specified time. If this is specified, $timeout$ must also
++be specified.]],
++        [[$timeout (optional)$ - the timeout after which the recv function returns if no connection was requested. If this is specified, $timer_id$ must also
++be specified.]]
++      },
++      ret =
++      {
++        &quot;$res$ - the number of bytes read.&quot;,
++        &quot;$err$ - the error code, as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">error_codes at here</A>@.&quot;
++      }
++    }
++  },
++}
++
+
+Modified: tags/pre0.6/doc/luadoc/refman_gen_uart.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/refman_gen_uart.lua	2009-08-03 18:39:43 UTC (rev 386)
++++ tags/pre0.6/doc/luadoc/refman_gen_uart.lua	2009-08-06 19:15:57 UTC (rev 387)
+@@ -65,7 +65,7 @@
+   &lt;li&gt;$'*n'$ - read an integer. The integer can optionally have a sign. Reading continues until the first non-digit character is detected or a timeout occurs. This is the only case in which $read$ returns a number instead of an integer.&lt;/li&gt;
+   &lt;li&gt;$'*s'$ - read until a spacing character (like a space or a TAB) is found (the spacing character is not returned) or a timeout occurs.&lt;/li&gt;
+   &lt;li&gt;$a positive number$ - read at most this many characters before returning (reading can stop earlier if a timeout occurs).&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;]],
++&lt;/ul&gt;&lt;/p&gt;&lt;p&gt;]],
+         [[$timeout (optional)$ - timeout of the receive operation, can be either $uart.NO_TIMEOUT$ or 0 for non-blocking operation, $uart.INF_TIMEOUT$ for 
+ blocking operation, or a positive number that specifies the inter-char timeout in microseconds (in this case, the $timer_id$ parameter is also required). The default value of this argument is $uart.INF_TIMEOUT$]],
+         [[$timer_id (optional)$ - the ID of the timer for the receive operation, needed if the $timeout$ parameter specifies an actual timeout (that is,
+
+Modified: tags/pre0.6/src/modules/net.c
+===================================================================
+--- tags/pre0.6/src/modules/net.c	2009-08-03 18:39:43 UTC (rev 386)
++++ tags/pre0.6/src/modules/net.c	2009-08-06 19:15:57 UTC (rev 387)
+@@ -201,6 +201,11 @@
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;SOCK_STREAM&quot; ), LNUMVAL( ELUA_NET_SOCK_STREAM ) },
+   { LSTRKEY( &quot;SOCK_DGRAM&quot; ), LNUMVAL( ELUA_NET_SOCK_DGRAM ) },
++  { LSTRKEY( &quot;ERR_OK&quot; ), LNUMVAL( ELUA_NET_ERR_OK ) },
++  { LSTRKEY( &quot;ERR_TIMEOUT&quot; ), LNUMVAL( ELUA_NET_ERR_TIMEDOUT ) },
++  { LSTRKEY( &quot;ERR_CLOSED&quot; ), LNUMVAL( ELUA_NET_ERR_CLOSED ) },
++  { LSTRKEY( &quot;ERR_ABORTED&quot; ), LNUMVAL( ELUA_NET_ERR_ABORTED ) },
++  { LSTRKEY( &quot;ERR_OVERFLOW&quot; ), LNUMVAL( ELUA_NET_ERR_OVERFLOW ) },
+ #endif
+   { LNILKEY, LNILVAL }
+ };
+@@ -213,10 +218,13 @@
+   luaL_register( L, AUXLIB_NET, net_map );  
+ 
+   // Module constants  
+-  lua_pushnumber( L, ELUA_NET_SOCK_STREAM );
+-  lua_setfield( L, -2, &quot;SOCK_STREAM&quot; );
+-  lua_pushnumber( L, ELUA_NET_SOCK_DGRAM );
+-  lua_setfield( L, -2, &quot;SOCK_DGRAM&quot; );  
++  MOD_REG_NUMBER( L, &quot;SOCK_STREAM&quot;, ELUA_NET_SOCK_STREAM );
++  MOD_REG_NUMBER( L, &quot;SOCK_DGRAM&quot;, ELUA_NET_SOCK_DGRAM ); 
++  MOD_REG_NUMBER( L, &quot;ERR_OK&quot;, ELUA_NET_ERR_OK );
++  MOD_REG_NUMBER( L, &quot;ERR_TIMEDOUT&quot;, ELUA_NET_ERR_TIMEDOUT );
++  MOD_REG_NUMBER( L, &quot;ERR_CLOSED&quot;, ELUA_NET_ERR_CLOSED );
++  MOD_REG_NUMBER( L, &quot;ERR_ABORTED&quot;, ELUA_NET_ERR_ABORTED );
++  MOD_REG_NUMBER( L, &quot;ERR_OVERFLOW&quot;, ELUA_NET_ERR_OVERFLOW );
+   
+   return 1;
+ #endif // #if LUA_OPTIMIZE_MEMORY &gt; 0  
+@@ -230,3 +238,4 @@
+ }
+ 
+ #endif // #ifdef BUILD_UIP
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000341.html">[Elua-svn] r386 - in trunk: romfs src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000344.html">[Elua-svn] r388 - tags/pre0.6/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#343">[ date ]</a>
+              <a href="thread.html#343">[ thread ]</a>
+              <a href="subject.html#343">[ subject ]</a>
+              <a href="author.html#343">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

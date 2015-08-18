@@ -1,0 +1,308 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r748 - in trunk/src: modules platform/lpc24xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r748%20-%20in%20trunk/src%3A%20modules%20platform/lpc24xx&In-Reply-To=%3C201006141810.o5EIAc0x005039%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000702.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r748 - in trunk/src: modules platform/lpc24xx</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r748%20-%20in%20trunk/src%3A%20modules%20platform/lpc24xx&In-Reply-To=%3C201006141810.o5EIAc0x005039%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r748 - in trunk/src: modules platform/lpc24xx">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Jun 14 20:10:38 CEST 2010</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000702.html">[Elua-svn] r749 - trunk/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#701">[ date ]</a>
+              <a href="thread.html#701">[ thread ]</a>
+              <a href="subject.html#701">[ subject ]</a>
+              <a href="author.html#701">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-06-14 20:10:37 +0200 (Mon, 14 Jun 2010)
+New Revision: 748
+
+Modified:
+   trunk/src/modules/cpu.c
+   trunk/src/platform/lpc24xx/platform.c
+   trunk/src/platform/lpc24xx/platform_conf.h
+   trunk/src/platform/lpc24xx/target.h
+Log:
+external memory support for the eLua PUC board; bugfix in the CPU module
+
+Modified: trunk/src/modules/cpu.c
+===================================================================
+--- trunk/src/modules/cpu.c	2010-05-12 16:59:30 UTC (rev 747)
++++ trunk/src/modules/cpu.c	2010-06-14 18:10:37 UTC (rev 748)
+@@ -14,9 +14,12 @@
+ // Lua: w32( address, data )
+ static int cpu_w32( lua_State *L )
+ {
+-  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
+-  u32 data = ( u32 )luaL_checkinteger( L, 2 );
++  u32 addr, data;
+   
++  luaL_checkinteger( L, 1 );
++  luaL_checkinteger( L, 2 );
++  addr = ( u32 )luaL_checknumber( L, 1 );
++  data = ( u32 )luaL_checknumber( L, 2 );
+   *( u32* )addr = data;
+   return 0;
+ }
+@@ -24,8 +27,10 @@
+ // Lua: data = r32( address )
+ static int cpu_r32( lua_State *L )
+ {
+-  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++  u32 addr;
+ 
++  luaL_checkinteger( L, 1 );
++  addr = ( u32 )luaL_checknumber( L, 1 );
+   lua_pushinteger( L, ( lua_Integer )( *( u32* )addr ) );  
+   return 1;
+ }
+@@ -33,9 +38,11 @@
+ // Lua: w16( address, data )
+ static int cpu_w16( lua_State *L )
+ {
+-  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++  u32 addr;
+   u16 data = ( u16 )luaL_checkinteger( L, 2 );
+   
++  luaL_checkinteger( L, 1 );
++  addr = ( u32 )luaL_checknumber( L, 1 );
+   *( u16* )addr = data;
+   return 0;
+ }
+@@ -43,8 +50,10 @@
+ // Lua: data = r16( address )
+ static int cpu_r16( lua_State *L )
+ {
+-  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++  u32 addr;
+ 
++  luaL_checkinteger( L, 1 );
++  addr = ( u32 )luaL_checknumber( L, 1 );
+   lua_pushinteger( L, ( lua_Integer )( *( u16* )addr ) );  
+   return 1;
+ }
+@@ -52,9 +61,11 @@
+ // Lua: w8( address, data )
+ static int cpu_w8( lua_State *L )
+ {
+-  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++  u32 addr;
+   u8 data = ( u8 )luaL_checkinteger( L, 2 );
+   
++  luaL_checkinteger( L, 1 );
++  addr = ( u32 )luaL_checknumber( L, 1 );
+   *( u8* )addr = data;
+   return 0;
+ }
+@@ -62,8 +73,10 @@
+ // Lua: data = r8( address )
+ static int cpu_r8( lua_State *L )
+ {
+-  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++  u32 addr;
+ 
++  luaL_checkinteger( L, 1 );
++  addr = ( u32 )luaL_checknumber( L, 1 );
+   lua_pushinteger( L, ( lua_Integer )( *( u8* )addr ) );  
+   return 1;
+ }
+
+Modified: trunk/src/platform/lpc24xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc24xx/platform.c	2010-05-12 16:59:30 UTC (rev 747)
++++ trunk/src/platform/lpc24xx/platform.c	2010-06-14 18:10:37 UTC (rev 748)
+@@ -55,11 +55,79 @@
+   SCS |= 1;
+ }
+ 
++#define P2C(Period)     (((Period&lt;EMC_PERIOD)?0:(unsigned int)((float)Period/EMC_PERIOD)))
++#define SDRAM_BASE_ADDR *(volatile unsigned int*)0xA0000000 //DYCS0
++#define SDRAM_CS0_BASE (0xA0000000)
++
++// External memory initialization
++static void platform_setup_extmem()
++{
++#ifdef ELUA_BOARD_ELUAPUC
++  volatile unsigned int i;
++  volatile DWORD wtemp;
++
++  EMC_CTRL = 0x00000001;		/*Disable Address mirror*/
++  PCONP   |= 0x00000800;		/* Turn On EMC PCLK */
++  PINSEL4  = 0x50000000;
++  PINSEL5  = 0x05050555;
++  PINSEL6  = 0x55555555;
++  PINSEL8  = 0x55555555;
++  PINSEL9  = 0x50555555;      
++    
++  EMC_DYN_RP = P2C(SDRAM_TRP);
++  EMC_DYN_RAS = P2C(SDRAM_TRAS);
++  EMC_DYN_SREX = P2C(SDRAM_TXSR); 
++  EMC_DYN_APR = SDRAM_TAPR; 
++  EMC_DYN_DAL = SDRAM_TDAL ;
++  EMC_DYN_WR = SDRAM_TWR;
++  EMC_DYN_RC = P2C(SDRAM_TRC); 
++  EMC_DYN_RFC = P2C(SDRAM_TRFC); 
++  EMC_DYN_XSR = P2C(SDRAM_TXSR); 
++  EMC_DYN_RRD = P2C(SDRAM_TRRD); 
++  EMC_DYN_MRD = SDRAM_TMRD; 
++  
++  EMC_DYN_RD_CFG=1;//Configures the dynamic memory read strategy(Command delayed strategy)
++  
++  /* Default setting, RAS latency 3 CCLKs, CAS latenty 3 CCLKs. */
++  EMC_DYN_RASCAS0 = 0x00000303; // RAS delay = 3, CAS delay = 3  
++  
++   
++  EMC_DYN_CFG0 = 0x00000280;   //16 bit external bus, 64 MB (4Mx16), 4 banks, row length = 12, column length = 8 
++  for( i = 0; i &lt; 40000; i ++ );
++                                                                                    
++  // JEDEC General SDRAM Initialization Sequence
++  // DELAY to allow power and clocks to stabilize ~100 us
++  // NOP
++  EMC_DYN_CTRL = 0x0183;   
++  //Issue SDRAM NOP (no operation) command ; CLKOUT runs continuously;All clock enables are driven HIGH continuously
++  
++  for( i = 0; i &lt; 80000; i ++ );
++
++  EMC_DYN_CTRL = 0x00000103; //Issue SDRAM PALL (precharge all) command.
++  EMC_DYN_RFSH = 1;  //Indicates 1X16 CCLKs between SDRAM refresh cycles.
++  for(i = 0; i &lt; 0x40; i ++);
++
++  //EMC_DYN_RFSH = P2C(SDRAM_REFRESH) &gt;&gt; 4; // //Indicates ?? CCLKs between SDRAM refresh cycles.
++  EMC_DYN_RFSH = 70;
++  
++  EMC_DYN_CTRL = 0x00000083;
++  wtemp = *(volatile DWORD *)(SDRAM_CS0_BASE | (0x33 &lt;&lt; 11)); /* 8 burst, 3 CAS latency */ // modified from AN
++
++  EMC_DYN_CTRL = 0x0000;  //Issue SDRAM norm command ; CLKOUT stop;All clock enables low
++
++  EMC_DYN_CFG0|=0x80000; //Buffer enabled for accesses to DCS0 chip
++  for(i = 200*10; i;i--);  
++#endif
++}
++
+ int platform_init()
+ {
+   // Complete CPU initialization
+   platform_setup_cpu();
+ 
++  // External memory
++  platform_setup_extmem();   
++
+   // Setup peripherals
+   platform_setup_timers();
+   platform_setup_pwm();
+
+Modified: trunk/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc24xx/platform_conf.h	2010-05-12 16:59:30 UTC (rev 747)
++++ trunk/src/platform/lpc24xx/platform_conf.h	2010-06-14 18:10:37 UTC (rev 748)
+@@ -99,8 +99,18 @@
+ // (start address and end address)
+ #define SRAM_ORIGIN           0x40000000
+ #define SRAM_SIZE             0x10000 // [TODO]: make this 96k?
++
++#ifdef ELUA_BOARD_ELUAPUC
++#define SDRAM_BASE_ADDR2      0xA0000000
++#define SDRAM_SIZE            ( 8 * 1048576 )
++#define MEM_START_ADDRESS     { ( void* )end, ( void* )SDRAM_BASE_ADDR2 }
++#define MEM_END_ADDRESS       { ( void* )( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ), ( void* )( SDRAM_BASE_ADDR2 + SDRAM_SIZE - 1 ) }
++//#define MEM_START_ADDRESS     { ( void* )SDRAM_BASE_ADDR2 }
++//#define MEM_END_ADDRESS       { ( void* )( SDRAM_BASE_ADDR2 + SDRAM_SIZE - 1 ) }
++#else
+ #define MEM_START_ADDRESS     { ( void* )end }
+ #define MEM_END_ADDRESS       { ( void* )( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ) }
++#endif
+ 
+ // *****************************************************************************
+ // CPU constants that should be exposed to the eLua &quot;cpu&quot; module
+
+Modified: trunk/src/platform/lpc24xx/target.h
+===================================================================
+--- trunk/src/platform/lpc24xx/target.h	2010-05-12 16:59:30 UTC (rev 747)
++++ trunk/src/platform/lpc24xx/target.h	2010-06-14 18:10:37 UTC (rev 748)
+@@ -111,7 +111,40 @@
+ 
+ #define Fpclk_MHz       (Fpclk / 1000000)
+ #define Fpclk_UART      (Fcclk)
++#define SYS_FREQ        (Fcclk / 1000000)
+ 
++#ifdef ELUA_BOARD_ELUAPUC
++
++#if   SYS_FREQ == (72)
++#define EMC_PERIOD          13.88888888  // 72MHz
++#elif   SYS_FREQ == (60)
++#define EMC_PERIOD          16.6  // 60MHz
++#elif   SYS_FREQ == (57)
++#define EMC_PERIOD          17.4  // 57.6MHz
++#elif SYS_FREQ == (48)
++#define EMC_PERIOD          20.8  // 48MHz
++#elif SYS_FREQ == (36)
++#define EMC_PERIOD          27.8  // 36MHz
++#elif SYS_FREQ == (24)
++#define EMC_PERIOD          41.7  // 24MHz
++#else
++#error Frequency not defined
++#endif
++
++#define SDRAM_REFRESH         15625	//max 64ms
++#define SDRAM_TRP             18	  //
++#define SDRAM_TRAS            42	
++#define SDRAM_TAPR            2
++#define SDRAM_TWR             2
++#define SDRAM_TDAL  			    (SDRAM_TWR+P2C(SDRAM_TRP))
++#define SDRAM_TRC             60 //samsung 65 micron 66
++#define SDRAM_TRFC            60	
++#define SDRAM_TXSR            70		
++#define SDRAM_TRRD            12     
++#define SDRAM_TMRD            2	
++	
++#endif
++
+ /******************************************************************************
+ ** Function name:		TargetInit
+ **
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000702.html">[Elua-svn] r749 - trunk/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#701">[ date ]</a>
+              <a href="thread.html#701">[ thread ]</a>
+              <a href="subject.html#701">[ subject ]</a>
+              <a href="author.html#701">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

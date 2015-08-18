@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r271 - in tags/v0.5/src/platform: lpc288x str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r271%20-%20in%20tags/v0.5/src/platform%3A%20lpc288x%20str9&In-Reply-To=%3C200903311042.n2VAgUas004365%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000225.html">
+   <LINK REL="Next"  HREF="000228.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r271 - in tags/v0.5/src/platform: lpc288x str9</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r271%20-%20in%20tags/v0.5/src/platform%3A%20lpc288x%20str9&In-Reply-To=%3C200903311042.n2VAgUas004365%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r271 - in tags/v0.5/src/platform: lpc288x str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Mar 31 12:42:30 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000225.html">[Elua-svn] r270 - in trunk/src: . platform/lm3s platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000228.html">[Elua-svn] r272 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#227">[ date ]</a>
+              <a href="thread.html#227">[ thread ]</a>
+              <a href="subject.html#227">[ subject ]</a>
+              <a href="author.html#227">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-03-31 12:42:29 +0200 (Tue, 31 Mar 2009)
+New Revision: 271
+
+Modified:
+   tags/v0.5/src/platform/lpc288x/lpc2888.lds
+   tags/v0.5/src/platform/lpc288x/lpc28xx.s
+   tags/v0.5/src/platform/str9/startup912.s
+   tags/v0.5/src/platform/str9/str912fw44.lds
+Log:
+reorganizing build, critical fixes for STR9/LPC288x on 0.5
+
+Modified: tags/v0.5/src/platform/lpc288x/lpc2888.lds
+===================================================================
+--- tags/v0.5/src/platform/lpc288x/lpc2888.lds	2009-03-26 03:10:16 UTC (rev 270)
++++ tags/v0.5/src/platform/lpc288x/lpc2888.lds	2009-03-31 10:42:29 UTC (rev 271)
+@@ -13,6 +13,7 @@
+     {
+         . = ALIGN(4);
+         _sfixed = .;
++        KEEP(*(.vectors))
+         *(.text .text.*)        
+         *(.rodata .rodata.*)        
+         *(.gnu.linkonce.t.*)
+
+Modified: tags/v0.5/src/platform/lpc288x/lpc28xx.s
+===================================================================
+--- tags/v0.5/src/platform/lpc288x/lpc28xx.s	2009-03-26 03:10:16 UTC (rev 270)
++++ tags/v0.5/src/platform/lpc288x/lpc28xx.s	2009-03-31 10:42:29 UTC (rev 271)
+@@ -159,10 +159,12 @@
+ @ Area Definition and Entry Point
+ @ Startup Code must be linked first at Address at which it expects to run.
+ 
+-            .section .text
+             .arm
++            .align 4
+             .global HardReset
+ 
++            .section  .vectors, &quot;a&quot;
++
+ HardReset:
+ 
+ @ Exception Vectors
+@@ -195,6 +197,8 @@
+ 
+ @ ==============================================================================
+ @ Reset handler
++
++            .text
+                         
+ Reset_Handler:   
+ 
+
+Modified: tags/v0.5/src/platform/str9/startup912.s
+===================================================================
+--- tags/v0.5/src/platform/str9/startup912.s	2009-03-26 03:10:16 UTC (rev 270)
++++ tags/v0.5/src/platform/str9/startup912.s	2009-03-31 10:42:29 UTC (rev 271)
+@@ -88,11 +88,13 @@
+ # STARTUP EXECUTABLE CODE
+ #*************************************************************************
+ 
+-      .text
++      .align 4
+       .arm
+       .extern main
+       .global _startup
+ 
++      .section .vectors, &quot;a&quot;
++
+ _startup:
+ 
+ #*************************************************************************
+@@ -130,7 +132,9 @@
+ IRQ_Handler:        B       IRQ_Handler       /* should never get here as IRQ is via VIC slot... */
+ FIQ_Handler:        B       FIQ_Handler
+ 
++          .text
+ 
++
+ #*************************************************************************
+ # Reset Handler Entry Point
+ #*************************************************************************
+
+Modified: tags/v0.5/src/platform/str9/str912fw44.lds
+===================================================================
+--- tags/v0.5/src/platform/str9/str912fw44.lds	2009-03-26 03:10:16 UTC (rev 270)
++++ tags/v0.5/src/platform/str9/str912fw44.lds	2009-03-31 10:42:29 UTC (rev 271)
+@@ -13,6 +13,7 @@
+     {
+         . = ALIGN(4);
+         _sfixed = .;
++        KEEP(*(.vectors))
+         *(.text .text.*)        
+         *(.rodata .rodata.*)        
+         *(.gnu.linkonce.t.*)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000225.html">[Elua-svn] r270 - in trunk/src: . platform/lm3s platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000228.html">[Elua-svn] r272 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#227">[ date ]</a>
+              <a href="thread.html#227">[ thread ]</a>
+              <a href="subject.html#227">[ subject ]</a>
+              <a href="author.html#227">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

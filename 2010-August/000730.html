@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r777 - in branches/dl: . src src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r777%20-%20in%20branches/dl%3A%20.%20src%20src/platform/str9&In-Reply-To=%3C20100829202005.B643C480FD8%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000729.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r777 - in branches/dl: . src src/platform/str9</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r777%20-%20in%20branches/dl%3A%20.%20src%20src/platform/str9&In-Reply-To=%3C20100829202005.B643C480FD8%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r777 - in branches/dl: . src src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Aug 29 22:20:05 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000729.html">[Elua-svn] r776 - in branches/dl: . dynld
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#730">[ date ]</a>
+              <a href="thread.html#730">[ thread ]</a>
+              <a href="subject.html#730">[ subject ]</a>
+              <a href="author.html#730">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-08-29 22:20:05 +0200 (Sun, 29 Aug 2010)
+New Revision: 777
+
+Modified:
+   branches/dl/mkfs.py
+   branches/dl/src/platform/str9/str912fw44.lds
+   branches/dl/src/romfs.c
+Log:
+romfs: file data is now aligned on a 4 byte boundary
+
+Modified: branches/dl/mkfs.py
+===================================================================
+--- branches/dl/mkfs.py	2010-08-29 18:55:44 UTC (rev 776)
++++ branches/dl/mkfs.py	2010-08-29 20:20:05 UTC (rev 777)
+@@ -114,12 +114,17 @@
+     size_h = ( len( filedata ) &gt;&gt; 8 ) &amp; 0xFF
+     _add_data( size_l, outfile )
+     _add_data( size_h, outfile )
++    # Round to a multiple of 4
++    actual = len( filedata )
++    while _bytecnt &amp; 4 != 0:
++      _add_data( 0, outfile )
++      actual = actual + 1
+     # Then write the rest of the file
+     for c in filedata:
+       _add_data( ord( c ), outfile )
+     
+     # Report
+-    print &quot;Encoded file %s (%d bytes)&quot; % ( fname, len( filedata ) )
++    print &quot;Encoded file %s (%d bytes real size, %d bytes after rounding)&quot; % ( fname, len( filedata ), actual )
+     
+   # All done, write the final &quot;0&quot; (terminator)
+   _add_data( 0, outfile, False )
+
+Modified: branches/dl/src/platform/str9/str912fw44.lds
+===================================================================
+--- branches/dl/src/platform/str9/str912fw44.lds	2010-08-29 18:55:44 UTC (rev 776)
++++ branches/dl/src/platform/str9/str912fw44.lds	2010-08-29 20:20:05 UTC (rev 777)
+@@ -17,6 +17,8 @@
+         KEEP(*(.vectors))
+         KEEP(*(.dlsym))
+         *(.text .text.*)        
++        . = ALIGN(4);
++        *(.rodata.romfiles_fs)
+         *(.rodata .rodata.*)        
+         *(.gnu.linkonce.t.*)
+         *(.glue_7)
+
+Modified: branches/dl/src/romfs.c
+===================================================================
+--- branches/dl/src/romfs.c	2010-08-29 18:55:44 UTC (rev 776)
++++ branches/dl/src/romfs.c	2010-08-29 20:20:05 UTC (rev 777)
+@@ -65,17 +65,20 @@
+     j = i + j + 1;
+     // And read the size   
+     fsize = p_read_func( j ) + ( p_read_func( j + 1 ) &lt;&lt; 8 );
++    j += 2;
++    // Round to a multiple of 4
++    j = ( j + 3 ) &amp; ~3;
+     if( !strncasecmp( fname, fsname, DM_MAX_FNAME_LENGTH ) )
+     {
+       // Found the file
+-      pfs-&gt;baseaddr = j + 2;
++      pfs-&gt;baseaddr = j;
+       pfs-&gt;offset = 0;
+       pfs-&gt;size = fsize;
+       pfs-&gt;p_read_func = p_read_func;   
+       return FS_FILE_OK;
+     }
+     // Move to next file
+-    i = j + 2 + fsize;
++    i = j + fsize;
+   }
+   return FS_FILE_NOT_FOUND;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000729.html">[Elua-svn] r776 - in branches/dl: . dynld
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#730">[ date ]</a>
+              <a href="thread.html#730">[ thread ]</a>
+              <a href="subject.html#730">[ subject ]</a>
+              <a href="author.html#730">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

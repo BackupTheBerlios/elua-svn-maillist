@@ -1,0 +1,288 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r710 - in trunk: romfs src/platform/lpc17xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r710%20-%20in%20trunk%3A%20romfs%20src/platform/lpc17xx&In-Reply-To=%3C201002122303.o1CN3UEb000561%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000662.html">
+   <LINK REL="Next"  HREF="000664.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r710 - in trunk: romfs src/platform/lpc17xx</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r710%20-%20in%20trunk%3A%20romfs%20src/platform/lpc17xx&In-Reply-To=%3C201002122303.o1CN3UEb000561%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r710 - in trunk: romfs src/platform/lpc17xx">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Feb 13 00:03:30 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000662.html">[Elua-svn] r709 - trunk/src/platform/lpc17xx
+</A></li>
+        <LI>Next message: <A HREF="000664.html">[Elua-svn] r711 - in trunk: . romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#663">[ date ]</a>
+              <a href="thread.html#663">[ thread ]</a>
+              <a href="subject.html#663">[ subject ]</a>
+              <a href="author.html#663">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-02-13 00:03:29 +0100 (Sat, 13 Feb 2010)
+New Revision: 710
+
+Added:
+   trunk/romfs/MBED.lua
+Modified:
+   trunk/src/platform/lpc17xx/platform.c
+Log:
+Basic GPIO support for MBED.
+
+dip pins p5-p30 are mapped as P0_5 to P0_30
+LEDs are mapped to P1_0 to P1_3
+
+This approach could be switched to using a platform specific Lua module to
+define all the pins, or C code to do the same.
+
+Added: trunk/romfs/MBED.lua
+===================================================================
+--- trunk/romfs/MBED.lua	2010-02-12 23:03:13 UTC (rev 709)
++++ trunk/romfs/MBED.lua	2010-02-12 23:03:29 UTC (rev 710)
+@@ -0,0 +1,13 @@
++local pio = pio
++  
++module(...)
++
++LED_1 = pio.P1_0
++LED_2 = pio.P1_1
++LED_3 = pio.P1_2
++LED_4 = pio.P1_3
++
++pio.pin.setdir( pio.OUTPUT, LED_1 )
++pio.pin.setdir( pio.OUTPUT, LED_2 )
++pio.pin.setdir( pio.OUTPUT, LED_3 )
++pio.pin.setdir( pio.OUTPUT, LED_4 )
+\ No newline at end of file
+
+Modified: trunk/src/platform/lpc17xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc17xx/platform.c	2010-02-12 23:03:13 UTC (rev 709)
++++ trunk/src/platform/lpc17xx/platform.c	2010-02-12 23:03:29 UTC (rev 710)
+@@ -23,9 +23,6 @@
+ #include &quot;lpc17xx_timer.h&quot;
+ #include &quot;lpc17xx_clkpwr.h&quot;
+ 
+-// mbed-specific includes
+-#include &quot;PinNames.h&quot;
+-
+ // ****************************************************************************
+ // Platform initialization
+ 
+@@ -69,71 +66,92 @@
+ 
+ // ****************************************************************************
+ // PIO section
+-                 
+-u32 pin_ports = {0,0,0,0,0,0,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,2,2,2,2,2,2,0 ,0,0, // mbed p5 - p30
+-                 1 ,1 ,1 ,1 ,0,0}; // mbed LED1-4, USBTX, USBRX
+-u32 pin_nums  = {9,8,7,6,0,1,18,17,15,16,23,24,25,26,30,31,5,4,3,2,1,0,11,5,4,
++   
++u32 pin_ports[] = {0,0,0,0,0,0,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,2,2,2,2,2,2,0 ,0 ,0,0, // mbed p5 - p30 -- mapped to P0_
++                 1 ,1 ,1 ,1 ,0,0}; // mbed LED1-4, USBTX, USBRX -- mapped to P1_
++u32 pin_nums[]  = {9,8,7,6,0,1,18,17,15,16,23,24,25,26,30,31,5,4,3,2,1,0,11,10,5,4,
+                  18,20,21,23,2,3};
+ 
+-inline PinName parse_pins(const char *str) {
+-    const PinName pin_names[] = {p5, p6, p7, p8, p9, p10, p11, p12, p13, p14
+-                                , p15, p16, p17, p18, p19, p20, p21, p22, p23
+-                                , p24, p25, p26, p27, p28, p29, p30};
++// The platform I/O functions
++pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
++{
++  pio_type tmp_mask;
++  u32 idx = 0;
++  pio_type retval = 1;
++  
++  /*if ( op == PLATFORM_IO_PORT_GET_VALUE )
++    retval = 0;*/
++  if ( port == 0 )
++    pinmask &gt;&gt;= 5; // mbed pins start at pin 5
++  
++  // roll through  
++  while( pinmask &gt; 0)
++  {
++    if ( pinmask &amp; 1 )
++    {
++      
++      if ( port == 1 )
++        idx += 26;
+ 
+-    if(str[0] == 'P') { // Pn_n
+-        uint32_t port = str[1] - '0';
+-        uint32_t pin = str[3] - '0'; // Pn_n
+-        uint32_t pin2 = str[4] - '0'; // Pn_nn
+-        if(pin2 &lt;= 9) {
+-            pin = pin * 10 + pin2;
+-        }
+-        return (PinName)(LPC_GPIO0_BASE + port * 32 + pin);
+-    } else if(str[0] == 'p') {  // pn
+-        uint32_t pin = str[1] - '0'; // pn
+-        uint32_t pin2 = str[2] - '0'; // pnn
+-        if(pin2 &lt;= 9) {
+-                  pin = pin * 10 + pin2;
+-        }
+-        if(pin &lt; 5 || pin &gt; 30) {
+-              return NC;
+-        }
+-        return pin_names[pin - 5];
+-    } else if(str[0] == 'L') {  // LEDn
+-        switch(str[3]) {
+-            case '1' : return LED1;
+-            case '2' : return LED2;
+-            case '3' : return LED3;
+-            case '4' : return LED4;
+-        }
+-    } else if(str[0] == 'U') {  // USB?X
+-        switch(str[3]) {
+-            case 'T' : return USBTX;
+-            case 'R' : return USBRX;
+-        }
++      tmp_mask = (u32)1 &lt;&lt; pin_nums[idx];
++
++      switch( op )
++      {
++        case PLATFORM_IO_PIN_SET:
++          GPIO_SetValue(pin_ports[idx], tmp_mask);
++          break;
++
++        case PLATFORM_IO_PIN_CLEAR:
++          GPIO_ClearValue(pin_ports[idx], tmp_mask);
++          break;  
++
++        case PLATFORM_IO_PIN_DIR_OUTPUT:
++          GPIO_SetDir(pin_ports[idx], tmp_mask, 1);
++          break;
++
++        case PLATFORM_IO_PIN_DIR_INPUT:
++          GPIO_SetDir(pin_ports[idx], tmp_mask, 0);
++          break;
++
++        case PLATFORM_IO_PIN_GET:
++          retval = ( GPIO_ReadValue(pin_ports[idx]) &amp; tmp_mask ) ? 1 : 0;
++          break;
++          
++        /*case PLATFORM_IO_PORT_GET_VALUE:
++          retval |=  ( pio_type ) ( ( GPIO_ReadValue(port) &amp; tmp_mask ) ? 1 : 0 ) &lt;&lt; idx;
++          break;*/
++          
++        default:
++          retval = 0;
++          break;
++      }
+     }
+-    return NC;
++    pinmask &gt;&gt;= 1;
++    idx++;
++  }
++  return retval;
+ }
+-
+-
+ // The platform I/O functions
++/*
+ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
+ {
+   pio_type retval = 1;
+-   
++  u32 idx = 0;
++  
+   switch( op )
+   {
+     case PLATFORM_IO_PORT_SET_VALUE:   
+       GPIO_SetValue(port, pinmask);
+       break;
+-      
++    
+     case PLATFORM_IO_PIN_SET:
+       GPIO_SetValue(port, pinmask);
+       break;
+-      
++    
+     case PLATFORM_IO_PIN_CLEAR:
+       GPIO_ClearValue(port, pinmask);
+       break;
+-      
++    
+     case PLATFORM_IO_PORT_DIR_OUTPUT:
+       GPIO_SetDir(port, 0xFFFFFFFF, 1);
+       break;    
+@@ -141,7 +159,7 @@
+     case PLATFORM_IO_PIN_DIR_OUTPUT:
+       GPIO_SetDir(port, pinmask, 1);
+       break;
+-      
++    
+     case PLATFORM_IO_PORT_DIR_INPUT:
+       GPIO_SetDir(port, 0xFFFFFFFF, 0);
+       break;
+@@ -149,22 +167,24 @@
+     case PLATFORM_IO_PIN_DIR_INPUT:
+       GPIO_SetDir(port, pinmask, 0);
+       break;    
+-            
++          
+     case PLATFORM_IO_PORT_GET_VALUE:
+       retval = GPIO_ReadValue(port);
+       break;
+-      
++    
+     case PLATFORM_IO_PIN_GET:
+       retval = ( GPIO_ReadValue(port) &amp; pinmask ) ? 1 : 0;
+       break;
+-      
++    
+     default:
+       retval = 0;
+       break;
+   }
+   return retval;
+ }
++*/
+ 
++
+ // ****************************************************************************
+ // UART section
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000662.html">[Elua-svn] r709 - trunk/src/platform/lpc17xx
+</A></li>
+	<LI>Next message: <A HREF="000664.html">[Elua-svn] r711 - in trunk: . romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#663">[ date ]</a>
+              <a href="thread.html#663">[ thread ]</a>
+              <a href="subject.html#663">[ subject ]</a>
+              <a href="author.html#663">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

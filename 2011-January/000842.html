@@ -1,0 +1,370 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r889 - in branches/pre0.8: doc/en src	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r889%20-%20in%20branches/pre0.8%3A%20doc/en%20src%0A%09src/platform/at91sam7x%20src/platform/avr32%20src/platform/i386%0A%09src/platform/lm3s%20src/platform/lpc17xx%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/sim%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9&In-Reply-To=%3C20110119221653.87E89480A9F%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000841.html">
+   <LINK REL="Next"  HREF="000843.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r889 - in branches/pre0.8: doc/en src	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r889%20-%20in%20branches/pre0.8%3A%20doc/en%20src%0A%09src/platform/at91sam7x%20src/platform/avr32%20src/platform/i386%0A%09src/platform/lm3s%20src/platform/lpc17xx%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/sim%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9&In-Reply-To=%3C20110119221653.87E89480A9F%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r889 - in branches/pre0.8: doc/en src	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Jan 19 23:16:53 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000841.html">[Elua-svn] r888 - trunk/src/platform/avr32
+</A></li>
+        <LI>Next message: <A HREF="000843.html">[Elua-svn] r890 - branches/pre0.8/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#842">[ date ]</a>
+              <a href="thread.html#842">[ thread ]</a>
+              <a href="subject.html#842">[ subject ]</a>
+              <a href="author.html#842">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-01-19 23:16:53 +0100 (Wed, 19 Jan 2011)
+New Revision: 889
+
+Modified:
+   branches/pre0.8/doc/en/building.txt
+   branches/pre0.8/src/common_uart.c
+   branches/pre0.8/src/platform/at91sam7x/platform.c
+   branches/pre0.8/src/platform/avr32/platform.c
+   branches/pre0.8/src/platform/i386/platform.c
+   branches/pre0.8/src/platform/lm3s/platform.c
+   branches/pre0.8/src/platform/lpc17xx/platform.c
+   branches/pre0.8/src/platform/lpc24xx/platform.c
+   branches/pre0.8/src/platform/lpc288x/platform.c
+   branches/pre0.8/src/platform/sim/platform.c
+   branches/pre0.8/src/platform/stm32/platform_conf.h
+   branches/pre0.8/src/platform/str7/platform.c
+   branches/pre0.8/src/platform/str9/platform.c
+Log:
+merged trunk to pre0.8 to include changes for UART flow control functionality
+
+Modified: branches/pre0.8/doc/en/building.txt
+===================================================================
+--- branches/pre0.8/doc/en/building.txt	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/doc/en/building.txt	2011-01-19 22:16:53 UTC (rev 889)
+@@ -84,7 +84,7 @@
+ 
+   #define BUILD_TERM
+ 
+-link:#static[Static configuration data dependencies]: *CON_UART_ID, CON_UART_SPEED, CON_TIMER_ID, TERM_LINES, TERM_COLS*
++link:#static[Static configuration data dependencies]: *CON_UART_ID, CON_UART_SPEED, CON_TIMER_ID, CON_FLOW_TYPE, TERM_LINES, TERM_COLS*
+ 
+ o|BUILD_UIP         |&lt;Enable TCP/IP networking support. You need to enable this if you want to use the link:refman_gen_net.html[net module]. 
+ Also, your platform must implement the uIP support functions (see the link:arch_platform.html[platform interface documentation] for details).
+@@ -110,7 +110,7 @@
+ 
+   #define BUILD_CON_GENERIC
+ 
+-link:#static[Static configuration data dependencies]: *CON_UART_ID, CON_UART_SPEED, CON_TIMER_ID*
++link:#static[Static configuration data dependencies]: *CON_UART_ID, CON_UART_SPEED, CON_TIMER_ID, CON_FLOW_TYPE*
+ 
+ o|BUILD_CON_TCP     |Console input/output over TCP/IP connections only (details link:arch_con_term.html[here]). Enable this if you want to use 
+ your eLua board over a telnet session. Don't enable this if you need console input/output over serial transports (see the previous option). To enable:
+@@ -195,9 +195,12 @@
+ ^|Name             ^|Meaning                  
+ o|CON_UART_ID +
+ CON_UART_SPEED +
+-CON_TIMER_ID        |Used to configure console input/output over UART. The specified UART id will be used for console input/output, at the
++CON_TIMER_ID +
++CON_FLOW_TYPE       |Used to configure console input/output over UART. The specified UART id will be used for console input/output, at the
+ specified speed. The data format is always 8N1 (8 data bits, no parity, 1 stop bits)t. The specified timer ID will be used for the console subsystem. These
+-variables are also used by the XMODEM and TERM implementations.
++variables are also used by the XMODEM and TERM implementations. If CON_FLOW_TYPE is defined the specified flow control is applied to the console UART
++interface (see link:arch_platform_uart.html#platform_uart_set_flow_control[this link] to find out how to specify the flow control). If not defined it
++defaults to no flow control.
+ 
+ o|TERM_LINES +
+ TERM_COLS           |Used to configure the ANSI terminal support (if enabled in the build). Used to specify (respectively) the number of lines and
+
+Modified: branches/pre0.8/src/common_uart.c
+===================================================================
+--- branches/pre0.8/src/common_uart.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/common_uart.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -207,12 +207,8 @@
+ 
+ int platform_uart_set_flow_control( unsigned id, int type )
+ { 
+-#ifndef PLATFORM_UART_SET_FLOW_CONTROL // the backend does not implement flow control
+-  return PLATFORM_ERR;
+-#else // #ifndef PLATFORM_UART_SET_FLOW_CONTROL
+   if( id &gt;= SERMUX_SERVICE_ID_FIRST )
+     return PLATFORM_ERR;
+   return platform_s_uart_set_flow_control( id, type );
+-#endif // #ifndef PLATFORM_UART_SET_FLOW_CONTROL
+ }
+ 
+
+Modified: branches/pre0.8/src/platform/at91sam7x/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/at91sam7x/platform.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/at91sam7x/platform.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -243,6 +243,11 @@
+   return USART_Read( base, 0 );
+ }
+ 
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  return PLATFORM_ERR;
++}
++
+ // ****************************************************************************
+ // Timer functions
+ 
+
+Modified: branches/pre0.8/src/platform/avr32/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/avr32/platform.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/avr32/platform.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -440,6 +440,59 @@
+     return usart_getchar( pusart );
+ }
+ 
++typedef struct
++{
++  u8 pin;
++  u8 function;
++} gpio_pin_data;
++
++static const gpio_pin_data uart_flow_control_pins[] = 
++{
++  // UART 0
++  { AVR32_USART0_RTS_0_0_PIN, AVR32_USART0_RTS_0_0_FUNCTION },
++  { AVR32_USART0_CTS_0_0_PIN, AVR32_USART0_CTS_0_0_FUNCTION },
++  
++  // UART 1
++  { AVR32_USART1_RTS_0_0_PIN, AVR32_USART1_RTS_0_0_FUNCTION },
++  { AVR32_USART1_CTS_0_0_PIN, AVR32_USART1_CTS_0_0_FUNCTION },
++  
++  // UART 2
++  { AVR32_USART2_RTS_0_0_PIN, AVR32_USART2_RTS_0_0_FUNCTION },
++  { AVR32_USART2_CTS_0_0_PIN, AVR32_USART2_CTS_0_0_FUNCTION },
++  
++#ifdef AVR32_USART3_ADDRESS  
++  // UART 3
++  { AVR32_USART3_RTS_0_0_PIN, AVR32_USART3_RTS_0_0_FUNCTION },
++  { AVR32_USART3_CTS_0_0_PIN, AVR32_USART3_CTS_0_0_FUNCTION },
++#endif  
++};
++
++
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  unsigned i;
++  volatile avr32_usart_t *pusart = ( volatile avr32_usart_t* )uart_base_addr[ id ];
++  volatile avr32_gpio_port_t *gpio_port;
++  const gpio_pin_data *ppindata = uart_flow_control_pins + id * 2;
++
++  // AVR32 only supports combined RTS/CTS flow control
++  if( type != PLATFORM_UART_FLOW_NONE &amp;&amp; type != ( PLATFORM_UART_FLOW_RTS | PLATFORM_UART_FLOW_CTS ) )
++    return PLATFORM_ERR;
++  // Set UART mode register first
++  pusart-&gt;mr &amp;= ~AVR32_USART_MR_MODE_MASK;
++  pusart-&gt;mr |= ( type == PLATFORM_UART_FLOW_NONE ? AVR32_USART_MR_MODE_NORMAL : AVR32_USART_MR_MODE_HARDWARE ) &lt;&lt; AVR32_USART_MR_MODE_OFFSET;
++  // Then set GPIO pins
++  for( i = 0; i &lt; 2; i ++, ppindata ++ )  
++    if( type != PLATFORM_UART_FLOW_NONE ) // enable pin for UART functionality
++      gpio_enable_module_pin( ppindata-&gt;pin, ppindata-&gt;function );
++    else // release pin to GPIO module
++    {
++      gpio_port = &amp;GPIO.port[ ppindata-&gt;pin &gt;&gt; 5 ];
++      gpio_port-&gt;gpers = 1 &lt;&lt; ( ppindata-&gt;pin &amp; 0x1F );
++    }
++  return PLATFORM_OK;
++}
++
+ // ****************************************************************************
+ // Timer functions
+ 
+
+Modified: branches/pre0.8/src/platform/i386/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/i386/platform.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/i386/platform.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -155,6 +155,11 @@
+   return -1;
+ }
+ 
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  return PLATFORM_ERR;
++}
++
+ // ****************************************************************************
+ // &quot;Dummy&quot; timer functions
+ 
+
+Modified: branches/pre0.8/src/platform/lm3s/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/lm3s/platform.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/lm3s/platform.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -463,6 +463,11 @@
+   return MAP_UARTCharGet( base );
+ }
+ 
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  return PLATFORM_ERR;
++}
++
+ // ****************************************************************************
+ // Timers
+ // Same on LM3S8962, LM3S6965, LM3S6918 and LM3S9B92 (4 timers)
+
+Modified: branches/pre0.8/src/platform/lpc17xx/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/lpc17xx/platform.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/lpc17xx/platform.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -230,6 +230,11 @@
+   return ( int )buffer;
+ }
+ 
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  return PLATFORM_ERR;
++}
++
+ // ****************************************************************************
+ // Timer section
+ 
+
+Modified: branches/pre0.8/src/platform/lpc24xx/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/lpc24xx/platform.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/lpc24xx/platform.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -405,6 +405,11 @@
+   return *UxRBR;
+ }
+ 
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  return PLATFORM_ERR;
++}
++
+ // ****************************************************************************
+ // Timer section
+ 
+
+Modified: branches/pre0.8/src/platform/lpc288x/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/lpc288x/platform.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/lpc288x/platform.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -128,6 +128,11 @@
+   return uart_read();
+ }
+ 
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  return PLATFORM_ERR;
++}
++
+ // ****************************************************************************
+ // Timer
+ 
+
+Modified: branches/pre0.8/src/platform/sim/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/sim/platform.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/sim/platform.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -137,6 +137,11 @@
+   return -1;
+ }
+ 
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  return PLATFORM_ERR;
++}
++
+ // ****************************************************************************
+ // &quot;Dummy&quot; timer functions
+ 
+
+Modified: branches/pre0.8/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/pre0.8/src/platform/stm32/platform_conf.h	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/stm32/platform_conf.h	2011-01-19 22:16:53 UTC (rev 889)
+@@ -30,8 +30,6 @@
+ #define BUILD_C_INT_HANDLERS
+ #define BUILD_LUA_INT_HANDLERS
+ 
+-#define PLATFORM_UART_SET_FLOW_CONTROL
+-
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+ 
+
+Modified: branches/pre0.8/src/platform/str7/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/str7/platform.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/str7/platform.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -195,6 +195,11 @@
+   return UART_ByteReceive( pport );
+ }
+ 
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  return PLATFORM_ERR;
++}
++
+ // ****************************************************************************
+ // Timer
+ 
+
+Modified: branches/pre0.8/src/platform/str9/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/str9/platform.c	2011-01-17 01:37:11 UTC (rev 888)
++++ branches/pre0.8/src/platform/str9/platform.c	2011-01-19 22:16:53 UTC (rev 889)
+@@ -285,6 +285,11 @@
+   return UART_ReceiveData( p_uart ); 
+ }
+ 
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  return PLATFORM_ERR;
++}
++
+ // ****************************************************************************
+ // Timer
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000841.html">[Elua-svn] r888 - trunk/src/platform/avr32
+</A></li>
+	<LI>Next message: <A HREF="000843.html">[Elua-svn] r890 - branches/pre0.8/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#842">[ date ]</a>
+              <a href="thread.html#842">[ thread ]</a>
+              <a href="subject.html#842">[ subject ]</a>
+              <a href="author.html#842">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

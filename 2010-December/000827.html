@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r874 - trunk/src/platform/lpc17xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r874%20-%20trunk/src/platform/lpc17xx&In-Reply-To=%3C20101231222202.1B29A480794%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000826.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r874 - trunk/src/platform/lpc17xx</H1>
+    <B>jbsnyder at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r874%20-%20trunk/src/platform/lpc17xx&In-Reply-To=%3C20101231222202.1B29A480794%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r874 - trunk/src/platform/lpc17xx">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Dec 31 23:22:01 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000826.html">[Elua-svn] r873 - in trunk: . src/platform/lm3s
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#827">[ date ]</a>
+              <a href="thread.html#827">[ thread ]</a>
+              <a href="subject.html#827">[ subject ]</a>
+              <a href="author.html#827">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-12-31 23:22:01 +0100 (Fri, 31 Dec 2010)
+New Revision: 874
+
+Modified:
+   trunk/src/platform/lpc17xx/platform.c
+Log:
+Formatting fixes in lpc17xx sources.
+
+Modified: trunk/src/platform/lpc17xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc17xx/platform.c	2010-12-27 12:10:23 UTC (rev 873)
++++ trunk/src/platform/lpc17xx/platform.c	2010-12-31 22:22:01 UTC (rev 874)
+@@ -547,8 +547,8 @@
+   PWM_TIMERCFG_Type PWMCfgDat;
+   
+   PWMCfgDat.PrescaleOption = PWM_TIMER_PRESCALE_USVAL;
+-	PWMCfgDat.PrescaleValue = 1000000ULL / clock;
+-	PWM_Init(LPC_PWM1, PWM_MODE_TIMER, &amp;PWMCfgDat);
++  PWMCfgDat.PrescaleValue = 1000000ULL / clock;
++  PWM_Init( LPC_PWM1, PWM_MODE_TIMER, &amp;PWMCfgDat );
+ 	
+   return clock;
+ }
+@@ -559,14 +559,14 @@
+   PWM_MATCHCFG_Type PWMMatchCfgDat;
+   
+   // Keep clock in reset, set PWM code
+-  PWM_ResetCounter(LPC_PWM1);
++  PWM_ResetCounter( LPC_PWM1 );
+   
+   // Set match mode (reset on MR0 match)
+   PWMMatchCfgDat.IntOnMatch = DISABLE;
+-	PWMMatchCfgDat.MatchChannel = 0;
+-	PWMMatchCfgDat.ResetOnMatch = ENABLE;
+-	PWMMatchCfgDat.StopOnMatch = DISABLE;
+-	PWM_ConfigMatch(LPC_PWM1, &amp;PWMMatchCfgDat);
++  PWMMatchCfgDat.MatchChannel = 0;
++  PWMMatchCfgDat.ResetOnMatch = ENABLE;
++  PWMMatchCfgDat.StopOnMatch = DISABLE;
++  PWM_ConfigMatch( LPC_PWM1, &amp;PWMMatchCfgDat );
+ 
+   // Set base frequency to 1MHz
+   platform_pwm_set_clock( 0, 1000000 );
+@@ -577,23 +577,23 @@
+   PWM_MATCHCFG_Type PWMMatchCfgDat;
+   u32 divisor = platform_pwm_get_clock( id ) / frequency - 1;
+     
+-  PWM_MatchUpdate(LPC_PWM1, 0, divisor, PWM_MATCH_UPDATE_NOW); // PWM1 cycle rate
+-  PWM_MatchUpdate(LPC_PWM1, id, ( divisor * duty ) / 100, PWM_MATCH_UPDATE_NOW); // PWM1 channel edge position
++  PWM_MatchUpdate( LPC_PWM1, 0, divisor, PWM_MATCH_UPDATE_NOW ); // PWM1 cycle rate
++  PWM_MatchUpdate( LPC_PWM1, id, ( divisor * duty ) / 100, PWM_MATCH_UPDATE_NOW ); // PWM1 channel edge position
+   
+   if ( id &gt; 1 ) // Channel one is permanently single-edge
+     PWM_ChannelConfig( LPC_PWM1, id, PWM_CHANNEL_SINGLE_EDGE );
+   
+   PWMMatchCfgDat.IntOnMatch = DISABLE;
+-	PWMMatchCfgDat.MatchChannel = id;
+-	PWMMatchCfgDat.ResetOnMatch = DISABLE;
+-	PWMMatchCfgDat.StopOnMatch = DISABLE;
+-	PWM_ConfigMatch(LPC_PWM1, &amp;PWMMatchCfgDat);
+-	
+-	PWM_ResetCounter(LPC_PWM1);
+-	PWM_CounterCmd(LPC_PWM1, ENABLE);
+-	
+-	PWM_ChannelCmd(LPC_PWM1, id, ENABLE);
++  PWMMatchCfgDat.MatchChannel = id;
++  PWMMatchCfgDat.ResetOnMatch = DISABLE;
++  PWMMatchCfgDat.StopOnMatch = DISABLE;
++  PWM_ConfigMatch(LPC_PWM1, &amp;PWMMatchCfgDat);
+ 
++  PWM_ResetCounter(LPC_PWM1);
++  PWM_CounterCmd(LPC_PWM1, ENABLE);
++
++  PWM_ChannelCmd(LPC_PWM1, id, ENABLE);
++
+   return platform_pwm_get_clock( id ) / divisor;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000826.html">[Elua-svn] r873 - in trunk: . src/platform/lm3s
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#827">[ date ]</a>
+              <a href="thread.html#827">[ thread ]</a>
+              <a href="subject.html#827">[ subject ]</a>
+              <a href="author.html#827">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

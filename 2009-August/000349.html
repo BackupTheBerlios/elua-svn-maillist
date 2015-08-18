@@ -1,0 +1,647 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r393 - in tags/pre0.6: . romfs src/lua src/modules	src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r393%20-%20in%20tags/pre0.6%3A%20.%20romfs%20src/lua%20src/modules%0A%09src/platform/lm3s&In-Reply-To=%3C200908121701.n7CH1bvl020377%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000348.html">
+   <LINK REL="Next"  HREF="000350.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r393 - in tags/pre0.6: . romfs src/lua src/modules	src/platform/lm3s</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r393%20-%20in%20tags/pre0.6%3A%20.%20romfs%20src/lua%20src/modules%0A%09src/platform/lm3s&In-Reply-To=%3C200908121701.n7CH1bvl020377%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r393 - in tags/pre0.6: . romfs src/lua src/modules	src/platform/lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Aug 12 19:01:37 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000348.html">[Elua-svn] r392 - branches/eagle_mmc/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000350.html">[Elua-svn] r394 - in tags/pre0.6: . doc/wb_img
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#349">[ date ]</a>
+              <a href="thread.html#349">[ thread ]</a>
+              <a href="subject.html#349">[ subject ]</a>
+              <a href="author.html#349">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-08-12 19:01:33 +0200 (Wed, 12 Aug 2009)
+New Revision: 393
+
+Added:
+   tags/pre0.6/romfs/logo.bin
+   tags/pre0.6/romfs/logo.lua
+   tags/pre0.6/src/modules/bitarray.c
+Modified:
+   tags/pre0.6/SConstruct
+   tags/pre0.6/src/lua/linit.c
+   tags/pre0.6/src/lua/luaconf.h
+   tags/pre0.6/src/modules/auxmods.h
+   tags/pre0.6/src/platform/lm3s/platform.c
+   tags/pre0.6/src/platform/lm3s/platform_conf.h
+Log:
+- new demo: eLua logo rotation on the LM3S8962 board display :) Quite useless, but I just wanted to show that it can be done. Burn the image and:
+
+# lua /rom/logo.lua
+
+NOTE: I used the Codesourcery compiler for this one. Rumor has it that it is has much faster softfloat operations. If the animation has less than 3 fps, try recompiling with the Codesourcery toolchain.
+
+- new module: bitarray. Fixed array container for bits. Currently only 1, 2 ,4 ,8, 16 and 32 bits are supported, but I'm considering support for arbitrary size bit array at some point. I'll add documentation soon.
+
+And, for the first time, I developed and tested all of this directly under Windows. Once again, just to show that it can be done :)
+
+
+
+Modified: tags/pre0.6/SConstruct
+===================================================================
+--- tags/pre0.6/SConstruct	2009-08-12 16:41:13 UTC (rev 392)
++++ tags/pre0.6/SConstruct	2009-08-12 17:01:33 UTC (rev 393)
+@@ -97,13 +97,14 @@
+           'dualpwm' : [ 'dualpwm.lua' ],
+           'adcscope' : [ 'adcscope.lua' ],
+           'adcpoll' : [ 'adcpoll.lua' ],
+-          'life' : [ 'life.lua' ]
++          'life' : [ 'life.lua' ],
++          'logo' : ['logo.lua', 'logo.bin' ]
+         }
+ 
+ # List of board/romfs data combinations
+ file_list = { 'SAM7-EX256' : [ 'bisect', 'hangman' , 'led', 'piano', 'hello', 'info', 'morse' ],
+-              'EK-LM3S8962' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope','adcpoll' ],
+-              'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope','adcpoll' ],
++              'EK-LM3S8962' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo' ],
++              'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope', 'adcpoll' ],
+               'STR9-COMSTICK' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'PC' : [ 'bisect', 'hello', 'info', 'life', 'hangman' ],
+               'SIM' : [ 'bisect', 'hello', 'info', 'life', 'hangman' ],
+@@ -241,7 +242,7 @@
+ local_include += ['src/uip']
+ 
+ # Lua module files
+-module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c&quot;
++module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c bitarray.c&quot;
+ module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+ 
+ # Optimizer flags (speed or size)
+
+Added: tags/pre0.6/romfs/logo.bin
+===================================================================
+(Binary files differ)
+
+
+Property changes on: tags/pre0.6/romfs/logo.bin
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: tags/pre0.6/romfs/logo.lua
+===================================================================
+--- tags/pre0.6/romfs/logo.lua	2009-08-12 16:41:13 UTC (rev 392)
++++ tags/pre0.6/romfs/logo.lua	2009-08-12 17:01:33 UTC (rev 393)
+@@ -0,0 +1,79 @@
++disp.init( 1000000 )
++disp.clear()
++
++local math = math
++local floor = math.floor
++local pi = math.pi
++
++local img = io.open( &quot;/rom/logo.bin&quot;, &quot;rb&quot;)
++if img == nil then
++  print &quot;Unable to load image&quot;
++  return 0
++end
++local imgdata = img:read( &quot;*a&quot; )
++img:close()
++
++local maxx , maxy = 64, 64 
++local xf, yf = maxx / 2 - 1, maxy / 2 - 1
++local ct = yf * maxx + xf + 1
++
++local function rotate( imgdata, angle )
++  local c = math.cos( angle )
++  local s = math.sin( angle )
++  local newdata = bitarray.new( maxx * maxy, 4 )
++  local xc, ys = -xf * c, -yf * s
++  local xs, yc = -xf * s, -yf * c
++  local p1, p2 = xc - ys, xs + yc
++  local p3, p4 = -xc - ys, -xs + yc
++  local xx1, yy1, xx2, yy2
++  local widx1, widx2 = 1, 2*xf + 1
++  local widx3, widx4 = 2 * yf * maxx + 1, 2 * yf * maxx + 2 * xf + 1
++  local w1, w2, w3, w4
++  for y = -yf, 0 do
++    xx1, yy1, xx2, yy2 = p1, p2, p3, p4
++    w1, w2, w3, w4 = widx1, widx2, widx3, widx4
++    for x = -xf, 0 do      
++      if ( xx1 &gt;= -xf ) and ( xx1 &lt;= xf ) and ( yy1 &gt;= -yf ) and ( yy1 &lt;= yf ) then 
++        newdata[ w1 ] = imgdata[ floor( yy1 ) * maxx + floor( xx1 ) + ct ] 
++      end
++      if ( xx2 &gt;= -xf ) and ( xx2 &lt;= xf ) and ( yy2 &gt;= -yf ) and ( yy2 &lt;= yf ) then 
++        newdata[ w2 ] = imgdata[ floor( yy2 ) * maxx + floor( xx2 ) + ct ] 
++      end
++      if ( -xx2 &gt;= -xf ) and ( -xx2 &lt;= xf ) and ( -yy2 &gt;= -yf ) and ( -yy2 &lt;= yf ) then 
++        newdata[ w3 ] = imgdata[ floor( -yy2 ) * maxx + floor( -xx2 ) + ct ] 
++      end
++      if ( -xx1 &gt;= -xf ) and ( -xx1 &lt;= xf ) and ( -yy1 &gt;= -yf ) and ( -yy1 &lt;= yf ) then 
++        newdata[ w4 ] = imgdata[ floor( -yy1 ) * maxx + floor( -xx1 ) + ct ]
++      end
++      xx1 = xx1 + c ; yy1 = yy1 + s ; xx2 = xx2 - c ; yy2 = yy2 - s
++      w1 = w1 + 1 ; w2 = w2 - 1 ; w3 = w3 + 1 ; w4 = w4 - 1       
++    end
++    p1 = p1 - s ; p2 = p2 + c  ; p3 = p3 - s ; p4 = p4 + c
++    widx1 = widx1 + maxx ; widx2 = widx2 + maxx ; widx3 = widx3 - maxx ; widx4 = widx4 - maxx
++  end
++  return bitarray.tostring( newdata, &quot;raw&quot; )
++end
++
++local origx = ( 128 - maxx ) / 2
++local origy = ( 96 - maxy ) / 2
++disp.draw( imgdata, origx, origy, maxx, maxy )
++local imgd = bitarray.new( imgdata, 4 )
++imgdata = nil
++collectgarbage()
++
++local delta = pi / 8
++local angles = { 0, delta, pi / 4, 3 * delta, pi / 2, 5 * delta, 3 * pi / 4, 7 * delta, pi, 
++                 9 * delta, 5 * pi / 4, 11 * delta, 3 * pi / 2, 13 * delta, 7 * pi / 4, 15 * delta }
++local index = 2
++
++while uart.getchar( 0, uart.NO_TIMEOUT ) == &quot;&quot; do
++  local newimg = rotate( imgd, angles[ index ] )
++  disp.draw( newimg, origx, origy, maxx, maxy )
++  newimg = nil
++  collectgarbage()
++  index = index + 1
++  index = index &gt; #angles and 1 or index
++end
++
++disp.clear()
++
+
+Modified: tags/pre0.6/src/lua/linit.c
+===================================================================
+--- tags/pre0.6/src/lua/linit.c	2009-08-12 16:41:13 UTC (rev 392)
++++ tags/pre0.6/src/lua/linit.c	2009-08-12 17:01:33 UTC (rev 393)
+@@ -32,7 +32,7 @@
+ #ifdef LUA_PLATFORM_LIBS_REG
+   LUA_PLATFORM_LIBS_REG,
+ #endif 
+-#if defined(LUA_PLATFORM_LIBS_ROM) &amp;&amp; LUA_OPTIMIZE_MEMORY != 2
++#if defined(LUA_PLATFORM_LIBS_ROM)
+ #define _ROM( name, openf, table ) { name, openf },
+   LUA_PLATFORM_LIBS_ROM
+ #endif
+
+Modified: tags/pre0.6/src/lua/luaconf.h
+===================================================================
+--- tags/pre0.6/src/lua/luaconf.h	2009-08-12 16:41:13 UTC (rev 392)
++++ tags/pre0.6/src/lua/luaconf.h	2009-08-12 17:01:33 UTC (rev 393)
+@@ -486,7 +486,7 @@
+ @@ LUAI_MAXVARS is the maximum number of local variables per function
+ @* (must be smaller than 250).
+ */
+-#define LUAI_MAXVARS		25
++#define LUAI_MAXVARS		50
+ 
+ 
+ /*
+@@ -823,7 +823,7 @@
+ ** without modifying the main part of the file.
+ */
+ 
+-#ifndef LUA_CROSS_COMPILER
++#if !defined(LUA_CROSS_COMPILER) || defined(_WIN32)
+ typedef short int16_t;
+ typedef long int32_t;
+ #endif
+@@ -831,7 +831,7 @@
+ /* If you define the next macro you'll get the ability to set rotables as
+    metatables for tables/userdata/types (but the VM might run slower)
+ */
+-#ifndef LUA_CROSS_COMPILER
++#if (LUA_OPTIMIZE_MEMORY == 2) &amp;&amp; !defined(LUA_CROSS_COMPILER)
+ #define LUA_META_ROTABLES 
+ #endif
+ 
+
+Modified: tags/pre0.6/src/modules/auxmods.h
+===================================================================
+--- tags/pre0.6/src/modules/auxmods.h	2009-08-12 16:41:13 UTC (rev 392)
++++ tags/pre0.6/src/modules/auxmods.h	2009-08-12 17:01:33 UTC (rev 393)
+@@ -42,6 +42,9 @@
+ #define AUXLIB_ADC      &quot;adc&quot;
+ LUALIB_API int ( luaopen_adc )( lua_State *L );
+ 
++#define AUXLIB_BITARRAY &quot;bitarray&quot;
++LUALIB_API int ( luaopen_bitarray )( lua_State *L );
++
+ // Helper macros
+ 
+ #define MOD_CHECK_ID( mod, id )\
+
+Added: tags/pre0.6/src/modules/bitarray.c
+===================================================================
+--- tags/pre0.6/src/modules/bitarray.c	2009-08-12 16:41:13 UTC (rev 392)
++++ tags/pre0.6/src/modules/bitarray.c	2009-08-12 17:01:33 UTC (rev 393)
+@@ -0,0 +1,334 @@
++// Module that implements a fixed size bit array
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;auxmods.h&quot;
++#include &quot;lrotable.h&quot;
++#include &lt;string.h&gt;
++
++#define META_NAME                 &quot;eLua.bitarray&quot;
++#define bitarray_check( L )      ( bitarray_t* )luaL_checkudata( L, 1, META_NAME )
++#define ROUND_SIZE(s)            ( ( ( s ) &gt;&gt; 3 ) + ( ( s ) &amp; 7 ? 1 : 0 ) )
++
++// Unpack modes
++enum
++{
++  BITARRAY_UNPACK_RAW = 0,
++  BITARRAY_UNPACK_SEQ
++};
++ 
++// Structure that describes our array
++typedef struct
++{
++  u32 capacity;
++  u8 elsize;
++  u8 values[ 1 ];
++} bitarray_t;
++
++// Index shift values/masks
++static const u8 bitarray_index_shift[] = { 0, 3, 2, 0, 1 };
++static const u8 bitarray_index_mask[] = { 0, 0x01, 0x03, 0, 0x0F };
++
++// Lua: array = bitarray.new( capacity, [element_size_bits], [fill] ), or
++//      array = bitarray.new( &quot;string&quot;, [element_size_bits] ), or
++//      array = bitarray.new( lua_array, [element_size_bits] )
++static int bitarray_new( lua_State *L )
++{
++  u32 total, capacity;
++  u8 elsize, fill = 0, fromarray = 0;
++  const char *buf = NULL;
++  bitarray_t *pa;
++  size_t temp;
++   
++  if( lua_isnumber( L, 1 ) )
++  {
++    // capacity, [element_size_bits], [fill]
++    capacity = luaL_checkinteger( L, 1 );
++    if( lua_isnumber( L, 2 ) )
++      elsize = luaL_checkinteger( L, 2 );
++    else
++      elsize = 8;
++    if( lua_isnumber( L, 3 ) )
++      fill = luaL_checkinteger( L, 3 );  
++  }
++  else if( lua_isstring( L, 1 ) || lua_istable( L, 1 ) || lua_isrotable( L, 1 ) )
++  {
++    // string, [element_size_bits] OR (ro)table, [element_size_bits]
++    if( lua_isstring( L, 1 ) )
++      buf = lua_tolstring( L, 1, &amp;temp );
++    else
++    {
++      temp = lua_objlen( L, 1 );
++      fromarray = 1;
++    }
++    if( lua_isnumber( L, 2 ) )
++      elsize = luaL_checkinteger( L, 2 );
++    else
++      elsize = 8;
++    if( ( temp &lt;&lt; 3 ) % elsize )
++      return luaL_error( L, &quot;length is not a multiple of element size.&quot; );
++    capacity = ( temp &lt;&lt; 3 ) / elsize;  
++  }
++  else 
++    return luaL_error( L, &quot;invalid arguments.&quot; );
++    
++  if( elsize &lt;= 0 || ( elsize &gt; 32 ) || ( elsize &amp; ( elsize - 1 ) ) )
++    return luaL_error( L, &quot;invalid element size.&quot; );
++  total = ROUND_SIZE( capacity * elsize );
++  if( total &lt;= 0 )
++    return luaL_error( L, &quot;invalid arguments.&quot;);
++  pa = ( bitarray_t* )lua_newuserdata( L, sizeof( bitarray_t ) + total - 1 );
++  pa-&gt;capacity = capacity;
++  pa-&gt;elsize = elsize;
++  
++  if( buf )
++    memcpy( pa-&gt;values, buf, temp );
++  else if( fromarray )
++  {
++    for( total = 1; total &lt;= temp; total ++ )
++    {
++      lua_rawgeti( L, 1, total );
++      pa-&gt;values[ total - 1 ] = lua_tointeger( L, -1 );
++      lua_pop( L, 1 );
++    }
++  }
++  else
++    memset( pa-&gt;values, fill, total );
++  luaL_getmetatable( L, META_NAME );
++  lua_setmetatable( L, -2 );
++  return 1;
++}
++
++// Helper: get the value at the given index
++static u32 bitarray_getval( bitarray_t *pa, u32 idx )
++{
++  u32 shift, val = 0;
++  u8 rest, mask;
++  
++  idx --;
++  if( pa-&gt;elsize &lt; 8 )        // sub-byte elements
++  {
++    shift = idx &gt;&gt; bitarray_index_shift[ pa-&gt;elsize ];
++    mask = 1 &lt;&lt; bitarray_index_shift[ pa-&gt;elsize ];
++    rest = idx &amp; ( mask - 1 );
++    val = pa-&gt;values[ shift ];
++    val = ( val &gt;&gt; ( ( mask - 1 - rest ) * pa-&gt;elsize ) ) &amp; bitarray_index_mask[ pa-&gt;elsize ]; 
++  }
++  else      // one byte or more elements
++    switch( pa-&gt;elsize )
++    {
++      case 8:
++        val = pa-&gt;values[ idx ];
++        break;
++        
++      case 16:
++        val = *( ( u16* )pa-&gt;values + idx );
++        break;
++        
++      case 32:
++        val = *( ( u32* )pa-&gt;values + idx );
++        break;  
++    }
++  return val;
++}
++
++// Lua: value = array[ idx ]
++static int bitarray_get( lua_State *L )
++{
++  bitarray_t *pa;
++  u32 idx;
++   
++  pa = bitarray_check( L );
++  idx = luaL_checkinteger( L, 2 );
++  if( ( idx &lt;= 0 ) || ( idx &gt; pa-&gt;capacity ) )
++    return luaL_error( L, &quot;invalid index.&quot; );
++  lua_pushinteger( L, bitarray_getval( pa, idx ) );    
++  return 1;
++}
++
++// Lua: array[ key ] = value
++static int bitarray_set( lua_State *L )
++{
++  bitarray_t *pa;
++  u32 idx, shift, newval, val = 0;
++  u8 rest, mask;
++   
++  pa = bitarray_check( L );
++  idx = luaL_checkinteger( L, 2 );
++  newval = luaL_checkinteger( L, 3 );
++  if( ( idx &lt;= 0 ) || ( idx &gt; pa-&gt;capacity ) )
++    return luaL_error( L, &quot;invalid index.&quot; );
++  idx --;
++  if( pa-&gt;elsize &lt; 8 )        // sub-byte elements
++  {
++    shift = idx &gt;&gt; bitarray_index_shift[ pa-&gt;elsize ];
++    mask = 1 &lt;&lt; bitarray_index_shift[ pa-&gt;elsize ];
++    rest = idx &amp; ( mask - 1 );
++    val = pa-&gt;values[ shift ];
++    val &amp;= ~( bitarray_index_mask[ pa-&gt;elsize ] &lt;&lt; ( ( mask - 1 - rest ) * pa-&gt;elsize ) );
++    val |= newval &lt;&lt; ( ( mask - 1 - rest ) * pa-&gt;elsize );
++    pa-&gt;values[ shift ] = val; 
++  }
++  else      // one byte or more elements
++    switch( pa-&gt;elsize )
++    {
++      case 8:
++        pa-&gt;values[ idx ] = val;;
++        break;
++        
++      case 16:
++        *( ( u16* )pa-&gt;values + idx ) = val;
++        break;
++        
++      case 32:
++        *( ( u32* )pa-&gt;values + idx ) = val;
++        break;  
++    }    
++  return 0;
++}
++
++// Lua : size = #array
++static int bitarray_len( lua_State *L )
++{
++  bitarray_t *pa;
++  
++  pa = bitarray_check( L );
++  lua_pushinteger( L, pa-&gt;capacity );
++  return 1;
++}
++
++// Lua iterator
++static int bitarray_iter( lua_State *L )
++{
++  bitarray_t *pa;
++  u32 idx;
++  
++  pa = bitarray_check( L );
++  idx = luaL_checkinteger( L, 2 ) + 1;
++  if( idx &lt;= pa-&gt;capacity )
++  {
++    lua_pushinteger( L, idx );
++    lua_pushinteger( L, bitarray_getval( pa, idx ) );
++    return 2;
++  }
++  else
++    return 0;
++}
++
++// Lua iterator &quot;factory&quot;
++static int bitarray_pairs( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  lua_pushlightfunction( L, bitarray_iter );
++#else
++  lua_pushcclosure( L, bitarray_iter, 0 );
++#endif
++  lua_pushvalue( L, 1 );
++  lua_pushinteger ( L, 0 );
++  return 3;
++}
++
++// Lua: string = bitarray.tostring( array, [&quot;raw&quot;|&quot;seq&quot;] )
++static int bitarray_tostring( lua_State *L )
++{
++  luaL_Buffer b;
++  bitarray_t *pa;
++  u32 idx;
++  u8 mode = BITARRAY_UNPACK_SEQ;
++  const char *ptextmode;
++   
++  pa = bitarray_check( L );
++  if( lua_isstring( L, 2 ) )
++  {
++    ptextmode = lua_tostring( L, 2 );
++    if( !strcmp( ptextmode, &quot;raw&quot; ) )
++      mode = BITARRAY_UNPACK_RAW;
++    else if( !strcmp( ptextmode, &quot;seq&quot; ) )
++      mode = BITARRAY_UNPACK_SEQ;
++    else
++      return luaL_error( L, &quot;invalid mode string.&quot; );
++  }
++  if( ( mode == BITARRAY_UNPACK_SEQ ) &amp;&amp; ( pa-&gt;elsize &gt; 8 ) )
++    return luaL_error( L, &quot;element size too large.&quot; );
++  luaL_buffinit( L, &amp;b );
++  if( mode == BITARRAY_UNPACK_SEQ )
++    for( idx = 1; idx &lt;= pa-&gt;capacity; idx  ++ )
++      luaL_addchar( &amp;b, bitarray_getval( pa, idx ) );
++  else
++    luaL_addlstring( &amp;b, ( char* )pa-&gt;values, ROUND_SIZE( pa-&gt;capacity * pa-&gt;elsize ) );
++  luaL_pushresult( &amp;b );
++  return 1;  
++}
++
++// Lua: table = bitarray.totable( array, [&quot;raw&quot;|&quot;seq&quot;] )
++static int bitarray_totable( lua_State *L )
++{
++  bitarray_t *pa;
++  u32 idx;
++  u8 mode = BITARRAY_UNPACK_SEQ;
++  const char *ptextmode;
++   
++  pa = bitarray_check( L );
++  if( lua_isstring( L, 2 ) )
++  {
++    ptextmode = lua_tostring( L, 2 );
++    if( !strcmp( ptextmode, &quot;raw&quot; ) )
++      mode = BITARRAY_UNPACK_RAW;
++    else if( !strcmp( ptextmode, &quot;seq&quot; ) )
++      mode = BITARRAY_UNPACK_SEQ;
++    else
++      return luaL_error( L, &quot;invalid mode string.&quot; );
++  }
++  if( ( mode == BITARRAY_UNPACK_SEQ ) &amp;&amp; ( pa-&gt;elsize &gt; 8 ) )
++    return luaL_error( L, &quot;element size too large.&quot; );
++  lua_newtable( L );    
++  if( mode == BITARRAY_UNPACK_SEQ )
++    for( idx = 1; idx &lt;= pa-&gt;capacity; idx ++ )
++    {
++      lua_pushinteger( L, bitarray_getval( pa, idx ) );
++      lua_rawseti( L, -2, idx );
++    }      
++  else
++    for( idx = 0; idx &lt; ROUND_SIZE( pa-&gt;capacity * pa-&gt;elsize ); idx ++ )
++    {
++      lua_pushinteger( L, pa-&gt;values[ idx ] );
++      lua_rawseti( L, -2, idx + 1 );
++    }
++  return 1;  
++}
++
++// Module function map
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE bitarray_map[] = 
++{
++  { LSTRKEY( &quot;new&quot; ), LFUNCVAL( bitarray_new ) },
++  { LSTRKEY( &quot;pairs&quot; ), LFUNCVAL( bitarray_pairs ) },
++  { LSTRKEY( &quot;tostring&quot; ), LFUNCVAL( bitarray_tostring ) },
++  { LSTRKEY( &quot;totable&quot; ), LFUNCVAL( bitarray_totable ) },
++  { LNILKEY, LNILVAL } 
++};
++
++static const LUA_REG_TYPE bitarray_mt_map[] = 
++{
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( bitarray_get ) },
++  { LSTRKEY( &quot;__newindex&quot; ), LFUNCVAL( bitarray_set ) },
++  { LSTRKEY( &quot;__len&quot; ), LFUNCVAL( bitarray_len ) },
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_bitarray( lua_State* L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_rometatable( L, META_NAME, ( void* )bitarray_mt_map );
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_newmetatable( L, META_NAME );
++  luaL_register( L, NULL, bitarray_mt_map );
++  luaL_register( L, AUXLIB_
++  BITARRAY, bitarray_map );  
++  return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0  
++}
+
+Modified: tags/pre0.6/src/platform/lm3s/platform.c
+===================================================================
+--- tags/pre0.6/src/platform/lm3s/platform.c	2009-08-12 16:41:13 UTC (rev 392)
++++ tags/pre0.6/src/platform/lm3s/platform.c	2009-08-12 17:01:33 UTC (rev 393)
+@@ -203,9 +203,9 @@
+   unsigned protocol;
+ 
+   if( cpol == 0 )
+-    protocol == cpha ? SSI_FRF_MOTO_MODE_1 : SSI_FRF_MOTO_MODE_0;
++    protocol = cpha ? SSI_FRF_MOTO_MODE_1 : SSI_FRF_MOTO_MODE_0;
+   else
+-    protocol == cpha ? SSI_FRF_MOTO_MODE_3 : SSI_FRF_MOTO_MODE_2;
++    protocol = cpha ? SSI_FRF_MOTO_MODE_3 : SSI_FRF_MOTO_MODE_2;
+   mode = mode == PLATFORM_SPI_MASTER ? SSI_MODE_MASTER : SSI_MODE_SLAVE;
+   SSIDisable( spi_base[ id ] );
+ 
+
+Modified: tags/pre0.6/src/platform/lm3s/platform_conf.h
+===================================================================
+--- tags/pre0.6/src/platform/lm3s/platform_conf.h	2009-08-12 16:41:13 UTC (rev 392)
++++ tags/pre0.6/src/platform/lm3s/platform_conf.h	2009-08-12 17:01:33 UTC (rev 393)
+@@ -65,6 +65,7 @@
+   _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_BITARRAY, luaopen_bitarray, bitarray_map )\
+   NETLINE\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000348.html">[Elua-svn] r392 - branches/eagle_mmc/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000350.html">[Elua-svn] r394 - in tags/pre0.6: . doc/wb_img
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#349">[ date ]</a>
+              <a href="thread.html#349">[ thread ]</a>
+              <a href="subject.html#349">[ subject ]</a>
+              <a href="author.html#349">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

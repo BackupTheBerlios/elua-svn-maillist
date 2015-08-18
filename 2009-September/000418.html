@@ -1,0 +1,206 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r462 - tags/pre0.6/romfs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r462%20-%20tags/pre0.6/romfs&In-Reply-To=%3C200909302007.n8UK7bL2014506%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000417.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r462 - tags/pre0.6/romfs</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r462%20-%20tags/pre0.6/romfs&In-Reply-To=%3C200909302007.n8UK7bL2014506%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r462 - tags/pre0.6/romfs">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Wed Sep 30 22:07:37 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000417.html">[Elua-svn] r461 - tags/pre0.6/romfs
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#418">[ date ]</a>
+              <a href="thread.html#418">[ thread ]</a>
+              <a href="subject.html#418">[ subject ]</a>
+              <a href="author.html#418">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2009-09-30 22:07:36 +0200 (Wed, 30 Sep 2009)
+New Revision: 462
+
+Modified:
+   tags/pre0.6/romfs/pong.lua
+   tags/pre0.6/romfs/spaceship.lua
+   tags/pre0.6/romfs/tetrives.lua
+Log:
+Refactored version of TetrIves game (for the LM3S.disp issue).
+Minor remarks on Pong &amp; SpaceShip games.
+
+Tests on both LM3S platforms that have a RIT OLED display are welcome.
+An LM3S6965.lua file must be created and commited, so they can work on this board.
+A simle look at the LM3S8962.lua will be enough to understand what needs to be adjusted for the pin assignments.
+This scheme leaves the programs more portable, with a simple require(pd.cpu()) to &quot;include&quot; pinout definitions.
+Pls note that in the future this may change to require(pd.board()) but for now we have a 14 char limitation on our ROMFS filenames and we don't want to postpone v0.6 anymore (comming soon now ! :)
+
+
+
+Modified: tags/pre0.6/romfs/pong.lua
+===================================================================
+--- tags/pre0.6/romfs/pong.lua	2009-09-30 19:39:02 UTC (rev 461)
++++ tags/pre0.6/romfs/pong.lua	2009-09-30 20:07:36 UTC (rev 462)
+@@ -13,7 +13,7 @@
+ -- Initial Version by Dado Sutter, Fev 2009
+ --    This had only the ball bouncing on walls, paddle and paddle movement
+ --
+--- Greatly enhanced by Teo Benjamin, adding:
++-- Greatly enhanced by Teo Benjamin in Aug/Sep 2009, adding:
+ --    Score, resizeable paddles, levels/speeds, items
+ --
+ --
+
+Modified: tags/pre0.6/romfs/spaceship.lua
+===================================================================
+--- tags/pre0.6/romfs/spaceship.lua	2009-09-30 19:39:02 UTC (rev 461)
++++ tags/pre0.6/romfs/spaceship.lua	2009-09-30 20:07:36 UTC (rev 462)
+@@ -1,13 +1,18 @@
+ -------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+ --
+ --		eLua SpaceShip Game
+ --
+---													LED Lab @ PUC-Rio
+---																2009
++-- LED Lab @ PUC-Rio - 2009
++--   Dado Sutter
++--   Ives Negreiros
++--   Ricardo Rosa
++--   Pedro Bittencourt
++--   Teo Benjamin
+ --
++--
++-- Initial Version by T&#233;o Benjamin, Aug 2009
++--
+ -------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+ 
+ local xcanvas = 124						-- Real screen X size
+ local xcanvas = xcanvas - 12			-- Canvas size with wall
+
+Modified: tags/pre0.6/romfs/tetrives.lua
+===================================================================
+--- tags/pre0.6/romfs/tetrives.lua	2009-09-30 19:39:02 UTC (rev 461)
++++ tags/pre0.6/romfs/tetrives.lua	2009-09-30 20:07:36 UTC (rev 462)
+@@ -11,7 +11,6 @@
+ --   Teo Benjamin
+ --
+ -- Initial Version by Ives Negreiros, August 2009
+---    Needs revisions and code cleaning
+ --
+ ---------------------------------------------------------------------------------
+ local Vmax = 22                        -- Number of pieces in vertical +1
+@@ -31,12 +30,12 @@
+ end
+ 
+ -- Initial information
+-require( pd.platform() )
++local platform = require( pd.cpu() )
+ lm3s.disp.init( 1000000 )
+ 
+ lm3s.disp.print( &quot;Tetrives&quot;, 30, 30, 11 )
+ lm3s.disp.print( &quot;Press SELECT&quot;, 30, 60, 11 )
+-while LM3S.btnpressed( LM3S.BTN_SELECT ) == false do
++while platform.btn_pressed( platform.BTN_SELECT ) == false do
+   seed = seed + 1
+ end
+ 
+@@ -74,7 +73,7 @@
+   end
+ end
+ 
+-function draw_walls()                  -- This function draws the walls and the base of game screen
++function draw_walls()                  -- This function draws the walls and the base of game piece screen
+   for i = 6, 63, 3 do
+     lm3s.disp.print( &quot;|&quot;, 3, i, 11 )
+   end
+@@ -209,7 +208,7 @@
+       piece_map = piecerot
+     end
+ 
+-  elseif ( rotate_type == 3 ) then     -- This part works like the upper part, but for another type of rotation
++  elseif ( rotate_type == 3 ) then      -- This part works like the upper part, but for another type of rotation
+     for i in ipairs( piece_map ) do
+       for j in ipairs( piece_map[ i ] ) do
+         if( piece_map[ i ][ j ] == 1 ) then
+@@ -323,7 +322,7 @@
+ ---------------------------------------------------------------------------------
+ repeat
+ 
+-  for i in ipairs( game_map ) do       -- This loop create the border of game's map in the table
++  for i in ipairs( game_map ) do       -- This loop create the border of game's map
+     for j = 1, Hmax, 1 do
+       if( j == 1 or j == Hmax or i == 1 or i == Vmax ) then
+         game_map[ i ][ j ] = 1
+@@ -345,16 +344,16 @@
+     print_data ()
+     Tmax = 11 - 2 * level              -- This statement raises the speed based on the level
+     for i = 1, Tmax, 1 do
+-      if LM3S.btnpressed( LM3S.BTN_UP ) then
++      if platform.btn_pressed( platform.BTN_UP ) then
+         move_left()
+       end
+-      if LM3S.btnpressed( LM3S.BTN_DOWN ) then
++      if platform.btn_pressed( platform.BTN_DOWN ) then
+         move_right()
+       end
+-      if LM3S.btnpressed( LM3S.BTN_RIGHT ) then
++      if platform.btn_pressed( platform.BTN_RIGHT ) then
+         rotate()
+       end
+-      if LM3S.btnpressed( LM3S.BTN_LEFT ) then   -- If the player presses &quot;down&quot;, the piece drops instantly and a point is added to score
++      if platform.btn_pressed( platform.BTN_LEFT ) then   -- If the player presses &quot;down&quot;, the piece drops instantly and a point is added to score
+         score = score + 1
+         tmr.delay( 1, 30000 )
+         break
+@@ -378,7 +377,7 @@
+   lm3s.disp.print( &quot;SELECT to restart&quot;, 6, 70, 11 )
+   enough = true                        -- If the player presses select before the time reach 1000000ms, then restart the game
+   for i=1, 1000000 do
+-    if LM3S.btnpressed( LM3S.BTN_SELECT ) then
++    if platform.btn_pressed( platform.BTN_SELECT ) then
+       enough = false
+       break
+     end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000417.html">[Elua-svn] r461 - tags/pre0.6/romfs
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#418">[ date ]</a>
+              <a href="thread.html#418">[ thread ]</a>
+              <a href="subject.html#418">[ subject ]</a>
+              <a href="author.html#418">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

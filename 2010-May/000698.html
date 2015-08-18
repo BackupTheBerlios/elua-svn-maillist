@@ -1,0 +1,679 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r745 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-May/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r745%20-%20in%20trunk%3A%20.%20src/platform/at91sam7x%0A%09src/platform/avr32%20src/platform/i386%20src/platform/lm3s%0A%09src/platform/lpc17xx%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/sim%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9&In-Reply-To=%3C201005102306.o4AN6Bq9028988%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000697.html">
+   <LINK REL="Next"  HREF="000699.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r745 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r745%20-%20in%20trunk%3A%20.%20src/platform/at91sam7x%0A%09src/platform/avr32%20src/platform/i386%20src/platform/lm3s%0A%09src/platform/lpc17xx%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/sim%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9&In-Reply-To=%3C201005102306.o4AN6Bq9028988%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r745 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue May 11 01:06:11 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000697.html">[Elua-svn] r744 - in trunk: . src/platform/lpc17xx
+</A></li>
+        <LI>Next message: <A HREF="000699.html">[Elua-svn] r746 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#698">[ date ]</a>
+              <a href="thread.html#698">[ thread ]</a>
+              <a href="subject.html#698">[ subject ]</a>
+              <a href="author.html#698">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-05-11 01:06:09 +0200 (Tue, 11 May 2010)
+New Revision: 745
+
+Modified:
+   trunk/SConstruct
+   trunk/src/platform/at91sam7x/conf.py
+   trunk/src/platform/avr32/conf.py
+   trunk/src/platform/i386/conf.py
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lpc17xx/conf.py
+   trunk/src/platform/lpc24xx/conf.py
+   trunk/src/platform/lpc288x/conf.py
+   trunk/src/platform/sim/conf.py
+   trunk/src/platform/stm32/conf.py
+   trunk/src/platform/str7/conf.py
+   trunk/src/platform/str7/type.h
+   trunk/src/platform/str9/conf.py
+Log:
+Now uses scons flags variables to construct compiler/linker commands.
+
+Builds for avr32, sim &amp; i386 should build, but have not been tested.
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/SConstruct	2010-05-10 23:06:09 UTC (rev 745)
+@@ -146,57 +146,10 @@
+               'MBED' : [ 'bisect', 'hangman', 'hello', 'info', 'led', 'pwmled', 'dualpwm', 'life' ],
+ }
+ 
+-# define terminal colors
+-colors = {}
+-colors['cyan']   = '\033[96m'
+-colors['purple'] = '\033[95m'
+-colors['blue']   = '\033[94m'
+-colors['green']  = '\033[92m'
+-colors['yellow'] = '\033[93m'
+-colors['red']    = '\033[91m'
+-colors['end']    = '\033[0m'
+-
+-#If the output is not a terminal, remove the colors
+-if not sys.stdout.isatty():
+-   for key, value in colors.iteritems():
+-      colors[key] = ''
+-
+-compile_source_message = '%sCompiling     %s==&gt; %s$SOURCE%s' % \
+-   (colors['blue'], colors['purple'], colors['yellow'], colors['end'])
+-
+-compile_shared_source_message = '%sCompiling shared %s==&gt; %s$SOURCE%s' % \
+-   (colors['blue'], colors['purple'], colors['yellow'], colors['end'])
+-
+-link_program_message = '%sLinking Image %s==&gt; %s$TARGET%s' % \
+-   (colors['red'], colors['purple'], colors['yellow'], colors['end'])
+-
+-link_library_message = '%sLinking Static Library %s==&gt; %s$TARGET%s' % \
+-   (colors['red'], colors['purple'], colors['yellow'], colors['end'])
+-
+-ranlib_library_message = '%sRanlib Library %s==&gt; %s$TARGET%s' % \
+-   (colors['red'], colors['purple'], colors['yellow'], colors['end'])
+-
+-link_shared_library_message = '%sLinking Shared Library %s==&gt; %s$TARGET%s' % \
+-   (colors['red'], colors['purple'], colors['yellow'], colors['end'])
+-
+-java_library_message = '%sCreating Java Archive %s==&gt; %s$TARGET%s' % \
+-   (colors['red'], colors['purple'], colors['yellow'], colors['end'])
+-
+-
+ comp = Environment( OBJSUFFIX = &quot;.o&quot;,
+                     PROGSUFFIX = &quot;.elf&quot;,
+                     ENV = os.environ,
+-                    CPPDEFINES = {},
+-                    CXXCOMSTR = compile_source_message,
+-                    CCCOMSTR = compile_source_message,
+-                    SHCCCOMSTR = compile_shared_source_message,
+-                    SHCXXCOMSTR = compile_shared_source_message,
+-                    ARCOMSTR = link_library_message,
+-                    RANLIBCOMSTR = ranlib_library_message,
+-                    SHLINKCOMSTR = link_shared_library_message,
+-                    LINKCOMSTR = link_program_message,
+-                    JARCOMSTR = java_library_message,
+-                    JAVACCOMSTR = compile_source_message )
++                    CPPDEFINES = {})
+ 
+ # Replacement for standard EnumVariable functionality to derive case from original list
+ class InsensitiveString(object):
+@@ -317,8 +270,8 @@
+     usable_chains = [toolchain_list[ toolchain ][ 'compile' ] for toolchain in platform_list[ platform ]['toolchains']]
+     comp['CC'] = comp.Detect( usable_chains )
+     if comp['CC']:
+-        comp['AS'] = toolchain_list[ toolchain ][ 'asm' ]
+         comp['toolchain'] =  platform_list[ platform ]['toolchains'][usable_chains.index(comp['CC'])]
++        comp['AS'] = comp['CC']
+         toolset = toolchain_list[ comp['toolchain'] ]
+     else:
+       print &quot;Unable to find usable toolchain in your path.&quot;
+
+Modified: trunk/src/platform/at91sam7x/conf.py
+===================================================================
+--- trunk/src/platform/at91sam7x/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/at91sam7x/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -5,34 +5,36 @@
+ specific_files = &quot;board_cstartup.s board_lowlevel.c board_memories.c usart.c pmc.c pio.c platform.c tc.c pwmc.c aic.c&quot;
+ if comp[ 'cpu' ] == 'AT91SAM7X256':
+   ldscript = &quot;flash256.lds&quot;
+-  cdefs = cdefs + &quot; -Dat91sam7x256&quot;
++  comp.Append(CPPDEFINES = 'at91sam7x256')
+ elif comp[ 'cpu' ] == 'AT91SAM7X512':
+   ldscript = &quot;flash512.lds&quot;
+-  cdefs = cdefs + &quot; -Dat91sam7x512&quot;
++  comp.Append(CPPDEFINES = 'at91sam7x512')
+ else:
+   print &quot;Invalid AT91SAM7X CPU %s&quot; % comp[ 'cpu' ]
+-  sys.exit( -1 )  
++  Exit( -1 )
+   
+-# Check CPU mode
+-if cpumode == 'arm':
+-  modeflag = ''
+-elif cpumode == 'thumb':
+-  modeflag = '-mthumb'
+-else:
+-  print &quot;Invalid CPU mode %s&quot;, cpumode
+-  sys.exit( -1 )
++comp.Append(CPPDEFINES = ['NOASSERT','NOTRACE'])
+   
+-cdefs = cdefs + ' -DNOASSERT -DNOTRACE'
+-  
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS'])
++comp.Append(LIBS = ['c','gcc','m'])
++
++TARGET_FLAGS = ['-mcpu=arm7tdmi']
++if cpumode == 'thumb':
++  TARGET_FLAGS += ['-mthumb']
++
++# Configure General Flags for Target
++comp.Prepend(CCFLAGS = [TARGET_FLAGS])
++comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,entry'])
++comp.Prepend(ASFLAGS = [TARGET_FLAGS,'-D__ASSEMBLY__'])
++
+ # Toolset data
+ tools[ 'at91sam7x' ] = {}
+-tools[ 'at91sam7x' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, opt, cdefs )
+-tools[ 'at91sam7x' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,entry -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
+-tools[ 'at91sam7x' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=arm7tdmi %s %s -D__ASSEMBLY__ -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_at91sam7x( target, source, env ):
+
+Modified: trunk/src/platform/avr32/conf.py
+===================================================================
+--- trunk/src/platform/avr32/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/avr32/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -2,18 +2,27 @@
+ 
+ specific_files = &quot;crt0.s trampoline.s platform.c exception.s intc.c pm.c flashc.c pm_conf_clocks.c usart.c gpio.c tc.c sdramc.c&quot;
+ ldscript = &quot;at32uc3a0512.ld&quot;
+-# [TODO] the next line assumes that the board is an ATEVK1100 (see src/platform/avr32/board.h)
+-cdefs = cdefs + &quot; -DFORAVR32 -DBOARD=1&quot;
++# [TODO] the appends assume that the board is an ATEVK1100 (see src/platform/avr32/board.h)
++comp.Append(CPPDEFINES = 'FORAVR32')
++comp.Append(CPPDEFINES = {'BOARD' : 1})
+ 
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
++# Standard GCC Flags
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-Wl,--gc-sections','-Wl,--allow-multiple-definition','-T',ldscript])
++comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c'])
++comp.Append(LIBS = ['c','gcc','m'])
++
++# Target-specific Flags
++comp.Prepend(CCFLAGS = ['-mpart=uc3a0512'])
++comp.Prepend(ASFLAGS = ['-mpart=uc3a0512'])
++comp.Append(LINKFLAGS = ['-Wl,-e,crt0'])
++
+ # Toolset data
+ tools[ 'avr32' ] = {}
+-tools[ 'avr32' ][ 'cccom' ] = &quot;%s -mpart=uc3a0512 %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, cdefs )
+-tools[ 'avr32' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,crt0 -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
+-tools[ 'avr32' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mpart=uc3a0512 %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], cdefs )
+ 
+ # Programming function
+ def progfunc_avr32( comp[ 'target' ], source, env ):
+
+Modified: trunk/src/platform/i386/conf.py
+===================================================================
+--- trunk/src/platform/i386/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/i386/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -7,11 +7,22 @@
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
++
++# Standard GCC Flags
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++#comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS'])
++comp.Append(LIBS = ['c','gcc','m'])
++
++TARGET_FLAGS = ['-march=i386','-mfpmath=387','-m32']
++
++comp.Prepend(CCFLAGS = [TARGET_FLAGS,'-fno-builtin','-fno-stack-protector'])
++comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,start'])
++comp['AS'] = toolset[ 'asm' ]  # Need to force toolset
++comp.Prepend(ASFLAGS = ['-felf'])
++
+ # Toolset data
+ tools[ 'i386' ] = {}
+-tools[ 'i386' ][ 'cccom' ] = &quot;%s %s $_CPPINCFLAGS -march=i386 -mfpmath=387 -m32 -ffunction-sections -fdata-sections -fno-builtin -fno-stack-protector %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, cdefs )
+-tools[ 'i386' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -march=i386 -mfpmath=387 -m32 -T %s -Wl,--gc-sections -Wl,-e,start -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
+-tools[ 'i386' ][ 'ascom' ] = &quot;%s -felf $SOURCE&quot; % toolset[ 'asm' ]
+ 
+ # Programming function for i386 (not needed, empty function)
+ def progfunc_i386( comp[ 'target' ], source, env ):
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/lm3s/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -3,14 +3,13 @@
+ 
+ if comp[ 'board' ] == 'EK-LM3S6965' or comp[ 'board' ] == 'EK-LM3S8962':
+   specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
+-  cdefs = cdefs + &quot; -DENABLE_DISP&quot;
++  comp.Append(CPPDEFINES = 'ENABLE_DISP')
+ 
++
+ # The default for the Eagle 100 board is to start the image at 0x2000,
+ # so that the built in Ethernet boot loader can be used to upload it
+ if comp[ 'board' ] == 'EAGLE-100':
+-  linkopts = &quot;-Wl,-Ttext,0x2000&quot;
+-else:
+-  linkopts = &quot;&quot;
++  comp.Append(LINKFLAGS = ['-Wl,-Ttext,0x2000'])
+ 
+ if comp[ 'board' ] == 'EK-LM3S9B92':
+   ldscript = &quot;lm3s-9b92.ld&quot;
+@@ -21,13 +20,24 @@
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+-cdefs = cdefs + &quot; -DFOR&quot; + comp[ 'cpu' ] + &quot; -Dgcc&quot;
++comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
+ 
++
++# Standard GCC Flags
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS'])
++comp.Append(LIBS = ['c','gcc','m'])
++
++TARGET_FLAGS = ['-mcpu=cortex-m3','-mthumb']
++
++# Configure General Flags for Target
++comp.Prepend(CCFLAGS = [TARGET_FLAGS,'-mlittle-endian'])
++comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,ResetISR','-Wl,-static'])
++comp.Prepend(ASFLAGS = TARGET_FLAGS)
++
+ # Toolset data
+ tools[ 'lm3s' ] = {}
+-tools[ 'lm3s' ][ 'cccom' ] = &quot;%s -mcpu=cortex-m3 -mthumb %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, cdefs )
+-tools[ 'lm3s' ][ 'linkcom' ] = &quot;%s -mthumb -mcpu=cortex-m3 -nostartfiles -T %s %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lm %s&quot; % ( toolset[ 'compile' ], ldscript, linkopts, local_libs )
+-tools[ 'lm3s' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ],  cdefs )
+ 
+ # Programming function
+ def progfunc_lm3s( target, source, env ):
+
+Modified: trunk/src/platform/lpc17xx/conf.py
+===================================================================
+--- trunk/src/platform/lpc17xx/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/lpc17xx/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -23,12 +23,19 @@
+ 
+ comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
+ 
++# Standard GCC Flags
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS'])
++comp.Append(LIBS = ['c','gcc','m'])
++
++TARGET_FLAGS = ['-mcpu=cortex-m3','-mthumb']
++
+ # Configure General Flags for Target
+-comp.Prepend(CCFLAGS = ['-mcpu=cortex-m3','-mthumb','-mlittle-endian','-ffunction-sections','-fdata-sections','-fno-strict-aliasing'])
+-comp.Prepend(LINKFLAGS = ['-mcpu=cortex-m3','-mthumb','-Wl,-T','-Xlinker',ldscript,'-u', '_start','-Wl,-e,Reset_Handler','-Wl,-static','-Wl,--gc-sections','-nostartfiles','-nostdlib','-Wl,--allow-multiple-definition'])
+-comp.Prepend(ASFLAGS = ['-x assembler-with-cpp','-mcpu=cortex-m3','-mthumb','-Wall'])
++comp.Prepend(CCFLAGS = [TARGET_FLAGS,'-mlittle-endian'])
++comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,Reset_Handler','-Wl,-static'])
++comp.Prepend(ASFLAGS = TARGET_FLAGS)
+ 
+-comp.Append(LIBS = ['c','gcc','m'])
+ 
+ # Toolset data
+ tools[ 'lpc17xx' ] = {}
+
+Modified: trunk/src/platform/lpc24xx/conf.py
+===================================================================
+--- trunk/src/platform/lpc24xx/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/lpc24xx/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -8,25 +8,31 @@
+ else:
+   print &quot;Invalid CPU %s&quot; % comp[ 'cpu' ]
+   Exit( -1 )  
+-  
+-# Check CPU mode
+-if cpumode == 'arm':
+-  modeflag = ''
+-elif cpumode == 'thumb':
+-  modeflag = '-mthumb'
+-else:
+-  print &quot;Invalid CPU mode %s&quot;, cpumode
+-  sys.exit( -1 )
+-  
++    
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
++comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
++
++# Standard GCC Flags
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS'])
++comp.Append(LIBS = ['c','gcc','m'])
++
++# Special Target Configuration
++TARGET_FLAGS = ['-mcpu=arm7tdmi']
++if cpumode == 'thumb':
++  TARGET_FLAGS += ['-mthumb']
++
++comp.Prepend(CCFLAGS = TARGET_FLAGS)
++comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,entry'])
++comp.Prepend(ASFLAGS = [TARGET_FLAGS,'-D__ASSEMBLY__'])
++
++
+ # Toolset data
+ tools[ 'lpc24xx' ] = {}
+-tools[ 'lpc24xx' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, opt, cdefs )
+-tools[ 'lpc24xx' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,entry -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
+-tools[ 'lpc24xx' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=arm7tdmi %s %s -D__ASSEMBLY__ -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, cdefs )
+ 
+ # Programming function for LPC24xx
+ def progfunc_lpx24xx( target, source, env ):
+
+Modified: trunk/src/platform/lpc288x/conf.py
+===================================================================
+--- trunk/src/platform/lpc288x/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/lpc288x/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -9,31 +9,36 @@
+   ldscript = &quot;lpc2888.lds&quot;
+ else:
+   print &quot;Invalid LPC288x CPU %s&quot;, comp[ 'cpu' ]
+-  sys.exit( -1 )  
++  Exit( -1 )  
+   
+-# Check CPU mode
+-if cpumode == 'arm':
+-  modeflag = ''
+-elif cpumode == 'thumb':
+-  modeflag = '-mthumb'
+-else:
+-  print &quot;Invalid CPU mode %s&quot;, cpumode
+-  sys.exit( -1 )
+-  
+ if cpumode == 'thumb':
+   print &quot;ERROR: due to a hardware limitation, it is not possible to run Thumb code from the LPC2888 internal flash.&quot;  
+   print &quot;Compile again, this time with cpumode=arm&quot;
+-  sys.exit( -1 )
++  Exit( -1 )
+   
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
++comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
++
++# Standard GCC Flags
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS'])
++comp.Append(LIBS = ['c','gcc','m'])
++
++# Special Target Configuration
++TARGET_FLAGS = ['-mcpu=arm7tdmi']
++if cpumode == 'thumb':
++  TARGET_FLAGS += ['-mthumb']
++
++comp.Prepend(CCFLAGS = TARGET_FLAGS)
++comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,HardReset'])
++comp.Prepend(ASFLAGS = [TARGET_FLAGS,'-D__ASSEMBLY__'])
++
+ # Toolset data
+ tools[ 'lpc288x' ] = {}
+-tools[ 'lpc288x' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s $_CPPINCFLAGS %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, modeflag, cdefs )
+-tools[ 'lpc288x' ][ 'linkcom' ] = &quot;%s -mcpu=arm7tdmi -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,HardReset -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
+-tools[ 'lpc288x' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_lpc288x( target, source, env ):
+
+Modified: trunk/src/platform/sim/conf.py
+===================================================================
+--- trunk/src/platform/sim/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/sim/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -4,17 +4,28 @@
+ ldscript = &quot;i386.ld&quot;
+   
+ # override default optimize settings (-Os is broken right now)
+-opt = &quot; -g -O0 &quot;
++comp.Replace(OPTFLAGS = ['-O0'])
++comp.AppendUnique(CCFLAGS = '-g'])
+ 
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
++# Standard GCC Flags
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++#comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS'])
++comp.Append(LIBS = ['c','gcc','m'])
++
++TARGET_FLAGS = ['-march=i386','-mfpmath=387','-m32']
++
++comp.Prepend(CCFLAGS = [TARGET_FLAGS,'-fno-builtin','-fno-stack-protector'])
++comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,start','-Wl,-static'])
++comp['AS'] = toolset[ 'asm' ]  # Need to force toolset
++comp.Prepend(ASFLAGS = ['-felf'])
++
+ # Toolset data
+ tools[ 'sim' ] = {}
+-tools[ 'sim' ][ 'cccom' ] = &quot;%s %s $_CPPINCFLAGS -march=i386 -mfpmath=387 -m32 -ffunction-sections -fdata-sections -fno-builtin -fno-stack-protector %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, cdefs )
+-tools[ 'sim' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -march=i386 -mfpmath=387 -m32 -T %s -Wl,--gc-sections -Wl,-e,start -Wl,--allow-multiple-definition -Wl,-static -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
+-tools[ 'sim' ][ 'ascom' ] = &quot;%s -felf $SOURCE&quot; % toolset[ 'asm' ]
+ 
+ # Programming function for i386 (not needed, empty function)
+ def progfunc_dummy( target, source, env ):
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/stm32/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -3,7 +3,7 @@
+ import glob
+ import os
+ 
+-local_include +=  ['src/platform/%s/FWLib/library/inc' % platform]
++comp.Append(CPPPATH = ['src/platform/%s/FWLib/library/inc' % platform])
+ 
+ fwlib_files = &quot; &quot;.join(glob.glob(&quot;src/platform/%s/FWLib/library/src/*.c&quot; % platform))
+ #print &quot;FWLib: %s &quot; % fwlib_files 
+@@ -16,16 +16,23 @@
+ specific_files = fwlib_files + &quot; &quot; + &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+-if comp[ 'board' ] == 'STM3210E-EVAL':
+-  cdefs = cdefs + &quot; -DFORSTM3210E_EVAL&quot;
++comp.Append(CPPDEFINES = [&quot;FOR&quot; + cnorm( comp[ 'cpu' ] ),&quot;FOR&quot; + cnorm( comp[ 'board' ] ),'gcc'])
+ 
+-cdefs = cdefs + &quot; -Dgcc&quot;
++# Standard GCC Flags
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS'])
++comp.Append(LIBS = ['c','gcc','m'])
+ 
++TARGET_FLAGS = ['-mcpu=cortex-m3','-mthumb']
++
++# Configure General Flags for Target
++comp.Prepend(CCFLAGS = [TARGET_FLAGS,'-mlittle-endian'])
++comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,Reset_Handler','-Wl,-static'])
++comp.Prepend(ASFLAGS = TARGET_FLAGS)
++
+ # Toolset data
+ tools[ 'stm32' ] = {}
+-tools[ 'stm32' ][ 'cccom' ] = &quot;%s -mcpu=cortex-m3 -mthumb -mlittle-endian %s $_CPPINCFLAGS -ffunction-sections -fdata-sections -fno-strict-aliasing %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, cdefs )
+-tools[ 'stm32' ][ 'linkcom' ] = &quot;%s -mcpu=cortex-m3 -mthumb -Wl,-T -Xlinker %s -u _start -Wl,-e,Reset_Handler -Wl,-static -Wl,--gc-sections -nostartfiles -nostdlib -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
+-tools[ 'stm32' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], cdefs )
+ 
+ # Programming function
+ def progfunc_stm32( target, source, env ):
+
+Modified: trunk/src/platform/str7/conf.py
+===================================================================
+--- trunk/src/platform/str7/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/str7/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -7,26 +7,31 @@
+   ldscript = &quot;str711fr2.lds&quot;
+ else:
+   print &quot;Invalid STR7 CPU %s&quot; % comp[ 'cpu' ]
+-  sys.exit( -1 )  
+-  
+-# Check CPU mode
+-if cpumode == 'arm':
+-  modeflag = ''
+-elif cpumode == 'thumb':
+-  modeflag = '-mthumb'
+-else:
+-  print &quot;Invalid CPU mode %s&quot;, cpumode
+-  sys.exit( -1 )
+-  
++  Exit( -1 )  
++    
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
++comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
++
++# Standard GCC Flags
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS'])
++comp.Append(LIBS = ['c','gcc','m'])
++
++# Special Target Configuration
++TARGET_FLAGS = ['-mcpu=arm7tdmi']
++if cpumode == 'thumb':
++  TARGET_FLAGS += ['-mthumb']
++
++comp.Prepend(CCFLAGS = TARGET_FLAGS)
++comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,entry'])
++comp.Prepend(ASFLAGS = [TARGET_FLAGS])
++
+ # Toolset data
+ tools[ 'str7' ] = {}
+-tools[ 'str7' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, opt, cdefs )
+-tools[ 'str7' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,entry -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
+-tools[ 'str7' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_str7( target, source, env ):
+
+Modified: trunk/src/platform/str7/type.h
+===================================================================
+--- trunk/src/platform/str7/type.h	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/str7/type.h	2010-05-10 23:06:09 UTC (rev 745)
+@@ -1,5 +1,9 @@
+ #ifndef __TYPE_H__
+ #define __TYPE_H__
++typedef unsigned char  BYTE;
++typedef unsigned short WORD;
++typedef unsigned long  DWORD;
++typedef unsigned int   BOOL;
+ 
+ typedef unsigned char u8;
+ typedef signed char s8;
+
+Modified: trunk/src/platform/str9/conf.py
+===================================================================
+--- trunk/src/platform/str9/conf.py	2010-05-10 23:05:55 UTC (rev 744)
++++ trunk/src/platform/str9/conf.py	2010-05-10 23:06:09 UTC (rev 745)
+@@ -9,33 +9,37 @@
+   ldscript = &quot;str912fw44.lds&quot;
+ else:
+   print &quot;Invalid STR9 CPU %s&quot; % comp[ 'cpu' ]
+-  sys.exit( -1 )  
++  Exit( -1 )
+   
+-# Check CPU mode
+-if cpumode == 'arm':
+-  modeflag = ''
+-elif cpumode == 'thumb':
+-  modeflag = '-mthumb'
+-else:
+-  print &quot;Invalid CPU mode %s&quot;, cpumode
+-  sys.exit( -1 )
+-  
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
++comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
++
++# Standard GCC Flags
++comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS','$_CPPINCFLAGS'])
++comp.Append(LIBS = ['c','gcc','m'])
++
++# Special Target Configuration
++TARGET_FLAGS = ['-mcpu=arm966e-s']
++if cpumode == 'thumb':
++  TARGET_FLAGS += ['-mthumb']
++
+ # toolchain 'arm-gcc' requires '-mfpu=fpa' for some reason
+-auxm = ''
+ if comp['toolchain'] == 'arm-gcc':
+-  auxm = '-mfpu=fpa'
++   TARGET_FLAGS += ['-mfpu=fpa']
+ 
++comp.Prepend(CCFLAGS = TARGET_FLAGS)
++comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,_startup'])
++comp.Prepend(ASFLAGS = [TARGET_FLAGS])
++
+ # Toolset data
+ tools[ 'str9' ] = {}
+-tools[ 'str9' ][ 'cccom' ] = &quot;%s -mcpu=arm966e-s %s %s $_CPPINCFLAGS %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile'], auxm, opt, modeflag, cdefs )
+-tools[ 'str9' ][ 'linkcom' ] = &quot;%s -mcpu=arm966e-s %s -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,_startup -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], auxm, modeflag, ldscript, local_libs )
+-tools[ 'str9' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS %s -mfpu=fpa %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], auxm, modeflag, cdefs )
+ 
+-# Programming function for LPC2888
++# Programming function for STR9
+ def progfunc_str9( target, source, env ):
+   outname = output + &quot;.elf&quot;
+   os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000697.html">[Elua-svn] r744 - in trunk: . src/platform/lpc17xx
+</A></li>
+	<LI>Next message: <A HREF="000699.html">[Elua-svn] r746 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#698">[ date ]</a>
+              <a href="thread.html#698">[ thread ]</a>
+              <a href="subject.html#698">[ subject ]</a>
+              <a href="author.html#698">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

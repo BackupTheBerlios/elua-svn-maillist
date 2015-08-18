@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r836 - branches/remotefs_int/doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r836%20-%20branches/remotefs_int/doc&In-Reply-To=%3C20101123140419.2A0524801F3%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000788.html">
+   <LINK REL="Next"  HREF="000790.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r836 - branches/remotefs_int/doc</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r836%20-%20branches/remotefs_int/doc&In-Reply-To=%3C20101123140419.2A0524801F3%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r836 - branches/remotefs_int/doc">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Nov 23 15:04:18 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000788.html">[Elua-svn] r835 - in trunk/doc: eluadoc en
+</A></li>
+        <LI>Next message: <A HREF="000790.html">[Elua-svn] r837 - in branches/dl: . dynld inc src src/modules	src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#789">[ date ]</a>
+              <a href="thread.html#789">[ thread ]</a>
+              <a href="subject.html#789">[ subject ]</a>
+              <a href="author.html#789">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-23 15:04:18 +0100 (Tue, 23 Nov 2010)
+New Revision: 836
+
+Modified:
+   branches/remotefs_int/doc/buildall.lua
+Log:
+small improvement to the doc generator caching mechanism
+
+Modified: branches/remotefs_int/doc/buildall.lua
+===================================================================
+--- branches/remotefs_int/doc/buildall.lua	2010-11-22 23:31:40 UTC (rev 835)
++++ branches/remotefs_int/doc/buildall.lua	2010-11-23 14:04:18 UTC (rev 836)
+@@ -202,6 +202,45 @@
+ end
+ 
+ -------------------------------------------------------------------------------
++-- Table utils (from <A HREF="http://lua-users.org/wiki/TableUtils">http://lua-users.org/wiki/TableUtils</A>)
++
++function table.val_to_str( v )
++  if &quot;string&quot; == type( v ) then
++    v = string.gsub( v, &quot;\n&quot;, &quot;\\n&quot; )
++    if string.match( string.gsub(v,&quot;[^'\&quot;]&quot;,&quot;&quot;), '^&quot;+$' ) then
++      return &quot;'&quot; .. v .. &quot;'&quot;
++    end
++    return '&quot;' .. string.gsub(v,'&quot;', '\\&quot;' ) .. '&quot;'
++  else
++    return &quot;table&quot; == type( v ) and table.tostring( v ) or tostring( v )
++  end
++end
++
++function table.key_to_str ( k )
++  if &quot;string&quot; == type( k ) and string.match( k, &quot;^[_%a][_%a%d]*$&quot; ) then
++    return k
++  else
++    return &quot;[&quot; .. table.val_to_str( k ) .. &quot;]&quot;
++  end
++end
++
++function table.tostring( tbl )
++  local result, done = {}, {}
++  for k, v in ipairs( tbl ) do
++    table.insert( result, table.val_to_str( v ) )
++    done[ k ] = true
++  end
++  for k, v in pairs( tbl ) do
++    if not done[ k ] then
++      table.insert( result,
++        table.key_to_str( k ) .. &quot;=&quot; .. table.val_to_str( v ) )
++    end
++  end
++  return &quot;{&quot; .. table.concat( result, &quot;,&quot; ) .. &quot;}&quot;
++end
++
++
++-------------------------------------------------------------------------------
+ -- Build the list of files that must be processed starting from the menu data
+ 
+ -- Traverse a second (or higher) level menu and add relevant information to flist
+@@ -614,10 +653,13 @@
+ 
+ -- Set the global &quot;cache invalid&quot; flag
+ -- It is set to 'true' if the content of docdata.lua changes
+-local crtdocsum = file_md5( &quot;docdata.lua&quot; )
+-local oldsum = read_md5( &quot;docdata.lua&quot; )
++local crtdocsum = md5.sumhexa( table.tostring( themenu ) )
++local oldsum = read_md5( &quot;docdata&quot; )
+ cache_invalid = crtdocsum ~= oldsum
+-if cache_invalid then write_md5( &quot;docdata.lua&quot;, crtdocsum ) end
++if cache_invalid then 
++  write_md5( &quot;docdata&quot;, crtdocsum )
++  print &quot;Cache invalidated&quot; 
++end
+ 
+ print &quot;\nProcessing HTML templates...&quot;
+ indent_print()
+@@ -627,7 +669,7 @@
+     io.write( string.format( &quot;Processing %s %s...&quot;, fname, entry.item[ name_idx ] and &quot;&quot; or &quot;(hidden entry)&quot; ) )
+     local res, err = gen_html_page( fname, lang )
+     if err == &quot;#cached#&quot; then
+-      -- Thie file is already in the cache
++      -- This file is already in the cache
+       print( &quot; (cached)&quot; )         
+     elseif not res then
+       print( &quot;***&quot; .. err ) 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000788.html">[Elua-svn] r835 - in trunk/doc: eluadoc en
+</A></li>
+	<LI>Next message: <A HREF="000790.html">[Elua-svn] r837 - in branches/dl: . dynld inc src src/modules	src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#789">[ date ]</a>
+              <a href="thread.html#789">[ thread ]</a>
+              <a href="subject.html#789">[ subject ]</a>
+              <a href="author.html#789">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

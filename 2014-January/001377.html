@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] e120b9: Add status return to can.send() and underlying pla...
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2014-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20e120b9%3A%20Add%20status%20return%20to%20can.send%28%29%20and%0A%20underlying%20pla...&In-Reply-To=%3C52e615a2c8d09_2af0b83d5095f4%40hookshot-fe5-pe1-prd.aws.github.net.mail%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001376.html">
+   <LINK REL="Next"  HREF="001378.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] e120b9: Add status return to can.send() and underlying pla...</H1>
+    <B>GitHub</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20e120b9%3A%20Add%20status%20return%20to%20can.send%28%29%20and%0A%20underlying%20pla...&In-Reply-To=%3C52e615a2c8d09_2af0b83d5095f4%40hookshot-fe5-pe1-prd.aws.github.net.mail%3E"
+       TITLE="[eLua-svn] [elua/elua] e120b9: Add status return to can.send() and underlying pla...">noreply at github.com
+       </A><BR>
+    <I>Mon Jan 27 09:15:30 CET 2014</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001376.html">[eLua-svn] [elua/elua] 608df3: eLua - mmcfs - suppress warnings (prototypes, stat...
+</A></li>
+        <LI>Next message: <A HREF="001378.html">[eLua-svn] [elua/elua] 324c02: Missed from recent commit that added status return...
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1377">[ date ]</a>
+              <a href="thread.html#1377">[ thread ]</a>
+              <a href="subject.html#1377">[ subject ]</a>
+              <a href="author.html#1377">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+  Commit: e120b9dc14103ba8f783194b0d592d1471df2558
+      <A HREF="https://github.com/elua/elua/commit/e120b9dc14103ba8f783194b0d592d1471df2558">https://github.com/elua/elua/commit/e120b9dc14103ba8f783194b0d592d1471df2558</A>
+  Author: Mark Burton &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">markb at smartavionics.com</A>&gt;
+  Date:   2014-01-25 (Sat, 25 Jan 2014)
+
+  Changed paths:
+    M doc/eluadoc/arch_platform_can.lua
+    M inc/platform.h
+    M src/modules/can.c
+    M src/platform/lm3s/platform.c
+    M src/platform/lpc17xx/platform.c
+    M src/platform/stm32/platform.c
+    M src/platform/stm32f2/platform.c
+    M src/platform/stm32f4/platform.c
+    M src/platform/str9/platform.c
+
+  Log Message:
+  -----------
+  Add status return to can.send() and underlying platform_can_send() functions.
+
+Now, can.send() returns a boolean result to indicate whether the message
+was successfully sent or not. The various platform functions differ in how
+they handled the situation where all CAN transmitters are occupied. In
+particular, the STM32x and STR9 implementations ignored the status returns
+from the underlying libraries and so if all the CAN transmitters were busy,
+the latest message simply got thrown away. Now, can.send() returns true/false
+to indicate if the message really did get queued for transmission. All
+platforms should behave the same as before.
+
+
+  Commit: 0e504711c96223726575959c4c3a0af0835b3557
+      <A HREF="https://github.com/elua/elua/commit/0e504711c96223726575959c4c3a0af0835b3557">https://github.com/elua/elua/commit/0e504711c96223726575959c4c3a0af0835b3557</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2014-01-27 (Mon, 27 Jan 2014)
+
+  Changed paths:
+    M doc/eluadoc/arch_platform_can.lua
+    M inc/platform.h
+    M src/modules/can.c
+    M src/platform/lm3s/platform.c
+    M src/platform/lpc17xx/platform.c
+    M src/platform/stm32/platform.c
+    M src/platform/stm32f2/platform.c
+    M src/platform/stm32f4/platform.c
+    M src/platform/str9/platform.c
+
+  Log Message:
+  -----------
+  Merge pull request #36 from smartavionics/mb-can-send-result
+
+Add status return to can.send() and underlying platform_can_send() functions.
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/495ec9e136fe...0e504711c962">https://github.com/elua/elua/compare/495ec9e136fe...0e504711c962</A>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001376.html">[eLua-svn] [elua/elua] 608df3: eLua - mmcfs - suppress warnings (prototypes, stat...
+</A></li>
+	<LI>Next message: <A HREF="001378.html">[eLua-svn] [elua/elua] 324c02: Missed from recent commit that added status return...
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1377">[ date ]</a>
+              <a href="thread.html#1377">[ thread ]</a>
+              <a href="subject.html#1377">[ subject ]</a>
+              <a href="author.html#1377">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

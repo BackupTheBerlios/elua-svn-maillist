@@ -1,0 +1,270 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r75 - in trunk: romfs src src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r75%20-%20in%20trunk%3A%20romfs%20src%20src/platform/str9&In-Reply-To=%3C200809012032.m81KWi7W015817%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000029.html">
+   <LINK REL="Next"  HREF="000032.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r75 - in trunk: romfs src src/platform/str9</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r75%20-%20in%20trunk%3A%20romfs%20src%20src/platform/str9&In-Reply-To=%3C200809012032.m81KWi7W015817%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r75 - in trunk: romfs src src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Sep  1 22:32:44 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000029.html">[Elua-svn] r74 - in trunk: . romfs
+</A></li>
+        <LI>Next message: <A HREF="000032.html">[Elua-svn] r76 - in trunk: . docs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#30">[ date ]</a>
+              <a href="thread.html#30">[ thread ]</a>
+              <a href="subject.html#30">[ subject ]</a>
+              <a href="author.html#30">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-09-01 22:32:43 +0200 (Mon, 01 Sep 2008)
+New Revision: 75
+
+Added:
+   trunk/romfs/pwmled.lua
+Modified:
+   trunk/romfs/hangman.lua
+   trunk/romfs/led.lua
+   trunk/romfs/piano.lua
+   trunk/romfs/tvbgone.lua
+   trunk/src/main.c
+   trunk/src/platform/str9/conf.py
+Log:
+getting ready for 0.4
+
+Modified: trunk/romfs/hangman.lua
+===================================================================
+--- trunk/romfs/hangman.lua	2008-09-01 16:26:20 UTC (rev 74)
++++ trunk/romfs/hangman.lua	2008-09-01 20:32:43 UTC (rev 75)
+@@ -4,7 +4,7 @@
+ -- we need a random function
+ -- using math.random for now, which implies target=lua, not lualong
+ if not math then
+-  print &quot;\nError: Hangman needs the math module (disabled when target=lualong) !\n&quot;
++  print &quot;\nError: Hangman needs the math module (disabled when target=lualong) !&quot;
+   return
+ end
+ 
+
+Modified: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2008-09-01 16:26:20 UTC (rev 74)
++++ trunk/romfs/led.lua	2008-09-01 20:32:43 UTC (rev 75)
+@@ -4,10 +4,12 @@
+   ledpin = pio.PB_20
+ elseif pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+   ledpin = pio.PF_0
+-elseif pd.board() == &quot;STR9-comStick&quot; then
++elseif pd.board() == &quot;STR9-COMSTICK&quot; then
+   ledpin = pio.P9_0
++elseif pd.board() == &quot;LPC-H2888&quot; then
++  ledpin = pio.P2_1
+ else
+-  print( &quot;\nError: Unknown board &quot; .. pd.board() .. &quot; !\n&quot; )
++  print( &quot;\nError: Unknown board &quot; .. pd.board() .. &quot; !&quot; )
+   return
+ end
+ 
+
+Modified: trunk/romfs/piano.lua
+===================================================================
+--- trunk/romfs/piano.lua	2008-09-01 16:26:20 UTC (rev 74)
++++ trunk/romfs/piano.lua	2008-09-01 20:32:43 UTC (rev 75)
+@@ -13,7 +13,7 @@
+   pwmid, tmrid = 0, 1
+   tmr.setclock( 1, 1000000 )
+ else
+-  print( pd.board() .. &quot; not supported with this example\n&quot; )
++  print( pd.board() .. &quot; not supported with this example&quot; )
+   return
+ end
+ 
+
+Added: trunk/romfs/pwmled.lua
+===================================================================
+--- trunk/romfs/pwmled.lua	2008-09-01 16:26:20 UTC (rev 74)
++++ trunk/romfs/pwmled.lua	2008-09-01 20:32:43 UTC (rev 75)
+@@ -0,0 +1,28 @@
++-- Control LED intensity with PWM
++
++local pwmid, tmrid, ledpin
++if pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' then
++  pwmid, tmrid = 0, 1
++  pwm.setclock( pwmid, 25000000 )
++else
++  print( pd.board() .. &quot; not supported by this example&quot; )
++  return
++end
++
++print( tmr.mindelay( tmrid ), tmr.maxdelay( tmrid ), tmr.getclock( tmrid ) )
++
++print &quot;Control LED with PWM (fade up/down)&quot;
++print &quot;Press any key to exit&quot;
++local crtduty, incr = 10, 5
++pwm.setup( pwmid, 50000, crtduty )
++pwm.start( pwmid )
++while uart.recv( 0, 0, 0 ) &lt; 0 do
++  if crtduty == 95 or crtduty == 5 then
++    incr = -incr
++  end
++  crtduty = crtduty + incr
++  pwm.setup( pwmid, 50000, crtduty )  
++  tmr.delay( tmrid, 50000 )  
++end
++
++pwm.stop( pwmid )
+
+Modified: trunk/romfs/tvbgone.lua
+===================================================================
+--- trunk/romfs/tvbgone.lua	2008-09-01 16:26:20 UTC (rev 74)
++++ trunk/romfs/tvbgone.lua	2008-09-01 20:32:43 UTC (rev 75)
+@@ -1,13 +1,6 @@
+ -- TVBGone in eLua
+ -- Adapted from LadyAda's TVBGone project
+--- Currently working only on the LM3S platform
+ 
+--- Safety checks
+-if pwm == nil or tmr == nil or pio == nil then
+-  print &quot;The PWM and/or TMR/PIO modules not found, exiting&quot;
+-  return
+-end
+-
+ -- Check codes file
+ local codes = io.open( &quot;/rom/codes.bin&quot;, &quot;rb&quot; )
+ if codes == nil then
+@@ -15,17 +8,35 @@
+   return
+ end 
+ 
+--- Setup PWM
+-local pwmid = pwm.PWM2
+-local tmrid = tmr.TMR0
+-local led = pio.PF_0
+-pwm.setclock( pwmid, 25000000 )
++local pwmid, tmrid
++if pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' then
++  pwmid, tmrid = 2, 1
++  pwm.setclock( pwmid, 25000000 )
++  led, startpin, exitpin = pio.PF_0, pio.PF_1, pio.PE_1
++else
++  print( pd.board() .. &quot; not supported with this example&quot; )
++  return
++end
++
++-- Setup PIO
+ pio.output( led )
+-local _, fstr, freq, timesstr, ontime, offtime
++pio.input( startpin, exitpin )
++pio.pullup( startpin, exitpin )
+ 
++-- Local variables
++local _, fstr, freq, timesstr, ontime, offtime, runme
++
+ -- Send all the codes in an infinite loop
+ collectgarbage( &quot;stop&quot; )
+-while true do
++runme = true
++while runme do
++  while pio.get( startpin ) == 1 do 
++    if pio.get( exitpin ) == 0 then
++      runme = false 
++      break 
++    end
++  end
++  if not runme then break end
+   pio.set( led )
+   codes:seek( &quot;set&quot;, 0 )
+   while true do
+@@ -41,12 +52,18 @@
+       tmr.delay( tmrid, ontime * 10 )
+       pwm.stop( pwmid )
+       if offtime == 0 then break end
+-      tmr.delay( tmrid, offtime * 10 )    
++      tmr.delay( tmrid, offtime * 10 )
++      if pio.get( exitpin ) == 0 then
++        runme = false
++        break 
++      end          
+     end
++    if not runme then break end
+     tmr.delay( tmrid, 250000 )
+   end
+   pio.clear( led )
+-  tmr.delay( tmrid, 1000000 )
++  if not runme then break end  
++  tmr.delay( tmrid, 500000 )
+ end
+ 
+ codes:close()
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2008-09-01 16:26:20 UTC (rev 74)
++++ trunk/src/main.c	2008-09-01 20:32:43 UTC (rev 75)
+@@ -19,7 +19,7 @@
+ 
+ // Maximum file size that can be received via XMODEM
+ // Should be a multiple of 128
+-#define XMODEM_MAX_FILE_SIZE    3072
++#define XMODEM_MAX_FILE_SIZE    4096
+ 
+ #ifdef BUILD_XMODEM
+ 
+
+Modified: trunk/src/platform/str9/conf.py
+===================================================================
+--- trunk/src/platform/str9/conf.py	2008-09-01 16:26:20 UTC (rev 74)
++++ trunk/src/platform/str9/conf.py	2008-09-01 20:32:43 UTC (rev 75)
+@@ -5,7 +5,7 @@
+ specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c&quot;
+ 
+ # Check CPU
+-if cputype == 'str912fw44':
++if cputype == 'STR912FW44':
+   ldscript = &quot;str912fw44.lds&quot;
+ else:
+   print &quot;Invalid STR9 CPU %s&quot;, cputype
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000029.html">[Elua-svn] r74 - in trunk: . romfs
+</A></li>
+	<LI>Next message: <A HREF="000032.html">[Elua-svn] r76 - in trunk: . docs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#30">[ date ]</a>
+              <a href="thread.html#30">[ thread ]</a>
+              <a href="subject.html#30">[ subject ]</a>
+              <a href="author.html#30">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,4316 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r199 - in branches/eagle_mmc: . inc romfs src src/fatfs	src/lua src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r199%20-%20in%20branches/eagle_mmc%3A%20.%20inc%20romfs%20src%20src/fatfs%0A%09src/lua%20src/platform/lm3s&In-Reply-To=%3C200902170038.n1H0cMtX015867%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000153.html">
+   <LINK REL="Next"  HREF="000154.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r199 - in branches/eagle_mmc: . inc romfs src src/fatfs	src/lua src/platform/lm3s</H1>
+    <B>jalvarez at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r199%20-%20in%20branches/eagle_mmc%3A%20.%20inc%20romfs%20src%20src/fatfs%0A%09src/lua%20src/platform/lm3s&In-Reply-To=%3C200902170038.n1H0cMtX015867%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r199 - in branches/eagle_mmc: . inc romfs src src/fatfs	src/lua src/platform/lm3s">jalvarez at mail.berlios.de
+       </A><BR>
+    <I>Tue Feb 17 01:38:22 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000153.html">[Elua-svn] r198 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000154.html">[Elua-svn] r200 - in trunk/doc: . en wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#159">[ date ]</a>
+              <a href="thread.html#159">[ thread ]</a>
+              <a href="subject.html#159">[ subject ]</a>
+              <a href="author.html#159">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jalvarez
+Date: 2009-02-17 01:38:10 +0100 (Tue, 17 Feb 2009)
+New Revision: 199
+
+Added:
+   branches/eagle_mmc/inc/mmcfs.h
+   branches/eagle_mmc/src/fatfs/
+   branches/eagle_mmc/src/fatfs/diskio.h
+   branches/eagle_mmc/src/fatfs/ff.c
+   branches/eagle_mmc/src/fatfs/ff.h
+   branches/eagle_mmc/src/fatfs/integer.h
+   branches/eagle_mmc/src/mmcfs.c
+   branches/eagle_mmc/src/platform/lm3s/mmc.c
+Modified:
+   branches/eagle_mmc/SConstruct
+   branches/eagle_mmc/romfs/led.lua
+   branches/eagle_mmc/romfs/lhttpd.lua
+   branches/eagle_mmc/romfs/morse.lua
+   branches/eagle_mmc/romfs/piano.lua
+   branches/eagle_mmc/romfs/pwmled.lua
+   branches/eagle_mmc/src/lua/linit.c
+   branches/eagle_mmc/src/lua/lrotable.c
+   branches/eagle_mmc/src/lua/lua.c
+   branches/eagle_mmc/src/lua/luaconf.h
+   branches/eagle_mmc/src/main.c
+   branches/eagle_mmc/src/platform/lm3s/conf.py
+   branches/eagle_mmc/src/platform/lm3s/lm3s.ld
+   branches/eagle_mmc/src/platform/lm3s/platform.c
+   branches/eagle_mmc/src/platform/lm3s/platform_conf.h
+   branches/eagle_mmc/src/romfs.c
+   branches/eagle_mmc/src/shell.c
+Log:
+1. Added support for MMC/SD using FatFs 0.06 from
+
+   <A HREF="http://elm-chan.org/fsw/ff/00index_e.html">http://elm-chan.org/fsw/ff/00index_e.html</A> 
+
+- Allows placing scripts and data on the SD card, making the /rom
+  filesystem smaller and preserving flash space.
+- BUILD_MMCFS should be defined on platform_conf.h to build MMC support.
+  Files can be accessed by using a &quot;/mmc/&quot; prefix in the filename. Changes
+  follow the same API as eLua's romfs to avoid changing internals. Does not
+  interfere with the ROM filesystem, e.g. BUILD_ROMFS can also be defined.
+- Currently only implemented for the Luminary LM3S platform. Limited testing
+  done with the Micromint Eagle 100. Needs more testing before production
+  use. Should also work on Luminary's EK-LM3S6965 and EK-LM3S8962.
+- Ports to other platforms boards require an mmc.c on
+  src/platform/PLATFORM_NAME that implements the SPI or bit-bang I/O to
+  the MMC/SD card. The mmc.c for LM3S can be used as a base.
+
+2. Added support for new board: eagle-100 (Micromint Eagle 100) using the
+   Luminary LM3S6918 microcontroller.
+
+   <A HREF="http://www.micromint.com/index.php/products/by-family/sbcs/77">http://www.micromint.com/index.php/products/by-family/sbcs/77</A>
+
+- Default compiler is devkitARM from
+   <A HREF="http://sourceforge.net/project/showfiles.php?group_id=114505&amp;package_id=124207">http://sourceforge.net/project/showfiles.php?group_id=114505&amp;package_id=124207</A>
+- To build a binary just execute
+   $ scons board=eagle-100 prog
+
+
+Modified: branches/eagle_mmc/SConstruct
+===================================================================
+--- branches/eagle_mmc/SConstruct	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/SConstruct	2009-02-17 00:38:10 UTC (rev 199)
+@@ -24,7 +24,7 @@
+ 
+ # List of platform/CPU combinations
+ cpu_list = { 'at91sam7x' : [ 'AT91SAM7X256', 'AT91SAM7X512' ],
+-              'lm3s' : [ 'LM3S8962', 'LM3S6965' ],
++              'lm3s' : [ 'LM3S8962', 'LM3S6965', 'LM3S6918' ],
+               'str9' : [ 'STR912FW44' ],
+               'i386' : [ 'I386' ],
+               'lpc288x' : [ 'LPC2888' ],
+@@ -37,6 +37,7 @@
+ board_list = { 'SAM7-EX256' : [ 'AT91SAM7X256', 'AT91SAM7X512' ],
+                'EK-LM3S8962' : [ 'LM3S8962' ],
+                'EK-LM3S6965' : [ 'LM3S6965' ],
++               'EAGLE-100' : [ 'LM3S6918' ],
+                'STR9-COMSTICK' : [ 'STR912FW44' ],
+                'PC' : [ 'I386' ],
+                'LPC-H2888' : [ 'LPC2888' ],
+@@ -49,6 +50,7 @@
+ file_list = { 'SAM7-EX256' : [ 'bisect', 'hangman' , 'led', 'piano', 'hello', 'info', 'morse' ],
+               'EK-LM3S8962' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope' ],
+               'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope' ],
++              'EAGLE-100' : [ 'led', 'info' ],
+               'STR9-COMSTICK' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'PC' : [ 'bisect', 'hello', 'info', 'life' ],
+               'LPC-H2888' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+@@ -165,6 +167,10 @@
+ uip_files = &quot; src/elua_uip.c &quot; + &quot; &quot;.join( [ &quot;src/uip/%s&quot; % name for name in uip_files.split() ] )
+ local_include = local_include + &quot; -Isrc/uip&quot;
+ 
++# FatFs files
++app_files = app_files + &quot;src/mmcfs.c src/fatfs/ff.c &quot;
++local_include = local_include + &quot; -Isrc/fatfs&quot;
++
+ # Lua module files
+ module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c&quot;
+ module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+
+Added: branches/eagle_mmc/inc/mmcfs.h
+===================================================================
+--- branches/eagle_mmc/inc/mmcfs.h	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/inc/mmcfs.h	2009-02-17 00:38:10 UTC (rev 199)
+@@ -0,0 +1,14 @@
++// MMC filesystem
++
++#ifndef __MMCFS_H__
++#define __MMCFS_H__
++
++#include &quot;type.h&quot;
++#include &quot;devman.h&quot;
++// Maximum length of a filename in the filesystem
++#define MAX_FNAME_LENGTH      14
++
++// FS functions
++DM_DEVICE* mmcfs_init();
++
++#endif
+
+Modified: branches/eagle_mmc/romfs/led.lua
+===================================================================
+--- branches/eagle_mmc/romfs/led.lua	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/romfs/led.lua	2009-02-17 00:38:10 UTC (rev 199)
+@@ -5,6 +5,8 @@
+   ledpin = &quot;PB_20&quot;
+ elseif pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+   ledpin = &quot;PF_0&quot;
++elseif pd.board() == &quot;EAGLE-100&quot; then
++  ledpin = &quot;PE_1&quot;
+ elseif pd.board() == &quot;STR9-COMSTICK&quot; then
+   ledpin = &quot;P9_0&quot;
+ elseif pd.board() == &quot;LPC-H2888&quot; then
+
+Modified: branches/eagle_mmc/romfs/lhttpd.lua
+===================================================================
+--- branches/eagle_mmc/romfs/lhttpd.lua	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/romfs/lhttpd.lua	2009-02-17 00:38:10 UTC (rev 199)
+@@ -1,5 +1,5 @@
+ -- Check platform
+-if pd.board() ~= 'EK-LM3S8962' and pd.board() ~= 'EK-LM3S6965' then
++if pd.board() ~= 'EK-LM3S8962' and pd.board() ~= 'EK-LM3S6965' and pd.board() ~= 'EAGLE-100' then
+   print( pd.board() .. &quot; not supported by this example&quot; )
+   return
+ end
+
+Modified: branches/eagle_mmc/romfs/morse.lua
+===================================================================
+--- branches/eagle_mmc/romfs/morse.lua	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/romfs/morse.lua	2009-02-17 00:38:10 UTC (rev 199)
+@@ -7,6 +7,8 @@
+ local pwmid, tmrid, ledpin
+ if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+   pwmid, tmrid, ledpin = 1, 1, &quot;PF_0&quot;
++elseif pd.board() == &quot;EAGLE-100&quot; then
++  pwmid, tmrid, ledpin = 1, 1, &quot;PE_1&quot;
+ elseif pd.board() == &quot;SAM7-EX256&quot; then
+   pwmid, tmrid, ledpin = 0, 1, &quot;PB_20&quot;
+   tmr.setclock( 1, 100000 )
+
+Modified: branches/eagle_mmc/romfs/piano.lua
+===================================================================
+--- branches/eagle_mmc/romfs/piano.lua	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/romfs/piano.lua	2009-02-17 00:38:10 UTC (rev 199)
+@@ -7,7 +7,7 @@
+   return
+ end
+   
+-if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
++if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; or pd.board() == &quot;EAGLE-100&quot; then
+   pwmid, tmrid = 1, 1
+ elseif pd.board() == &quot;SAM7-EX256&quot; then
+   pwmid, tmrid = 0, 1
+
+Modified: branches/eagle_mmc/romfs/pwmled.lua
+===================================================================
+--- branches/eagle_mmc/romfs/pwmled.lua	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/romfs/pwmled.lua	2009-02-17 00:38:10 UTC (rev 199)
+@@ -1,7 +1,7 @@
+ -- Control LED intensity with PWM
+ 
+ local pwmid, tmrid, ledpin
+-if pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' then
++if pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' or pd.board() == 'EAGLE-100' then
+   pwmid, tmrid = 0, 1
+   pwm.setclock( pwmid, 25000000 )
+ else
+
+Added: branches/eagle_mmc/src/fatfs/diskio.h
+===================================================================
+--- branches/eagle_mmc/src/fatfs/diskio.h	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/fatfs/diskio.h	2009-02-17 00:38:10 UTC (rev 199)
+@@ -0,0 +1,71 @@
++/*-----------------------------------------------------------------------
++/  Low level disk interface modlue include file  R0.06   (C)ChaN, 2007
++/-----------------------------------------------------------------------*/
++
++#ifndef _DISKIO
++
++#define _READONLY	0	/* 1: Read-only mode */
++#define _USE_IOCTL	1
++
++#include &quot;integer.h&quot;
++
++
++/* Status of Disk Functions */
++typedef BYTE	DSTATUS;
++
++/* Results of Disk Functions */
++typedef enum {
++	RES_OK = 0,		/* 0: Successful */
++	RES_ERROR,		/* 1: R/W Error */
++	RES_WRPRT,		/* 2: Write Protected */
++	RES_NOTRDY,		/* 3: Not Ready */
++	RES_PARERR		/* 4: Invalid Parameter */
++} DRESULT;
++
++
++/*---------------------------------------*/
++/* Prototypes for disk control functions */
++
++DSTATUS disk_initialize (BYTE);
++DSTATUS disk_status (BYTE);
++DRESULT disk_read (BYTE, BYTE*, DWORD, BYTE);
++#if	_READONLY == 0
++DRESULT disk_write (BYTE, const BYTE*, DWORD, BYTE);
++#endif
++DRESULT disk_ioctl (BYTE, BYTE, void*);
++void	disk_timerproc (void);
++
++
++
++
++/* Disk Status Bits (DSTATUS) */
++
++#define STA_NOINIT		0x01	/* Drive not initialized */
++#define STA_NODISK		0x02	/* No medium in the drive */
++#define STA_PROTECT		0x04	/* Write protected */
++
++
++/* Command code for disk_ioctrl() */
++
++/* Generic command */
++#define CTRL_SYNC			0	/* Mandatory for read/write configuration */
++#define GET_SECTOR_COUNT	1	/* Mandatory for only f_mkfs() */
++#define GET_SECTOR_SIZE		2
++#define GET_BLOCK_SIZE		3	/* Mandatory for only f_mkfs() */
++#define CTRL_POWER			4
++#define CTRL_LOCK			5
++#define CTRL_EJECT			6
++/* MMC/SDC command */
++#define MMC_GET_TYPE		10
++#define MMC_GET_CSD			11
++#define MMC_GET_CID			12
++#define MMC_GET_OCR			13
++#define MMC_GET_SDSTAT		14
++/* ATA/CF command */
++#define ATA_GET_REV			20
++#define ATA_GET_MODEL		21
++#define ATA_GET_SN			22
++
++
++#define _DISKIO
++#endif
+
+Added: branches/eagle_mmc/src/fatfs/ff.c
+===================================================================
+--- branches/eagle_mmc/src/fatfs/ff.c	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/fatfs/ff.c	2009-02-17 00:38:10 UTC (rev 199)
+@@ -0,0 +1,2036 @@
++/*----------------------------------------------------------------------------/
++/  FatFs - FAT file system module  R0.06                     (C)ChaN, 2008
++/-----------------------------------------------------------------------------/
++/ The FatFs module is an experimenal project to implement FAT file system to
++/ cheap microcontrollers. This is a free software and is opened for education,
++/ research and development under license policy of following trems.
++/
++/  Copyright (C) 2008, ChaN, all right reserved.
++/
++/ * The FatFs module is a free software and there is no warranty.
++/ * You can use, modify and/or redistribute it for personal, non-profit or
++/   commercial use without restriction under your responsibility.
++/ * Redistributions of source code must retain the above copyright notice.
++/
++/-----------------------------------------------------------------------------/
++/ Feb 26,'06 R0.00  Prototype.
++/
++/ Apr 29,'06 R0.01  First stable version.
++/
++/ Jun 01,'06 R0.02  Added FAT12 support.
++/                   Removed unbuffered mode.
++/                   Fixed a problem on small (&lt;32M) patition.
++/ Jun 10,'06 R0.02a Added a configuration option (_FS_MINIMUM).
++/
++/ Sep 22,'06 R0.03  Added f_rename().
++/                   Changed option _FS_MINIMUM to _FS_MINIMIZE.
++/ Dec 11,'06 R0.03a Improved cluster scan algolithm to write files fast.
++/                   Fixed f_mkdir() creates incorrect directory on FAT32.
++/
++/ Feb 04,'07 R0.04  Supported multiple drive system.
++/                   Changed some interfaces for multiple drive system.
++/                   Changed f_mountdrv() to f_mount().
++/                   Added f_mkfs().
++/ Apr 01,'07 R0.04a Supported multiple partitions on a plysical drive.
++/                   Added a capability of extending file size to f_lseek().
++/                   Added minimization level 3.
++/                   Fixed an endian sensitive code in f_mkfs().
++/ May 05,'07 R0.04b Added a configuration option _USE_NTFLAG.
++/                   Added FSInfo support.
++/                   Fixed DBCS name can result FR_INVALID_NAME.
++/                   Fixed short seek (&lt;= csize) collapses the file object.
++/
++/ Aug 25,'07 R0.05  Changed arguments of f_read(), f_write() and f_mkfs().
++/                   Fixed f_mkfs() on FAT32 creates incorrect FSInfo.
++/                   Fixed f_mkdir() on FAT32 creates incorrect directory.
++/ Feb 03,'08 R0.05a Added f_truncate() and f_utime().
++/                   Fixed off by one error at FAT sub-type determination.
++/                   Fixed btr in f_read() can be mistruncated.
++/                   Fixed cached sector is not flushed when create and close
++/                   without write.
++/
++/ Apr 01,'08 R0.06  Added fputc(), fputs(), fprintf() and fgets().
++/                   Improved performance of f_lseek() on moving to the same
++/                   or following cluster.
++/---------------------------------------------------------------------------*/
++
++#include &lt;string.h&gt;
++#include &quot;ff.h&quot;			/* FatFs declarations */
++#include &quot;diskio.h&quot;		/* Include file for user provided disk functions */
++
++
++/*--------------------------------------------------------------------------
++
++   Module Private Functions
++
++---------------------------------------------------------------------------*/
++
++static
++FATFS *FatFs[_DRIVES];	/* Pointer to the file system objects (logical drives) */
++static
++WORD fsid;				/* File system mount ID */
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Change window offset                                                  */
++/*-----------------------------------------------------------------------*/
++
++static
++BOOL move_window (	/* TRUE: successful, FALSE: failed */
++	FATFS *fs,		/* File system object */
++	DWORD sector	/* Sector number to make apperance in the fs-&gt;win[] */
++)					/* Move to zero only writes back dirty window */
++{
++	DWORD wsect;
++
++
++	wsect = fs-&gt;winsect;
++	if (wsect != sector) {	/* Changed current window */
++#if !_FS_READONLY
++		BYTE n;
++		if (fs-&gt;winflag) {	/* Write back dirty window if needed */
++			if (disk_write(fs-&gt;drive, fs-&gt;win, wsect, 1) != RES_OK)
++				return FALSE;
++			fs-&gt;winflag = 0;
++			if (wsect &lt; (fs-&gt;fatbase + fs-&gt;sects_fat)) {	/* In FAT area */
++				for (n = fs-&gt;n_fats; n &gt;= 2; n--) {	/* Refrect the change to FAT copy */
++					wsect += fs-&gt;sects_fat;
++					disk_write(fs-&gt;drive, fs-&gt;win, wsect, 1);
++				}
++			}
++		}
++#endif
++		if (sector) {
++			if (disk_read(fs-&gt;drive, fs-&gt;win, sector, 1) != RES_OK)
++				return FALSE;
++			fs-&gt;winsect = sector;
++		}
++	}
++	return TRUE;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Clean-up cached data                                                  */
++/*-----------------------------------------------------------------------*/
++
++#if !_FS_READONLY
++static
++FRESULT sync (	/* FR_OK: successful, FR_RW_ERROR: failed */
++	FATFS *fs	/* File system object */
++)
++{
++	fs-&gt;winflag = 1;
++	if (!move_window(fs, 0)) return FR_RW_ERROR;
++#if _USE_FSINFO
++	/* Update FSInfo sector if needed */
++	if (fs-&gt;fs_type == FS_FAT32 &amp;&amp; fs-&gt;fsi_flag) {
++		fs-&gt;winsect = 0;
++		memset(fs-&gt;win, 0, 512);
++		ST_WORD(&amp;fs-&gt;win[BS_55AA], 0xAA55);
++		ST_DWORD(&amp;fs-&gt;win[FSI_LeadSig], 0x41615252);
++		ST_DWORD(&amp;fs-&gt;win[FSI_StrucSig], 0x61417272);
++		ST_DWORD(&amp;fs-&gt;win[FSI_Free_Count], fs-&gt;free_clust);
++		ST_DWORD(&amp;fs-&gt;win[FSI_Nxt_Free], fs-&gt;last_clust);
++		disk_write(fs-&gt;drive, fs-&gt;win, fs-&gt;fsi_sector, 1);
++		fs-&gt;fsi_flag = 0;
++	}
++#endif
++	/* Make sure that no pending write process in the physical drive */
++	if (disk_ioctl(fs-&gt;drive, CTRL_SYNC, NULL) != RES_OK)
++		return FR_RW_ERROR;
++	return FR_OK;
++}
++#endif
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Get a cluster status                                                  */
++/*-----------------------------------------------------------------------*/
++
++static
++DWORD get_cluster (	/* 0,&gt;=2: successful, 1: failed */
++	FATFS *fs,		/* File system object */
++	DWORD clust		/* Cluster# to get the link information */
++)
++{
++	WORD wc, bc;
++	DWORD fatsect;
++
++
++	if (clust &gt;= 2 &amp;&amp; clust &lt; fs-&gt;max_clust) {		/* Is it a valid cluster#? */
++		fatsect = fs-&gt;fatbase;
++		switch (fs-&gt;fs_type) {
++		case FS_FAT12 :
++			bc = (WORD)clust * 3 / 2;
++			if (!move_window(fs, fatsect + (bc / SS(fs)))) break;
++			wc = fs-&gt;win[bc &amp; (SS(fs) - 1)]; bc++;
++			if (!move_window(fs, fatsect + (bc / SS(fs)))) break;
++			wc |= (WORD)fs-&gt;win[bc &amp; (SS(fs) - 1)] &lt;&lt; 8;
++			return (clust &amp; 1) ? (wc &gt;&gt; 4) : (wc &amp; 0xFFF);
++
++		case FS_FAT16 :
++			if (!move_window(fs, fatsect + (clust / (SS(fs) / 2)))) break;
++			return LD_WORD(&amp;fs-&gt;win[((WORD)clust * 2) &amp; (SS(fs) - 1)]);
++
++		case FS_FAT32 :
++			if (!move_window(fs, fatsect + (clust / (SS(fs) / 4)))) break;
++			return LD_DWORD(&amp;fs-&gt;win[((WORD)clust * 4) &amp; (SS(fs) - 1)]) &amp; 0x0FFFFFFF;
++		}
++	}
++
++	return 1;	/* Out of cluster range, or an error occured */
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Change a cluster status                                               */
++/*-----------------------------------------------------------------------*/
++
++#if !_FS_READONLY
++static
++BOOL put_cluster (	/* TRUE: successful, FALSE: failed */
++	FATFS *fs,		/* File system object */
++	DWORD clust,	/* Cluster# to change (must be 2 to fs-&gt;max_clust-1) */
++	DWORD val		/* New value to mark the cluster */
++)
++{
++	WORD bc;
++	BYTE *p;
++	DWORD fatsect;
++
++
++	fatsect = fs-&gt;fatbase;
++	switch (fs-&gt;fs_type) {
++	case FS_FAT12 :
++		bc = (WORD)clust * 3 / 2;
++		if (!move_window(fs, fatsect + (bc / SS(fs)))) return FALSE;
++		p = &amp;fs-&gt;win[bc &amp; (SS(fs) - 1)];
++		*p = (clust &amp; 1) ? ((*p &amp; 0x0F) | ((BYTE)val &lt;&lt; 4)) : (BYTE)val;
++		bc++;
++		fs-&gt;winflag = 1;
++		if (!move_window(fs, fatsect + (bc / SS(fs)))) return FALSE;
++		p = &amp;fs-&gt;win[bc &amp; (SS(fs) - 1)];
++		*p = (clust &amp; 1) ? (BYTE)(val &gt;&gt; 4) : ((*p &amp; 0xF0) | ((BYTE)(val &gt;&gt; 8) &amp; 0x0F));
++		break;
++
++	case FS_FAT16 :
++		if (!move_window(fs, fatsect + (clust / (SS(fs) / 2)))) return FALSE;
++		ST_WORD(&amp;fs-&gt;win[((WORD)clust * 2) &amp; (SS(fs) - 1)], (WORD)val);
++		break;
++
++	case FS_FAT32 :
++		if (!move_window(fs, fatsect + (clust / (SS(fs) / 4)))) return FALSE;
++		ST_DWORD(&amp;fs-&gt;win[((WORD)clust * 4) &amp; (SS(fs) - 1)], val);
++		break;
++
++	default :
++		return FALSE;
++	}
++	fs-&gt;winflag = 1;
++	return TRUE;
++}
++#endif /* !_FS_READONLY */
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Remove a cluster chain                                                */
++/*-----------------------------------------------------------------------*/
++
++#if !_FS_READONLY
++static
++BOOL remove_chain (	/* TRUE: successful, FALSE: failed */
++	FATFS *fs,		/* File system object */
++	DWORD clust		/* Cluster# to remove chain from */
++)
++{
++	DWORD nxt;
++
++
++	while (clust &gt;= 2 &amp;&amp; clust &lt; fs-&gt;max_clust) {
++		nxt = get_cluster(fs, clust);
++		if (nxt == 1) return FALSE;
++		if (!put_cluster(fs, clust, 0)) return FALSE;
++		if (fs-&gt;free_clust != 0xFFFFFFFF) {
++			fs-&gt;free_clust++;
++#if _USE_FSINFO
++			fs-&gt;fsi_flag = 1;
++#endif
++		}
++		clust = nxt;
++	}
++	return TRUE;
++}
++#endif
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Stretch or create a cluster chain                                     */
++/*-----------------------------------------------------------------------*/
++
++#if !_FS_READONLY
++static
++DWORD create_chain (	/* 0: No free cluster, 1: Error, &gt;=2: New cluster number */
++	FATFS *fs,			/* File system object */
++	DWORD clust			/* Cluster# to stretch, 0 means create new */
++)
++{
++	DWORD cstat, ncl, scl, mcl = fs-&gt;max_clust;
++
++
++	if (clust == 0) {		/* Create new chain */
++		scl = fs-&gt;last_clust;			/* Get suggested start point */
++		if (scl == 0 || scl &gt;= mcl) scl = 1;
++	}
++	else {					/* Stretch existing chain */
++		cstat = get_cluster(fs, clust);	/* Check the cluster status */
++		if (cstat &lt; 2) return 1;		/* It is an invalid cluster */
++		if (cstat &lt; mcl) return cstat;	/* It is already followed by next cluster */
++		scl = clust;
++	}
++
++	ncl = scl;				/* Start cluster */
++	for (;;) {
++		ncl++;							/* Next cluster */
++		if (ncl &gt;= mcl) {				/* Wrap around */
++			ncl = 2;
++			if (ncl &gt; scl) return 0;	/* No free custer */
++		}
++		cstat = get_cluster(fs, ncl);	/* Get the cluster status */
++		if (cstat == 0) break;			/* Found a free cluster */
++		if (cstat == 1) return 1;		/* Any error occured */
++		if (ncl == scl) return 0;		/* No free custer */
++	}
++
++	if (!put_cluster(fs, ncl, 0x0FFFFFFF)) return 1;			/* Mark the new cluster &quot;in use&quot; */
++	if (clust != 0 &amp;&amp; !put_cluster(fs, clust, ncl)) return 1;	/* Link it to previous one if needed */
++
++	fs-&gt;last_clust = ncl;				/* Update fsinfo */
++	if (fs-&gt;free_clust != 0xFFFFFFFF) {
++		fs-&gt;free_clust--;
++#if _USE_FSINFO
++		fs-&gt;fsi_flag = 1;
++#endif
++	}
++
++	return ncl;		/* Return new cluster number */
++}
++#endif /* !_FS_READONLY */
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Get sector# from cluster#                                             */
++/*-----------------------------------------------------------------------*/
++
++static
++DWORD clust2sect (	/* !=0: sector number, 0: failed - invalid cluster# */
++	FATFS *fs,		/* File system object */
++	DWORD clust		/* Cluster# to be converted */
++)
++{
++	clust -= 2;
++	if (clust &gt;= (fs-&gt;max_clust - 2)) return 0;		/* Invalid cluster# */
++	return clust * fs-&gt;csize + fs-&gt;database;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Move directory pointer to next                                        */
++/*-----------------------------------------------------------------------*/
++
++static
++BOOL next_dir_entry (	/* TRUE: successful, FALSE: could not move next */
++	DIR *dj				/* Pointer to directory object */
++)
++{
++	DWORD clust;
++	WORD idx;
++
++
++	idx = dj-&gt;index + 1;
++	if ((idx &amp; ((SS(dj-&gt;fs) - 1) / 32)) == 0) {		/* Table sector changed? */
++		dj-&gt;sect++;				/* Next sector */
++		if (dj-&gt;clust == 0) {	/* In static table */
++			if (idx &gt;= dj-&gt;fs-&gt;n_rootdir) return FALSE;	/* Reached to end of table */
++		} else {					/* In dynamic table */
++			if (((idx / (SS(dj-&gt;fs) / 32)) &amp; (dj-&gt;fs-&gt;csize - 1)) == 0) {	/* Cluster changed? */
++				clust = get_cluster(dj-&gt;fs, dj-&gt;clust);			/* Get next cluster */
++				if (clust &lt; 2 || clust &gt;= dj-&gt;fs-&gt;max_clust)	/* Reached to end of table */
++					return FALSE;
++				dj-&gt;clust = clust;				/* Initialize for new cluster */
++				dj-&gt;sect = clust2sect(dj-&gt;fs, clust);
++			}
++		}
++	}
++	dj-&gt;index = idx;	/* Lower several bits of dj-&gt;index indicates offset in dj-&gt;sect */
++	return TRUE;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Get file status from directory entry                                  */
++/*-----------------------------------------------------------------------*/
++
++#if _FS_MINIMIZE &lt;= 1
++static
++void get_fileinfo (	/* No return code */
++	FILINFO *finfo, /* Ptr to store the file information */
++	const BYTE *dir	/* Ptr to the directory entry */
++)
++{
++	BYTE n, c, a;
++	char *p;
++
++
++	p = &amp;finfo-&gt;fname[0];
++	a = _USE_NTFLAG ? dir[DIR_NTres] : 0;		/* NT flag */
++	for (n = 0; n &lt; 8; n++) {	/* Convert file name (body) */
++		c = dir[n];
++		if (c == ' ') break;
++		if (c == 0x05) c = 0xE5;
++		if (a &amp; 0x08 &amp;&amp; c &gt;= 'A' &amp;&amp; c &lt;= 'Z') c += 0x20;
++		*p++ = c;
++	}
++	if (dir[8] != ' ') {		/* Convert file name (extension) */
++		*p++ = '.';
++		for (n = 8; n &lt; 11; n++) {
++			c = dir[n];
++			if (c == ' ') break;
++			if (a &amp; 0x10 &amp;&amp; c &gt;= 'A' &amp;&amp; c &lt;= 'Z') c += 0x20;
++			*p++ = c;
++		}
++	}
++	*p = '\0';
++
++	finfo-&gt;fattrib = dir[DIR_Attr];					/* Attribute */
++	finfo-&gt;fsize = LD_DWORD(&amp;dir[DIR_FileSize]);	/* Size */
++	finfo-&gt;fdate = LD_WORD(&amp;dir[DIR_WrtDate]);		/* Date */
++	finfo-&gt;ftime = LD_WORD(&amp;dir[DIR_WrtTime]);		/* Time */
++}
++#endif /* _FS_MINIMIZE &lt;= 1 */
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Pick a paragraph and create the name in format of directory entry     */
++/*-----------------------------------------------------------------------*/
++
++static
++char make_dirfile (		/* 1: error - detected an invalid format, '\0'or'/': next character */
++	const char **path,	/* Pointer to the file path pointer */
++	char *dirname		/* Pointer to directory name buffer {Name(8), Ext(3), NT flag(1)} */
++)
++{
++	BYTE n, t, c, a, b;
++
++
++	memset(dirname, ' ', 8+3);	/* Fill buffer with spaces */
++	a = 0; b = 0x18;	/* NT flag */
++	n = 0; t = 8;
++	for (;;) {
++		c = *(*path)++;
++		if (c == '\0' || c == '/') {		/* Reached to end of str or directory separator */
++			if (n == 0) break;
++			dirname[11] = _USE_NTFLAG ? (a &amp; b) : 0;
++			return c;
++		}
++		if (c &lt;= ' ' || c == 0x7F) break;		/* Reject invisible chars */
++		if (c == '.') {
++			if (!(a &amp; 1) &amp;&amp; n &gt;= 1 &amp;&amp; n &lt;= 8) {	/* Enter extension part */
++				n = 8; t = 11; continue;
++			}
++			break;
++		}
++		if (_USE_SJIS &amp;&amp;
++			((c &gt;= 0x81 &amp;&amp; c &lt;= 0x9F) ||	/* Accept S-JIS code */
++		    (c &gt;= 0xE0 &amp;&amp; c &lt;= 0xFC))) {
++			if (n == 0 &amp;&amp; c == 0xE5)		/* Change heading \xE5 to \x05 */
++				c = 0x05;
++			a ^= 0x01; goto md_l2;
++		}
++		if (c == '&quot;') break;				/* Reject &quot; */
++		if (c &lt;= ')') goto md_l1;			/* Accept ! # $ % &amp; ' ( ) */
++		if (c &lt;= ',') break;				/* Reject * + , */
++		if (c &lt;= '9') goto md_l1;			/* Accept - 0-9 */
++		if (c &lt;= '?') break;				/* Reject : ; &lt; = &gt; ? */
++		if (!(a &amp; 1)) {	/* These checks are not applied to S-JIS 2nd byte */
++			if (c == '|') break;			/* Reject | */
++			if (c &gt;= '[' &amp;&amp; c &lt;= ']') break;/* Reject [ \ ] */
++			if (_USE_NTFLAG &amp;&amp; c &gt;= 'A' &amp;&amp; c &lt;= 'Z')
++				(t == 8) ? (b &amp;= 0xF7) : (b &amp;= 0xEF);
++			if (c &gt;= 'a' &amp;&amp; c &lt;= 'z') {		/* Convert to upper case */
++				c -= 0x20;
++				if (_USE_NTFLAG) (t == 8) ? (a |= 0x08) : (a |= 0x10);
++			}
++		}
++	md_l1:
++		a &amp;= 0xFE;
++	md_l2:
++		if (n &gt;= t) break;
++		dirname[n++] = c;
++	}
++	return 1;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Trace a file path                                                     */
++/*-----------------------------------------------------------------------*/
++
++static
++FRESULT trace_path (	/* FR_OK(0): successful, !=0: error code */
++	DIR *dj,			/* Pointer to directory object to return last directory */
++	char *fn,			/* Pointer to last segment name to return {file(8),ext(3),attr(1)} */
++	const char *path,	/* Full-path string to trace a file or directory */
++	BYTE **dir			/* Pointer to pointer to found entry to retutn */
++)
++{
++	DWORD clust;
++	char ds;
++	BYTE *dptr = NULL;
++	FATFS *fs = dj-&gt;fs;
++
++
++	/* Initialize directory object */
++	clust = fs-&gt;dirbase;
++	if (fs-&gt;fs_type == FS_FAT32) {
++		dj-&gt;clust = dj-&gt;sclust = clust;
++		dj-&gt;sect = clust2sect(fs, clust);
++	} else {
++		dj-&gt;clust = dj-&gt;sclust = 0;
++		dj-&gt;sect = clust;
++	}
++	dj-&gt;index = 0;
++
++	if (*path == '\0') {					/* Null path means the root directory */
++		*dir = NULL; return FR_OK;
++	}
++
++	for (;;) {
++		ds = make_dirfile(&amp;path, fn);			/* Get a paragraph into fn[] */
++		if (ds == 1) return FR_INVALID_NAME;
++		for (;;) {
++			if (!move_window(fs, dj-&gt;sect)) return FR_RW_ERROR;
++			dptr = &amp;fs-&gt;win[(dj-&gt;index &amp; ((SS(fs) - 1) / 32)) * 32];	/* Pointer to the directory entry */
++			if (dptr[DIR_Name] == 0)						/* Has it reached to end of dir? */
++				return !ds ? FR_NO_FILE : FR_NO_PATH;
++			if (dptr[DIR_Name] != 0xE5						/* Matched? */
++				&amp;&amp; !(dptr[DIR_Attr] &amp; AM_VOL)
++				&amp;&amp; !memcmp(&amp;dptr[DIR_Name], fn, 8+3) ) break;
++			if (!next_dir_entry(dj))						/* Next directory pointer */
++				return !ds ? FR_NO_FILE : FR_NO_PATH;
++		}
++		if (!ds) { *dir = dptr; return FR_OK; }				/* Matched with end of path */
++		if (!(dptr[DIR_Attr] &amp; AM_DIR)) return FR_NO_PATH;	/* Cannot trace because it is a file */
++		clust = ((DWORD)LD_WORD(&amp;dptr[DIR_FstClusHI]) &lt;&lt; 16) | LD_WORD(&amp;dptr[DIR_FstClusLO]); /* Get cluster# of the directory */
++		dj-&gt;clust = dj-&gt;sclust = clust;				/* Restart scanning at the new directory */
++		dj-&gt;sect = clust2sect(fs, clust);
++		dj-&gt;index = 2;
++	}
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Reserve a directory entry                                             */
++/*-----------------------------------------------------------------------*/
++
++#if !_FS_READONLY
++static
++FRESULT reserve_direntry (	/* FR_OK: successful, FR_DENIED: no free entry, FR_RW_ERROR: a disk error occured */
++	DIR *dj,				/* Target directory to create new entry */
++	BYTE **dir				/* Pointer to pointer to created entry to retutn */
++)
++{
++	DWORD clust, sector;
++	BYTE c, n, *dptr;
++	FATFS *fs = dj-&gt;fs;
++
++
++	/* Re-initialize directory object */
++	clust = dj-&gt;sclust;
++	if (clust != 0) {	/* Dyanmic directory table */
++		dj-&gt;clust = clust;
++		dj-&gt;sect = clust2sect(fs, clust);
++	} else {			/* Static directory table */
++		dj-&gt;sect = fs-&gt;dirbase;
++	}
++	dj-&gt;index = 0;
++
++	do {
++		if (!move_window(fs, dj-&gt;sect)) return FR_RW_ERROR;
++		dptr = &amp;fs-&gt;win[(dj-&gt;index &amp; ((SS(dj-&gt;fs) - 1) / 32)) * 32];	/* Pointer to the directory entry */
++		c = dptr[DIR_Name];
++		if (c == 0 || c == 0xE5) {		/* Found an empty entry */
++			*dir = dptr; return FR_OK;
++		}
++	} while (next_dir_entry(dj));		/* Next directory pointer */
++	/* Reached to end of the directory table */
++
++	/* Abort when it is a static table or could not stretch dynamic table */
++	if (clust == 0 || !(clust = create_chain(fs, dj-&gt;clust))) return FR_DENIED;
++	if (clust == 1 || !move_window(fs, 0)) return FR_RW_ERROR;
++
++	/* Cleanup the expanded table */
++	fs-&gt;winsect = sector = clust2sect(fs, clust);
++	memset(fs-&gt;win, 0, SS(fs));
++	for (n = fs-&gt;csize; n; n--) {
++		if (disk_write(fs-&gt;drive, fs-&gt;win, sector, 1) != RES_OK)
++			return FR_RW_ERROR;
++		sector++;
++	}
++	fs-&gt;winflag = 1;
++	*dir = fs-&gt;win;
++
++	return FR_OK;
++}
++#endif /* !_FS_READONLY */
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Load boot record and check if it is an FAT boot record                */
++/*-----------------------------------------------------------------------*/
++
++static
++BYTE check_fs (	/* 0:The FAT boot record, 1:Valid boot record but not an FAT, 2:Not a boot record or error */
++	FATFS *fs,	/* File system object */
++	DWORD sect	/* Sector# (lba) to check if it is an FAT boot record or not */
++)
++{
++	if (disk_read(fs-&gt;drive, fs-&gt;win, sect, 1) != RES_OK)	/* Load boot record */
++		return 2;
++	if (LD_WORD(&amp;fs-&gt;win[BS_55AA]) != 0xAA55)				/* Check record signature (always placed at offset 510 even if the sector size is &gt;512) */
++		return 2;
++
++	if (!memcmp(&amp;fs-&gt;win[BS_FilSysType], &quot;FAT&quot;, 3))			/* Check FAT signature */
++		return 0;
++	if (!memcmp(&amp;fs-&gt;win[BS_FilSysType32], &quot;FAT32&quot;, 5) &amp;&amp; !(fs-&gt;win[BPB_ExtFlags] &amp; 0x80))
++		return 0;
++
++	return 1;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Make sure that the file system is valid                               */
++/*-----------------------------------------------------------------------*/
++
++static
++FRESULT auto_mount (	/* FR_OK(0): successful, !=0: any error occured */
++	const char **path,	/* Pointer to pointer to the path name (drive number) */
++	FATFS **rfs,		/* Pointer to pointer to the found file system object */
++	BYTE chk_wp			/* !=0: Check media write protection for write access */
++)
++{
++	BYTE drv, fmt, *tbl;
++	DSTATUS stat;
++	DWORD bootsect, fatsize, totalsect, maxclust;
++	const char *p = *path;
++	FATFS *fs;
++
++
++	/* Get drive number from the path name */
++	while (*p == ' ') p++;		/* Strip leading spaces */
++	drv = p[0] - '0';			/* Is there a drive number? */
++	if (drv &lt;= 9 &amp;&amp; p[1] == ':')
++		p += 2;				/* Found a drive number, get and strip it */
++	else
++		drv = 0;			/* No drive number is given, use drive number 0 as default */
++	if (*p == '/') p++;		/* Strip heading slash */
++	*path = p;				/* Return pointer to the path name */
++
++	/* Check if the drive number is valid or not */
++	if (drv &gt;= _DRIVES) return FR_INVALID_DRIVE;	/* Is the drive number valid? */
++	*rfs = fs = FatFs[drv];					/* Returen pointer to the corresponding file system object */
++	if (!fs) return FR_NOT_ENABLED;			/* Is the file system object registered? */
++
++	if (fs-&gt;fs_type) {						/* If the logical drive has been mounted */
++		stat = disk_status(fs-&gt;drive);
++		if (!(stat &amp; STA_NOINIT)) {			/* and physical drive is kept initialized (has not been changed), */
++#if !_FS_READONLY
++			if (chk_wp &amp;&amp; (stat &amp; STA_PROTECT))	/* Check write protection if needed */
++				return FR_WRITE_PROTECTED;
++#endif
++			return FR_OK;					/* The file system object is valid */
++		}
++	}
++
++	/* The logical drive must be re-mounted. Following code attempts to mount the logical drive */
++
++	memset(fs, 0, sizeof(FATFS));		/* Clean-up the file system object */
++	fs-&gt;drive = LD2PD(drv);				/* Bind the logical drive and a physical drive */
++	stat = disk_initialize(fs-&gt;drive);	/* Initialize low level disk I/O layer */
++	if (stat &amp; STA_NOINIT)				/* Check if the drive is ready */
++		return FR_NOT_READY;
++#if S_MAX_SIZ &gt; 512						/* Get disk sector size if needed */
++	if (disk_ioctl(drv, GET_SECTOR_SIZE, &amp;SS(fs)) != RES_OK || SS(fs) &gt; S_MAX_SIZ)
++		return FR_NO_FILESYSTEM;
++#endif
++#if !_FS_READONLY
++	if (chk_wp &amp;&amp; (stat &amp; STA_PROTECT))	/* Check write protection if needed */
++		return FR_WRITE_PROTECTED;
++#endif
++	/* Search FAT partition on the drive */
++	fmt = check_fs(fs, bootsect = 0);	/* Check sector 0 as an SFD format */
++	if (fmt == 1) {						/* Not an FAT boot record, it may be patitioned */
++		/* Check a partition listed in top of the partition table */
++		tbl = &amp;fs-&gt;win[MBR_Table + LD2PT(drv) * 16];	/* Partition table */
++		if (tbl[4]) {									/* Is the partition existing? */
++			bootsect = LD_DWORD(&amp;tbl[8]);				/* Partition offset in LBA */
++			fmt = check_fs(fs, bootsect);				/* Check the partition */
++		}
++	}
++	if (fmt || LD_WORD(&amp;fs-&gt;win[BPB_BytsPerSec]) != SS(fs))	/* No valid FAT patition is found */
++		return FR_NO_FILESYSTEM;
++
++	/* Initialize the file system object */
++	fatsize = LD_WORD(&amp;fs-&gt;win[BPB_FATSz16]);			/* Number of sectors per FAT */
++	if (!fatsize) fatsize = LD_DWORD(&amp;fs-&gt;win[BPB_FATSz32]);
++	fs-&gt;sects_fat = fatsize;
++	fs-&gt;n_fats = fs-&gt;win[BPB_NumFATs];					/* Number of FAT copies */
++	fatsize *= fs-&gt;n_fats;								/* (Number of sectors in FAT area) */
++	fs-&gt;fatbase = bootsect + LD_WORD(&amp;fs-&gt;win[BPB_RsvdSecCnt]); /* FAT start sector (lba) */
++	fs-&gt;csize = fs-&gt;win[BPB_SecPerClus];				/* Number of sectors per cluster */
++	fs-&gt;n_rootdir = LD_WORD(&amp;fs-&gt;win[BPB_RootEntCnt]);	/* Nmuber of root directory entries */
++	totalsect = LD_WORD(&amp;fs-&gt;win[BPB_TotSec16]);		/* Number of sectors on the file system */
++	if (!totalsect) totalsect = LD_DWORD(&amp;fs-&gt;win[BPB_TotSec32]);
++	fs-&gt;max_clust = maxclust = (totalsect				/* max_clust = Last cluster# + 1 */
++		- LD_WORD(&amp;fs-&gt;win[BPB_RsvdSecCnt]) - fatsize - fs-&gt;n_rootdir / (SS(fs)/32)
++		) / fs-&gt;csize + 2;
++
++	fmt = FS_FAT12;										/* Determine the FAT sub type */
++	if (maxclust &gt;= 0xFF7) fmt = FS_FAT16;
++	if (maxclust &gt;= 0xFFF7) fmt = FS_FAT32;
++
++	if (fmt == FS_FAT32)
++		fs-&gt;dirbase = LD_DWORD(&amp;fs-&gt;win[BPB_RootClus]);	/* Root directory start cluster */
++	else
++		fs-&gt;dirbase = fs-&gt;fatbase + fatsize;			/* Root directory start sector (lba) */
++	fs-&gt;database = fs-&gt;fatbase + fatsize + fs-&gt;n_rootdir / (SS(fs)/32);	/* Data start sector (lba) */
++
++#if !_FS_READONLY
++	/* Initialize allocation information */
++	fs-&gt;free_clust = 0xFFFFFFFF;
++#if _USE_FSINFO
++	/* Get fsinfo if needed */
++	if (fmt == FS_FAT32) {
++		fs-&gt;fsi_sector = bootsect + LD_WORD(&amp;fs-&gt;win[BPB_FSInfo]);
++		if (disk_read(fs-&gt;drive, fs-&gt;win, fs-&gt;fsi_sector, 1) == RES_OK &amp;&amp;
++			LD_WORD(&amp;fs-&gt;win[BS_55AA]) == 0xAA55 &amp;&amp;
++			LD_DWORD(&amp;fs-&gt;win[FSI_LeadSig]) == 0x41615252 &amp;&amp;
++			LD_DWORD(&amp;fs-&gt;win[FSI_StrucSig]) == 0x61417272) {
++			fs-&gt;last_clust = LD_DWORD(&amp;fs-&gt;win[FSI_Nxt_Free]);
++			fs-&gt;free_clust = LD_DWORD(&amp;fs-&gt;win[FSI_Free_Count]);
++		}
++	}
++#endif
++#endif
++
++	fs-&gt;fs_type = fmt;			/* FAT syb-type */
++	fs-&gt;id = ++fsid;			/* File system mount ID */
++	return FR_OK;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Check if the file/dir object is valid or not                          */
++/*-----------------------------------------------------------------------*/
++
++static
++FRESULT validate (		/* FR_OK(0): The object is valid, !=0: Invalid */
++	const FATFS *fs,	/* Pointer to the file system object */
++	WORD id				/* Member id of the target object to be checked */
++)
++{
++	if (!fs || !fs-&gt;fs_type || fs-&gt;id != id)
++		return FR_INVALID_OBJECT;
++	if (disk_status(fs-&gt;drive) &amp; STA_NOINIT)
++		return FR_NOT_READY;
++
++	return FR_OK;
++}
++
++
++
++
++/*--------------------------------------------------------------------------
++
++   Public Functions
++
++--------------------------------------------------------------------------*/
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Mount/Unmount a Locical Drive                                         */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_mount (
++	BYTE drv,		/* Logical drive number to be mounted/unmounted */
++	FATFS *fs		/* Pointer to new file system object (NULL for unmount)*/
++)
++{
++	if (drv &gt;= _DRIVES) return FR_INVALID_DRIVE;
++
++	if (FatFs[drv]) FatFs[drv]-&gt;fs_type = 0;	/* Clear old object */
++
++	FatFs[drv] = fs;			/* Register and clear new object */
++	if (fs) fs-&gt;fs_type = 0;
++
++	return FR_OK;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Open or Create a File                                                 */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_open (
++	FIL *fp,			/* Pointer to the blank file object */
++	const char *path,	/* Pointer to the file name */
++	BYTE mode			/* Access mode and file open mode flags */
++)
++{
++	FRESULT res;
++	DIR dj;
++	BYTE *dir;
++	char fn[8+3+1];
++
++
++	fp-&gt;fs = NULL;		/* Clear file object */
++#if !_FS_READONLY
++	mode &amp;= (FA_READ|FA_WRITE|FA_CREATE_ALWAYS|FA_OPEN_ALWAYS|FA_CREATE_NEW);
++	res = auto_mount(&amp;path, &amp;dj.fs, (BYTE)(mode &amp; (FA_WRITE|FA_CREATE_ALWAYS|FA_OPEN_ALWAYS|FA_CREATE_NEW)));
++#else
++	mode &amp;= FA_READ;
++	res = auto_mount(&amp;path, &amp;dj.fs, 0);
++#endif
++	if (res != FR_OK) return res;
++	res = trace_path(&amp;dj, fn, path, &amp;dir);	/* Trace the file path */
++
++#if !_FS_READONLY
++	/* Create or Open a file */
++	if (mode &amp; (FA_CREATE_ALWAYS|FA_OPEN_ALWAYS|FA_CREATE_NEW)) {
++		DWORD ps, rs;
++		if (res != FR_OK) {		/* No file, create new */
++			if (res != FR_NO_FILE) return res;
++			res = reserve_direntry(&amp;dj, &amp;dir);
++			if (res != FR_OK) return res;
++			memset(dir, 0, 32);		/* Initialize the new entry with open name */
++			memcpy(&amp;dir[DIR_Name], fn, 8+3);
++			dir[DIR_NTres] = fn[11];
++			mode |= FA_CREATE_ALWAYS;
++		}
++		else {					/* Any object is already existing */
++			if (mode &amp; FA_CREATE_NEW)			/* Cannot create new */
++				return FR_EXIST;
++			if (!dir || (dir[DIR_Attr] &amp; (AM_RDO|AM_DIR)))	/* Cannot overwrite it (R/O or DIR) */
++				return FR_DENIED;
++			if (mode &amp; FA_CREATE_ALWAYS) {		/* Resize it to zero if needed */
++				rs = ((DWORD)LD_WORD(&amp;dir[DIR_FstClusHI]) &lt;&lt; 16) | LD_WORD(&amp;dir[DIR_FstClusLO]);	/* Get start cluster */
++				ST_WORD(&amp;dir[DIR_FstClusHI], 0);	/* cluster = 0 */
++				ST_WORD(&amp;dir[DIR_FstClusLO], 0);
++				ST_DWORD(&amp;dir[DIR_FileSize], 0);	/* size = 0 */
++				dj.fs-&gt;winflag = 1;
++				ps = dj.fs-&gt;winsect;			/* Remove the cluster chain */
++				if (!remove_chain(dj.fs, rs) || !move_window(dj.fs, ps))
++					return FR_RW_ERROR;
++				dj.fs-&gt;last_clust = rs - 1;		/* Reuse the cluster hole */
++			}
++		}
++		if (mode &amp; FA_CREATE_ALWAYS) {
++			dir[DIR_Attr] = 0;					/* Reset attribute */
++			ps = get_fattime();
++			ST_DWORD(&amp;dir[DIR_CrtTime], ps);	/* Created time */
++			dj.fs-&gt;winflag = 1;
++			mode |= FA__WRITTEN;				/* Set file changed flag */
++		}
++	}
++	/* Open an existing file */
++	else {
++#endif /* !_FS_READONLY */
++		if (res != FR_OK) return res;			/* Trace failed */
++		if (!dir || (dir[DIR_Attr] &amp; AM_DIR))	/* It is a directory */
++			return FR_NO_FILE;
++#if !_FS_READONLY
++		if ((mode &amp; FA_WRITE) &amp;&amp; (dir[DIR_Attr] &amp; AM_RDO)) /* R/O violation */
++			return FR_DENIED;
++	}
++	fp-&gt;dir_sect = dj.fs-&gt;winsect;		/* Pointer to the directory entry */
++	fp-&gt;dir_ptr = dir;
++#endif
++	fp-&gt;flag = mode;					/* File access mode */
++	fp-&gt;org_clust =						/* File start cluster */
++		((DWORD)LD_WORD(&amp;dir[DIR_FstClusHI]) &lt;&lt; 16) | LD_WORD(&amp;dir[DIR_FstClusLO]);
++	fp-&gt;fsize = LD_DWORD(&amp;dir[DIR_FileSize]);	/* File size */
++	fp-&gt;fptr = 0; fp-&gt;csect = 255;		/* File pointer */
++	fp-&gt;curr_sect = 0;
++	fp-&gt;fs = dj.fs; fp-&gt;id = dj.fs-&gt;id;	/* Owner file system object of the file */
++
++	return FR_OK;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Read File                                                             */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_read (
++	FIL *fp, 		/* Pointer to the file object */
++	void *buff,		/* Pointer to data buffer */
++	UINT btr,		/* Number of bytes to read */
++	UINT *br		/* Pointer to number of bytes read */
++)
++{
++	FRESULT res;
++	DWORD clust, sect, remain;
++	UINT rcnt, cc;
++	BYTE *rbuff = buff;
++
++
++	*br = 0;
++	res = validate(fp-&gt;fs, fp-&gt;id);					/* Check validity of the object */
++	if (res != FR_OK) return res;
++	if (fp-&gt;flag &amp; FA__ERROR) return FR_RW_ERROR;	/* Check error flag */
++	if (!(fp-&gt;flag &amp; FA_READ)) return FR_DENIED;	/* Check access mode */
++	remain = fp-&gt;fsize - fp-&gt;fptr;
++	if (btr &gt; remain) btr = (UINT)remain;			/* Truncate btr by remaining bytes */
++
++	for ( ;  btr;									/* Repeat until all data transferred */
++		rbuff += rcnt, fp-&gt;fptr += rcnt, *br += rcnt, btr -= rcnt) {
++		if ((fp-&gt;fptr % SS(fp-&gt;fs)) == 0) {			/* On the sector boundary? */
++			if (fp-&gt;csect &gt;= fp-&gt;fs-&gt;csize) {		/* On the cluster boundary? */
++				clust = (fp-&gt;fptr == 0) ?			/* On the top of the file? */
++					fp-&gt;org_clust : get_cluster(fp-&gt;fs, fp-&gt;curr_clust);
++				if (clust &lt; 2 || clust &gt;= fp-&gt;fs-&gt;max_clust) goto fr_error;
++				fp-&gt;curr_clust = clust;				/* Update current cluster */
++				fp-&gt;csect = 0;						/* Reset sector address in the cluster */
++			}
++			sect = clust2sect(fp-&gt;fs, fp-&gt;curr_clust) + fp-&gt;csect;	/* Get current sector */
++			cc = btr / SS(fp-&gt;fs);					/* When remaining bytes &gt;= sector size, */
++			if (cc) {								/* Read maximum contiguous sectors directly */
++				if (fp-&gt;csect + cc &gt; fp-&gt;fs-&gt;csize)	/* Clip at cluster boundary */
++					cc = fp-&gt;fs-&gt;csize - fp-&gt;csect;
++				if (disk_read(fp-&gt;fs-&gt;drive, rbuff, sect, (BYTE)cc) != RES_OK)
++					goto fr_error;
++				fp-&gt;csect += (BYTE)cc;				/* Next sector address in the cluster */
++				rcnt = SS(fp-&gt;fs) * cc;				/* Number of bytes transferred */
++				continue;
++			}
++			if (sect != fp-&gt;curr_sect) {			/* Is window offset changed? */
++#if !_FS_READONLY
++				if (fp-&gt;flag &amp; FA__DIRTY) {			/* Write back file I/O buffer if needed */
++					if (disk_write(fp-&gt;fs-&gt;drive, fp-&gt;buffer, fp-&gt;curr_sect, 1) != RES_OK)
++						goto fr_error;
++					fp-&gt;flag &amp;= (BYTE)~FA__DIRTY;
++				}
++#endif
++				if (disk_read(fp-&gt;fs-&gt;drive, fp-&gt;buffer, sect, 1) != RES_OK)	/* Fill file I/O buffer with file data */
++					goto fr_error;
++				fp-&gt;curr_sect = sect;
++			}
++			fp-&gt;csect++;							/* Next sector address in the cluster */
++		}
++		rcnt = SS(fp-&gt;fs) - (fp-&gt;fptr % SS(fp-&gt;fs));	/* Get partial sector from file I/O buffer */
++		if (rcnt &gt; btr) rcnt = btr;
++		memcpy(rbuff, &amp;fp-&gt;buffer[fp-&gt;fptr % SS(fp-&gt;fs)], rcnt);
++	}
++
++	return FR_OK;
++
++fr_error:	/* Abort this file due to an unrecoverable error */
++	fp-&gt;flag |= FA__ERROR;
++	return FR_RW_ERROR;
++}
++
++
++
++
++#if !_FS_READONLY
++/*-----------------------------------------------------------------------*/
++/* Write File                                                            */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_write (
++	FIL *fp,			/* Pointer to the file object */
++	const void *buff,	/* Pointer to the data to be written */
++	UINT btw,			/* Number of bytes to write */
++	UINT *bw			/* Pointer to number of bytes written */
++)
++{
++	FRESULT res;
++	DWORD clust, sect;
++	UINT wcnt, cc;
++	const BYTE *wbuff = buff;
++
++
++	*bw = 0;
++	res = validate(fp-&gt;fs, fp-&gt;id);					/* Check validity of the object */
++	if (res != FR_OK) return res;
++	if (fp-&gt;flag &amp; FA__ERROR) return FR_RW_ERROR;	/* Check error flag */
++	if (!(fp-&gt;flag &amp; FA_WRITE)) return FR_DENIED;	/* Check access mode */
++	if (fp-&gt;fsize + btw &lt; fp-&gt;fsize) return FR_OK;	/* File size cannot reach 4GB */
++
++	for ( ;  btw;									/* Repeat until all data transferred */
++		wbuff += wcnt, fp-&gt;fptr += wcnt, *bw += wcnt, btw -= wcnt) {
++		if ((fp-&gt;fptr % SS(fp-&gt;fs)) == 0) {			/* On the sector boundary? */
++			if (fp-&gt;csect &gt;= fp-&gt;fs-&gt;csize) {		/* On the cluster boundary? */
++				if (fp-&gt;fptr == 0) {				/* On the top of the file? */
++					clust = fp-&gt;org_clust;			/* Follow from the origin */
++					if (clust == 0)					/* When there is no cluster chain, */
++						fp-&gt;org_clust = clust = create_chain(fp-&gt;fs, 0);	/* Create a new cluster chain */
++				} else {							/* Middle or end of the file */
++					clust = create_chain(fp-&gt;fs, fp-&gt;curr_clust);			/* Trace or streach cluster chain */
++				}
++				if (clust == 0) break;				/* Could not allocate a new cluster (disk full) */
++				if (clust == 1 || clust &gt;= fp-&gt;fs-&gt;max_clust) goto fw_error;
++				fp-&gt;curr_clust = clust;				/* Update current cluster */
++				fp-&gt;csect = 0;						/* Reset sector address in the cluster */
++			}
++			sect = clust2sect(fp-&gt;fs, fp-&gt;curr_clust) + fp-&gt;csect;	/* Get current sector */
++			cc = btw / SS(fp-&gt;fs);					/* When remaining bytes &gt;= sector size, */
++			if (cc) {								/* Write maximum contiguous sectors directly */
++				if (fp-&gt;csect + cc &gt; fp-&gt;fs-&gt;csize)	/* Clip at cluster boundary */
++					cc = fp-&gt;fs-&gt;csize - fp-&gt;csect;
++				if (disk_write(fp-&gt;fs-&gt;drive, wbuff, sect, (BYTE)cc) != RES_OK)
++					goto fw_error;
++				fp-&gt;csect += (BYTE)cc;				/* Next sector address in the cluster */
++				wcnt = SS(fp-&gt;fs) * cc;				/* Number of bytes transferred */
++				continue;
++			}
++			if (sect != fp-&gt;curr_sect) {			/* Is window offset changed? */
++				if (fp-&gt;flag &amp; FA__DIRTY) {			/* Write back file I/O buffer if needed */
++					if (disk_write(fp-&gt;fs-&gt;drive, fp-&gt;buffer, fp-&gt;curr_sect, 1) != RES_OK)
++						goto fw_error;
++					fp-&gt;flag &amp;= (BYTE)~FA__DIRTY;
++				}
++				if (fp-&gt;fptr &lt; fp-&gt;fsize &amp;&amp;  		/* Fill file I/O buffer with file data */
++					disk_read(fp-&gt;fs-&gt;drive, fp-&gt;buffer, sect, 1) != RES_OK)
++						goto fw_error;
++				fp-&gt;curr_sect = sect;
++			}
++			fp-&gt;csect++;							/* Next sector address in the cluster */
++		}
++		wcnt = SS(fp-&gt;fs) - (fp-&gt;fptr % SS(fp-&gt;fs));	/* Put partial sector into file I/O buffer */
++		if (wcnt &gt; btw) wcnt = btw;
++		memcpy(&amp;fp-&gt;buffer[fp-&gt;fptr % SS(fp-&gt;fs)], wbuff, wcnt);
++		fp-&gt;flag |= FA__DIRTY;
++	}
++
++	if (fp-&gt;fptr &gt; fp-&gt;fsize) fp-&gt;fsize = fp-&gt;fptr;	/* Update file size if needed */
++	fp-&gt;flag |= FA__WRITTEN;						/* Set file changed flag */
++	return FR_OK;
++
++fw_error:	/* Abort this file due to an unrecoverable error */
++	fp-&gt;flag |= FA__ERROR;
++	return FR_RW_ERROR;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Synchronize the file object                                           */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_sync (
++	FIL *fp		/* Pointer to the file object */
++)
++{
++	FRESULT res;
++	DWORD tim;
++	BYTE *dir;
++
++
++	res = validate(fp-&gt;fs, fp-&gt;id);		/* Check validity of the object */
++	if (res == FR_OK) {
++		if (fp-&gt;flag &amp; FA__WRITTEN) {	/* Has the file been written? */
++			/* Write back data buffer if needed */
++			if (fp-&gt;flag &amp; FA__DIRTY) {
++				if (disk_write(fp-&gt;fs-&gt;drive, fp-&gt;buffer, fp-&gt;curr_sect, 1) != RES_OK)
++					return FR_RW_ERROR;
++				fp-&gt;flag &amp;= (BYTE)~FA__DIRTY;
++			}
++			/* Update the directory entry */
++			if (!move_window(fp-&gt;fs, fp-&gt;dir_sect))
++				return FR_RW_ERROR;
++			dir = fp-&gt;dir_ptr;
++			dir[DIR_Attr] |= AM_ARC;						/* Set archive bit */
++			ST_DWORD(&amp;dir[DIR_FileSize], fp-&gt;fsize);		/* Update file size */
++			ST_WORD(&amp;dir[DIR_FstClusLO], fp-&gt;org_clust);	/* Update start cluster */
++			ST_WORD(&amp;dir[DIR_FstClusHI], fp-&gt;org_clust &gt;&gt; 16);
++			tim = get_fattime();					/* Updated time */
++			ST_DWORD(&amp;dir[DIR_WrtTime], tim);
++			fp-&gt;flag &amp;= (BYTE)~FA__WRITTEN;
++			res = sync(fp-&gt;fs);
++		}
++	}
++	return res;
++}
++
++#endif /* !_FS_READONLY */
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Close File                                                            */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_close (
++	FIL *fp		/* Pointer to the file object to be closed */
++)
++{
++	FRESULT res;
++
++
++#if !_FS_READONLY
++	res = f_sync(fp);
++#else
++	res = validate(fp-&gt;fs, fp-&gt;id);
++#endif
++	if (res == FR_OK) fp-&gt;fs = NULL;
++	return res;
++}
++
++
++
++
++#if _FS_MINIMIZE &lt;= 2
++/*-----------------------------------------------------------------------*/
++/* Seek File R/W Pointer                                                 */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_lseek (
++	FIL *fp,		/* Pointer to the file object */
++	DWORD ofs		/* File pointer from top of file */
++)
++{
++	FRESULT res;
++	DWORD clust, csize, nsect, ifptr;
++
++
++	res = validate(fp-&gt;fs, fp-&gt;id);		/* Check validity of the object */
++	if (res != FR_OK) return res;
++	if (fp-&gt;flag &amp; FA__ERROR) return FR_RW_ERROR;
++	if (ofs &gt; fp-&gt;fsize					/* In read-only mode, clip offset with the file size */
++#if !_FS_READONLY
++		 &amp;&amp; !(fp-&gt;flag &amp; FA_WRITE)
++#endif
++		) ofs = fp-&gt;fsize;
++
++	ifptr = fp-&gt;fptr;
++	fp-&gt;fptr = 0; fp-&gt;csect = 255;
++	nsect = 0;
++	if (ofs &gt; 0) {
++		csize = (DWORD)fp-&gt;fs-&gt;csize * SS(fp-&gt;fs);	/* Cluster size (byte) */
++		if (ifptr &gt; 0 &amp;&amp;
++			(ofs - 1) / csize &gt;= (ifptr - 1) / csize) {/* When seek to same or following cluster, */
++			fp-&gt;fptr = (ifptr - 1) &amp; ~(csize - 1);	/* start from the current cluster */
++			ofs -= fp-&gt;fptr;
++			clust = fp-&gt;curr_clust;
++		} else {									/* When seek to back cluster, */
++			clust = fp-&gt;org_clust;					/* start from the first cluster */
++#if !_FS_READONLY
++			if (clust == 0) {						/* If no cluster chain, create a new chain */
++				clust = create_chain(fp-&gt;fs, 0);
++				if (clust == 1) goto fk_error;
++				fp-&gt;org_clust = clust;
++			}
++#endif
++			fp-&gt;curr_clust = clust;
++		}
++		if (clust != 0) {
++			while (ofs &gt; csize) {					/* Cluster following loop */
++#if !_FS_READONLY
++				if (fp-&gt;flag &amp; FA_WRITE) {			/* Check if in write mode or not */
++					clust = create_chain(fp-&gt;fs, clust);	/* Force streached if in write mode */
++					if (clust == 0) {				/* When disk gets full, clip file size */
++						ofs = csize; break;
++					}
++				} else
++#endif
++					clust = get_cluster(fp-&gt;fs, clust);	/* Follow cluster chain if not in write mode */
++				if (clust &lt; 2 || clust &gt;= fp-&gt;fs-&gt;max_clust) goto fk_error;
++				fp-&gt;curr_clust = clust;
++				fp-&gt;fptr += csize;
++				ofs -= csize;
++			}
++			fp-&gt;fptr += ofs;
++			fp-&gt;csect = (BYTE)(ofs / SS(fp-&gt;fs));	/* Sector offset in the cluster */
++			if (ofs &amp; (SS(fp-&gt;fs) - 1)) {
++				nsect = clust2sect(fp-&gt;fs, clust) + fp-&gt;csect;	/* Current sector */
++				fp-&gt;csect++;
++			}
++		}
++	}
++	if (nsect &amp;&amp; nsect != fp-&gt;curr_sect) {
++#if !_FS_READONLY
++		if (fp-&gt;flag &amp; FA__DIRTY) {			/* Write-back dirty buffer if needed */
++			if (disk_write(fp-&gt;fs-&gt;drive, fp-&gt;buffer, fp-&gt;curr_sect, 1) != RES_OK)
++				goto fk_error;
++			fp-&gt;flag &amp;= (BYTE)~FA__DIRTY;
++		}
++#endif
++		if (disk_read(fp-&gt;fs-&gt;drive, fp-&gt;buffer, nsect, 1) != RES_OK)
++			goto fk_error;
++		fp-&gt;curr_sect = nsect;
++	}
++
++#if !_FS_READONLY
++	if (fp-&gt;fptr &gt; fp-&gt;fsize) {			/* Set changed flag if the file was extended */
++		fp-&gt;fsize = fp-&gt;fptr;
++		fp-&gt;flag |= FA__WRITTEN;
++	}
++#endif
++
++	return FR_OK;
++
++fk_error:	/* Abort this file due to an unrecoverable error */
++	fp-&gt;flag |= FA__ERROR;
++	return FR_RW_ERROR;
++}
++
++
++
++
++#if _FS_MINIMIZE &lt;= 1
++/*-----------------------------------------------------------------------*/
++/* Create a directroy object                                             */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_opendir (
++	DIR *dj,			/* Pointer to directory object to create */
++	const char *path	/* Pointer to the directory path */
++)
++{
++	FRESULT res;
++	BYTE *dir;
++	char fn[8+3+1];
++
++
++	res = auto_mount(&amp;path, &amp;dj-&gt;fs, 0);
++	if (res == FR_OK) {
++		res = trace_path(dj, fn, path, &amp;dir);	/* Trace the directory path */
++		if (res == FR_OK) {						/* Trace completed */
++			if (dir) {							/* It is not the root dir */
++				if (dir[DIR_Attr] &amp; AM_DIR) {	/* The entry is a directory */
++					dj-&gt;clust = ((DWORD)LD_WORD(&amp;dir[DIR_FstClusHI]) &lt;&lt; 16) | LD_WORD(&amp;dir[DIR_FstClusLO]);
++					dj-&gt;sect = clust2sect(dj-&gt;fs, dj-&gt;clust);
++					dj-&gt;index = 2;
++				} else {						/* The entry is not a directory */
++					res = FR_NO_FILE;
++				}
++			}
++			dj-&gt;id = dj-&gt;fs-&gt;id;
++		}
++	}
++
++	return res;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Read Directory Entry in Sequense                                      */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_readdir (
++	DIR *dj,			/* Pointer to the directory object */
++	FILINFO *finfo		/* Pointer to file information to return */
++)
++{
++	BYTE *dir, c, res;
++
++
++	res = validate(dj-&gt;fs, dj-&gt;id);			/* Check validity of the object */
++	if (res != FR_OK) return res;
++
++	finfo-&gt;fname[0] = 0;
++	while (dj-&gt;sect) {
++		if (!move_window(dj-&gt;fs, dj-&gt;sect))
++			return FR_RW_ERROR;
++		dir = &amp;dj-&gt;fs-&gt;win[(dj-&gt;index &amp; ((SS(dj-&gt;fs) - 1) &gt;&gt; 5)) * 32];	/* pointer to the directory entry */
++		c = dir[DIR_Name];
++		if (c == 0) break;							/* Has it reached to end of dir? */
++		if (c != 0xE5 &amp;&amp; !(dir[DIR_Attr] &amp; AM_VOL))	/* Is it a valid entry? */
++			get_fileinfo(finfo, dir);
++		if (!next_dir_entry(dj)) dj-&gt;sect = 0;		/* Next entry */
++		if (finfo-&gt;fname[0]) break;					/* Found valid entry */
++	}
++
++	return FR_OK;
++}
++
++
++
++
++#if _FS_MINIMIZE == 0
++/*-----------------------------------------------------------------------*/
++/* Get File Status                                                       */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_stat (
++	const char *path,	/* Pointer to the file path */
++	FILINFO *finfo		/* Pointer to file information to return */
++)
++{
++	FRESULT res;
++	DIR dj;
++	BYTE *dir;
++	char fn[8+3+1];
++
++
++	res = auto_mount(&amp;path, &amp;dj.fs, 0);
++	if (res == FR_OK) {
++		res = trace_path(&amp;dj, fn, path, &amp;dir);	/* Trace the file path */
++		if (res == FR_OK) {						/* Trace completed */
++			if (dir)	/* Found an object */
++				get_fileinfo(finfo, dir);
++			else		/* It is root dir */
++				res = FR_INVALID_NAME;
++		}
++	}
++
++	return res;
++}
++
++
++
++#if !_FS_READONLY
++/*-----------------------------------------------------------------------*/
++/* Truncate File                                                         */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_truncate (
++	FIL *fp		/* Pointer to the file object */
++)
++{
++	FRESULT res;
++	DWORD ncl;
++
++
++	res = validate(fp-&gt;fs, fp-&gt;id);		/* Check validity of the object */
++	if (res != FR_OK) return res;
++	if (fp-&gt;flag &amp; FA__ERROR) return FR_RW_ERROR;	/* Check error flag */
++	if (!(fp-&gt;flag &amp; FA_WRITE)) return FR_DENIED;	/* Check access mode */
++
++	if (fp-&gt;fsize &gt; fp-&gt;fptr) {
++		fp-&gt;fsize = fp-&gt;fptr;	/* Set file size to current R/W point */
++		fp-&gt;flag |= FA__WRITTEN;
++		if (fp-&gt;fptr == 0) {	/* When set file size to zero, remove entire cluster chain */
++			if (!remove_chain(fp-&gt;fs, fp-&gt;org_clust)) goto ft_error;
++			fp-&gt;org_clust = 0;
++		} else {				/* When truncate a part of the file, remove remaining clusters */
++			ncl = get_cluster(fp-&gt;fs, fp-&gt;curr_clust);
++			if (ncl &lt; 2) goto ft_error;
++			if (ncl &lt; fp-&gt;fs-&gt;max_clust) {
++				if (!put_cluster(fp-&gt;fs, fp-&gt;curr_clust, 0x0FFFFFFF)) goto ft_error;
++				if (!remove_chain(fp-&gt;fs, ncl)) goto ft_error;
++			}
++		}
++	}
++
++	return FR_OK;
++
++ft_error:	/* Abort this file due to an unrecoverable error */
++	fp-&gt;flag |= FA__ERROR;
++	return FR_RW_ERROR;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Get Number of Free Clusters                                           */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_getfree (
++	const char *drv,	/* Pointer to the logical drive number (root dir) */
++	DWORD *nclust,		/* Pointer to the variable to return number of free clusters */
++	FATFS **fatfs		/* Pointer to pointer to corresponding file system object to return */
++)
++{
++	FRESULT res;
++	DWORD n, clust, sect;
++	BYTE fat, f, *p;
++
++
++	/* Get drive number */
++	res = auto_mount(&amp;drv, fatfs, 0);
++	if (res != FR_OK) return res;
++
++	/* If number of free cluster is valid, return it without cluster scan. */
++	if ((*fatfs)-&gt;free_clust &lt;= (*fatfs)-&gt;max_clust - 2) {
++		*nclust = (*fatfs)-&gt;free_clust;
++		return FR_OK;
++	}
++
++	/* Get number of free clusters */
++	fat = (*fatfs)-&gt;fs_type;
++	n = 0;
++	if (fat == FS_FAT12) {
++		clust = 2;
++		do {
++			if ((WORD)get_cluster(*fatfs, clust) == 0) n++;
++		} while (++clust &lt; (*fatfs)-&gt;max_clust);
++	} else {
++		clust = (*fatfs)-&gt;max_clust;
++		sect = (*fatfs)-&gt;fatbase;
++		f = 0; p = 0;
++		do {
++			if (!f) {
++				if (!move_window(*fatfs, sect++)) return FR_RW_ERROR;
++				p = (*fatfs)-&gt;win;
++			}
++			if (fat == FS_FAT16) {
++				if (LD_WORD(p) == 0) n++;
++				p += 2; f += 1;
++			} else {
++				if (LD_DWORD(p) == 0) n++;
++				p += 4; f += 2;
++			}
++		} while (--clust);
++	}
++	(*fatfs)-&gt;free_clust = n;
++#if _USE_FSINFO
++	if (fat == FS_FAT32) (*fatfs)-&gt;fsi_flag = 1;
++#endif
++
++	*nclust = n;
++	return FR_OK;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Delete a File or Directory                                            */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_unlink (
++	const char *path		/* Pointer to the file or directory path */
++)
++{
++	FRESULT res;
++	DIR dj;
++	BYTE *dir, *sdir;
++	DWORD dclust, dsect;
++	char fn[8+3+1];
++
++
++	res = auto_mount(&amp;path, &amp;dj.fs, 1);
++	if (res != FR_OK) return res;
++	res = trace_path(&amp;dj, fn, path, &amp;dir);	/* Trace the file path */
++	if (res != FR_OK) return res;			/* Trace failed */
++	if (!dir) return FR_INVALID_NAME;		/* It is the root directory */
++	if (dir[DIR_Attr] &amp; AM_RDO) return FR_DENIED;	/* It is a R/O object */
++	dsect = dj.fs-&gt;winsect;
++	dclust = ((DWORD)LD_WORD(&amp;dir[DIR_FstClusHI]) &lt;&lt; 16) | LD_WORD(&amp;dir[DIR_FstClusLO]);
++
++	if (dir[DIR_Attr] &amp; AM_DIR) {			/* It is a sub-directory */
++		dj.clust = dclust;					/* Check if the sub-dir is empty or not */
++		dj.sect = clust2sect(dj.fs, dclust);
++		dj.index = 2;
++		do {
++			if (!move_window(dj.fs, dj.sect)) return FR_RW_ERROR;
++			sdir = &amp;dj.fs-&gt;win[(dj.index &amp; ((SS(dj.fs) - 1) &gt;&gt; 5)) * 32];
++			if (sdir[DIR_Name] == 0) break;
++			if (sdir[DIR_Name] != 0xE5 &amp;&amp; !(sdir[DIR_Attr] &amp; AM_VOL))
++				return FR_DENIED;	/* The directory is not empty */
++		} while (next_dir_entry(&amp;dj));
++	}
++
++	if (!move_window(dj.fs, dsect)) return FR_RW_ERROR;	/* Mark the directory entry 'deleted' */
++	dir[DIR_Name] = 0xE5;
++	dj.fs-&gt;winflag = 1;
++	if (!remove_chain(dj.fs, dclust)) return FR_RW_ERROR;	/* Remove the cluster chain */
++
++	return sync(dj.fs);
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Create a Directory                                                    */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_mkdir (
++	const char *path		/* Pointer to the directory path */
++)
++{
++	FRESULT res;
++	DIR dj;
++	BYTE *dir, *fw, n;
++	char fn[8+3+1];
++	DWORD sect, dsect, dclust, pclust, tim;
++
++
++	res = auto_mount(&amp;path, &amp;dj.fs, 1);
++	if (res != FR_OK) return res;
++	res = trace_path(&amp;dj, fn, path, &amp;dir);	/* Trace the file path */
++	if (res == FR_OK) return FR_EXIST;		/* Any file or directory is already existing */
++	if (res != FR_NO_FILE) return res;
++
++	res = reserve_direntry(&amp;dj, &amp;dir); 		/* Reserve a directory entry */
++	if (res != FR_OK) return res;
++	sect = dj.fs-&gt;winsect;
++	dclust = create_chain(dj.fs, 0);		/* Allocate a cluster for new directory table */
++	if (dclust == 1) return FR_RW_ERROR;
++	dsect = clust2sect(dj.fs, dclust);
++	if (!dsect) return FR_DENIED;
++	if (!move_window(dj.fs, dsect)) return FR_RW_ERROR;
++
++	fw = dj.fs-&gt;win;
++	memset(fw, 0, SS(dj.fs));				/* Clear the new directory table */
++	for (n = 1; n &lt; dj.fs-&gt;csize; n++) {
++		if (disk_write(dj.fs-&gt;drive, fw, ++dsect, 1) != RES_OK)
++			return FR_RW_ERROR;
++	}
++	memset(&amp;fw[DIR_Name], ' ', 8+3);		/* Create &quot;.&quot; entry */
++	fw[DIR_Name] = '.';
++	fw[DIR_Attr] = AM_DIR;
++	tim = get_fattime();
++	ST_DWORD(&amp;fw[DIR_WrtTime], tim);
++	memcpy(&amp;fw[32], &amp;fw[0], 32); fw[33] = '.';	/* Create &quot;..&quot; entry */
++	ST_WORD(&amp;fw[   DIR_FstClusLO], dclust);
++	ST_WORD(&amp;fw[   DIR_FstClusHI], dclust &gt;&gt; 16);
++	pclust = dj.sclust;
++	if (dj.fs-&gt;fs_type == FS_FAT32 &amp;&amp; pclust == dj.fs-&gt;dirbase) pclust = 0;
++	ST_WORD(&amp;fw[32+DIR_FstClusLO], pclust);
++	ST_WORD(&amp;fw[32+DIR_FstClusHI], pclust &gt;&gt; 16);
++	dj.fs-&gt;winflag = 1;
++
++	if (!move_window(dj.fs, sect)) return FR_RW_ERROR;
++	memset(&amp;dir[0], 0, 32);						/* Initialize the new entry */
++	memcpy(&amp;dir[DIR_Name], fn, 8+3);			/* Name */
++	dir[DIR_NTres] = fn[11];
++	dir[DIR_Attr] = AM_DIR;						/* Attribute */
++	ST_DWORD(&amp;dir[DIR_WrtTime], tim);			/* Crated time */
++	ST_WORD(&amp;dir[DIR_FstClusLO], dclust);		/* Table start cluster */
++	ST_WORD(&amp;dir[DIR_FstClusHI], dclust &gt;&gt; 16);
++
++	return sync(dj.fs);
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Change File Attribute                                                 */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_chmod (
++	const char *path,	/* Pointer to the file path */
++	BYTE value,			/* Attribute bits */
++	BYTE mask			/* Attribute mask to change */
++)
++{
++	FRESULT res;
++	DIR dj;
++	BYTE *dir;
++	char fn[8+3+1];
++
++
++	res = auto_mount(&amp;path, &amp;dj.fs, 1);
++	if (res == FR_OK) {
++		res = trace_path(&amp;dj, fn, path, &amp;dir);	/* Trace the file path */
++		if (res == FR_OK) {				/* Trace completed */
++			if (!dir) {
++				res = FR_INVALID_NAME;	/* Root directory */
++			} else {
++				mask &amp;= AM_RDO|AM_HID|AM_SYS|AM_ARC;	/* Valid attribute mask */
++				dir[DIR_Attr] = (value &amp; mask) | (dir[DIR_Attr] &amp; (BYTE)~mask);	/* Apply attribute change */
++				res = sync(dj.fs);
++			}
++		}
++	}
++	return res;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Change Timestamp                                                      */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_utime (
++	const char *path,		/* Pointer to the file/directory name */
++	const FILINFO *finfo	/* Pointer to the timestamp to be set */
++)
++{
++	FRESULT res;
++	DIR dj;
++	BYTE *dir;
++	char fn[8+3+1];
++
++
++	res = auto_mount(&amp;path, &amp;dj.fs, 1);
++	if (res == FR_OK) {
++		res = trace_path(&amp;dj, fn, path, &amp;dir);	/* Trace the file path */
++		if (res == FR_OK) {				/* Trace completed */
++			if (!dir) {
++				res = FR_INVALID_NAME;	/* Root directory */
++			} else {
++				ST_WORD(&amp;dir[DIR_WrtTime], finfo-&gt;ftime);
++				ST_WORD(&amp;dir[DIR_WrtDate], finfo-&gt;fdate);
++				res = sync(dj.fs);
++			}
++		}
++	}
++	return res;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Rename File/Directory                                                 */
++/*-----------------------------------------------------------------------*/
++
++FRESULT f_rename (
++	const char *path_old,	/* Pointer to the old name */
++	const char *path_new	/* Pointer to the new name */
++)
++{
++	FRESULT res;
++	DIR dj;
++	DWORD sect_old;
++	BYTE *dir_old, *dir_new, direntry[32-11];
++	char fn[8+3+1];
++
++
++	res = auto_mount(&amp;path_old, &amp;dj.fs, 1);
++	if (res != FR_OK) return res;
++
++	res = trace_path(&amp;dj, fn, path_old, &amp;dir_old);	/* Check old object */
++	if (res != FR_OK) return res;				/* The old object is not found */
++	if (!dir_old) return FR_NO_FILE;
++	sect_old = dj.fs-&gt;winsect;					/* Save the object information */
++	memcpy(direntry, &amp;dir_old[DIR_Attr], 32-11);
++
++	res = trace_path(&amp;dj, fn, path_new, &amp;dir_new);	/* Check new object */
++	if (res == FR_OK) return FR_EXIST;			/* The new object name is already existing */
++	if (res != FR_NO_FILE) return res;			/* Is there no old name? */
++	res = reserve_direntry(&amp;dj, &amp;dir_new); 		/* Reserve a directory entry */
++	if (res != FR_OK) return res;
++
++	memcpy(&amp;dir_new[DIR_Attr], direntry, 32-11);	/* Create new entry */
++	memcpy(&amp;dir_new[DIR_Name], fn, 8+3);
++	dir_new[DIR_NTres] = fn[11];
++	dj.fs-&gt;winflag = 1;
++
++	if (!move_window(dj.fs, sect_old)) return FR_RW_ERROR;	/* Delete old entry */
++	dir_old[DIR_Name] = 0xE5;
++
++	return sync(dj.fs);
++}
++
++#endif /* !_FS_READONLY */
++#endif /* _FS_MINIMIZE == 0 */
++#endif /* _FS_MINIMIZE &lt;= 1 */
++#endif /* _FS_MINIMIZE &lt;= 2 */
++
++
++
++#if _USE_MKFS &amp;&amp; !_FS_READONLY
++/*-----------------------------------------------------------------------*/
++/* Create File System on the Drive                                       */
++/*-----------------------------------------------------------------------*/
++#define N_ROOTDIR	512			/* Multiple of 32 and &lt;= 2048 */
++#define N_FATS		1			/* 1 or 2 */
++#define MAX_SECTOR	64000000UL	/* Maximum partition size */
++#define MIN_SECTOR	2000UL		/* Minimum partition size */
++
++
++
++FRESULT f_mkfs (
++	BYTE drv,			/* Logical drive number */
++	BYTE partition,		/* Partitioning rule 0:FDISK, 1:SFD */
++	WORD allocsize		/* Allocation unit size [bytes] */
++)
++{
++	BYTE fmt, m, *tbl;
++	DWORD b_part, b_fat, b_dir, b_data;		/* Area offset (LBA) */
++	DWORD n_part, n_rsv, n_fat, n_dir;		/* Area size */
++	DWORD n_clust, n;
++	FATFS *fs;
++	DSTATUS stat;
++
++
++	/* Check validity of the parameters */
++	if (drv &gt;= _DRIVES) return FR_INVALID_DRIVE;
++	if (partition &gt;= 2) return FR_MKFS_ABORTED;
++	for (n = 512; n &lt;= 32768U &amp;&amp; n != allocsize; n &lt;&lt;= 1);
++	if (n != allocsize) return FR_MKFS_ABORTED;
++
++	/* Check mounted drive and clear work area */
++	fs = FatFs[drv];
++	if (!fs) return FR_NOT_ENABLED;
++	fs-&gt;fs_type = 0;
++	drv = LD2PD(drv);
++
++	/* Get disk statics */
++	stat = disk_initialize(drv);
++	if (stat &amp; STA_NOINIT) return FR_NOT_READY;
++	if (stat &amp; STA_PROTECT) return FR_WRITE_PROTECTED;
++	if (disk_ioctl(drv, GET_SECTOR_COUNT, &amp;n_part) != RES_OK || n_part &lt; MIN_SECTOR)
++		return FR_MKFS_ABORTED;
++	if (n_part &gt; MAX_SECTOR) n_part = MAX_SECTOR;
++	b_part = (!partition) ? 63 : 0;		/* Boot sector */
++	n_part -= b_part;
++#if S_MAX_SIZ &gt; 512						/* Check disk sector size */
++	if (disk_ioctl(drv, GET_SECTOR_SIZE, &amp;SS(fs)) != RES_OK
++		|| SS(fs) &gt; S_MAX_SIZ
++		|| SS(fs) &gt; allocsize)
++		return FR_MKFS_ABORTED;
++#endif
++	allocsize /= SS(fs);		/* Number of sectors per cluster */
++
++	/* Pre-compute number of clusters and FAT type */
++	n_clust = n_part / allocsize;
++	fmt = FS_FAT12;
++	if (n_clust &gt;= 0xFF5) fmt = FS_FAT16;
++	if (n_clust &gt;= 0xFFF5) fmt = FS_FAT32;
++
++	/* Determine offset and size of FAT structure */
++	switch (fmt) {
++	case FS_FAT12:
++		n_fat = ((n_clust * 3 + 1) / 2 + 3 + SS(fs) - 1) / SS(fs);
++		n_rsv = 1 + partition;
++		n_dir = N_ROOTDIR * 32 / SS(fs);
++		break;
++	case FS_FAT16:
++		n_fat = ((n_clust * 2) + 4 + SS(fs) - 1) / SS(fs);
++		n_rsv = 1 + partition;
++		n_dir = N_ROOTDIR * 32 / SS(fs);
++		break;
++	default:
++		n_fat = ((n_clust * 4) + 8 + SS(fs) - 1) / SS(fs);
++		n_rsv = 33 - partition;
++		n_dir = 0;
++	}
++	b_fat = b_part + n_rsv;			/* FATs start sector */
++	b_dir = b_fat + n_fat * N_FATS;	/* Directory start sector */
++	b_data = b_dir + n_dir;			/* Data start sector */
++
++	/* Align data start sector to erase block boundary (for flash memory media) */
++	if (disk_ioctl(drv, GET_BLOCK_SIZE, &amp;n) != RES_OK) return FR_MKFS_ABORTED;
++	n = (b_data + n - 1) &amp; ~(n - 1);
++	n_fat += (n - b_data) / N_FATS;
++	/* b_dir and b_data are no longer used below */
++
++	/* Determine number of cluster and final check of validity of the FAT type */
++	n_clust = (n_part - n_rsv - n_fat * N_FATS - n_dir) / allocsize;
++	if (   (fmt == FS_FAT16 &amp;&amp; n_clust &lt; 0xFF5)
++		|| (fmt == FS_FAT32 &amp;&amp; n_clust &lt; 0xFFF5))
++		return FR_MKFS_ABORTED;
++
++	/* Create partition table if needed */
++	if (!partition) {
++		DWORD n_disk = b_part + n_part;
++
++		tbl = &amp;fs-&gt;win[MBR_Table];
++		ST_DWORD(&amp;tbl[0], 0x00010180);	/* Partition start in CHS */
++		if (n_disk &lt; 63UL * 255 * 1024) {	/* Partition end in CHS */
++			n_disk = n_disk / 63 / 255;
++			tbl[7] = (BYTE)n_disk;
++			tbl[6] = (BYTE)((n_disk &gt;&gt; 2) | 63);
++		} else {
++			ST_WORD(&amp;tbl[6], 0xFFFF);
++		}
++		tbl[5] = 254;
++		if (fmt != FS_FAT32)			/* System ID */
++			tbl[4] = (n_part &lt; 0x10000) ? 0x04 : 0x06;
++		else
++			tbl[4] = 0x0c;
++		ST_DWORD(&amp;tbl[8], 63);			/* Partition start in LBA */
++		ST_DWORD(&amp;tbl[12], n_part);		/* Partition size in LBA */
++		ST_WORD(&amp;tbl[64], 0xAA55);		/* Signature */
++		if (disk_write(drv, fs-&gt;win, 0, 1) != RES_OK)
++			return FR_RW_ERROR;
++	}
++
++	/* Create boot record */
++	tbl = fs-&gt;win;								/* Clear buffer */
++	memset(tbl, 0, SS(fs));
++	ST_DWORD(&amp;tbl[BS_jmpBoot], 0x90FEEB);		/* Boot code (jmp $, nop) */
++	ST_WORD(&amp;tbl[BPB_BytsPerSec], SS(fs));		/* Sector size */
++	tbl[BPB_SecPerClus] = (BYTE)allocsize;		/* Sectors per cluster */
++	ST_WORD(&amp;tbl[BPB_RsvdSecCnt], n_rsv);		/* Reserved sectors */
++	tbl[BPB_NumFATs] = N_FATS;					/* Number of FATs */
++	ST_WORD(&amp;tbl[BPB_RootEntCnt], SS(fs) / 32 * n_dir); /* Number of rootdir entries */
++	if (n_part &lt; 0x10000) {						/* Number of total sectors */
++		ST_WORD(&amp;tbl[BPB_TotSec16], n_part);
++	} else {
++		ST_DWORD(&amp;tbl[BPB_TotSec32], n_part);
++	}
++	tbl[BPB_Media] = 0xF8;						/* Media descripter */
++	ST_WORD(&amp;tbl[BPB_SecPerTrk], 63);			/* Number of sectors per track */
++	ST_WORD(&amp;tbl[BPB_NumHeads], 255);			/* Number of heads */
++	ST_DWORD(&amp;tbl[BPB_HiddSec], b_part);		/* Hidden sectors */
++	n = get_fattime();							/* Use current time as a VSN */
++	if (fmt != FS_FAT32) {
++		ST_DWORD(&amp;tbl[BS_VolID], n);			/* Volume serial number */
++		ST_WORD(&amp;tbl[BPB_FATSz16], n_fat);		/* Number of secters per FAT */
++		tbl[BS_DrvNum] = 0x80;					/* Drive number */
++		tbl[BS_BootSig] = 0x29;					/* Extended boot signature */
++		memcpy(&amp;tbl[BS_VolLab], &quot;NO NAME    FAT     &quot;, 19);	/* Volume lavel, FAT signature */
++	} else {
++		ST_DWORD(&amp;tbl[BS_VolID32], n);			/* Volume serial number */
++		ST_DWORD(&amp;tbl[BPB_FATSz32], n_fat);		/* Number of secters per FAT */
++		ST_DWORD(&amp;tbl[BPB_RootClus], 2);		/* Root directory cluster (2) */
++		ST_WORD(&amp;tbl[BPB_FSInfo], 1);			/* FSInfo record (bs+1) */
++		ST_WORD(&amp;tbl[BPB_BkBootSec], 6);		/* Backup boot record (bs+6) */
++		tbl[BS_DrvNum32] = 0x80;				/* Drive number */
++		tbl[BS_BootSig32] = 0x29;				/* Extended boot signature */
++		memcpy(&amp;tbl[BS_VolLab32], &quot;NO NAME    FAT32   &quot;, 19);	/* Volume lavel, FAT signature */
++	}
++	ST_WORD(&amp;tbl[BS_55AA], 0xAA55);			/* Signature */
++	if (disk_write(drv, tbl, b_part+0, 1) != RES_OK)
++		return FR_RW_ERROR;
++	if (fmt == FS_FAT32)
++		disk_write(drv, tbl, b_part+6, 1);
++
++	/* Initialize FAT area */
++	for (m = 0; m &lt; N_FATS; m++) {
++		memset(tbl, 0, SS(fs));		/* 1st sector of the FAT  */
++		if (fmt != FS_FAT32) {
++			n = (fmt == FS_FAT12) ? 0x00FFFFF8 : 0xFFFFFFF8;
++			ST_DWORD(&amp;tbl[0], n);			/* Reserve cluster #0-1 (FAT12/16) */
++		} else {
++			ST_DWORD(&amp;tbl[0], 0xFFFFFFF8);	/* Reserve cluster #0-1 (FAT32) */
++			ST_DWORD(&amp;tbl[4], 0xFFFFFFFF);
++			ST_DWORD(&amp;tbl[8], 0x0FFFFFFF);	/* Reserve cluster #2 for root dir */
++		}
++		if (disk_write(drv, tbl, b_fat++, 1) != RES_OK)
++			return FR_RW_ERROR;
++		memset(tbl, 0, SS(fs));		/* Following FAT entries are filled by zero */
++		for (n = 1; n &lt; n_fat; n++) {
++			if (disk_write(drv, tbl, b_fat++, 1) != RES_OK)
++				return FR_RW_ERROR;
++		}
++	}
++
++	/* Initialize Root directory */
++	m = (BYTE)((fmt == FS_FAT32) ? allocsize : n_dir);
++	do {
++		if (disk_write(drv, tbl, b_fat++, 1) != RES_OK)
++			return FR_RW_ERROR;
++	} while (--m);
++
++	/* Create FSInfo record if needed */
++	if (fmt == FS_FAT32) {
++		ST_WORD(&amp;tbl[BS_55AA], 0xAA55);
++		ST_DWORD(&amp;tbl[FSI_LeadSig], 0x41615252);
++		ST_DWORD(&amp;tbl[FSI_StrucSig], 0x61417272);
++		ST_DWORD(&amp;tbl[FSI_Free_Count], n_clust - 1);
++		ST_DWORD(&amp;tbl[FSI_Nxt_Free], 0xFFFFFFFF);
++		disk_write(drv, tbl, b_part+1, 1);
++		disk_write(drv, tbl, b_part+7, 1);
++	}
++
++	return (disk_ioctl(drv, CTRL_SYNC, NULL) == RES_OK) ? FR_OK : FR_RW_ERROR;
++}
++
++#endif /* _USE_MKFS &amp;&amp; !_FS_READONLY */
++
++
++
++
++#if _USE_STRFUNC &gt;= 1
++/*-----------------------------------------------------------------------*/
++/* Get a string from the file                                            */
++/*-----------------------------------------------------------------------*/
++char* fgets (
++	char* buff,	/* Pointer to the string buffer to read */
++	int len,	/* Size of string buffer */
++	FIL* fil	/* Pointer to the file object */
++)
++{
++	int i = 0;
++	char *p = buff;
++	UINT rc;
++
++
++	while (i &lt; len - 1) {			/* Read bytes until buffer gets filled */
++		f_read(fil, p, 1, &amp;rc);
++		if (rc != 1) break;			/* Break when no data to read */
++#if _USE_STRFUNC &gt;= 2
++		if (*p == '\r') continue;	/* Strip '\r' */
++#endif
++		i++;
++		if (*p++ == '\n') break;	/* Break when reached end of line */
++	}
++	*p = 0;
++	return i ? buff : 0;			/* When no data read (eof or error), return with error. */
++}
++
++
++
++#if !_FS_READONLY
++#include &lt;stdarg.h&gt;
++/*-----------------------------------------------------------------------*/
++/* Put a character to the file                                           */
++/*-----------------------------------------------------------------------*/
++int fputc (
++	int chr,	/* A character to be output */
++	FIL* fil	/* Ponter to the file object */
++)
++{
++	UINT bw;
++	char c;
++
++
++#if _USE_STRFUNC &gt;= 2
++	if (chr == '\n') fputc ('\r', fil);	/* LF -&gt; CRLF conversion */
++#endif
++	if (!fil) {	/* Special value may be used to switch the destination to any other device */
++	/*	put_console(chr);	*/
++		return chr;
++	}
++	c = (char)chr;
++	f_write(fil, &amp;c, 1, &amp;bw);	/* Write a byte to the file */
++	return bw ? chr : EOF;		/* Return the resulut */
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Put a string to the file                                              */
++/*-----------------------------------------------------------------------*/
++int fputs (
++	const char* str,	/* Pointer to the string to be output */
++	FIL* fil			/* Pointer to the file object */
++)
++{
++	int n;
++
++
++	for (n = 0; *str; str++, n++) {
++		if (fputc(*str, fil) == EOF) return EOF;
++	}
++	return n;
++}
++
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Put a formatted string to the file                                    */
++/*-----------------------------------------------------------------------*/
++int fprintf (
++	FIL* fil,			/* Pointer to the file object */
++	const char* str,	/* Pointer to the format string */
++	...					/* Optional arguments... */
++)
++{
++	va_list arp;
++	UCHAR c, f, r;
++	ULONG val;
++	char s[16];
++	int i, w, res, cc;
++
++
++	va_start(arp, str);
++
++	for (cc = res = 0; cc != EOF; res += cc) {
++		c = *str++;
++		if (c == 0) break;			/* End of string */
++		if (c != '%') {				/* Non escape cahracter */
++			cc = fputc(c, fil);
++			if (cc != EOF) cc = 1;
++			continue;
++		}
++		w = f = 0;
++		c = *str++;
++		if (c == '0') {				/* Flag: '0' padding */
++			f = 1; c = *str++;
++		}
++		while (c &gt;= '0' &amp;&amp; c &lt;= '9') {	/* Precision */
++			w = w * 10 + (c - '0');
++			c = *str++;
++		}
++		if (c == 'l') {				/* Prefix: Size is long int */
++			f |= 2; c = *str++;
++		}
++		if (c == 's') {				/* Type is string */
++			cc = fputs(va_arg(arp, char*), fil);
++			continue;
++		}
++		if (c == 'c') {				/* Type is character */
++			cc = fputc(va_arg(arp, char), fil);
++			if (cc != EOF) cc = 1;
++			continue;
++		}
++		r = 0;
++		if (c == 'd') r = 10;		/* Type is signed decimal */
++		if (c == 'u') r = 10;		/* Type is unsigned decimal */
++		if (c == 'X') r = 16;		/* Type is unsigned hexdecimal */
++		if (r == 0) break;			/* Unknown type */
++		if (f &amp; 2) {				/* Get the value */
++			val = (ULONG)va_arg(arp, long);
++		} else {
++			val = (c == 'd') ? (ULONG)(long)va_arg(arp, int) : (ULONG)va_arg(arp, unsigned int);
++		}
++		/* Put numeral string */
++		if (c == 'd') {
++			if (val &gt;= 0x80000000) {
++				val = 0 - val;
++				f |= 4;
++			}
++		}
++		i = sizeof(s) - 1; s[i] = 0;
++		do {
++			c = (UCHAR)(val % r + '0');
++			if (c &gt; '9') c += 7;
++			s[--i] = c;
++			val /= r;
++		} while (i &amp;&amp; val);
++		if (i &amp;&amp; (f &amp; 4)) s[--i] = '-';
++		w = sizeof(s) - 1 - w;
++		while (i &amp;&amp; i &gt; w) s[--i] = (f &amp; 1) ? '0' : ' ';
++		cc = fputs(&amp;s[i], fil);
++	}
++
++	va_end(arp);
++	return (cc == EOF) ? cc : res;
++}
++
++#endif /* !_FS_READONLY */
++#endif /* _USE_STRFUNC &gt;= 1*/
+
+Added: branches/eagle_mmc/src/fatfs/ff.h
+===================================================================
+--- branches/eagle_mmc/src/fatfs/ff.h	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/fatfs/ff.h	2009-02-17 00:38:10 UTC (rev 199)
+@@ -0,0 +1,339 @@
++/*--------------------------------------------------------------------------/
++/  FatFs - FAT file system module include file  R0.06        (C)ChaN, 2008
++/---------------------------------------------------------------------------/
++/ FatFs module is an experimenal project to implement FAT file system to
++/ cheap microcontrollers. This is a free software and is opened for education,
++/ research and development under license policy of following trems.
++/
++/  Copyright (C) 2008, ChaN, all right reserved.
++/
++/ * The FatFs module is a free software and there is no warranty.
++/ * You can use, modify and/or redistribute it for personal, non-profit or
++/   commercial use without any restriction under your responsibility.
++/ * Redistributions of source code must retain the above copyright notice.
++/
++/---------------------------------------------------------------------------*/
++
++#ifndef _FATFS
++
++#define _MCU_ENDIAN		1
++/* The _MCU_ENDIAN defines which access method is used to the FAT structure.
++/  1: Enable word access.
++/  2: Disable word access and use byte-by-byte access instead.
++/  When the architectural byte order of the MCU is big-endian and/or address
++/  miss-aligned access results incorrect behavior, the _MCU_ENDIAN must be set to 2.
++/  If it is not the case, it can also be set to 1 for good code efficiency. */
++
++#define _FS_READONLY	0
++/* Setting _FS_READONLY to 1 defines read only configuration. This removes
++/  writing functions, f_write, f_sync, f_unlink, f_mkdir, f_chmod, f_rename,
++/  f_truncate and useless f_getfree. */
++
++#define _FS_MINIMIZE	0
++/* The _FS_MINIMIZE option defines minimization level to remove some functions.
++/  0: Full function.
++/  1: f_stat, f_getfree, f_unlink, f_mkdir, f_chmod, f_truncate and f_rename are removed.
++/  2: f_opendir and f_readdir are removed in addition to level 1.
++/  3: f_lseek is removed in addition to level 2. */
++
++#define	_USE_STRFUNC	0
++/* To enable string functions, set _USE_STRFUNC to 1 or 2. */
++
++#define	_USE_MKFS	0
++/* When _USE_MKFS is set to 1 and _FS_READONLY is set to 0, f_mkfs function is
++/  enabled. */
++
++#define _DRIVES		2
++/* Number of logical drives to be used. This affects the size of internal table. */
++
++#define	_MULTI_PARTITION	0
++/* When _MULTI_PARTITION is set to 0, each logical drive is bound to same
++/  physical drive number and can mount only 1st primaly partition. When it is
++/  set to 1, each logical drive can mount a partition listed in Drives[]. */
++
++#define _USE_FSINFO	0
++/* To enable FSInfo support on FAT32 volume, set _USE_FSINFO to 1. */
++
++#define	_USE_SJIS	1
++/* When _USE_SJIS is set to 1, Shift-JIS code transparency is enabled, otherwise
++/  only US-ASCII(7bit) code can be accepted as file/directory name. */
++
++#define	_USE_NTFLAG	1
++/* When _USE_NTFLAG is set to 1, upper/lower case of the file name is preserved.
++/  Note that the files are always accessed in case insensitive. */
++
++
++#include &quot;integer.h&quot;
++
++
++
++/* Definitions corresponds to multiple sector size (not tested) */
++#define	S_MAX_SIZ	512U			/* Do not change */
++#if S_MAX_SIZ &gt; 512U
++#define	SS(fs)	((fs)-&gt;s_size)
++#else
++#define	SS(fs)	512U
++#endif
++
++
++/* File system object structure */
++typedef struct _FATFS {
++	WORD	id;				/* File system mount ID */
++	WORD	n_rootdir;		/* Number of root directory entries */
++	DWORD	winsect;		/* Current sector appearing in the win[] */
++	DWORD	sects_fat;		/* Sectors per fat */
++	DWORD	max_clust;		/* Maximum cluster# + 1 */
++	DWORD	fatbase;		/* FAT start sector */
++	DWORD	dirbase;		/* Root directory start sector (cluster# for FAT32) */
++	DWORD	database;		/* Data start sector */
++#if !_FS_READONLY
++	DWORD	last_clust;		/* Last allocated cluster */
++	DWORD	free_clust;		/* Number of free clusters */
++#if _USE_FSINFO
++	DWORD	fsi_sector;		/* fsinfo sector */
++	BYTE	fsi_flag;		/* fsinfo dirty flag (1:must be written back) */
++	BYTE	pad2;
++#endif
++#endif
++	BYTE	fs_type;		/* FAT sub type */
++	BYTE	csize;			/* Number of sectors per cluster */
++#if S_MAX_SIZ &gt; 512U
++	WORD	s_size;			/* Sector size */
++#endif
++	BYTE	n_fats;			/* Number of FAT copies */
++	BYTE	drive;			/* Physical drive number */
++	BYTE	winflag;		/* win[] dirty flag (1:must be written back) */
++	BYTE	pad1;
++	BYTE	win[S_MAX_SIZ];	/* Disk access window for Directory/FAT */
++} FATFS;
++
++
++/* Directory object structure */
++typedef struct _DIR {
++	WORD	id;			/* Owner file system mount ID */
++	WORD	index;		/* Current index */
++	FATFS*	fs;			/* Pointer to the owner file system object */
++	DWORD	sclust;		/* Start cluster */
++	DWORD	clust;		/* Current cluster */
++	DWORD	sect;		/* Current sector */
++} DIR;
++
++
++/* File object structure */
++typedef struct _FIL {
++	WORD	id;				/* Owner file system mount ID */
++	BYTE	flag;			/* File status flags */
++	BYTE	csect;			/* Sector address in the cluster */
++	FATFS*	fs;				/* Pointer to the owner file system object */
++	DWORD	fptr;			/* File R/W pointer */
++	DWORD	fsize;			/* File size */
++	DWORD	org_clust;		/* File start cluster */
++	DWORD	curr_clust;		/* Current cluster */
++	DWORD	curr_sect;		/* Current sector */
++#if _FS_READONLY == 0
++	DWORD	dir_sect;		/* Sector containing the directory entry */
++	BYTE*	dir_ptr;		/* Ponter to the directory entry in the window */
++#endif
++	BYTE	buffer[S_MAX_SIZ];	/* File R/W buffer */
++} FIL;
++
++
++/* File status structure */
++typedef struct _FILINFO {
++	DWORD fsize;			/* Size */
++	WORD fdate;				/* Date */
++	WORD ftime;				/* Time */
++	BYTE fattrib;			/* Attribute */
++	char fname[8+1+3+1];	/* Name (8.3 format) */
++} FILINFO;
++
++
++
++/* Definitions corresponds to multi partition */
++
++#if _MULTI_PARTITION != 0	/* Multiple partition cfg */
++
++typedef struct _PARTITION {
++	BYTE pd;	/* Physical drive # (0-255) */
++	BYTE pt;	/* Partition # (0-3) */
++} PARTITION;
++extern
++const PARTITION Drives[];			/* Logical drive# to physical location conversion table */
++#define LD2PD(drv) (Drives[drv].pd)	/* Get physical drive# */
++#define LD2PT(drv) (Drives[drv].pt)	/* Get partition# */
++
++#else						/* Single partition cfg */
++
++#define LD2PD(drv) (drv)		/* Physical drive# is equal to logical drive# */
++#define LD2PT(drv) 0			/* Always mounts the 1st partition */
++
++#endif
++
++
++/* File function return code (FRESULT) */
++
++typedef enum {
++	FR_OK = 0,			/* 0 */
++	FR_NOT_READY,		/* 1 */
++	FR_NO_FILE,			/* 2 */
++	FR_NO_PATH,			/* 3 */
++	FR_INVALID_NAME,	/* 4 */
++	FR_INVALID_DRIVE,	/* 5 */
++	FR_DENIED,			/* 6 */
++	FR_EXIST,			/* 7 */
++	FR_RW_ERROR,		/* 8 */
++	FR_WRITE_PROTECTED,	/* 9 */
++	FR_NOT_ENABLED,		/* 10 */
++	FR_NO_FILESYSTEM,	/* 11 */
++	FR_INVALID_OBJECT,	/* 12 */
++	FR_MKFS_ABORTED		/* 13 */
++} FRESULT;
++
++
++
++/*-----------------------------------------------------*/
++/* FatFs module application interface                  */
++
++FRESULT f_mount (BYTE, FATFS*);						/* Mount/Unmount a logical drive */
++FRESULT f_open (FIL*, const char*, BYTE);			/* Open or create a file */
++FRESULT f_read (FIL*, void*, UINT, UINT*);			/* Read data from a file */
++FRESULT f_write (FIL*, const void*, UINT, UINT*);	/* Write data to a file */
++FRESULT f_lseek (FIL*, DWORD);						/* Move file pointer of a file object */
++FRESULT f_close (FIL*);								/* Close an open file object */
++FRESULT f_opendir (DIR*, const char*);				/* Open an existing directory */
++FRESULT f_readdir (DIR*, FILINFO*);					/* Read a directory item */
++FRESULT f_stat (const char*, FILINFO*);				/* Get file status */
++FRESULT f_getfree (const char*, DWORD*, FATFS**);	/* Get number of free clusters on the drive */
++FRESULT f_truncate (FIL*);							/* Truncate file */
++FRESULT f_sync (FIL*);								/* Flush cached data of a writing file */
++FRESULT f_unlink (const char*);						/* Delete an existing file or directory */
++FRESULT	f_mkdir (const char*);						/* Create a new directory */
++FRESULT f_chmod (const char*, BYTE, BYTE);			/* Change file/dir attriburte */
++FRESULT f_utime (const char*, const FILINFO*);		/* Change file/dir timestamp */
++FRESULT f_rename (const char*, const char*);		/* Rename/Move a file or directory */
++FRESULT f_mkfs (BYTE, BYTE, WORD);					/* Create a file system on the drive */
++#if _USE_STRFUNC
++#define feof(fp) ((fp)-&gt;fptr == (fp)-&gt;fsize)
++#define EOF -1
++int fputc (int, FIL*);								/* Put a character to the file */
++int fputs (const char*, FIL*);						/* Put a string to the file */
++int fprintf (FIL*, const char*, ...);				/* Put a formatted string to the file */
++char* fgets (char*, int, FIL*);						/* Get a string from the file */
++#endif
++
++/* User defined function to give a current time to fatfs module */
++
++DWORD get_fattime (void);	/* 31-25: Year(0-127 org.1980), 24-21: Month(1-12), 20-16: Day(1-31) */
++							/* 15-11: Hour(0-23), 10-5: Minute(0-59), 4-0: Second(0-29 *2) */
++
++
++
++/* File access control and file status flags (FIL.flag) */
++
++#define	FA_READ				0x01
++#define	FA_OPEN_EXISTING	0x00
++#if _FS_READONLY == 0
++#define	FA_WRITE			0x02
++#define	FA_CREATE_NEW		0x04
++#define	FA_CREATE_ALWAYS	0x08
++#define	FA_OPEN_ALWAYS		0x10
++#define FA__WRITTEN			0x20
++#define FA__DIRTY			0x40
++#endif
++#define FA__ERROR			0x80
++
++
++/* FAT sub type (FATFS.fs_type) */
++
++#define FS_FAT12	1
++#define FS_FAT16	2
++#define FS_FAT32	3
++
++
++/* File attribute bits for directory entry */
++
++#define	AM_RDO	0x01	/* Read only */
++#define	AM_HID	0x02	/* Hidden */
++#define	AM_SYS	0x04	/* System */
++#define	AM_VOL	0x08	/* Volume label */
++#define AM_LFN	0x0F	/* LFN entry */
++#define AM_DIR	0x10	/* Directory */
++#define AM_ARC	0x20	/* Archive */
++
++
++
++/* Offset of FAT structure members */
++
++#define BS_jmpBoot			0
++#define BS_OEMName			3
++#define BPB_BytsPerSec		11
++#define BPB_SecPerClus		13
++#define BPB_RsvdSecCnt		14
++#define BPB_NumFATs			16
++#define BPB_RootEntCnt		17
++#define BPB_TotSec16		19
++#define BPB_Media			21
++#define BPB_FATSz16			22
++#define BPB_SecPerTrk		24
++#define BPB_NumHeads		26
++#define BPB_HiddSec			28
++#define BPB_TotSec32		32
++#define BS_55AA				510
++
++#define BS_DrvNum			36
++#define BS_BootSig			38
++#define BS_VolID			39
++#define BS_VolLab			43
++#define BS_FilSysType		54
++
++#define BPB_FATSz32			36
++#define BPB_ExtFlags		40
++#define BPB_FSVer			42
++#define BPB_RootClus		44
++#define BPB_FSInfo			48
++#define BPB_BkBootSec		50
++#define BS_DrvNum32			64
++#define BS_BootSig32		66
++#define BS_VolID32			67
++#define BS_VolLab32			71
++#define BS_FilSysType32		82
++
++#define	FSI_LeadSig			0
++#define	FSI_StrucSig		484
++#define	FSI_Free_Count		488
++#define	FSI_Nxt_Free		492
++
++#define MBR_Table			446
++
++#define	DIR_Name			0
++#define	DIR_Attr			11
++#define	DIR_NTres			12
++#define	DIR_CrtTime			14
++#define	DIR_CrtDate			16
++#define	DIR_FstClusHI		20
++#define	DIR_WrtTime			22
++#define	DIR_WrtDate			24
++#define	DIR_FstClusLO		26
++#define	DIR_FileSize		28
++
++
++
++/* Multi-byte word access macros  */
++
++#if _MCU_ENDIAN == 1	/* Use word access */
++#define	LD_WORD(ptr)		(WORD)(*(WORD*)(BYTE*)(ptr))
++#define	LD_DWORD(ptr)		(DWORD)(*(DWORD*)(BYTE*)(ptr))
++#define	ST_WORD(ptr,val)	*(WORD*)(BYTE*)(ptr)=(WORD)(val)
++#define	ST_DWORD(ptr,val)	*(DWORD*)(BYTE*)(ptr)=(DWORD)(val)
++#elif _MCU_ENDIAN == 2	/* Use byte-by-byte access */
++#define	LD_WORD(ptr)		(WORD)(((WORD)*(volatile BYTE*)((ptr)+1)&lt;&lt;8)|(WORD)*(volatile BYTE*)(ptr))
++#define	LD_DWORD(ptr)		(DWORD)(((DWORD)*(volatile BYTE*)((ptr)+3)&lt;&lt;24)|((DWORD)*(volatile BYTE*)((ptr)+2)&lt;&lt;16)|((WORD)*(volatile BYTE*)((ptr)+1)&lt;&lt;8)|*(volatile BYTE*)(ptr))
++#define	ST_WORD(ptr,val)	*(volatile BYTE*)(ptr)=(BYTE)(val); *(volatile BYTE*)((ptr)+1)=(BYTE)((WORD)(val)&gt;&gt;8)
++#define	ST_DWORD(ptr,val)	*(volatile BYTE*)(ptr)=(BYTE)(val); *(volatile BYTE*)((ptr)+1)=(BYTE)((WORD)(val)&gt;&gt;8); *(volatile BYTE*)((ptr)+2)=(BYTE)((DWORD)(val)&gt;&gt;16); *(volatile BYTE*)((ptr)+3)=(BYTE)((DWORD)(val)&gt;&gt;24)
++#else
++#error Do not forget to set _MCU_ENDIAN properly!
++#endif
++
++
++#define _FATFS
++#endif /* _FATFS */
+
+Added: branches/eagle_mmc/src/fatfs/integer.h
+===================================================================
+--- branches/eagle_mmc/src/fatfs/integer.h	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/fatfs/integer.h	2009-02-17 00:38:10 UTC (rev 199)
+@@ -0,0 +1,40 @@
++/*-------------------------------------------*/
++/* Integer type definitions for FatFs module */
++/*-------------------------------------------*/
++
++#ifndef _INTEGER
++
++/* These types must be 16-bit, 32-bit or larger integer */
++typedef int				INT;
++typedef unsigned int	UINT;
++
++#ifndef __TYPE_H__
++/* These types must be 8-bit integer */
++typedef signed char		CHAR;
++typedef unsigned char	UCHAR;
++typedef unsigned char	BYTE;
++
++/* These types must be 16-bit integer */
++typedef short			SHORT;
++typedef unsigned short	USHORT;
++typedef unsigned short	WORD;
++
++/* These types must be 32-bit integer */
++typedef long			LONG;
++typedef unsigned long	ULONG;
++typedef unsigned long	DWORD;
++
++/* Boolean type */
++typedef enum { FALSE = 0, TRUE } BOOL;
++#else
++/* Only define types not in type.h */
++typedef signed char             CHAR;
++typedef unsigned char   UCHAR;
++typedef signed short    SHORT;
++typedef unsigned short  USHORT;
++typedef signed long             LONG;
++typedef unsigned long   ULONG;
++#endif
++
++#define _INTEGER
++#endif
+
+Modified: branches/eagle_mmc/src/lua/linit.c
+===================================================================
+--- branches/eagle_mmc/src/lua/linit.c	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/lua/linit.c	2009-02-17 00:38:10 UTC (rev 199)
+@@ -15,7 +15,7 @@
+ #include &quot;lrotable.h&quot;
+ #include &quot;luaconf.h&quot;
+ 
+-#ifndef LUA_CROSS_COMPILER
++#if defined(ELUA_PLATFORM) &amp;&amp; !defined(LUA_CROSS_COMPILER)
+ #include &quot;platform_conf.h&quot;
+ #endif
+ 
+
+Modified: branches/eagle_mmc/src/lua/lrotable.c
+===================================================================
+--- branches/eagle_mmc/src/lua/lrotable.c	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/lua/lrotable.c	2009-02-17 00:38:10 UTC (rev 199)
+@@ -125,10 +125,14 @@
+ }
+ 
+ /* Return 1 if the given pointer is a rotable */
+-#ifdef LUA_META_ROTABLES
++#if defined(ELUA_PLATFORM) &amp;&amp; defined(LUA_META_ROTABLES)
+ extern char stext[];
+ extern char etext[];
+ int luaR_isrotable(void *p) {
+   return stext &lt;= ( char* )p &amp;&amp; ( char* )p &lt;= etext;
+ }
++#else
++int luaR_isrotable(void *p) {
++  return 0;
++}
+ #endif
+
+Modified: branches/eagle_mmc/src/lua/lua.c
+===================================================================
+--- branches/eagle_mmc/src/lua/lua.c	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/lua/lua.c	2009-02-17 00:38:10 UTC (rev 199)
+@@ -17,8 +17,10 @@
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lualib.h&quot;
+ 
++#if defined(ELUA_PLATFORM)
++#define main lua_main
++#endif
+ 
+-
+ static lua_State *globalL = NULL;
+ 
+ static const char *progname = LUA_PROGNAME;
+@@ -374,7 +376,7 @@
+ }
+ 
+ 
+-int lua_main (int argc, char **argv) {
++int main (int argc, char **argv) {
+   int status;
+   struct Smain s;
+   lua_State *L = lua_open();  /* create state */
+
+Modified: branches/eagle_mmc/src/lua/luaconf.h
+===================================================================
+--- branches/eagle_mmc/src/lua/luaconf.h	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/lua/luaconf.h	2009-02-17 00:38:10 UTC (rev 199)
+@@ -89,7 +89,7 @@
+ 
+ //## Modified for eLua
+ //## Defaults search modules path to our ROM File System
+-#define LUA_PATH_DEFAULT &quot;\ROM\?.lua&quot;
++#define LUA_PATH_DEFAULT &quot;\\ROM\\?.lua&quot;
+ /*
+ ** ## Original LUA_PATH_DEFAULT
+ #define LUA_PATH_DEFAULT  \
+
+Modified: branches/eagle_mmc/src/main.c
+===================================================================
+--- branches/eagle_mmc/src/main.c	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/main.c	2009-02-17 00:38:10 UTC (rev 199)
+@@ -5,7 +5,6 @@
+ #include &quot;type.h&quot;
+ #include &quot;devman.h&quot;
+ #include &quot;platform.h&quot;
+-#include &quot;romfs.h&quot;
+ #include &quot;xmodem.h&quot;
+ #include &quot;shell.h&quot;
+ #include &quot;lua.h&quot;
+@@ -15,6 +14,15 @@
+ // Validate eLua configuratin options
+ #include &quot;validate.h&quot;
+ 
++#include &quot;mmcfs.h&quot;
++#include &quot;romfs.h&quot;
++#if defined(BUILD_MMCFS)
++  #define FS_AUTORUN          &quot;/mmc/autorun.lua&quot;
++#endif
++#if defined(BUILD_ROMFS) &amp;&amp; !defined(FS_AUTORUN)
++  #define FS_AUTORUN          &quot;/rom/autorun.lua&quot;
++#endif
++
+ extern char etext[];
+ 
+ // ****************************************************************************
+@@ -55,7 +63,7 @@
+ static int term_translate( u8 data )
+ {
+   int c;
+-  
++
+   if( isprint( data ) )
+     return data;
+   else if( data == 0x1B ) // escape sequence
+@@ -75,7 +83,7 @@
+       case 0x43:
+         return KC_RIGHT;
+       case 0x44:
+-        return KC_LEFT;               
++        return KC_LEFT;
+     }
+   }
+   else if( data == 0x0D )
+@@ -114,38 +122,43 @@
+ int main( void )
+ {
+   FILE* fp;
+-  
++
+   // Initialize platform first
+   if( platform_init() != PLATFORM_OK )
+   {
+     // This should never happen
+     while( 1 );
+   }
+-  
++
+   // Initialize device manager
+   dm_init();
+-  
++
++  // Register the MMC filesystem
++  dm_register( mmcfs_init() );
++
+   // Register the ROM filesystem
+-  dm_register( romfs_init() );  
++  dm_register( romfs_init() );
+ 
+-#ifdef BUILD_XMODEM  
++#ifdef BUILD_XMODEM
+   // Initialize XMODEM
+-  xmodem_init( xmodem_send, xmodem_recv );    
++  xmodem_init( xmodem_send, xmodem_recv );
+ #endif
+ 
+-#ifdef BUILD_TERM  
++#ifdef BUILD_TERM
+   // Initialize terminal
+   term_init( TERM_LINES, TERM_COLS, term_out, term_in, term_translate );
+ #endif
+ 
+-  // Autorun: if &quot;autorun.lua&quot; is found in the ROM file system, run it first
+-  if( ( fp = fopen( &quot;/rom/autorun.lua&quot;, &quot;r&quot; ) ) != NULL )
++#ifdef FS_AUTORUN
++  // Autorun: if &quot;autorun.lua&quot; is found in the file system, run it first
++  if( ( fp = fopen( FS_AUTORUN, &quot;r&quot; ) ) != NULL )
+   {
+     fclose( fp );
+-    char* lua_argv[] = { &quot;lua&quot;, &quot;/rom/autorun.lua&quot;, NULL };
+-    lua_main( 2, lua_argv );    
++    char* lua_argv[] = { &quot;lua&quot;, FS_AUTORUN, NULL };
++    lua_main( 2, lua_argv );
+   }
+-  
++#endif
++
+   // Run the shell
+   if( shell_init() == 0 )
+   {
+
+Added: branches/eagle_mmc/src/mmcfs.c
+===================================================================
+--- branches/eagle_mmc/src/mmcfs.c	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/mmcfs.c	2009-02-17 00:38:10 UTC (rev 199)
+@@ -0,0 +1,199 @@
++// MMC filesystem implementation using FatFs
++#include &quot;mmcfs.h&quot;
++#include &quot;type.h&quot;
++#include &lt;string.h&gt;
++#include &lt;errno.h&gt;
++#include &quot;devman.h&quot;
++#include &lt;stdio.h&gt;
++#include &quot;ioctl.h&quot;
++
++#include &quot;platform_conf.h&quot;
++#ifdef BUILD_MMCFS
++#include &quot;ff.h&quot;
++#include &quot;diskio.h&quot;
++#include &lt;fcntl.h&gt;
++
++#define MMCFS_MAX_FDS   4
++static FIL mmcfs_fd_table[ MMCFS_MAX_FDS ];
++static int mmcfs_num_fd;
++
++// Data structures used by FatFs
++static FATFS mmc_fs;
++static FIL mmc_fileObject;
++//static DIR mmc_dir;
++//static FILINFO mmc_fileInfo;
++
++#define PATH_BUF_SIZE   40
++static char mmc_pathBuf[PATH_BUF_SIZE];
++
++static int mmcfs_find_empty_fd()
++{
++  int i;
++
++  for (i = 0; i &lt; MMCFS_MAX_FDS; i ++)
++    if (mmcfs_fd_table[i].fs == NULL)
++      return i;
++  return -1;
++}
++
++static int mmcfs_open_r( struct _reent *r, const char *path, int flags, int mode )
++{
++  int fd;
++  int mmc_mode;
++
++  if (mmcfs_num_fd == MMCFS_MAX_FDS)
++  {
++    r-&gt;_errno = ENFILE;
++    return -1;
++  }
++
++  // Default to top directory if none given
++  mmc_pathBuf[0] = 0;
++  if (strchr(path, '/') == NULL)
++    strcat(mmc_pathBuf, &quot;/&quot;);
++  strcat(mmc_pathBuf, path);
++
++  // Translate fcntl.h mode to FatFs mode (by <A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jcwren at jcwren.com</A>)
++  if (((flags &amp; (O_CREAT | O_TRUNC)) == (O_CREAT | O_TRUNC)) &amp;&amp; (flags &amp; (O_RDWR | O_WRONLY)))
++    mmc_mode = FA_CREATE_ALWAYS;
++  else if ((flags &amp; (O_CREAT | O_EXCL)) == (O_CREAT | O_EXCL))
++    mmc_mode = FA_OPEN_EXISTING;
++  else if ((flags &amp; O_CREAT) == O_CREAT)
++    mmc_mode = FA_OPEN_ALWAYS;
++  else if ((flags == O_RDONLY) || (flags == O_WRONLY) || (flags == O_RDWR))
++    mmc_mode = FA_OPEN_EXISTING;
++  else
++  {
++    r-&gt;_errno = EINVAL;
++    return -1;
++  }
++
++  if ((flags &amp; O_ACCMODE) == O_RDONLY)
++    mmc_mode |= FA_READ;
++  else if ((flags &amp; O_ACCMODE) == O_WRONLY)
++    mmc_mode |= FA_WRITE;
++  else if ((flags &amp; O_ACCMODE) == O_RDWR)
++    mmc_mode |= (FA_READ | FA_WRITE);
++  else
++  {
++    r-&gt;_errno = EINVAL;
++    return -1;
++  }
++
++  // Open the file for reading
++  if (f_open(&amp;mmc_fileObject, mmc_pathBuf, mmc_mode) != FR_OK)
++  {
++    r-&gt;_errno = ENOENT;
++    return -1;
++  }
++
++  if (mode &amp; O_APPEND)
++    mmc_fileObject.fptr = mmc_fileObject.fsize;
++  fd = mmcfs_find_empty_fd();
++  memcpy(mmcfs_fd_table + fd, &amp;mmc_fileObject, sizeof(FIL));
++  mmcfs_num_fd ++;
++  return fd;
++}
++
++static int mmcfs_close_r( struct _reent *r, int fd )
++{
++  FIL* pFile = mmcfs_fd_table + fd;
++
++  f_close( pFile );
++  memset(pFile, 0, sizeof(FIL));
++  mmcfs_num_fd --;
++  return 0;
++}
++
++static _ssize_t mmcfs_write_r( struct _reent *r, int fd, const void* ptr, size_t len )
++{
++  WORD bytesWritten;
++
++  if (f_write(mmcfs_fd_table + fd, ptr, len, &amp;bytesWritten) != FR_OK)
++  {
++    r-&gt;_errno = EIO;
++    return -1;
++  }
++
++  return (_ssize_t) bytesWritten;
++}
++
++static _ssize_t mmcfs_read_r( struct _reent *r, int fd, void* ptr, size_t len )
++{
++  WORD bytesRead;
++
++  if (f_read(mmcfs_fd_table + fd, ptr, len, &amp;bytesRead) != FR_OK)
++  {
++    r-&gt;_errno = EIO;
++    return -1;
++  }
++
++  return (_ssize_t) bytesRead;
++}
++
++// IOCTL: only fseek
++static int mmcfs_ioctl_r( struct _reent *r, int fd, unsigned long request, void *ptr )
++{
++  struct fd_seek *pseek = ( struct fd_seek* )ptr;
++  FIL* pFile = mmcfs_fd_table + fd;
++  u16 newpos = 0;
++
++  if (request == FDSEEK)
++  {
++    switch (pseek-&gt;dir)
++    {
++      case SEEK_SET:
++        // seek from beginning of file
++        newpos =  pseek-&gt;off;
++        break;
++
++      case SEEK_CUR:
++        // seek from current position
++        newpos = pFile-&gt;fptr + pseek-&gt;off;
++        break;
++
++      case SEEK_END:
++        // seek from end of file
++        newpos = pFile-&gt;fsize + pseek-&gt;off;
++        break;
++
++      default:
++        return -1;
++    }
++    if (f_lseek (pFile, newpos) != FR_OK)
++      return -1;
++    pseek-&gt;off = newpos;
++    return 0;
++  }
++  else
++    return -1;
++}
++
++// MMC device descriptor structure
++static DM_DEVICE mmcfs_device =
++{
++  &quot;/mmc&quot;,
++  mmcfs_open_r,
++  mmcfs_close_r,
++  mmcfs_write_r,
++  mmcfs_read_r,
++  mmcfs_ioctl_r
++};
++
++DM_DEVICE* mmcfs_init()
++{
++  // Mount the MMC file system using logical disk 0
++  if (f_mount(0, &amp;mmc_fs) != FR_OK)
++    return NULL;
++
++  return &amp;mmcfs_device;
++}
++
++#else // !defined(BUILD_MMCFS)
++
++DM_DEVICE* mmcfs_init()
++{
++  return NULL;
++}
++
++#endif // BUILD_MMCFS
+
+Modified: branches/eagle_mmc/src/platform/lm3s/conf.py
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/conf.py	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/platform/lm3s/conf.py	2009-02-17 00:38:10 UTC (rev 199)
+@@ -1,30 +1,40 @@
+ # Configuration file for the LM3S microcontroller
+ 
+-specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c rit128x96x4.c disp.c adc.c&quot;
++specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c mmc.c&quot;
++if boardname != 'EAGLE-100':
++  specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
+ ldscript = &quot;lm3s.ld&quot;
+-  
++
++# Compiler prefix
++# arm-elf-         ELF compiler
++# arm-eabi-        devkitARM EABI compiler
++# arm-none-eabi-   CodeSourcery EABI compiler
++if boardname != 'EAGLE-100':
++  cprefix= &quot;arm-elf-&quot;
++else:
++  cprefix= &quot;arm-eabi-&quot;
++cprefix= &quot;arm-eabi-&quot;
++
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+-if cputype == 'LM3S8962':
+-  cdefs = cdefs + &quot; -DFORLM3S8962&quot;
+-else:
+-  cdefs = cdefs + &quot; -DFORLM3S6965&quot;
++cdefs = cdefs + &quot; -DFOR&quot; + cputype + &quot; -Dgcc&quot;
+ 
+-cdefs = cdefs + &quot; -Dgcc&quot;
+-
+ # Toolset data
+ tools[ 'lm3s' ] = {}
+-tools[ 'lm3s' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=cortex-m3 -mthumb  %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
+-tools[ 'lm3s' ][ 'linkcom' ] = &quot;arm-elf-gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
+-tools[ 'lm3s' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++tools[ 'lm3s' ][ 'cccom' ] = cprefix + &quot;gcc -mcpu=cortex-m3 -mthumb  %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
++if cprefix == 'arm-elf-':
++  tools[ 'lm3s' ][ 'linkcom' ] = cprefix + &quot;gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
++else:
++  tools[ 'lm3s' ][ 'linkcom' ] = cprefix + &quot;gcc -mthumb -mcpu=cortex-m3 -nostartfiles -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lm %s&quot; % ( ldscript, local_libs )
++tools[ 'lm3s' ][ 'ascom' ] = cprefix + &quot;gcc -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+ 
+ # Programming function
+ def progfunc_lm3s( target, source, env ):
+   outname = output + &quot;.elf&quot;
+-  os.system( &quot;arm-elf-size %s&quot; % outname )
++  os.system( cprefix + &quot;size %s&quot; % outname )
+   print &quot;Generating binary image...&quot;
+-  os.system( &quot;arm-elf-objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
+-  
++  os.system( cprefix + &quot;objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
++
+ tools[ 'lm3s' ][ 'progfunc' ] = progfunc_lm3s
+
+Modified: branches/eagle_mmc/src/platform/lm3s/lm3s.ld
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/lm3s.ld	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/platform/lm3s/lm3s.ld	2009-02-17 00:38:10 UTC (rev 199)
+@@ -23,6 +23,8 @@
+         . = ALIGN(4);
+         _etext = .;
+         PROVIDE(etext = .);        
++        _fini = . ;
++        *(.fini)
+ 
+     } &gt;flash
+ 
+@@ -37,6 +39,18 @@
+         _edata = .;
+     } &gt;sram
+ 
++    .ARM.extab :
++    {
++        *(.ARM.extab*)
++    } &gt;sram
++
++    __exidx_start = .;
++    .ARM.exidx :
++    {
++        *(.ARM.exidx*)
++    } &gt;sram
++    __exidx_end = .;
++
+     .bss (NOLOAD) : {
+         _bss = .;
+         *(.bss .bss.*)
+
+Added: branches/eagle_mmc/src/platform/lm3s/mmc.c
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/mmc.c	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/platform/lm3s/mmc.c	2009-02-17 00:38:10 UTC (rev 199)
+@@ -0,0 +1,691 @@
++/*-----------------------------------------------------------------------*/
++/* MMC/SDC (in SPI mode) control module  (C)ChaN, 2007                   */
++/*-----------------------------------------------------------------------*/
++/* Only rcvr_spi(), xmit_spi(), disk_timerproc() and some macros         */
++/* are platform dependent.                                               */
++/*-----------------------------------------------------------------------*/
++
++/*
++ * This file was modified from a sample available from the FatFs
++ * web site. It was modified to work with a LM3S boards.
++ */
++
++#include &quot;diskio.h&quot;
++#include &quot;hw_types.h&quot;
++#include &quot;hw_memmap.h&quot;
++#include &quot;ssi.h&quot;
++#include &quot;gpio.h&quot;
++#include &quot;sysctl.h&quot;
++
++/* Definitions for MMC/SDC command */
++#define CMD0    (0x40+0)    /* GO_IDLE_STATE */
++#define CMD1    (0x40+1)    /* SEND_OP_COND */
++#define CMD8    (0x40+8)    /* SEND_IF_COND */
++#define CMD9    (0x40+9)    /* SEND_CSD */
++#define CMD10    (0x40+10)    /* SEND_CID */
++#define CMD12    (0x40+12)    /* STOP_TRANSMISSION */
++#define CMD16    (0x40+16)    /* SET_BLOCKLEN */
++#define CMD17    (0x40+17)    /* READ_SINGLE_BLOCK */
++#define CMD18    (0x40+18)    /* READ_MULTIPLE_BLOCK */
++#define CMD23    (0x40+23)    /* SET_BLOCK_COUNT */
++#define CMD24    (0x40+24)    /* WRITE_BLOCK */
++#define CMD25    (0x40+25)    /* WRITE_MULTIPLE_BLOCK */
++#define CMD41    (0x40+41)    /* SEND_OP_COND (ACMD) */
++#define CMD55    (0x40+55)    /* APP_CMD */
++#define CMD58    (0x40+58)    /* READ_OCR */
++
++/* Peripheral definitions for LM3S boards */
++// SSI port
++#define SDC_SSI_BASE            SSI0_BASE
++#define SDC_SSI_SYSCTL_PERIPH   SYSCTL_PERIPH_SSI0
++
++// GPIO for SSI pins
++#define SDC_GPIO_PORT_BASE      GPIO_PORTA_BASE
++#define SDC_GPIO_SYSCTL_PERIPH  SYSCTL_PERIPH_GPIOA
++#define SDC_SSI_CLK             GPIO_PIN_2
++#define SDC_SSI_TX              GPIO_PIN_5
++#define SDC_SSI_RX              GPIO_PIN_4
++#define SDC_SSI_FSS             GPIO_PIN_3
++#define SDC_SSI_PINS            (SDC_SSI_TX | SDC_SSI_RX | SDC_SSI_CLK)
++
++// GPIO for card chip select
++#if ELUA_BOARD == EK-LM3S6965
++  // EK-LM3S6965
++  #define SDC_CS_GPIO_PORT_BASE      GPIO_PORTD_BASE
++  #define SDC_CS_GPIO_SYSCTL_PERIPH  SYSCTL_PERIPH_GPIOD
++  #define SDC_CS                     GPIO_PIN_0
++#elif ELUA_BOARD == EK-LM3S8962
++  // EK-LM3S8962
++  #define SDC_CS_GPIO_PORT_BASE      GPIO_PORTG_BASE
++  #define SDC_CS_GPIO_SYSCTL_PERIPH  SYSCTL_PERIPH_GPIOG
++  #define SDC_CS                     GPIO_PIN_0
++#elif ELUA_BOARD == EAGLE-100
++  // Eagle-100
++  #define SDC_CS_GPIO_PORT_BASE      GPIO_PORTG_BASE
++  #define SDC_CS_GPIO_SYSCTL_PERIPH  SYSCTL_PERIPH_GPIOG
++  #define SDC_CS                     GPIO_PIN_1
++#else
++  #error &quot;MMC not supported on this board&quot;
++#endif
++
++// asserts the CS pin to the card
++static
++void SELECT (void)
++{
++    GPIOPinWrite(SDC_CS_GPIO_PORT_BASE, SDC_CS, 0);
++}
++
++// de-asserts the CS pin to the card
++static
++void DESELECT (void)
++{
++    GPIOPinWrite(SDC_CS_GPIO_PORT_BASE, SDC_CS, SDC_CS);
++}
++
++
++/*--------------------------------------------------------------------------
++
++   Module Private Functions
++
++---------------------------------------------------------------------------*/
++
++static volatile
++DSTATUS Stat = STA_NOINIT;    /* Disk status */
++
++static volatile
++BYTE Timer1, Timer2;    /* 100Hz decrement timer */
++
++static
++BYTE CardType;            /* b0:MMC, b1:SDC, b2:Block addressing */
++
++static
++BYTE PowerFlag = 0;     /* indicates if &quot;power&quot; is on */
++
++/*-----------------------------------------------------------------------*/
++/* Transmit a byte to MMC via SPI  (Platform dependent)                  */
++/*-----------------------------------------------------------------------*/
++
++static
++void xmit_spi (BYTE dat)
++{
++    DWORD rcvdat;
++
++    SSIDataPut(SDC_SSI_BASE, dat); /* Write the data to the tx fifo */
++
++    SSIDataGet(SDC_SSI_BASE, &amp;rcvdat); /* flush data read during the write */
++}
++
++
++/*-----------------------------------------------------------------------*/
++/* Receive a byte from MMC via SPI  (Platform dependent)                 */
++/*-----------------------------------------------------------------------*/
++
++static
++BYTE rcvr_spi (void)
++{
++    DWORD rcvdat;
++
++    SSIDataPut(SDC_SSI_BASE, 0xFF); /* write dummy data */
++
++    SSIDataGet(SDC_SSI_BASE, &amp;rcvdat); /* read data frm rx fifo */
++
++    return (BYTE)rcvdat;
++}
++
++
++static
++void rcvr_spi_m (BYTE *dst)
++{
++    *dst = rcvr_spi();
++}
++
++/*-----------------------------------------------------------------------*/
++/* Wait for card ready                                                   */
++/*-----------------------------------------------------------------------*/
++
++static
++BYTE wait_ready (void)
++{
++    BYTE res;
++
++
++    Timer2 = 50;    /* Wait for ready in timeout of 500ms */
++    rcvr_spi();
++    do
++        res = rcvr_spi();
++    while ((res != 0xFF) &amp;&amp; Timer2);
++
++    return res;
++}
++
++/*-----------------------------------------------------------------------*/
++/* Send 80 or so clock transitions with CS and DI held high. This is     */
++/* required after card power up to get it into SPI mode                  */
++/*-----------------------------------------------------------------------*/
++static
++void send_initial_clock_train(void)
++{
++    unsigned int i;
++    DWORD dat;
++
++    /* Ensure CS is held high. */
++    DESELECT();
++
++    /* Switch the SSI TX line to a GPIO and drive it high too. */
++    GPIOPinTypeGPIOOutput(SDC_GPIO_PORT_BASE, SDC_SSI_TX);
++    GPIOPinWrite(SDC_GPIO_PORT_BASE, SDC_SSI_TX, SDC_SSI_TX);
++
++    /* Send 10 bytes over the SSI. This causes the clock to wiggle the */
++    /* required number of times. */
++    for(i = 0 ; i &lt; 10 ; i++)
++    {
++        /* Write DUMMY data. SSIDataPut() waits until there is room in the */
++        /* FIFO. */
++        SSIDataPut(SDC_SSI_BASE, 0xFF);
++
++        /* Flush data read during data write. */
++        SSIDataGet(SDC_SSI_BASE, &amp;dat);
++    }
++
++    /* Revert to hardware control of the SSI TX line. */
++    GPIOPinTypeSSI(SDC_GPIO_PORT_BASE, SDC_SSI_TX);
++}
++
++/*-----------------------------------------------------------------------*/
++/* Power Control  (Platform dependent)                                   */
++/*-----------------------------------------------------------------------*/
++/* When the target system does not support socket power control, there   */
++/* is nothing to do in these functions and chk_power always returns 1.   */
++
++static
++void power_on (void)
++{
++    /*
++     * This doesn't really turn the power on, but initializes the
++     * SSI port and pins needed to talk to the card.
++     */
++
++    /* Enable the peripherals used to drive the SDC on SSI, and the CS */
++    SysCtlPeripheralEnable(SDC_SSI_SYSCTL_PERIPH);
++    SysCtlPeripheralEnable(SDC_GPIO_SYSCTL_PERIPH);
++    SysCtlPeripheralEnable(SDC_CS_GPIO_SYSCTL_PERIPH);
++
++    /* Configure the appropriate pins to be SSI instead of GPIO */
++    GPIOPinTypeSSI(SDC_GPIO_PORT_BASE, SDC_SSI_PINS);
++    GPIOPinTypeGPIOOutput(SDC_CS_GPIO_PORT_BASE, SDC_CS);
++    GPIOPadConfigSet(SDC_GPIO_PORT_BASE, SDC_SSI_PINS, GPIO_STRENGTH_4MA,
++                     GPIO_PIN_TYPE_STD_WPU);
++    GPIOPadConfigSet(SDC_CS_GPIO_PORT_BASE, SDC_CS, GPIO_STRENGTH_4MA,
++                     GPIO_PIN_TYPE_STD_WPU);
++
++    /* Deassert the SSI0 chip select */
++    GPIOPinWrite(SDC_CS_GPIO_PORT_BASE, SDC_CS, SDC_CS);
++
++    /* Configure the SSI0 port */
++    SSIConfigSetExpClk(SDC_SSI_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0,
++                       SSI_MODE_MASTER, 400000, 8);
++    SSIEnable(SDC_SSI_BASE);
++
++    /* Set DI and CS high and apply more than 74 pulses to SCLK for the card */
++    /* to be able to accept a native command. */
++    send_initial_clock_train();
++
++    PowerFlag = 1;
++}
++
++// set the SSI speed to the max setting
++static
++void set_max_speed(void)
++{
++    unsigned long i;
++
++    /* Disable the SSI */
++    SSIDisable(SDC_SSI_BASE);
++
++    /* Set the maximum speed as half the system clock, with a max of 12.5 MHz. */
++    i = SysCtlClockGet() / 2;
++    if(i &gt; 12500000)
++    {
++        i = 12500000;
++    }
++
++    /* Configure the SSI0 port */
++    SSIConfigSetExpClk(SDC_SSI_BASE, SysCtlClockGet(), SSI_FRF_MOTO_MODE_0,
++                       SSI_MODE_MASTER, i, 8);
++
++    /* Enable the SSI */
++    SSIEnable(SDC_SSI_BASE);
++}
++
++static
++void power_off (void)
++{
++    PowerFlag = 0;
++}
++
++static
++int chk_power(void)        /* Socket power state: 0=off, 1=on */
++{
++    return PowerFlag;
++}
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Receive a data packet from MMC                                        */
++/*-----------------------------------------------------------------------*/
++
++static
++BOOL rcvr_datablock (
++    BYTE *buff,            /* Data buffer to store received data */
++    UINT btr            /* Byte count (must be even number) */
++)
++{
++    BYTE token;
++
++
++    Timer1 = 10;
++    do {                            /* Wait for data packet in timeout of 100ms */
++        token = rcvr_spi();
++    } while ((token == 0xFF) &amp;&amp; Timer1);
++    if(token != 0xFE) return FALSE;    /* If not valid data token, retutn with error */
++
++    do {                            /* Receive the data block into buffer */
++        rcvr_spi_m(buff++);
++        rcvr_spi_m(buff++);
++    } while (btr -= 2);
++    rcvr_spi();                        /* Discard CRC */
++    rcvr_spi();
++
++    return TRUE;                    /* Return with success */
++}
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Send a data packet to MMC                                             */
++/*-----------------------------------------------------------------------*/
++
++#if _READONLY == 0
++static
++BOOL xmit_datablock (
++    const BYTE *buff,    /* 512 byte data block to be transmitted */
++    BYTE token            /* Data/Stop token */
++)
++{
++    BYTE resp, wc;
++
++
++    if (wait_ready() != 0xFF) return FALSE;
++
++    xmit_spi(token);                    /* Xmit data token */
++    if (token != 0xFD) {    /* Is data token */
++        wc = 0;
++        do {                            /* Xmit the 512 byte data block to MMC */
++            xmit_spi(*buff++);
++            xmit_spi(*buff++);
++        } while (--wc);
++        xmit_spi(0xFF);                    /* CRC (Dummy) */
++        xmit_spi(0xFF);
++        resp = rcvr_spi();                /* Reveive data response */
++        if ((resp &amp; 0x1F) != 0x05)        /* If not accepted, return with error */
++            return FALSE;
++    }
++
++    return TRUE;
++}
++#endif /* _READONLY */
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Send a command packet to MMC                                          */
++/*-----------------------------------------------------------------------*/
++
++static
++BYTE send_cmd (
++    BYTE cmd,        /* Command byte */
++    DWORD arg        /* Argument */
++)
++{
++    BYTE n, res;
++
++
++    if (wait_ready() != 0xFF) return 0xFF;
++
++    /* Send command packet */
++    xmit_spi(cmd);                        /* Command */
++    xmit_spi((BYTE)(arg &gt;&gt; 24));        /* Argument[31..24] */
++    xmit_spi((BYTE)(arg &gt;&gt; 16));        /* Argument[23..16] */
++    xmit_spi((BYTE)(arg &gt;&gt; 8));            /* Argument[15..8] */
++    xmit_spi((BYTE)arg);                /* Argument[7..0] */
++    n = 0;
++    if (cmd == CMD0) n = 0x95;            /* CRC for CMD0(0) */
++    if (cmd == CMD8) n = 0x87;            /* CRC for CMD8(0x1AA) */
++    xmit_spi(n);
++
++    /* Receive command response */
++    if (cmd == CMD12) rcvr_spi();        /* Skip a stuff byte when stop reading */
++    n = 10;                                /* Wait for a valid response in timeout of 10 attempts */
++    do
++        res = rcvr_spi();
++    while ((res &amp; 0x80) &amp;&amp; --n);
++
++    return res;            /* Return with the response value */
++}
++
++
++
++/*--------------------------------------------------------------------------
++
++   Public Functions
++
++---------------------------------------------------------------------------*/
++
++
++/*-----------------------------------------------------------------------*/
++/* Initialize Disk Drive                                                 */
++/*-----------------------------------------------------------------------*/
++
++DSTATUS disk_initialize (
++    BYTE drv        /* Physical drive nmuber (0) */
++)
++{
++    BYTE n, ty, ocr[4];
++
++
++    if (drv) return STA_NOINIT;            /* Supports only single drive */
++    if (Stat &amp; STA_NODISK) return Stat;    /* No card in the socket */
++
++    power_on();                            /* Force socket power on */
++    send_initial_clock_train();
++
++    SELECT();                /* CS = L */
++    ty = 0;
++    if (send_cmd(CMD0, 0) == 1) {            /* Enter Idle state */
++        Timer1 = 100;                        /* Initialization timeout of 1000 msec */
++        if (send_cmd(CMD8, 0x1AA) == 1) {    /* SDC Ver2+ */
++            for (n = 0; n &lt; 4; n++) ocr[n] = rcvr_spi();
++            if (ocr[2] == 0x01 &amp;&amp; ocr[3] == 0xAA) {    /* The card can work at vdd range of 2.7-3.6V */
++                do {
++                    if (send_cmd(CMD55, 0) &lt;= 1 &amp;&amp; send_cmd(CMD41, 1UL &lt;&lt; 30) == 0)    break;    /* ACMD41 with HCS bit */
++                } while (Timer1);
++                if (Timer1 &amp;&amp; send_cmd(CMD58, 0) == 0) {    /* Check CCS bit */
++                    for (n = 0; n &lt; 4; n++) ocr[n] = rcvr_spi();
++                    ty = (ocr[0] &amp; 0x40) ? 6 : 2;
++                }
++            }
++        } else {                            /* SDC Ver1 or MMC */
++            ty = (send_cmd(CMD55, 0) &lt;= 1 &amp;&amp; send_cmd(CMD41, 0) &lt;= 1) ? 2 : 1;    /* SDC : MMC */
++            do {
++                if (ty == 2) {
++                    if (send_cmd(CMD55, 0) &lt;= 1 &amp;&amp; send_cmd(CMD41, 0) == 0) break;    /* ACMD41 */
++                } else {
++                    if (send_cmd(CMD1, 0) == 0) break;                                /* CMD1 */
++                }
++            } while (Timer1);
++            if (!Timer1 || send_cmd(CMD16, 512) != 0)    /* Select R/W block length */
++                ty = 0;
++        }
++    }
++    CardType = ty;
++    DESELECT();            /* CS = H */
++    rcvr_spi();            /* Idle (Release DO) */
++
++    if (ty) {            /* Initialization succeded */
++        Stat &amp;= ~STA_NOINIT;        /* Clear STA_NOINIT */
++        set_max_speed();
++    } else {            /* Initialization failed */
++        power_off();
++    }
++
++    return Stat;
++}
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Get Disk Status                                                       */
++/*-----------------------------------------------------------------------*/
++
++DSTATUS disk_status (
++    BYTE drv        /* Physical drive nmuber (0) */
++)
++{
++    if (drv) return STA_NOINIT;        /* Supports only single drive */
++    return Stat;
++}
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Read Sector(s)                                                        */
++/*-----------------------------------------------------------------------*/
++
++DRESULT disk_read (
++    BYTE drv,            /* Physical drive nmuber (0) */
++    BYTE *buff,            /* Pointer to the data buffer to store read data */
++    DWORD sector,        /* Start sector number (LBA) */
++    BYTE count            /* Sector count (1..255) */
++)
++{
++    if (drv || !count) return RES_PARERR;
++    if (Stat &amp; STA_NOINIT) return RES_NOTRDY;
++
++    if (!(CardType &amp; 4)) sector *= 512;    /* Convert to byte address if needed */
++
++    SELECT();            /* CS = L */
++
++    if (count == 1) {    /* Single block read */
++        if ((send_cmd(CMD17, sector) == 0)    /* READ_SINGLE_BLOCK */
++            &amp;&amp; rcvr_datablock(buff, 512))
++            count = 0;
++    }
++    else {                /* Multiple block read */
++        if (send_cmd(CMD18, sector) == 0) {    /* READ_MULTIPLE_BLOCK */
++            do {
++                if (!rcvr_datablock(buff, 512)) break;
++                buff += 512;
++            } while (--count);
++            send_cmd(CMD12, 0);                /* STOP_TRANSMISSION */
++        }
++    }
++
++    DESELECT();            /* CS = H */
++    rcvr_spi();            /* Idle (Release DO) */
++
++    return count ? RES_ERROR : RES_OK;
++}
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Write Sector(s)                                                       */
++/*-----------------------------------------------------------------------*/
++
++#if _READONLY == 0
++DRESULT disk_write (
++    BYTE drv,            /* Physical drive nmuber (0) */
++    const BYTE *buff,    /* Pointer to the data to be written */
++    DWORD sector,        /* Start sector number (LBA) */
++    BYTE count            /* Sector count (1..255) */
++)
++{
++    if (drv || !count) return RES_PARERR;
++    if (Stat &amp; STA_NOINIT) return RES_NOTRDY;
++    if (Stat &amp; STA_PROTECT) return RES_WRPRT;
++
++    if (!(CardType &amp; 4)) sector *= 512;    /* Convert to byte address if needed */
++
++    SELECT();            /* CS = L */
++
++    if (count == 1) {    /* Single block write */
++        if ((send_cmd(CMD24, sector) == 0)    /* WRITE_BLOCK */
++            &amp;&amp; xmit_datablock(buff, 0xFE))
++            count = 0;
++    }
++    else {                /* Multiple block write */
++        if (CardType &amp; 2) {
++            send_cmd(CMD55, 0); send_cmd(CMD23, count);    /* ACMD23 */
++        }
++        if (send_cmd(CMD25, sector) == 0) {    /* WRITE_MULTIPLE_BLOCK */
++            do {
++                if (!xmit_datablock(buff, 0xFC)) break;
++                buff += 512;
++            } while (--count);
++            if (!xmit_datablock(0, 0xFD))    /* STOP_TRAN token */
++                count = 1;
++        }
++    }
++
++    DESELECT();            /* CS = H */
++    rcvr_spi();            /* Idle (Release DO) */
++
++    return count ? RES_ERROR : RES_OK;
++}
++#endif /* _READONLY */
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Miscellaneous Functions                                               */
++/*-----------------------------------------------------------------------*/
++
++DRESULT disk_ioctl (
++    BYTE drv,        /* Physical drive nmuber (0) */
++    BYTE ctrl,        /* Control code */
++    void *buff        /* Buffer to send/receive control data */
++)
++{
++    DRESULT res;
++    BYTE n, csd[16], *ptr = buff;
++    WORD csize;
++
++
++    if (drv) return RES_PARERR;
++
++    res = RES_ERROR;
++
++    if (ctrl == CTRL_POWER) {
++        switch (*ptr) {
++        case 0:        /* Sub control code == 0 (POWER_OFF) */
++            if (chk_power())
++                power_off();        /* Power off */
++            res = RES_OK;
++            break;
++        case 1:        /* Sub control code == 1 (POWER_ON) */
++            power_on();                /* Power on */
++            res = RES_OK;
++            break;
++        case 2:        /* Sub control code == 2 (POWER_GET) */
++            *(ptr+1) = (BYTE)chk_power();
++            res = RES_OK;
++            break;
++        default :
++            res = RES_PARERR;
++        }
++    }
++    else {
++        if (Stat &amp; STA_NOINIT) return RES_NOTRDY;
++
++        SELECT();        /* CS = L */
++
++        switch (ctrl) {
++        case GET_SECTOR_COUNT :    /* Get number of sectors on the disk (DWORD) */
++            if ((send_cmd(CMD9, 0) == 0) &amp;&amp; rcvr_datablock(csd, 16)) {
++                if ((csd[0] &gt;&gt; 6) == 1) {    /* SDC ver 2.00 */
++                    csize = csd[9] + ((WORD)csd[8] &lt;&lt; 8) + 1;
++                    *(DWORD*)buff = (DWORD)csize &lt;&lt; 10;
++                } else {                    /* MMC or SDC ver 1.XX */
++                    n = (csd[5] &amp; 15) + ((csd[10] &amp; 128) &gt;&gt; 7) + ((csd[9] &amp; 3) &lt;&lt; 1) + 2;
++                    csize = (csd[8] &gt;&gt; 6) + ((WORD)csd[7] &lt;&lt; 2) + ((WORD)(csd[6] &amp; 3) &lt;&lt; 10) + 1;
++                    *(DWORD*)buff = (DWORD)csize &lt;&lt; (n - 9);
++                }
++                res = RES_OK;
++            }
++            break;
++
++        case GET_SECTOR_SIZE :    /* Get sectors on the disk (WORD) */
++            *(WORD*)buff = 512;
++            res = RES_OK;
++            break;
++
++        case CTRL_SYNC :    /* Make sure that data has been written */
++            if (wait_ready() == 0xFF)
++                res = RES_OK;
++            break;
++
++        case MMC_GET_CSD :    /* Receive CSD as a data block (16 bytes) */
++            if (send_cmd(CMD9, 0) == 0        /* READ_CSD */
++                &amp;&amp; rcvr_datablock(ptr, 16))
++                res = RES_OK;
++            break;
++
++        case MMC_GET_CID :    /* Receive CID as a data block (16 bytes) */
++            if (send_cmd(CMD10, 0) == 0        /* READ_CID */
++                &amp;&amp; rcvr_datablock(ptr, 16))
++                res = RES_OK;
++            break;
++
++        case MMC_GET_OCR :    /* Receive OCR as an R3 resp (4 bytes) */
++            if (send_cmd(CMD58, 0) == 0) {    /* READ_OCR */
++                for (n = 0; n &lt; 4; n++)
++                    *ptr++ = rcvr_spi();
++                res = RES_OK;
++            }
++
++//        case MMC_GET_TYPE :    /* Get card type flags (1 byte) */
++//            *ptr = CardType;
++//            res = RES_OK;
++//            break;
++
++        default:
++            res = RES_PARERR;
++        }
++
++        DESELECT();            /* CS = H */
++        rcvr_spi();            /* Idle (Release DO) */
++    }
++
++    return res;
++}
++
++
++
++/*-----------------------------------------------------------------------*/
++/* Device Timer Interrupt Procedure  (Platform dependent)                */
++/*-----------------------------------------------------------------------*/
++/* This function must be called in period of 10ms                        */
++
++void disk_timerproc (void)
++{
++//    BYTE n, s;
++    BYTE n;
++
++
++    n = Timer1;                        /* 100Hz decrement timer */
++    if (n) Timer1 = --n;
++    n = Timer2;
++    if (n) Timer2 = --n;
++
++}
++
++/*---------------------------------------------------------*/
++/* User Provided Timer Function for FatFs module           */
++/*---------------------------------------------------------*/
++/* This is a real time clock service to be called from     */
++/* FatFs module. Any valid time must be returned even if   */
++/* the system does not support a real time clock.          */
++
++DWORD get_fattime (void)
++{
++
++    return    ((2007UL-1980) &lt;&lt; 25)    // Year = 2007
++            | (6UL &lt;&lt; 21)            // Month = June
++            | (5UL &lt;&lt; 16)            // Day = 5
++            | (11U &lt;&lt; 11)            // Hour = 11
++            | (38U &lt;&lt; 5)            // Min = 38
++            | (0U &gt;&gt; 1)                // Sec = 0
++            ;
++
++}
+
+Modified: branches/eagle_mmc/src/platform/lm3s/platform.c
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/platform.c	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/platform/lm3s/platform.c	2009-02-17 00:38:10 UTC (rev 199)
+@@ -39,7 +39,9 @@
+ #include &quot;elua_net.h&quot;
+ #include &quot;dhcpc.h&quot;
+ #include &quot;buf.h&quot;
++#ifdef BUILD_DISP_RIT
+ #include &quot;rit128x96x4.h&quot;
++#endif
+ #include &quot;disp.h&quot;
+ #include &quot;adc.h&quot;
+ 
+@@ -106,7 +108,7 @@
+ 
+ // ****************************************************************************
+ // PIO
+-// Same configuration on LM3S8962 and LM3S6965
++// LM3S8962, LM3S6965, LM3S6918 (8 GPIO ports)
+ 
+ static const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
+                                 GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE };
+@@ -177,7 +179,7 @@
+ 
+ // ****************************************************************************
+ // SPI
+-// Same configuration on LM3S8962 and LM3S6965
++// LM3S8962, LM3S6965, LM3S6918 (2 SPI ports)
+ 
+ // All possible LM3S SPIs defs
+ // FIXME this anticipates support for a platform with 2 SPI port
+@@ -235,7 +237,8 @@
+ 
+ // ****************************************************************************
+ // UART
+-// Different configurations for LM3S8962 (2 UARTs) and LM3S6965 (3 UARTs)
++// LM3S8962, LM3S6918 (2 UARTs)
++// LM3S6965 (3 UARTs)
+ 
+ // All possible LM3S uarts defs
+ static const u32 uart_base[] = { UART0_BASE, UART1_BASE, UART2_BASE };
+@@ -334,7 +337,7 @@
+ 
+ // ****************************************************************************
+ // Timers
+-// Same on LM3S8962 and LM3S6965
++// LM3S8962, LM3S6965, LM3S6918 (4 timers)
+ 
+ // All possible LM3S timers defs
+ static const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE };
+@@ -398,7 +401,8 @@
+ 
+ // ****************************************************************************
+ // PWMs
+-// Similar on LM3S8962 and LM3S6965
++// LM3S8962, LM3S6965 (6 PWM ports)
++// LM3S6918 (0 PWM ports)
+ 
+ // SYSCTL div data and actual div factors
+ const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
+@@ -668,6 +672,7 @@
+   return PLATFORM_OK;
+ }
+ 
++#ifdef BUILD_DISP_RIT
+ // ****************************************************************************
+ // OLED Display specific functions
+ //
+@@ -715,6 +720,7 @@
+ {
+   RIT128x96x4DisplayOff();
+ }
++#endif
+ 
+ // ****************************************************************************
+ // Ethernet functions
+
+Modified: branches/eagle_mmc/src/platform/lm3s/platform_conf.h
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/platform_conf.h	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/platform/lm3s/platform_conf.h	2009-02-17 00:38:10 UTC (rev 199)
+@@ -12,9 +12,10 @@
+ // *****************************************************************************
+ // Define here what components you want for this platform
+ 
+-#define BUILD_XMODEM
++//#define BUILD_XMODEM
+ #define BUILD_SHELL
+ #define BUILD_ROMFS
++#define BUILD_MMCFS
+ #define BUILD_TERM
+ #define BUILD_UIP
+ #define BUILD_DHCPC
+@@ -37,6 +38,9 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++#if (ELUA_BOARD == EK-LM3S6965) || (ELUA_BOARD == EK-LM3S8962)
++// LM3S board with RIT display
++#define BUILD_DISP_RIT
+ #define AUXLIB_DISP   &quot;disp&quot;
+ LUALIB_API int ( luaopen_disp )( lua_State* L );
+ 
+@@ -55,6 +59,22 @@
+   _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
+   _ROM( AUXLIB_DISP, luaopen_disp, disp_map )\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
++#else
++// LM3S board without RIT display
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_NET, luaopen_net, net_map )\
++  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
++#endif
+   
+ // *****************************************************************************
+ // Configuration data
+@@ -115,7 +135,7 @@
+ #define PIO_PREFIX            'A'
+ // Pins per port configuration:
+ // #define PIO_PINS_PER_PORT (n) if each port has the same number of pins, or
+-// #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array 
++// #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array
+ // Use #define PIO_PINS_PER_PORT 0 if this isn't needed
+ #define PIO_PIN_ARRAY         { 8, 8, 8, 8, 4, 4, 2 }
+ 
+@@ -178,5 +198,5 @@
+   _C( INT_PWM3 ),\
+   _C( INT_UDMA ),\
+   _C( INT_UDMAERR )
+-  
++
+ #endif // #ifndef __PLATFORM_CONF_H__
+
+Modified: branches/eagle_mmc/src/romfs.c
+===================================================================
+--- branches/eagle_mmc/src/romfs.c	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/romfs.c	2009-02-17 00:38:10 UTC (rev 199)
+@@ -4,12 +4,12 @@
+ #include &lt;string.h&gt;
+ #include &lt;errno.h&gt;
+ #include &quot;devman.h&quot;
+-#include &quot;romfiles.h&quot;
+ #include &lt;stdio.h&gt;
+ #include &quot;ioctl.h&quot;
+ 
+ #include &quot;platform_conf.h&quot;
+ #ifdef BUILD_ROMFS
++#include &quot;romfiles.h&quot;
+ 
+ #define ROMFS_MAX_FDS   4
+ #define fsmin( x , y ) ( ( x ) &lt; ( y ) ? ( x ) : ( y ) )
+
+Modified: branches/eagle_mmc/src/shell.c
+===================================================================
+--- branches/eagle_mmc/src/shell.c	2009-02-16 23:06:07 UTC (rev 198)
++++ branches/eagle_mmc/src/shell.c	2009-02-17 00:38:10 UTC (rev 199)
+@@ -11,7 +11,6 @@
+ #include &lt;stdlib.h&gt;
+ #include &quot;platform.h&quot;
+ #include &quot;elua_net.h&quot;
+-#include &quot;romfs.h&quot;
+ 
+ #include &quot;platform_conf.h&quot;
+ #ifdef BUILD_SHELL
+@@ -26,6 +25,16 @@
+   #define SHELL_EOF_STRING        &quot;CTRL+D&quot;
+ #endif
+ 
++#if defined(BUILD_ROMFS)
++  #include &quot;romfs.h&quot;
++#endif
++#if defined(BUILD_MMCFS)
++  #include &quot;mmcfs.h&quot;
++  #include &quot;ff.h&quot;
++  static DIR mmc_dir;
++  static FILINFO mmc_fileInfo;
++#endif
++
+ // Shell command handler function
+ typedef void( *p_shell_handler )( char* args );
+ 
+@@ -61,7 +70,7 @@
+   int nargs = 0;
+   char* lua_argv[ SHELL_MAX_LUA_ARGS + 2 ];
+   char *p, *prev, *temp;
+-  
++
+   lua_argv[ 0 ] = &quot;lua&quot;;
+   // Process &quot;args&quot; if needed
+   if( *args )
+@@ -97,7 +106,7 @@
+   }
+   lua_argv[ nargs + 1 ] = NULL;
+   printf( &quot;Press &quot; SHELL_EOF_STRING &quot; to exit Lua\n&quot; );
+-  lua_main( nargs + 1, lua_argv );  
++  lua_main( nargs + 1, lua_argv );
+   clearerr( stdin );
+ }
+ 
+@@ -105,15 +114,15 @@
+ static void shell_recv( char* args )
+ {
+   args = args;
+-  
+-#ifndef BUILD_XMODEM  
++
++#ifndef BUILD_XMODEM
+   printf( &quot;XMODEM support not compiled, unable to recv\n&quot; );
+   return;
+ #else // #ifndef BUILD_XMODEM
+ 
+   char *p;
+   long actsize;
+-  lua_State* L;   
++  lua_State* L;
+ 
+   if( ( shell_prog = malloc( XMODEM_INITIAL_BUFFER_SIZE ) ) == NULL )
+   {
+@@ -126,7 +135,7 @@
+     free( shell_prog );
+     shell_prog = NULL;
+     if( actsize == XMODEM_ERROR_OUTOFMEM )
+-      printf( &quot;file too big\n&quot; ); 
++      printf( &quot;file too big\n&quot; );
+     else
+       printf( &quot;XMODEM error\n&quot; );
+     return;
+@@ -136,8 +145,8 @@
+   while( *p == '\x1A' )
+     p --;
+   p ++;
+-  printf( &quot;done, got %ld bytes\n&quot;, p - shell_prog );          
+-  
++  printf( &quot;done, got %ld bytes\n&quot;, p - shell_prog );
++
+   // Execute
+   if( ( L = lua_open() ) == NULL )
+   {
+@@ -155,7 +164,7 @@
+   lua_close( L );
+   free( shell_prog );
+   shell_prog = NULL;
+-#endif // #ifndef BUILD_XMODEM  
++#endif // #ifndef BUILD_XMODEM
+ }
+ 
+ // 'ver' handler
+@@ -169,27 +178,54 @@
+ // 'ls' and 'dir' handler
+ static void shell_ls( char* args )
+ {
+-  u16 offset;
+   char fname[MAX_FNAME_LENGTH + 1];
+   int i, size;
+   int total = 0;
+-  
+-  args = args;
+-  offset = 0;
++
++#if defined(BUILD_ROMFS)
++  u16 offset = 0;
++
+   printf( &quot;\n/rom&quot; );
+-  while ( ( offset = romfs_get_dir_entry( offset, fname, &amp;size ) ) ) 
++  while ( ( offset = romfs_get_dir_entry( offset, fname, &amp;size ) ) )
+   {
+     printf( &quot;\n%s&quot;, fname );
+     for( i = strlen( fname ); i &lt;= MAX_FNAME_LENGTH; i++ )
+       printf( &quot; &quot; );
+     printf( &quot;%d bytes&quot;, size );
+     total = total + size;
+-  }   
++  }
++  printf( &quot;\n\nTotal = %d bytes\n&quot;, total );
++#endif
++
++#if defined(BUILD_MMCFS)
++  total = 0;
++  printf( &quot;\n/mmc&quot; );
++  if (f_opendir(&amp;mmc_dir, &quot;/&quot;) != FR_OK)
++  {
++    printf( &quot;\n\nTotal = %d bytes\n\n&quot;, total );
++    return;
++  }
++
++  while (f_readdir(&amp;mmc_dir, &amp;mmc_fileInfo) == FR_OK)
++  {
++    if (!mmc_fileInfo.fname[0])
++      break;
++    strcpy(fname, mmc_fileInfo.fname);
++    size = mmc_fileInfo.fsize;
++    printf( &quot;\n%s&quot;, fname );
++    for( i = strlen( fname ); i &lt;= MAX_FNAME_LENGTH; i++ )
++      printf( &quot; &quot; );
++    printf( &quot;%d bytes&quot;, size );
++    total = total + size;
++  }
+   printf( &quot;\n\nTotal = %d bytes\n\n&quot;, total );
++#else
++  printf( &quot;\n&quot; );
++#endif
+ }
+ 
+ // Insert shell commands here
+-static const SHELL_COMMAND shell_commands[] = 
++static const SHELL_COMMAND shell_commands[] =
+ {
+   { &quot;help&quot;, shell_help },
+   { &quot;lua&quot;, shell_lua },
+@@ -209,16 +245,16 @@
+   const SHELL_COMMAND* pcmd;
+   int i, inside_quotes;
+   char quote_char;
+-  
++
+   while( 1 )
+   {
+     // Show prompt
+     printf( SHELL_PROMPT );
+-    
++
+     // Read command
+     while( fgets( cmd, SHELL_MAXSIZE, stdin ) == NULL )
+       clearerr( stdin );
+-          
++
+     // Change '\r' and '\n' chars to ' ' to ease processing
+     p = cmd;
+     while( *p )
+@@ -227,7 +263,7 @@
+         *p = ' ';
+       p ++;
+     }
+-    
++
+     // Transform ' ' characters inside a '' or &quot;&quot; quoted string in
+     // a 'special' char. We do this to let the user execute something
+     // like &quot;lua -e 'quoted string'&quot; without disturbing the quoted
+@@ -256,7 +292,7 @@
+       printf( &quot;Invalid quoted string\n&quot; );
+       continue;
+     }
+-    
++
+     // Transform consecutive sequences of spaces into a single space
+     p = strchr( cmd, ' ' );
+     while( p )
+@@ -268,11 +304,11 @@
+     }
+     if( strlen( cmd ) == 1 )
+       continue;
+-        
+-    // Look for the first ' ' to separate the command from its args    
++
++    // Look for the first ' ' to separate the command from its args
+     temp = cmd;
+     if( *temp == ' ' )
+-      temp ++; 
++      temp ++;
+     if( ( p = strchr( temp, ' ' ) ) == NULL )
+     {
+       printf( SHELL_ERRMSG );
+@@ -307,7 +343,7 @@
+ #else
+       break;
+ #endif
+-    
++
+   }
+   // Shell exit point
+   if( shell_prog )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000153.html">[Elua-svn] r198 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000154.html">[Elua-svn] r200 - in trunk/doc: . en wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#159">[ date ]</a>
+              <a href="thread.html#159">[ thread ]</a>
+              <a href="subject.html#159">[ subject ]</a>
+              <a href="author.html#159">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

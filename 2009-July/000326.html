@@ -1,0 +1,334 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r370 - in trunk: romfs src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r370%20-%20in%20trunk%3A%20romfs%20src/modules&In-Reply-To=%3C200907301304.n6UD4B8O001408%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000325.html">
+   <LINK REL="Next"  HREF="000329.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r370 - in trunk: romfs src/modules</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r370%20-%20in%20trunk%3A%20romfs%20src/modules&In-Reply-To=%3C200907301304.n6UD4B8O001408%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r370 - in trunk: romfs src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Jul 30 15:04:11 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000325.html">[Elua-svn] r369 - in tags/pre0.6: doc doc/luadoc romfs src/modules
+</A></li>
+        <LI>Next message: <A HREF="000329.html">[Elua-svn] r371 - in branches/eagle_mmc: . doc doc/en doc/luadoc	doc/pt doc/wb doc/wb_img docs inc inc/newlib romfs src	src/lua src/modules src/newlib src/platform	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/stm32/FWLib	src/platform/stm32/FWLib/library/inc	src/platform/stm32/FWLib/library/src src/platform/str7	src/platform/str9 test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#326">[ date ]</a>
+              <a href="thread.html#326">[ thread ]</a>
+              <a href="subject.html#326">[ subject ]</a>
+              <a href="author.html#326">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-07-30 15:04:10 +0200 (Thu, 30 Jul 2009)
+New Revision: 370
+
+Modified:
+   trunk/romfs/dualpwm.lua
+   trunk/romfs/led.lua
+   trunk/romfs/pwmled.lua
+   trunk/src/modules/net.c
+   trunk/src/modules/uart.c
+Log:
+syntax revision on uart module (merged to trunk)
+
+Modified: trunk/romfs/dualpwm.lua
+===================================================================
+--- trunk/romfs/dualpwm.lua	2009-07-30 13:01:36 UTC (rev 369)
++++ trunk/romfs/dualpwm.lua	2009-07-30 13:04:10 UTC (rev 370)
+@@ -20,7 +20,7 @@
+ pwm.start( pwmid1 )
+ pwm.start( pwmid2 )
+ 
+-while uart.recv( 1, 0, 0 ) &lt; 0 do
++while uart.getchar( 1, 0 ) == &quot;&quot; do
+   if crtduty == 95 or crtduty == 5 then
+     incr = -incr
+   end
+
+Modified: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2009-07-30 13:01:36 UTC (rev 369)
++++ trunk/romfs/led.lua	2009-07-30 13:04:10 UTC (rev 370)
+@@ -34,7 +34,7 @@
+ print &quot;Watch your LED blinking :)&quot;
+ print &quot;Press any key to end this demo.\n&quot;
+ 
+-while uart.recv( uartid, 0, 0 ) &lt; 0 do
++while uart.getchar( uartid, 0 ) == &quot;&quot; do
+   cycle()
+ end
+ 
+
+Modified: trunk/romfs/pwmled.lua
+===================================================================
+--- trunk/romfs/pwmled.lua	2009-07-30 13:01:36 UTC (rev 369)
++++ trunk/romfs/pwmled.lua	2009-07-30 13:04:10 UTC (rev 370)
+@@ -15,7 +15,7 @@
+ tmr.start( tmrid )
+ pwm.setup( pwmid, 50000, crtduty )
+ pwm.start( pwmid )
+-while uart.recv( 0, 0, 0 ) &lt; 0 do
++while uart.getchar( 0, 0 ) == &quot;&quot; do
+   if crtduty == 95 or crtduty == 5 then
+     incr = -incr
+   end
+
+Modified: trunk/src/modules/net.c
+===================================================================
+--- trunk/src/modules/net.c	2009-07-30 13:01:36 UTC (rev 369)
++++ trunk/src/modules/net.c	2009-07-30 13:04:10 UTC (rev 370)
+@@ -140,7 +140,6 @@
+     return luaL_error( L, &quot;invalid format&quot; );                                      
+ }
+ 
+-static luaL_Buffer net_recv_buff;
+ // Lua: res, err = recv( sock, maxsize, [ timer_id, timeout ] ) or
+ //      res, err = recv( sock, &quot;*l&quot;, [ timer_id, timeout ] )
+ static int net_recv( lua_State *L )
+@@ -150,7 +149,8 @@
+   s16 lastchar = ELUA_NET_NO_LASTCHAR;
+   unsigned timer_id = 0;
+   u32 timeout = 0;
+-  
++  luaL_Buffer net_recv_buff;
++
+   if( lua_isnumber( L, 2 ) ) // invocation with maxsize
+     maxsize = ( elua_net_size )luaL_checkinteger( L, 2 );
+   else // invocation with line mode
+
+Modified: trunk/src/modules/uart.c
+===================================================================
+--- trunk/src/modules/uart.c	2009-07-30 13:01:36 UTC (rev 369)
++++ trunk/src/modules/uart.c	2009-07-30 13:04:10 UTC (rev 370)
+@@ -6,7 +6,18 @@
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
+ #include &quot;lrotable.h&quot;
++#include &lt;string.h&gt;
++#include &lt;ctype.h&gt;
+ 
++// Modes for the UART read function
++enum
++{
++  UART_READ_MODE_LINE,
++  UART_READ_MODE_NUMBER,
++  UART_READ_MODE_SPACE,
++  UART_READ_MODE_MAXSIZE
++};
++
+ // Lua: actualbaud = setup( id, baud, databits, parity, stopbits )
+ static int uart_setup( lua_State* L )
+ {
+@@ -24,8 +35,8 @@
+   return 1;
+ }
+ 
+-// Lua: send( id, string1, string2, ... )
+-static int uart_send( lua_State* L )
++// Lua: write( id, string1, string2, ... )
++static int uart_write( lua_State* L )
+ {
+   int id;
+   const char* buf;
+@@ -44,24 +55,108 @@
+   return 0;
+ }
+ 
+-// Lua: data = recv( id, [ timer_id, timeout ] )
+-static int uart_recv( lua_State* L )
++// Lua: data = read( id, format, [ timeout ], [ timer_id ] )
++static int uart_read( lua_State* L )
+ {
++  int id, res, mode, issign;
++  unsigned timer_id = 0;
++  s32 timeout = PLATFORM_UART_INFINITE_TIMEOUT, maxsize = 0, count = 0;
++  const char *fmt;
++  luaL_Buffer b;
++  char cres;
++  
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( uart, id );
++
++  // Check format
++  if( lua_isnumber( L, 2 ) )
++  {
++    if( ( maxsize = ( s32 )lua_tointeger( L, 2 ) ) &lt; 0 )
++      return luaL_error( L, &quot;invalid max size&quot; );
++    mode = UART_READ_MODE_MAXSIZE;
++  }
++  else
++  {
++    fmt = luaL_checkstring( L, 2 );
++    if( !strcmp( fmt, &quot;*l&quot; ) )
++      mode = UART_READ_MODE_LINE;
++    else if( !strcmp( fmt, &quot;*n&quot; ) )
++      mode = UART_READ_MODE_NUMBER;
++    else if( !strcmp( fmt, &quot;*s&quot; ) )
++      mode = UART_READ_MODE_SPACE;
++    else
++      return luaL_error( L, &quot;invalid format&quot; );
++  }
++
++  // Check timeout and timer id
++  if( lua_gettop( L ) &gt;= 3 )
++  {
++    timeout = luaL_checkinteger( L, 3 );
++    if( ( timeout &lt; 0 ) &amp;&amp; ( timeout != PLATFORM_UART_INFINITE_TIMEOUT ) )
++      return luaL_error( L, &quot;invalid timeout value&quot; );      
++    if( ( timeout != PLATFORM_UART_INFINITE_TIMEOUT ) &amp;&amp; ( timeout != 0 ) )
++      timer_id = luaL_checkinteger( L, 4 );    
++  }
++
++  // Read data
++  luaL_buffinit( L, &amp;b );
++  while( 1 )
++  {
++    if( ( res = platform_uart_recv( id, timer_id, timeout ) ) == -1 )
++      break; 
++    cres = ( char )res;
++    count ++;
++    issign = ( count == 1 ) &amp;&amp; ( ( res == '-' ) || ( res == '+' ) );
++    if( ( cres == '\n' ) &amp;&amp; ( mode == UART_READ_MODE_LINE ) )
++      break;
++    if( !isdigit( cres ) &amp;&amp; !issign &amp;&amp; ( mode == UART_READ_MODE_NUMBER ) )
++      break;
++    if( isspace( cres ) &amp;&amp; ( mode == UART_READ_MODE_SPACE ) )
++      break;
++    luaL_putchar( &amp;b, cres );
++    if( ( count == maxsize ) &amp;&amp; ( mode == UART_READ_MODE_MAXSIZE ) )
++      break;
++  }
++  luaL_pushresult( &amp;b );
++
++  // Return an integer if needed
++  if( mode == UART_READ_MODE_NUMBER )
++  {
++    res = lua_tointeger( L, -1 );
++    lua_pop( L, 1 );
++    lua_pushinteger( L, res );
++  }
++  return 1;  
++}
++
++// Lua: data = getchar( id, [ timeout ], [ timer_id ] )
++static int uart_getchar( lua_State* L )
++{
+   int id, res;
++  char cres;
+   unsigned timer_id = 0;
+   s32 timeout = PLATFORM_UART_INFINITE_TIMEOUT;
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( uart, id );
++
++  // Check timeout and timer id
+   if( lua_gettop( L ) &gt;= 2 )
+   {
+-    timer_id = luaL_checkinteger( L, 2 );
+-    timeout = luaL_checkinteger( L, 3 );    
++    timeout = luaL_checkinteger( L, 2 );
+     if( ( timeout &lt; 0 ) &amp;&amp; ( timeout != PLATFORM_UART_INFINITE_TIMEOUT ) )
+-      timeout = 0x7FFFFFFF; // force timeout to its maximum value
++      return luaL_error( L, &quot;invalid timeout value&quot; );      
++    if( ( timeout != PLATFORM_UART_INFINITE_TIMEOUT ) &amp;&amp; ( timeout != 0 ) )
++      timer_id = luaL_checkinteger( L, 3 );    
+   }
+   res = platform_uart_recv( id, timer_id, timeout );
+-  lua_pushinteger( L, res );
++  if( res == -1 )
++    lua_pushstring( L, &quot;&quot; );
++  else
++  {
++    cres = ( char )res;
++    lua_pushlstring( L, &amp;cres, 1 );
++  }
+   return 1;  
+ }
+ 
+@@ -71,8 +166,9 @@
+ const LUA_REG_TYPE uart_map[] = 
+ {
+   { LSTRKEY( &quot;setup&quot; ),  LFUNCVAL( uart_setup ) },
+-  { LSTRKEY( &quot;send&quot; ), LFUNCVAL( uart_send) },
+-  { LSTRKEY( &quot;recv&quot; ), LFUNCVAL( uart_recv ) },
++  { LSTRKEY( &quot;write&quot; ), LFUNCVAL( uart_write ) },
++  { LSTRKEY( &quot;read&quot; ), LFUNCVAL( uart_read ) },
++  { LSTRKEY( &quot;getchar&quot; ), LFUNCVAL( uart_getchar ) },
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;PAR_EVEN&quot; ), LNUMVAL( PLATFORM_UART_PARITY_EVEN ) },
+   { LSTRKEY( &quot;PAR_ODD&quot; ), LNUMVAL( PLATFORM_UART_PARITY_ODD ) },
+@@ -94,24 +190,16 @@
+   luaL_register( L, AUXLIB_UART, uart_map );
+   
+   // Add the stop bits and parity constants (for uart.setup)
+-  lua_pushnumber( L, PLATFORM_UART_PARITY_EVEN );
+-  lua_setfield( L, -2, &quot;PAR_EVEN&quot; );
+-  lua_pushnumber( L, PLATFORM_UART_PARITY_ODD );
+-  lua_setfield( L, -2, &quot;PAR_ODD&quot; );  
+-  lua_pushnumber( L, PLATFORM_UART_PARITY_NONE );
+-  lua_setfield( L, -2, &quot;PAR_NONE&quot; );  
+-  lua_pushnumber( L, PLATFORM_UART_STOPBITS_1 );
+-  lua_setfield( L, -2, &quot;STOP_1&quot; );
+-  lua_pushnumber( L, PLATFORM_UART_STOPBITS_1_5 );
+-  lua_setfield( L, -2, &quot;STOP_1_5&quot; );  
+-  lua_pushnumber( L, PLATFORM_UART_STOPBITS_2 );
+-  lua_setfield( L, -2, &quot;STOP_2&quot; );    
++  MOD_REG_NUMBER( L, &quot;PAR_EVEN&quot;, PLATFORM_UART_PARITY_EVEN );
++  MOD_REG_NUMBER( L, &quot;PAR_ODD&quot;, PLATFORM_UART_PARITY_ODD );
++  MOD_REG_NUMBER( L, &quot;PAR_NONE&quot;, PLATFORM_UART_PARITY_NONE );
++  MOD_REG_NUMBER( L, &quot;STOP_1&quot;, PLATFORM_UART_STOPBITS_1 );
++  MOD_REG_NUMBER( L, &quot;STOP_1_5&quot;, PLATFORM_UART_STOPBITS_1_5 );
++  MOD_REG_NUMBER( L, &quot;STOP_2&quot;, PLATFORM_UART_STOPBITS_2 );
+   
+   // Add the &quot;none&quot; and &quot;infinite&quot; constant used in recv()
+-  lua_pushnumber( L, 0 );
+-  lua_setfield( L, -2, &quot;NO_TIMEOUT&quot; );
+-  lua_pushnumber( L, PLATFORM_UART_INFINITE_TIMEOUT );
+-  lua_setfield( L, -2, &quot;INF_TIMEOUT&quot; );
++  MOD_REG_NUMBER( L, &quot;NO_TIMEOUT&quot;, 0 );
++  MOD_REG_NUMBER( L, &quot;INF_TIMEOUT&quot;, PLATFORM_UART_INFINITE_TIMEOUT );
+   
+   return 1;
+ #endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000325.html">[Elua-svn] r369 - in tags/pre0.6: doc doc/luadoc romfs src/modules
+</A></li>
+	<LI>Next message: <A HREF="000329.html">[Elua-svn] r371 - in branches/eagle_mmc: . doc doc/en doc/luadoc	doc/pt doc/wb doc/wb_img docs inc inc/newlib romfs src	src/lua src/modules src/newlib src/platform	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/stm32/FWLib	src/platform/stm32/FWLib/library/inc	src/platform/stm32/FWLib/library/src src/platform/str7	src/platform/str9 test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#326">[ date ]</a>
+              <a href="thread.html#326">[ thread ]</a>
+              <a href="subject.html#326">[ subject ]</a>
+              <a href="author.html#326">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

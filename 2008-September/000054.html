@@ -1,0 +1,287 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r98 - in trunk: inc src src/modules src/newlib
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r98%20-%20in%20trunk%3A%20inc%20src%20src/modules%20src/newlib&In-Reply-To=%3C200809222209.m8MM9DEJ012352%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000053.html">
+   <LINK REL="Next"  HREF="000055.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r98 - in trunk: inc src src/modules src/newlib</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r98%20-%20in%20trunk%3A%20inc%20src%20src/modules%20src/newlib&In-Reply-To=%3C200809222209.m8MM9DEJ012352%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r98 - in trunk: inc src src/modules src/newlib">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Sep 23 00:09:13 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000053.html">[Elua-svn] r97 - in trunk: . inc src src/modules src/platform/lm3s	src/uip
+</A></li>
+        <LI>Next message: <A HREF="000055.html">[Elua-svn] r99 - in trunk: . inc src src/modules src/newlib	src/platform/lm3s src/uip
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#54">[ date ]</a>
+              <a href="thread.html#54">[ thread ]</a>
+              <a href="subject.html#54">[ subject ]</a>
+              <a href="author.html#54">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-09-23 00:09:12 +0200 (Tue, 23 Sep 2008)
+New Revision: 98
+
+Modified:
+   trunk/inc/elua_net.h
+   trunk/src/elua_uip.c
+   trunk/src/modules/net.c
+   trunk/src/newlib/stdtcp.c
+Log:
+the latest 'net' module broke support for console over TCP. Still investigating why. Until then I'll commit a version that at least compiles with BUILD_CON_TCP enabled
+
+Modified: trunk/inc/elua_net.h
+===================================================================
+--- trunk/inc/elua_net.h	2008-09-22 21:17:44 UTC (rev 97)
++++ trunk/inc/elua_net.h	2008-09-22 22:09:12 UTC (rev 98)
+@@ -40,7 +40,8 @@
+ // eLua TCP/IP functions
+ int elua_net_socket( int type );
+ int elua_net_close( int s );
+-elua_net_size elua_net_recv( int s, luaL_Buffer *buf, elua_net_size maxsize, s16 readto, unsigned timer_id, u32 to_us );
++elua_net_size elua_net_recvbuf( int s, luaL_Buffer *buf, elua_net_size maxsize, s16 readto, unsigned timer_id, u32 to_us );
++elua_net_size elua_net_recv( int s, void *buf, elua_net_size maxsize, s16 readto, unsigned timer_id, u32 to_us );
+ elua_net_size elua_net_send( int s, const void* buf, elua_net_size len );
+ int elua_accept( u16 port, unsigned timer_id, u32 to_us, elua_net_ip* pfrom );
+ int elua_net_connect( int s, elua_net_ip addr, u16 port );
+
+Modified: trunk/src/elua_uip.c
+===================================================================
+--- trunk/src/elua_uip.c	2008-09-22 21:17:44 UTC (rev 97)
++++ trunk/src/elua_uip.c	2008-09-22 22:09:12 UTC (rev 98)
+@@ -184,9 +184,10 @@
+ // Returns the length of the buffer after processing
+ static void elua_uip_telnet_handle_input( struct elua_uip_state* s )
+ {
+-  u8 *dptr = ( u8* )uip_appdata, *orig = ( u8* )s-&gt;ptr;
++  u8 *dptr = ( u8* )uip_appdata;
++  char *orig = ( char* )s-&gt;ptr;
+   int skip;
+-  elua_net_size actlen = uip_datalen();
++  elua_net_size maxsize = s-&gt;len;
+   
+   // Traverse the input buffer, skipping over TELNET sequences
+   while( ( dptr &lt; ( u8* )uip_appdata + uip_datalen() ) &amp;&amp; ( s-&gt;ptr - orig &lt; s-&gt;len ) )
+@@ -202,24 +203,19 @@
+       {
+         // Check EOF indication
+         if( dptr[ 1 ] == TELNET_EOF )
+-        {
+           *s-&gt;ptr ++ = STD_CTRLZ_CODE;
+-          actlen ++;
+-        }
+         skip = 2;
+       }
+       dptr += skip;
+-      actlen -= skip;
+     }
+   } 
+   if( s-&gt;ptr &gt; orig )
+   {
+-    if( ( s-&gt;len = s-&gt;ptr - orig ) &lt; actlen )
+-      s-&gt;res = ELUA_NET_ERR_OVERFLOW;
++    s-&gt;res = ELUA_NET_ERR_OK;
++    s-&gt;len = maxsize - ( s-&gt;ptr - orig );
+     uip_stop();
+     s-&gt;state = ELUA_UIP_STATE_IDLE;
+   }
+-  return size;
+ }
+ 
+ // Utility function for TELNET: prepend all '\n' with '\r' in buffer
+@@ -354,6 +350,7 @@
+   {
+     uip_close();
+     s-&gt;state = ELUA_UIP_STATE_IDLE;
++    return;
+   }
+           
+   // Handle data receive  
+@@ -384,6 +381,7 @@
+         char *tptr = ( char* )uip_appdata;
+         char *last = ( char* )uip_appdata + temp - 1;
+         luaL_Buffer *pbuf = ( luaL_Buffer* )s-&gt;ptr;
++        char* dest = ( char* )s-&gt;ptr;
+         
+         while( tptr &lt;= last )
+         {
+@@ -394,7 +392,10 @@
+           }
+           if( *tptr != '\r' )
+           {
+-            luaL_addchar( pbuf, *tptr );
++            if( s-&gt;res )
++              luaL_addchar( pbuf, *tptr );
++            else
++              *dest ++ = *tptr;
+             s-&gt;len --;
+           }
+           tptr ++;
+@@ -402,7 +403,10 @@
+       }
+       else
+       {
+-        luaL_addlstring( ( luaL_Buffer* )s-&gt;ptr, ( const char* )uip_appdata, temp );        
++        if( s-&gt;res )
++          luaL_addlstring( ( luaL_Buffer* )s-&gt;ptr, ( const char* )uip_appdata, temp );        
++        else
++          memcpy( ( char* )s-&gt;ptr, ( const char* )uip_appdata, temp );
+         s-&gt;len -= temp;
+       }
+         
+@@ -410,6 +414,7 @@
+       if( s-&gt;len == 0 || lastfound )
+       {
+         uip_stop();
++        s-&gt;res = ELUA_NET_ERR_OK;
+         s-&gt;state = ELUA_UIP_STATE_IDLE;
+       }
+     }
+@@ -450,11 +455,11 @@
+ 
+ #define ELUA_UIP_IS_SOCK_OK( sock ) ( elua_uip_configured &amp;&amp; sock &gt;= 0 &amp;&amp; sock &lt; UIP_CONNS )
+ 
+-static void elua_prep_socket_state( volatile struct elua_uip_state *pstate, void* buf, elua_net_size len, s16 readto, u8 state )
++static void elua_prep_socket_state( volatile struct elua_uip_state *pstate, void* buf, elua_net_size len, s16 readto, u8 res, u8 state )
+ {  
+   pstate-&gt;ptr = ( char* )buf;
+   pstate-&gt;len = len;
+-  pstate-&gt;res = ELUA_NET_ERR_OK;
++  pstate-&gt;res = res;
+   pstate-&gt;readto = readto;
+   pstate-&gt;state = state;
+ }
+@@ -493,14 +498,14 @@
+     return -1;
+   if( len == 0 )
+     return 0;
+-  elua_prep_socket_state( pstate, ( void* )buf, len, ELUA_NET_NO_LASTCHAR, ELUA_UIP_STATE_SEND );
++  elua_prep_socket_state( pstate, ( void* )buf, len, ELUA_NET_NO_LASTCHAR, ELUA_NET_ERR_OK, ELUA_UIP_STATE_SEND );
+   platform_eth_force_interrupt();
+   while( pstate-&gt;state != ELUA_UIP_STATE_IDLE );
+   return len - pstate-&gt;len;
+ }
+ 
+-// Receive datain buf, upto &quot;maxsize&quot; bytes, or upto the 'readto' character if it's not -1
+-elua_net_size elua_net_recv( int s, luaL_Buffer* buf, elua_net_size maxsize, s16 readto, unsigned timer_id, u32 to_us )
++// Internal &quot;read&quot; function
++static elua_net_size elua_net_recv_internal( int s, void* buf, elua_net_size maxsize, s16 readto, unsigned timer_id, u32 to_us, int with_buffer )
+ {
+   volatile struct elua_uip_state *pstate = ( volatile struct elua_uip_state* )&amp;( uip_conns[ s ].appstate );
+   u32 tmrstart = 0;
+@@ -509,7 +514,7 @@
+     return -1;
+   if( maxsize == 0 )
+     return 0;
+-  elua_prep_socket_state( pstate, buf, maxsize, readto, ELUA_UIP_STATE_RECV );
++  elua_prep_socket_state( pstate, buf, maxsize, readto, with_buffer, ELUA_UIP_STATE_RECV );
+   if( to_us &gt; 0 )
+     tmrstart = platform_timer_op( timer_id, PLATFORM_TIMER_OP_START, 0 );
+   while( 1 )
+@@ -531,6 +536,18 @@
+   return maxsize - pstate-&gt;len;
+ }
+ 
++// Receive data in buf, upto &quot;maxsize&quot; bytes, or upto the 'readto' character if it's not -1
++elua_net_size elua_net_recv( int s, void* buf, elua_net_size maxsize, s16 readto, unsigned timer_id, u32 to_us )
++{
++  return elua_net_recv_internal( s, buf, maxsize, readto, timer_id, to_us, 0 );
++}
++
++// Same thing, but with a Lua buffer as argument
++elua_net_size elua_net_recvbuf( int s, luaL_Buffer* buf, elua_net_size maxsize, s16 readto, unsigned timer_id, u32 to_us )
++{
++  return elua_net_recv_internal( s, buf, maxsize, readto, timer_id, to_us, 1 );
++}
++
+ // Return the socket associated with the &quot;telnet&quot; application (or -1 if it does
+ // not exist). The socket only exists if a client connected to the board.
+ int elua_net_get_telnet_socket()
+@@ -552,7 +569,7 @@
+   
+   if( !ELUA_UIP_IS_SOCK_OK( s ) || !uip_conn_active( s ) )
+     return -1;
+-  elua_prep_socket_state( pstate, NULL, 0, ELUA_NET_NO_LASTCHAR, ELUA_UIP_STATE_CLOSE );
++  elua_prep_socket_state( pstate, NULL, 0, ELUA_NET_NO_LASTCHAR, ELUA_NET_ERR_OK, ELUA_UIP_STATE_CLOSE );
+   platform_eth_force_interrupt();
+   while( pstate-&gt;state != ELUA_UIP_STATE_IDLE );
+   return pstate-&gt;res == ELUA_NET_ERR_OK ? 0 : -1;
+@@ -614,7 +631,7 @@
+     return -1;
+   // Initiate the connect call  
+   uip_ipaddr( ipaddr, addr.ipbytes[ 0 ], addr.ipbytes[ 1 ], addr.ipbytes[ 2 ], addr.ipbytes[ 3 ] );
+-  elua_prep_socket_state( pstate, NULL, 0, ELUA_NET_NO_LASTCHAR, ELUA_UIP_STATE_CONNECT );  
++  elua_prep_socket_state( pstate, NULL, 0, ELUA_NET_NO_LASTCHAR, ELUA_NET_ERR_OK, ELUA_UIP_STATE_CONNECT );  
+   if( uip_connect_socket( s, &amp;ipaddr, htons( port ) ) == NULL )
+     return -1;
+   // And wait for it to finish
+
+Modified: trunk/src/modules/net.c
+===================================================================
+--- trunk/src/modules/net.c	2008-09-22 21:17:44 UTC (rev 97)
++++ trunk/src/modules/net.c	2008-09-22 22:09:12 UTC (rev 98)
+@@ -152,7 +152,7 @@
+   }
+   // Initialize buffer
+   luaL_buffinit( L, &amp;net_recv_buff );
+-  elua_net_recv( sock, &amp;net_recv_buff, maxsize, lastchar, timer_id, timeout );
++  elua_net_recvbuf( sock, &amp;net_recv_buff, maxsize, lastchar, timer_id, timeout );
+   luaL_pushresult( &amp;net_recv_buff );
+   lua_pushinteger( L, elua_net_get_last_err( sock ) );
+   return 2;
+
+Modified: trunk/src/newlib/stdtcp.c
+===================================================================
+--- trunk/src/newlib/stdtcp.c	2008-09-22 21:17:44 UTC (rev 97)
++++ trunk/src/newlib/stdtcp.c	2008-09-22 22:09:12 UTC (rev 98)
+@@ -34,7 +34,7 @@
+   actsize = 0;
+   while( 1 )
+   {
+-    pktsize = elua_net_recv( sock, lptr, len );
++    pktsize = elua_net_recv( sock, lptr, len, -1, 0, 0 );
+     // Check EOF
+     for( j = 0; j &lt; pktsize; j ++ )
+       if( lptr[ j ] == STD_CTRLZ_CODE )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000053.html">[Elua-svn] r97 - in trunk: . inc src src/modules src/platform/lm3s	src/uip
+</A></li>
+	<LI>Next message: <A HREF="000055.html">[Elua-svn] r99 - in trunk: . inc src src/modules src/newlib	src/platform/lm3s src/uip
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#54">[ date ]</a>
+              <a href="thread.html#54">[ thread ]</a>
+              <a href="subject.html#54">[ subject ]</a>
+              <a href="author.html#54">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

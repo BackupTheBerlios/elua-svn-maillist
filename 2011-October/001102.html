@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] 3bdb0c: Pass the right clock to	spi_initMaster() - PBA fre...
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%203bdb0c%3A%20Pass%20the%20right%20clock%20to%0A%09spi_initMaster%28%29%20-%20PBA%20fre...&In-Reply-To=%3C20111021141301.516DA4286F%40smtp1.rs.github.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001101.html">
+   <LINK REL="Next"  HREF="001103.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] 3bdb0c: Pass the right clock to	spi_initMaster() - PBA fre...</H1>
+    <B>noreply at github.com</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%203bdb0c%3A%20Pass%20the%20right%20clock%20to%0A%09spi_initMaster%28%29%20-%20PBA%20fre...&In-Reply-To=%3C20111021141301.516DA4286F%40smtp1.rs.github.com%3E"
+       TITLE="[eLua-svn] [elua/elua] 3bdb0c: Pass the right clock to	spi_initMaster() - PBA fre...">noreply at github.com
+       </A><BR>
+    <I>Fri Oct 21 16:13:01 CEST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001101.html">[eLua-svn] [elua/elua] c19377: fixed documentation of the UART	platform interface
+</A></li>
+        <LI>Next message: <A HREF="001103.html">[eLua-svn] [elua/elua] c98474: added per platform information about	system timer ...
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1102">[ date ]</a>
+              <a href="thread.html#1102">[ thread ]</a>
+              <a href="subject.html#1102">[ subject ]</a>
+              <a href="author.html#1102">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+
+  Commit: 3bdb0c9c93a9b54b29517be41e4c93538c45b40f
+      <A HREF="https://github.com/elua/elua/commit/3bdb0c9c93a9b54b29517be41e4c93538c45b40f">https://github.com/elua/elua/commit/3bdb0c9c93a9b54b29517be41e4c93538c45b40f</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-10-21 (Fri, 21 Oct 2011)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  Pass the right clock to spi_initMaster() - PBA freq not CPU freq
+
+The AVR32 SPI setup code passed the wrong clock to the SDK's SPI
+init function. The result should have been that it set one quarter
+of the required frequency.
+This change is &quot;obvious&quot; but untested, since the spi.*() module
+interface seems not to work yet on AVR32. The MMC card on SPI1
+continues to work as it did before, presumably at full speed
+instead of quarter speed.
+
+
+  Commit: 854e4f5cfa48f6a13ae427d8fc22f1886d4036d8
+      <A HREF="https://github.com/elua/elua/commit/854e4f5cfa48f6a13ae427d8fc22f1886d4036d8">https://github.com/elua/elua/commit/854e4f5cfa48f6a13ae427d8fc22f1886d4036d8</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-10-21 (Fri, 21 Oct 2011)
+
+  Changed paths:
+    M src/platform/at91sam7x/platform_conf.h
+  M src/platform/avr32/EVK1100/evk1100_conf.h
+  M src/platform/avr32/EVK1101/evk1101_conf.h
+  M src/platform/avr32/MIZAR32/mizar32_conf.h
+  M src/platform/i386/platform_conf.h
+  M src/platform/lm3s/platform_conf.h
+  M src/platform/lpc17xx/platform_conf.h
+  M src/platform/lpc24xx/platform_conf.h
+  M src/platform/lpc288x/platform_conf.h
+  M src/platform/sim/platform_conf.h
+  M src/platform/stm32/platform_conf.h
+  M src/platform/str7/platform_conf.h
+  M src/platform/str9/platform_conf.h
+
+  Log Message:
+  -----------
+  aAdd commentary about second use of CPU_FREQUENCY macro
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/66798da...854e4f5">https://github.com/elua/elua/compare/66798da...854e4f5</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001101.html">[eLua-svn] [elua/elua] c19377: fixed documentation of the UART	platform interface
+</A></li>
+	<LI>Next message: <A HREF="001103.html">[eLua-svn] [elua/elua] c98474: added per platform information about	system timer ...
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1102">[ date ]</a>
+              <a href="thread.html#1102">[ thread ]</a>
+              <a href="subject.html#1102">[ subject ]</a>
+              <a href="author.html#1102">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

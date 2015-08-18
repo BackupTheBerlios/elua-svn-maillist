@@ -1,0 +1,542 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r206 - in trunk: . inc src src/newlib
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r206%20-%20in%20trunk%3A%20.%20inc%20src%20src/newlib&In-Reply-To=%3C200902182213.n1IMDmms028169%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000161.html">
+   <LINK REL="Next"  HREF="000163.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r206 - in trunk: . inc src src/newlib</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r206%20-%20in%20trunk%3A%20.%20inc%20src%20src/newlib&In-Reply-To=%3C200902182213.n1IMDmms028169%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r206 - in trunk: . inc src src/newlib">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Feb 18 23:13:48 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000161.html">[Elua-svn] r205 - in trunk: inc src src/platform/avr32
+</A></li>
+        <LI>Next message: <A HREF="000163.html">[Elua-svn] r207 - in trunk/doc: . en wb wb_img
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#162">[ date ]</a>
+              <a href="thread.html#162">[ thread ]</a>
+              <a href="subject.html#162">[ subject ]</a>
+              <a href="author.html#162">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-02-18 23:13:48 +0100 (Wed, 18 Feb 2009)
+New Revision: 206
+
+Added:
+   trunk/inc/salloc.h
+   trunk/src/salloc.c
+Modified:
+   trunk/SConstruct
+   trunk/src/common.c
+   trunk/src/elua_adc.c
+   trunk/src/newlib/stubs.c
+Log:
+Added a very simple allocator to eLua. It's probably the most basic version of a chained blocks allocator. It's slow and it won't handle fragmentation nearly as well as dlmalloc(), but it's much smaller and it doesn't need the extra book-keeping space needed by dlmalloc (about 1KB for each memory space).
+Recommended only for systems with very low memory (Flash/RAM), and prefferably systems running only precompiled Lua (if you need to compile the code, you might get into stack overflows, and this allocator is much more sensitive to this kind of stuff than dlmalloc()). In fact, this allocator seems to suggest that one should set the stack to at least 4k for the Lua parser to run properly even on small programs. I won't do this just yet, rather I'll keep on trying to move the Lua parser data structures from stack to heap. For now we're OK with the current configuration.
+The allocator can handle multiple memory spaces.
+Enable with &quot;allocator=simple&quot; on the scons command line.
+
+..oh yes, also added a newline to the end of elua_adc.c :) (to avoid some annoying warnings)
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-02-17 18:57:05 UTC (rev 205)
++++ trunk/SConstruct	2009-02-18 22:13:48 UTC (rev 206)
+@@ -112,9 +112,9 @@
+     allocator = 'multiple'
+   else:
+     allocator = 'newlib'
+-elif allocator not in [ 'newlib', 'multiple' ]:
++elif allocator not in [ 'newlib', 'multiple', 'simple' ]:
+   print &quot;Unknown allocator&quot;, allocator
+-  print &quot;Allocator can be either 'newlib' or 'multiple'&quot;
++  print &quot;Allocator can be either 'newlib', 'multiple' or 'simple'&quot;
+   sys.exit( -1 )
+ 
+ 
+@@ -135,6 +135,8 @@
+ cdefs = '-DELUA_CPU=%s -DELUA_BOARD=%s -DELUA_PLATFORM=%s -D__BUFSIZ__=128' % ( cputype, boardname, platform.upper() )
+ if allocator == 'multiple':
+   cdefs = cdefs + &quot; -DUSE_MULTIPLE_ALLOCATOR&quot;
++elif allocator == 'simple':
++  cdefs = cdefs + &quot; -DUSE_SIMPLE_ALLOCATOR&quot;
+ 
+ # Lua source files and include path
+ lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
+@@ -155,7 +157,7 @@
+ local_libs = ''
+ 
+ # Application files
+-app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c &quot;
++app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c &quot;
+ 
+ # Newlib related files
+ newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+
+Added: trunk/inc/salloc.h
+===================================================================
+--- trunk/inc/salloc.h	2009-02-17 18:57:05 UTC (rev 205)
++++ trunk/inc/salloc.h	2009-02-18 22:13:48 UTC (rev 206)
+@@ -0,0 +1,14 @@
++// A very simple, quite inneficient, yet very small memory allocator
++
++#ifndef __SALLOC_H__
++#define __SALLOC_H__
++
++#include &lt;stddef.h&gt;
++
++void* smalloc( size_t size );
++void sfree( void* ptr );
++void* scalloc( size_t nmemb, size_t size );
++void* srealloc( void* ptr, size_t size );
++
++#endif // #ifndef __SALLOC_H__
++
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2009-02-17 18:57:05 UTC (rev 205)
++++ trunk/src/common.c	2009-02-18 22:13:48 UTC (rev 206)
+@@ -305,20 +305,35 @@
+ // ****************************************************************************
+ // Allocator support
+ 
++#define MIN_ALIGN         8
++#define MIN_ALIGN_SHIFT   3
++
+ extern char end[];
+ 
+ void* platform_get_first_free_ram( unsigned id )
+ {
+   void* mstart[] = MEM_START_ADDRESS;
+-  
+-  return id &gt;= sizeof( mstart ) / sizeof( void* ) ? NULL : mstart[ id ];
++  u32 p;
++
++  if( id &gt;= sizeof( mstart ) / sizeof( void* ) )
++    return NULL;
++  p = ( u32 )mstart[ id ];
++  if( p &amp; ( MIN_ALIGN - 1 ) )
++    p = ( ( p &gt;&gt; MIN_ALIGN_SHIFT ) + 1 ) &lt;&lt; MIN_ALIGN_SHIFT;
++  return ( void* )p;
+ }
+ 
+ void* platform_get_last_free_ram( unsigned id )
+ {
+   void* mend[] = MEM_END_ADDRESS;
+-  
+-  return id &gt;= sizeof( mend ) / sizeof( void* ) ? NULL : mend[ id ];
++  u32 p;
++
++  if( id &gt;= sizeof( mend ) / sizeof( void* ) )
++    return NULL;
++  p = ( u32 )mend[ id ];
++  if( p &amp; ( MIN_ALIGN - 1 ) )
++    p = ( ( p &gt;&gt; MIN_ALIGN_SHIFT ) - 1 ) &lt;&lt; MIN_ALIGN_SHIFT;
++  return ( void* )p;
+ }
+ 
+ 
+
+Modified: trunk/src/elua_adc.c
+===================================================================
+--- trunk/src/elua_adc.c	2009-02-17 18:57:05 UTC (rev 205)
++++ trunk/src/elua_adc.c	2009-02-18 22:13:48 UTC (rev 206)
+@@ -156,4 +156,5 @@
+ }
+ 
+ 
+-#endif
+\ No newline at end of file
++#endif
++
+
+Modified: trunk/src/newlib/stubs.c
+===================================================================
+--- trunk/src/newlib/stubs.c	2009-02-17 18:57:05 UTC (rev 205)
++++ trunk/src/newlib/stubs.c	2009-02-18 22:13:48 UTC (rev 206)
+@@ -12,6 +12,7 @@
+ #include &quot;platform_conf.h&quot;
+ #include &quot;genstd.h&quot;
+ #include &quot;utils.h&quot;
++#include &quot;salloc.h&quot;
+ 
+ #ifdef USE_MULTIPLE_ALLOCATOR
+ #include &quot;dlmalloc.h&quot;
+@@ -344,32 +345,35 @@
+ #endif
+ } 
+ 
++#if defined( USE_MULTIPLE_ALLOCATOR ) || defined( USE_SIMPLE_ALLOCATOR )
++// Redirect all allocator calls to our dlmalloc/salloc 
++
+ #ifdef USE_MULTIPLE_ALLOCATOR
+-// Redirect all allocator calls to our dlmalloc
++#define CNAME( func ) dl##func
++#else
++#define CNAME( func ) s##func
++#endif
++
+ void* _malloc_r( struct _reent* r, size_t size )
+ {
+-  return dlmalloc( size );
++  return CNAME( malloc )( size );
+ }
+ 
+ void* _calloc_r( struct _reent* r, size_t nelem, size_t elem_size )
+ {
+-  return dlcalloc( nelem, elem_size );
++  return CNAME( calloc )( nelem, elem_size );
+ }
+ 
+ void _free_r( struct _reent* r, void* ptr )
+ {
+-  dlfree( ptr );
++  CNAME( free )( ptr );
+ }
+ 
+ void* _realloc_r( struct _reent* r, void* ptr, size_t size )
+ {
+-  return dlrealloc( ptr, size );
++  return CNAME( realloc )( ptr, size );
+ }
+ 
+-void* _memalign_r( struct _reent* r, size_t align, size_t nbytes )
+-{
+-  return dlmemalign( align, nbytes );
+-}
+ #endif // #ifdef USE_MULTIPLE_ALLOCATOR
+ 
+ // *****************************************************************************
+
+Added: trunk/src/salloc.c
+===================================================================
+--- trunk/src/salloc.c	2009-02-17 18:57:05 UTC (rev 205)
++++ trunk/src/salloc.c	2009-02-18 22:13:48 UTC (rev 206)
+@@ -0,0 +1,282 @@
++// A very simple, quite inneficient, yet very small memory allocator
++// It can do both fixed block and variable block allocation
++
++#ifdef USE_SIMPLE_ALLOCATOR
++
++#include &lt;stddef.h&gt;
++#include &lt;string.h&gt;
++#include &quot;platform.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;type.h&quot;
++
++// Macros for the dynamic size allocator
++// Dynamic structure: pointer to next, pointer to prev
++// First bit of pointer is 0 if block free, 1 if block taken
++// Pointer must be multiplied by DYN_MIN_SIZE to get actual address
++// There are two 'guards' (at the beginning and at the end) 
++#define DYN_SIZE_MULT           8
++#define DYN_SIZE_MULT_SHIFT     3
++#define DYN_HEADER_SIZE         8
++#define DYN_MIN_SPLIT_SIZE      16
++
++static u8 s_initialized;
++
++// ****************************************************************************
++// Utility functions for the dynamic memory allocator
++
++// Get actual size
++static size_t s_act_size( size_t size )
++{
++  if( size &amp; ( DYN_SIZE_MULT - 1 ) )
++    size = ( ( size &gt;&gt; DYN_SIZE_MULT_SHIFT ) + 1 ) &lt;&lt; DYN_SIZE_MULT_SHIFT;
++  return size;
++}
++
++// Get next block
++static char* s_get_next_block( char* ptr )
++{
++  return ( char* )( ( *( u32* )ptr &amp; 0x7FFFFFFF ) &lt;&lt; DYN_SIZE_MULT_SHIFT );
++}
++
++// Set next block
++static void s_set_next_block( char* ptr, char* next )
++{
++  u32 *temp = ( u32* )ptr;
++  
++  *temp = ( *temp &amp; 0x80000000 ) | ( ( u32 )next &gt;&gt; DYN_SIZE_MULT_SHIFT );
++}
++
++// Get prev block
++static char* s_get_prev_block( char* ptr )
++{
++  return ( char* )( ( *( ( u32* )ptr + 1 ) &amp; 0x7FFFFFFF ) &lt;&lt; DYN_SIZE_MULT_SHIFT );
++}
++
++// Set prev block
++static void s_set_prev_block( char* ptr, char* prev )
++{
++  u32 *temp = ( u32* )ptr + 1;
++   
++  *temp = ( *temp &amp; 0x80000000 ) | ( ( u32 )prev &gt;&gt; DYN_SIZE_MULT_SHIFT );
++}
++
++// Get block size
++static size_t s_get_block_size( char* ptr )
++{
++  char* next = s_get_next_block( ptr );
++  
++  return next != NULL ? ( size_t )( next - ptr ) : 0;
++}
++
++// Mark block as taken
++static void s_mark_block_taken( char* where )
++{
++  *( u32* )where |= 0x80000000;
++}
++
++// Mark block as free
++static void s_mark_block_free( char* where )
++{
++  *( u32* )where &amp;= 0x7FFFFFFF;
++}
++
++// Is the block free?
++static int s_is_block_free( char* where )
++{
++  return ( *( u32* )where &amp; 0x80000000 ) == 0;
++}
++
++// Create a new block with the given neighbours
++static void s_create_new_block( char* where, char* next, char* prev )
++{
++  u32* temp = ( u32* )where;
++  
++  *temp ++ = ( u32 )next &gt;&gt; DYN_SIZE_MULT_SHIFT;
++  *temp = ( u32 )prev &gt;&gt; DYN_SIZE_MULT_SHIFT;
++}
++
++// Tries to compact free blocks
++static void s_compact_free( char* ptr )
++{
++  char *temp1, *temp2;
++  
++  s_mark_block_free( ptr );  
++  // Look for free blocks before and after, concatenate if possible
++  temp1 = temp2 = ptr;
++  while( s_is_block_free( temp1 ) )
++    temp1 = s_get_prev_block( temp1 );
++  temp1 = s_get_next_block( temp1 );      
++  while( s_is_block_free( temp2 ) )
++    temp2 = s_get_next_block( temp2 );    
++  if( temp1 != ptr || s_get_prev_block( temp2 ) != ptr )
++  {
++    s_set_next_block( temp1, temp2 );
++    s_set_prev_block( temp2, temp1 );
++  }
++}
++
++// Utility function: find a free block in the dynamic memory part
++// Returns pointer to block for success, NULL for error
++static void* s_get_free_block( size_t size, void* pstart )
++{
++  char *temp, *pblock = NULL, *next;
++  size_t minsize = ( size_t )~0, bsize;
++  
++  if( !size )
++    return NULL;
++  size = s_act_size( size + DYN_HEADER_SIZE );  
++  temp = s_get_next_block( pstart );
++  // Best-fit only for now
++  while( temp )
++  {
++    if( s_is_block_free( temp ) )
++    {
++      bsize = s_get_block_size( temp );      
++      if( ( size &lt;= bsize ) &amp;&amp; ( bsize &lt; minsize ) )
++      {
++        minsize = bsize;
++        pblock = temp;
++      }
++    }
++    temp = s_get_next_block( temp );
++  }
++  if( pblock == NULL )
++    return NULL;
++  s_mark_block_taken( pblock );
++  if( minsize &gt; size &amp;&amp; ( minsize - size ) &gt;= DYN_MIN_SPLIT_SIZE )
++  {
++    temp = pblock + size;
++    next = s_get_next_block( pblock );
++    s_set_prev_block( temp, pblock );
++    s_set_next_block( temp, next );
++    s_set_prev_block( next, temp );
++    s_set_next_block( pblock, temp );
++    s_compact_free( temp );
++  }
++  return pblock + DYN_HEADER_SIZE;
++}
++
++// Utility function: free a memory block
++static void s_free_block( char* ptr )
++{
++  ptr -= DYN_HEADER_SIZE;
++  s_compact_free( ptr );
++}
++
++// Get 'real' block size
++static size_t s_get_actual_block_size( char* ptr )
++{
++  return s_get_block_size( ptr - DYN_HEADER_SIZE ) - DYN_HEADER_SIZE;
++}
++
++// Shrinks the given block to its new size
++static void s_shrink_block( char* pblock, size_t size )
++{
++  char *temp, *next;
++  
++  pblock -= DYN_HEADER_SIZE;
++  size = s_act_size( size + DYN_HEADER_SIZE );  
++  if( size &gt;= s_get_block_size( pblock ) || ( s_get_block_size( pblock ) - size ) &lt; DYN_MIN_SPLIT_SIZE )
++    return;
++  temp = pblock + size;
++  next = s_get_next_block( pblock );
++  s_set_prev_block( temp, pblock );
++  s_set_next_block( temp, next );
++  s_set_prev_block( next, temp );
++  s_set_next_block( pblock, temp );    
++  s_compact_free( temp );
++}
++
++static void s_init()
++{
++  unsigned i = 0;
++  size_t memspace;
++  char *crt, *g1, *g2, *pstart;
++
++  while( ( pstart = platform_get_first_free_ram( i ) ) != NULL )
++  {
++    memset( pstart, 0, memspace = ( u32 )platform_get_last_free_ram( i ) - ( u32 )pstart );
++    g1 = ( char* )pstart;
++    crt = g1 + DYN_SIZE_MULT;
++    g2 = g1 + memspace - DYN_SIZE_MULT;
++    s_create_new_block( g1, crt, NULL );
++    s_create_new_block( crt, g2, g1 );
++    s_create_new_block( g2, NULL, crt );
++    s_mark_block_taken( g1 );
++    s_mark_block_taken( g2 );    
++    s_mark_block_free( crt );
++    i ++;
++  }   
++  s_initialized = 1;
++}
++
++// ****************************************************************************
++
++void* smalloc( size_t size )
++{
++  unsigned i = 0;
++  void *ptr = NULL, *pstart;
++
++  if( !s_initialized )
++    s_init();
++  while( ( pstart = platform_get_first_free_ram( i ++ ) ) != NULL )
++    if( ( ptr = s_get_free_block( size, pstart ) ) != NULL )
++      break;
++  return ptr;
++}
++
++void sfree( void* ptr )
++{
++  if( !ptr || !s_initialized )
++    return;
++  s_free_block( ptr );
++}
++
++void* scalloc( size_t nmemb, size_t size )
++{
++  void* ptr;
++
++  if( !s_initialized )
++    s_init();
++  if( ( ptr = smalloc( nmemb * size ) ) != NULL )
++    memset( ptr, 0, nmemb * size );
++  return ptr;
++}
++
++void* srealloc( void* ptr, size_t size )
++{
++  void* newptr = NULL;
++
++  if( !s_initialized )
++    s_init();
++  // Special cases:
++  // realloc with ptr == NULL -&gt; malloc
++  // realloc with size == 0 -&gt; free
++  if( ptr == NULL )
++    return smalloc( size );
++  else if( size == 0 )
++  {
++    sfree( ptr );
++    return NULL;
++  }
++
++  // Test new size versus the old size
++  if( s_get_actual_block_size( ptr ) == size )
++    return ptr;
++  else if( size &lt; s_get_actual_block_size( ptr ) )
++  {
++    s_shrink_block( ptr, size );
++    return ptr;
++  }
++  else
++  {
++    if( ( newptr = smalloc( size ) ) == NULL )
++      return NULL;
++    memmove( newptr, ptr, s_get_actual_block_size( ptr ) );
++    sfree( ptr );
++  }
++  return newptr;
++}
++
++#endif // #ifdef USE_SIMPLE_ALLOCATOR
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000161.html">[Elua-svn] r205 - in trunk: inc src src/platform/avr32
+</A></li>
+	<LI>Next message: <A HREF="000163.html">[Elua-svn] r207 - in trunk/doc: . en wb wb_img
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#162">[ date ]</a>
+              <a href="thread.html#162">[ thread ]</a>
+              <a href="subject.html#162">[ subject ]</a>
+              <a href="author.html#162">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r62 - trunk/src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r62%20-%20trunk/src/modules&In-Reply-To=%3C200808252018.m7PKIpwr018625%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000016.html">
+   <LINK REL="Next"  HREF="000018.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r62 - trunk/src/modules</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r62%20-%20trunk/src/modules&In-Reply-To=%3C200808252018.m7PKIpwr018625%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r62 - trunk/src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Aug 25 22:18:51 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000016.html">[Elua-svn] r61 - in trunk: inc src/platform/at91sam7x	src/platform/lm3s src/platform/lpc288x
+</A></li>
+        <LI>Next message: <A HREF="000018.html">[Elua-svn] r63 - trunk/examples
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#17">[ date ]</a>
+              <a href="thread.html#17">[ thread ]</a>
+              <a href="subject.html#17">[ subject ]</a>
+              <a href="author.html#17">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-08-25 22:18:50 +0200 (Mon, 25 Aug 2008)
+New Revision: 62
+
+Modified:
+   trunk/src/modules/term.c
+Log:
+added the piano example (so far only for LM3S8962) and modified the term interface a bit
+
+Modified: trunk/src/modules/term.c
+===================================================================
+--- trunk/src/modules/term.c	2008-08-19 20:21:10 UTC (rev 61)
++++ trunk/src/modules/term.c	2008-08-25 20:18:50 UTC (rev 62)
+@@ -106,6 +106,25 @@
+   return 0;
+ }
+ 
++// Lua: putxy( x, y, c1, c2, ... )
++static int luaterm_putxy( lua_State* L )
++{
++  int total = lua_gettop( L ), i;
++  unsigned x, y;
++  u8 data;
++  
++  MOD_CHECK_MIN_ARGS( 3 );
++  x = ( unsigned )luaL_checkinteger( L, 1 );
++  y = ( unsigned )luaL_checkinteger( L, 2 );
++  term_gotoxy( x, y );
++  for( i = 3; i &lt;= total; i ++ )
++  {
++    data = ( u8 )luaL_checkinteger( L, 1 );
++    term_putch( data );
++  }
++  return 0;
++}
++
+ // Lua: putstr( string1, string2, ... )
+ static int luaterm_putstr( lua_State* L )
+ {
+@@ -124,6 +143,28 @@
+   return 0;
+ }
+ 
++// Lua: putstrxy( x, y, string1, string2, ... )
++static int luaterm_putstrxy( lua_State* L )
++{
++  const char* buf;
++  unsigned x, y;
++  size_t len, i;
++  int total = lua_gettop( L ), s;
++  
++  MOD_CHECK_MIN_ARGS( 3 );  
++  x = ( unsigned )luaL_checkinteger( L, 1 );
++  y = ( unsigned )luaL_checkinteger( L, 2 );
++  term_gotoxy( x, y );
++  for( s = 3; s &lt;= total; s ++ )
++  {
++    luaL_checktype( L, s, LUA_TSTRING );
++    buf = lua_tolstring( L, s, &amp;len );
++    for( i = 0; i &lt; len; i ++ )
++      term_putch( buf[ i ] );
++  }
++  return 0;
++}
++
+ // Lua: cursorx = cursorx()
+ static int luaterm_cx( lua_State* L )
+ {
+@@ -163,6 +204,8 @@
+   { &quot;cols&quot;, luaterm_cols },
+   { &quot;put&quot;, luaterm_put },
+   { &quot;putstr&quot;, luaterm_putstr },
++  { &quot;putxy&quot;, luaterm_putxy },
++  { &quot;putstrxy&quot;, luaterm_putstrxy },
+   { &quot;cursorx&quot;, luaterm_cx },
+   { &quot;cursory&quot;, luaterm_cy },
+   { &quot;getch&quot;, luaterm_getch },
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000016.html">[Elua-svn] r61 - in trunk: inc src/platform/at91sam7x	src/platform/lm3s src/platform/lpc288x
+</A></li>
+	<LI>Next message: <A HREF="000018.html">[Elua-svn] r63 - trunk/examples
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#17">[ date ]</a>
+              <a href="thread.html#17">[ thread ]</a>
+              <a href="subject.html#17">[ subject ]</a>
+              <a href="author.html#17">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

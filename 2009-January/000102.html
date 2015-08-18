@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r146 - trunk/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r146%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200901092212.n09MCZNN002268%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000101.html">
+   <LINK REL="Next"  HREF="000103.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r146 - trunk/src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r146%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200901092212.n09MCZNN002268%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r146 - trunk/src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Jan  9 23:12:35 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000101.html">[Elua-svn] r145 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000103.html">[Elua-svn] r147 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#102">[ date ]</a>
+              <a href="thread.html#102">[ thread ]</a>
+              <a href="subject.html#102">[ subject ]</a>
+              <a href="author.html#102">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-01-09 23:12:35 +0100 (Fri, 09 Jan 2009)
+New Revision: 146
+
+Modified:
+   trunk/src/platform/lm3s/platform.c
+Log:
+Fix for LM3S6965 PWM1.
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-01-08 15:20:05 UTC (rev 145)
++++ trunk/src/platform/lm3s/platform.c	2009-01-09 22:12:35 UTC (rev 146)
+@@ -361,13 +361,17 @@
+ 
+ // ****************************************************************************
+ // PWMs
+-// Same on LM3S8962 and LM3S6965
++// Similar on LM3S8962 and LM3S6965
+ 
+ // SYSCTL div data and actual div factors
+ const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
+ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
+ // Port/pin information for all channels
+-const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
++#ifdef FORLM3S6965
++  const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTD_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };  
++#else
++  const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
++#endif
+ const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1 };
+ // PWM generators
+ const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2 };
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000101.html">[Elua-svn] r145 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000103.html">[Elua-svn] r147 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#102">[ date ]</a>
+              <a href="thread.html#102">[ thread ]</a>
+              <a href="subject.html#102">[ subject ]</a>
+              <a href="author.html#102">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

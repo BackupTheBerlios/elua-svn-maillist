@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r799 - in trunk/doc: . en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r799%20-%20in%20trunk/doc%3A%20.%20en&In-Reply-To=%3C20101005224526.4B03A480C7C%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000751.html">
+   <LINK REL="Next"  HREF="000753.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r799 - in trunk/doc: . en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r799%20-%20in%20trunk/doc%3A%20.%20en&In-Reply-To=%3C20101005224526.4B03A480C7C%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r799 - in trunk/doc: . en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Oct  6 00:45:26 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000751.html">[Elua-svn] r798 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000753.html">[Elua-svn] r800 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#752">[ date ]</a>
+              <a href="thread.html#752">[ thread ]</a>
+              <a href="subject.html#752">[ subject ]</a>
+              <a href="author.html#752">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-10-06 00:45:26 +0200 (Wed, 06 Oct 2010)
+New Revision: 799
+
+Modified:
+   trunk/doc/buildall.lua
+   trunk/doc/en/overview.txt
+   trunk/doc/en/status.txt
+Log:
+- Generate &quot;offline&quot; documentation by default. This simply means that the BerliOS logo and the counter will not be added to the navigation div. Use -online as argument to buildall.lua
+  to add them.
+- Minor alignment changes
+
+
+
+Modified: trunk/doc/buildall.lua
+===================================================================
+--- trunk/doc/buildall.lua	2010-10-05 21:08:04 UTC (rev 798)
++++ trunk/doc/buildall.lua	2010-10-05 22:45:26 UTC (rev 799)
+@@ -2,7 +2,7 @@
+ require &quot;eluadoc&quot;
+ 
+ -- Uncomment this when generating offline docs
+--- local is_offline = true
++local is_offline = true
+ 
+ -- Languages in the system
+ -- NOTE: &quot;en&quot; must ALWAYS be the first entry in this array!
+@@ -486,13 +486,21 @@
+ 
+ -- Argument check
+ local args = { ... }
+-local destdir
+-if #args ~= 1 then
+-  print &quot;Using 'dist/' as the destination directory&quot;
+-  destdir = &quot;dist&quot;
+-else
+-  destdir = args[ 1 ]
++local destdir = &quot;dist&quot;
++local destdiridx = 1
++if #args &gt; 2 then
++  print &quot;Usage: buildall.lua [destdir] [-online]&quot;
++  print &quot;Use -online to generate online documentation (includes BerliOS logo and counter)&quot;
++  return
+ end
++for i = 1, #args do
++  if args[ i ] == &quot;-online&quot; then
++    is_offline = false
++  else 
++    destdir = args[ i ]
++  end
++end
++print( sf( &quot;Using '%s' as the destination directory&quot;, destdir ) );
+ 
+ -- Read the documentation data
+ themenu, translations, fixed = dofile( &quot;docdata.lua&quot; )
+
+Modified: trunk/doc/en/overview.txt
+===================================================================
+--- trunk/doc/en/overview.txt	2010-10-05 21:08:04 UTC (rev 798)
++++ trunk/doc/en/overview.txt	2010-10-05 22:45:26 UTC (rev 799)
+@@ -177,7 +177,7 @@
+ model. An always growing list of collaborators, from all over the
+ planet, can be found in our link:comunity.html#credits[Credits Page].
+ 
+-[width=&quot;70%&quot;, cols=&quot;^,^&quot;, options=&quot;header&quot;]
++[width=&quot;70%&quot;, align=&quot;center&quot;, cols=&quot;^,^&quot;, options=&quot;header&quot;]
+ |====================================================================================================================
+ | *ReVaLuaTe Project*                                           | *Volta Project*
+ | image:images/terminalreneseas.jpg[ReVaLuaTe project picture] | image:images/volta-small.jpg[Volta project picture]
+
+Modified: trunk/doc/en/status.txt
+===================================================================
+--- trunk/doc/en/status.txt	2010-10-05 21:08:04 UTC (rev 798)
++++ trunk/doc/en/status.txt	2010-10-05 22:45:26 UTC (rev 799)
+@@ -100,7 +100,7 @@
+ For some platforms, a number of platform dependent modules are implemented (or in the works) and are listed below. To understand the difference between generic 
+ modules and platform specific modules, check link:arch_overview.html[the eLua architecture page].
+ 
+-[width=&quot;70%&quot;, cols=&quot;&lt;.^1, &lt;.^4, &lt;.^3, &lt;.^1&quot;, options=&quot;header&quot;]
++[width=&quot;70%&quot;, cols=&quot;&lt;.^1, &lt;.^4, &lt;.^3, ^.^1&quot;, options=&quot;header&quot;]
+ |=======================================================================================
+ ^|    Name   ^| Description                   ^|      Boards                   ^| Status
+ o| disp       | OLED display support           | _EK-LM3S8962 _br _EK-LM3S6965  | _sok
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000751.html">[Elua-svn] r798 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000753.html">[Elua-svn] r800 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#752">[ date ]</a>
+              <a href="thread.html#752">[ thread ]</a>
+              <a href="subject.html#752">[ subject ]</a>
+              <a href="author.html#752">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] 158ce1: Split platform_adc_op() into six	separate function...
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-July/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20158ce1%3A%20Split%20platform_adc_op%28%29%20into%20six%0A%09separate%20function...&In-Reply-To=%3C20110723181053.D3F01425D8%40smtp1.rs.github.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001053.html">
+   <LINK REL="Next"  HREF="001055.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] 158ce1: Split platform_adc_op() into six	separate function...</H1>
+    <B>noreply at github.com</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20158ce1%3A%20Split%20platform_adc_op%28%29%20into%20six%0A%09separate%20function...&In-Reply-To=%3C20110723181053.D3F01425D8%40smtp1.rs.github.com%3E"
+       TITLE="[eLua-svn] [elua/elua] 158ce1: Split platform_adc_op() into six	separate function...">noreply at github.com
+       </A><BR>
+    <I>Sat Jul 23 20:10:53 CEST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001053.html">[eLua-svn] [elua/elua] 007ead: Remove bogus &quot;luaopen_disp()&quot;	functions that are n...
+</A></li>
+        <LI>Next message: <A HREF="001055.html">[eLua-svn] [elua/elua] fe9529: First full version of Mizar32 LCD	module driver.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1054">[ date ]</a>
+              <a href="thread.html#1054">[ thread ]</a>
+              <a href="subject.html#1054">[ subject ]</a>
+              <a href="author.html#1054">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+
+  Commit: 158ce167ca7706b9122b3d1f78be697112ee995d
+      <A HREF="https://github.com/elua/elua/commit/158ce167ca7706b9122b3d1f78be697112ee995d">https://github.com/elua/elua/commit/158ce167ca7706b9122b3d1f78be697112ee995d</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-23 (Sat, 23 Jul 2011)
+
+  Changed paths:
+    M doc/eluadoc/arch_platform_adc.lua
+  M doc/eluadoc/refman_gen_adc.lua
+  M inc/platform.h
+  M src/common.c
+  M src/elua_adc.c
+  M src/modules/adc.c
+  M src/platform/avr32/platform.c
+  M src/platform/lm3s/platform.c
+  M src/platform/lpc17xx/platform.c
+  M src/platform/lpc24xx/platform.c
+  M src/platform/stm32/platform.c
+  M src/platform/str9/platform.c
+
+  Log Message:
+  -----------
+  Split platform_adc_op() into six separate functions
+
+Previously, you called platform_adc_op(id, OPERATION, u32 arg) to achieve
+six unrelated functions with different arg types and return values:
+
+GET_MAXVAL takes nothing and returns an ADC conversion value
+SET_SMOOTHING takes a power-of-two filter length and returns nothing
+SET_BLOCKING takes a boolean and returns nothing
+IS_DONE takes nothing and returns a boolean
+SET_TIMER takes a timer ID and returns nothing
+SET_CLOCK takes a frequency in Hz and returns a frequency in Hz.
+
+This changes these to six independent functions, each with the right
+parameters and return values.
+
+This also makes the documentation more comprehensible, saves 26 bytes of
+executable code and should be very slightly faster.
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001053.html">[eLua-svn] [elua/elua] 007ead: Remove bogus &quot;luaopen_disp()&quot;	functions that are n...
+</A></li>
+	<LI>Next message: <A HREF="001055.html">[eLua-svn] [elua/elua] fe9529: First full version of Mizar32 LCD	module driver.
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1054">[ date ]</a>
+              <a href="thread.html#1054">[ thread ]</a>
+              <a href="subject.html#1054">[ subject ]</a>
+              <a href="author.html#1054">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

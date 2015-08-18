@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] 026f72: System timer support is now optional
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20026f72%3A%20System%20timer%20support%20is%20now%20optional&In-Reply-To=%3C20111011154532.4D31542628%40smtp1.rs.github.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001090.html">
+   <LINK REL="Next"  HREF="001092.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] 026f72: System timer support is now optional</H1>
+    <B>noreply at github.com</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20026f72%3A%20System%20timer%20support%20is%20now%20optional&In-Reply-To=%3C20111011154532.4D31542628%40smtp1.rs.github.com%3E"
+       TITLE="[eLua-svn] [elua/elua] 026f72: System timer support is now optional">noreply at github.com
+       </A><BR>
+    <I>Tue Oct 11 17:45:32 CEST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001090.html">[eLua-svn] [elua/elua] b1b82b: Change systimer overflow handling	from timer stop ...
+</A></li>
+        <LI>Next message: <A HREF="001092.html">[eLua-svn] [elua/elua] 77d543: fixed STR9 systimer implementation	(tested)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1091">[ date ]</a>
+              <a href="thread.html#1091">[ thread ]</a>
+              <a href="subject.html#1091">[ subject ]</a>
+              <a href="author.html#1091">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/newtimers
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+
+  Commit: 026f72dd46c38fa5597ecfa3251be9675d6fda94
+      <A HREF="https://github.com/elua/elua/commit/026f72dd46c38fa5597ecfa3251be9675d6fda94">https://github.com/elua/elua/commit/026f72dd46c38fa5597ecfa3251be9675d6fda94</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-10-11 (Tue, 11 Oct 2011)
+
+  Changed paths:
+    M inc/platform.h
+  M src/common.c
+  M src/common_tmr.c
+  M src/modules/auxmods.h
+  M src/modules/tmr.c
+  M src/platform/at91sam7x/platform_conf.h
+  M src/platform/avr32/platform_conf.h
+  M src/platform/lm3s/platform_conf.h
+  M src/platform/lpc17xx/platform_conf.h
+  M src/platform/lpc24xx/platform_conf.h
+  M src/platform/sim/platform_conf.h
+  M src/platform/stm32/platform_conf.h
+
+  Log Message:
+  -----------
+  System timer support is now optional
+
+Since the system timer might be too demanding for some platforms
+(although this isn't currently the case for any eLua plarform) it
+is now optional. Any platform that implements it must define the
+PLATFORM_HAS_SYSTIMER macro in its platform_conf.h
+
+
+  Commit: 17684b1da2311ade011ec3d4fb8b32e272e63ef7
+      <A HREF="https://github.com/elua/elua/commit/17684b1da2311ade011ec3d4fb8b32e272e63ef7">https://github.com/elua/elua/commit/17684b1da2311ade011ec3d4fb8b32e272e63ef7</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-10-11 (Tue, 11 Oct 2011)
+
+  Changed paths:
+    M src/platform/i386/platform.c
+  M src/platform/lpc288x/platform.c
+  M src/platform/str7/platform.c
+
+  Log Message:
+  -----------
+  Fix compilation errors for platform that won't get a system timer
+
+There are some platform that will not get a system timer implementation
+(mainly because they don't really have a user base). These are i386,
+lpc288x and str7. They will continue to work without a system timer.
+
+
+  Commit: 72080c34fc3f362e5daf25e44d60980ea2985278
+      <A HREF="https://github.com/elua/elua/commit/72080c34fc3f362e5daf25e44d60980ea2985278">https://github.com/elua/elua/commit/72080c34fc3f362e5daf25e44d60980ea2985278</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-10-11 (Tue, 11 Oct 2011)
+
+  Changed paths:
+    M src/common.c
+  M src/platform/str9/platform.c
+  M src/platform/str9/platform_conf.h
+  M src/platform/str9/platform_int.c
+
+  Log Message:
+  -----------
+  system timer support for STR9 (not yet tested)
+
+
+  Commit: cc99b2d7a2f21cd37bc3aafd799e9d8f83f77ecb
+      <A HREF="https://github.com/elua/elua/commit/cc99b2d7a2f21cd37bc3aafd799e9d8f83f77ecb">https://github.com/elua/elua/commit/cc99b2d7a2f21cd37bc3aafd799e9d8f83f77ecb</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-10-11 (Tue, 11 Oct 2011)
+
+  Changed paths:
+    M src/platform/lpc288x/platform.c
+  M src/platform/str7/platform.c
+
+  Log Message:
+  -----------
+  added missing operations for some platforms
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/acba13b...cc99b2d">https://github.com/elua/elua/compare/acba13b...cc99b2d</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001090.html">[eLua-svn] [elua/elua] b1b82b: Change systimer overflow handling	from timer stop ...
+</A></li>
+	<LI>Next message: <A HREF="001092.html">[eLua-svn] [elua/elua] 77d543: fixed STR9 systimer implementation	(tested)
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1091">[ date ]</a>
+              <a href="thread.html#1091">[ thread ]</a>
+              <a href="subject.html#1091">[ subject ]</a>
+              <a href="author.html#1091">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

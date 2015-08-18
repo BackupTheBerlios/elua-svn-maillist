@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r926 - trunk/src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r926%20-%20trunk/src/platform/stm32&In-Reply-To=%3C20110131203726.8ACE748123C%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000878.html">
+   <LINK REL="Next"  HREF="000880.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r926 - trunk/src/platform/stm32</H1>
+    <B>jbsnyder at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r926%20-%20trunk/src/platform/stm32&In-Reply-To=%3C20110131203726.8ACE748123C%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r926 - trunk/src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Jan 31 21:37:26 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000878.html">[Elua-svn] r925 - branches/pre0.8/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000880.html">[Elua-svn] r927 - branches/pre0.8/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#879">[ date ]</a>
+              <a href="thread.html#879">[ thread ]</a>
+              <a href="subject.html#879">[ subject ]</a>
+              <a href="author.html#879">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2011-01-31 21:37:26 +0100 (Mon, 31 Jan 2011)
+New Revision: 926
+
+Modified:
+   trunk/src/platform/stm32/enc.c
+Log:
+Add ability to set interrupt trigger to reset encoder counter on STM32.
+
+Modified: trunk/src/platform/stm32/enc.c
+===================================================================
+--- trunk/src/platform/stm32/enc.c	2011-01-31 19:49:30 UTC (rev 925)
++++ trunk/src/platform/stm32/enc.c	2011-01-31 20:37:26 UTC (rev 926)
+@@ -9,10 +9,18 @@
+ #include &quot;lrotable.h&quot;
+ #include &quot;platform_conf.h&quot;
+ #include &quot;auxmods.h&quot;
++#include &quot;elua_int.h&quot;
+ #include &quot;enc.h&quot;
+ 
++static elua_int_c_handler prev_handler;
++static elua_int_resnum index_resnum;
++static int index_tmr_id;
++static u16 index_count;
++static void index_handler( elua_int_resnum resnum );
++
+ //Lua: init(id)
+-static int enc_init(lua_State *L) {
++static int enc_init( lua_State *L )
++{
+   unsigned id;
+   
+   id = luaL_checkinteger( L, 1 );
+@@ -21,8 +29,9 @@
+   return 0;
+ }
+ 
+-//Lua: set_counter(id, count)
+-static int enc_set_counter(lua_State *L) {
++//Lua: setcounter(id, count)
++static int enc_set_counter( lua_State *L )
++{
+   unsigned id, count;
+ 
+   id = luaL_checkinteger( L, 1 );
+@@ -33,6 +42,35 @@
+   return 0;
+ }
+ 
++//Lua: setidxtrig( id, resnum, tmr_id, count )
++static int enc_set_index_handler( lua_State *L )
++{
++  elua_int_id id;
++  
++  id = ( elua_int_id )luaL_checkinteger( L, 1 );
++  if( id &lt; ELUA_INT_FIRST_ID || id &gt; INT_ELUA_LAST )
++    return luaL_error( L, &quot;invalid interrupt ID&quot; );
++  index_resnum = ( elua_int_resnum )luaL_checkinteger( L, 2 );
++  index_tmr_id = luaL_checkinteger( L, 3 );
++  MOD_CHECK_ID( timer, index_tmr_id );
++  index_count = ( u16 )luaL_checkinteger( L, 4 );
++
++  platform_cpu_set_interrupt( id, index_resnum, PLATFORM_CPU_ENABLE );
++  prev_handler = elua_int_set_c_handler( id, index_handler );
++}
++
++static void index_handler( elua_int_resnum resnum )
++{
++  if( prev_handler )
++    prev_handler;
++
++  if( resnum != index_resnum )
++    return;
++
++  stm32_enc_set_counter( index_tmr_id, index_count );
++}
++
++
+ #define MIN_OPT_LEVEL 2
+ #include &quot;lrodefs.h&quot;  
+ 
+@@ -41,6 +79,7 @@
+ { 
+   { LSTRKEY( &quot;init&quot; ),  LFUNCVAL( enc_init ) },
+   { LSTRKEY( &quot;setcounter&quot; ),  LFUNCVAL( enc_set_counter ) },
++  { LSTRKEY( &quot;setidxtrig&quot; ),  LFUNCVAL( enc_set_index_handler ) },
+   { LNILKEY, LNILVAL }
+ };
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000878.html">[Elua-svn] r925 - branches/pre0.8/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000880.html">[Elua-svn] r927 - branches/pre0.8/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#879">[ date ]</a>
+              <a href="thread.html#879">[ thread ]</a>
+              <a href="subject.html#879">[ subject ]</a>
+              <a href="author.html#879">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

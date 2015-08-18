@@ -1,0 +1,351 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r625 - trunk/src/platform/lpc17xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r625%20-%20trunk/src/platform/lpc17xx&In-Reply-To=%3C201001060627.o066RaWe004399%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000580.html">
+   <LINK REL="Next"  HREF="000582.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r625 - trunk/src/platform/lpc17xx</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r625%20-%20trunk/src/platform/lpc17xx&In-Reply-To=%3C201001060627.o066RaWe004399%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r625 - trunk/src/platform/lpc17xx">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Jan  6 07:27:36 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000580.html">[Elua-svn] r624 - in branches/remotefs: inc src src/newlib	src/platform/stm32 src/remotefs
+</A></li>
+        <LI>Next message: <A HREF="000582.html">[Elua-svn] r626 - in branches/remotefs: . rfs_server src/remotefs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#581">[ date ]</a>
+              <a href="thread.html#581">[ thread ]</a>
+              <a href="subject.html#581">[ subject ]</a>
+              <a href="author.html#581">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-01-06 07:27:27 +0100 (Wed, 06 Jan 2010)
+New Revision: 625
+
+Modified:
+   trunk/src/platform/lpc17xx/lpc17xx_libcfg.h
+   trunk/src/platform/lpc17xx/platform.c
+   trunk/src/platform/lpc17xx/platform_conf.h
+Log:
+Timer support for LPC17xx (MBED).
+
+Modified: trunk/src/platform/lpc17xx/lpc17xx_libcfg.h
+===================================================================
+--- trunk/src/platform/lpc17xx/lpc17xx_libcfg.h	2010-01-05 21:49:48 UTC (rev 624)
++++ trunk/src/platform/lpc17xx/lpc17xx_libcfg.h	2010-01-06 06:27:27 UTC (rev 625)
+@@ -27,7 +27,7 @@
+ /* Un-comment the line below to compile the library in DEBUG mode, this will expanse
+    the &quot;CHECK_PARAM&quot; macro in the FW library code */
+ 
+-#define DEBUG    1
++//#define DEBUG    1
+ 
+ 
+ /******************* PERIPHERAL FW LIBRARY CONFIGURATION DEFINITIONS ***********************/
+
+Modified: trunk/src/platform/lpc17xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc17xx/platform.c	2010-01-05 21:49:48 UTC (rev 624)
++++ trunk/src/platform/lpc17xx/platform.c	2010-01-06 06:27:27 UTC (rev 625)
+@@ -20,6 +20,8 @@
+ #include &quot;lpc17xx_nvic.h&quot;
+ #include &quot;lpc17xx_pinsel.h&quot;
+ #include &quot;lpc17xx_uart.h&quot;
++#include &quot;lpc17xx_timer.h&quot;
++#include &quot;lpc17xx_clkpwr.h&quot;
+ 
+ // ****************************************************************************
+ // Platform initialization
+@@ -41,9 +43,16 @@
+   // Since the Number of Bits used for Priority Levels is five (5), so the
+   // actual bit number of sub-priority is three (3)
+ 	NVIC_SetPriorityGrouping(0x05);
++	
++  	//  Set Vector table offset value
++  #if (__RAM_MODE__==1)
++  	NVIC_SetVTOR(0x10000000);
++  #else
++  	NVIC_SetVTOR(0x00000000);
++  #endif
+ 
+   // Setup peripherals
+-  //platform_setup_timers();
++  platform_setup_timers();
+   //platform_setup_pwm();
+ 
+   // Initialize console UART
+@@ -214,122 +223,72 @@
+ // ****************************************************************************
+ // Timer section
+ 
+-// ****************************************************************************
+-// &quot;Dummy&quot; timer functions
++static const TIM_TypeDef *tmr[] = { TIM0, TIM1, TIM2, TIM3 };
++static const u32 tmr_pclk[] = { CLKPWR_PCLKSEL_TIMER0, CLKPWR_PCLKSEL_TIMER1, CLKPWR_PCLKSEL_TIMER2, CLKPWR_PCLKSEL_TIMER3 };
+ 
+-void platform_s_timer_delay( unsigned id, u32 delay_us )
+-{
+-}
+-
+-u32 platform_s_timer_op( unsigned id, int op, u32 data )
+-{
+-  return 0;
+-}
+-
+-/*
+-static const TIM_TypeDef tmr[] = { TIM0, TIM1, TIM2, TIM3 }
+-
+ // Helper function: get timer clock
+ static u32 platform_timer_get_clock( unsigned id )
+ {
+-  PREG TxPR = ( PREG )tmr_pr[ id ];
+-
+-  return Fpclk / ( *TxPR + 1 );
++  return CLKPWR_GetPCLK( tmr_pclk[ id ] ) / ( tmr[ id ]-&gt;PR + 1 );
+ }
+ 
+ // Helper function: set timer clock
+ static u32 platform_timer_set_clock( unsigned id, u32 clock )
+ {
+   TIM_TIMERCFG_Type TIM_ConfigStruct;
+-  TIM_MATCHCFG_Type TIM_MatchConfigStruct;
+ 
++  TIM_Cmd( tmr[ id ], DISABLE );
++
+   // Initialize timer 0, prescale count time of 1uS
+ 	TIM_ConfigStruct.PrescaleOption = TIM_PRESCALE_USVAL;
+-	TIM_ConfigStruct.PrescaleValue	= 1;
++	TIM_ConfigStruct.PrescaleValue	= 1000000ULL / clock;
+ 	
+-	// use channel 0, MR0
+-	TIM_MatchConfigStruct.MatchChannel = 0;
+-	// Disable interrupt when MR0 matches the value in TC register
+-	TIM_MatchConfigStruct.IntOnMatch   = TRUE;
+-	//Enable reset on MR0: TIMER will reset if MR0 matches it
+-	TIM_MatchConfigStruct.ResetOnMatch = TRUE;
+-	//Stop on MR0 if MR0 matches it
+-	TIM_MatchConfigStruct.StopOnMatch  = FALSE;
+-	//Toggle MR0.0 pin if MR0 matches it
+-	TIM_MatchConfigStruct.ExtMatchOutputType = TIM_EXTMATCH_TOGGLE;
+-	// Set Match value, count value of 10000 (10000 * 100uS = 1S --&gt; 1Hz)
+-	TIM_MatchConfigStruct.MatchValue   = 10000;
+-
+   TIM_Init( tmr[ id ], TIM_TIMER_MODE, &amp;TIM_ConfigStruct );
+-	TIM_ConfigMatch( tmr[ id ], &amp;TIM_MatchConfigStruct );
+ 	TIM_Cmd( tmr[ id ], ENABLE );
++	TIM_ResetCounter( tmr[ id ] );
+   
+   return clock;
+ }
+ 
+-#if VTMR_NUM_TIMERS &gt; 0
+-static void __attribute__((interrupt (&quot;IRQ&quot;))) tmr_int_handler() 
+-{
+-  T3IR = 1; // clear interrupt
+-  cmn_virtual_timer_cb();
+-  VICVectAddr = 0; // ACK interrupt
+-}
+-#endif
+-
+ // Helper function: setup timers
+ static void platform_setup_timers()
+ {
+-
+-
++  unsigned i;
++  
++  // Power on clocks on APB1
++  CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCTIM2, ENABLE);
++  CLKPWR_ConfigPPWR (CLKPWR_PCONP_PCTIM3, ENABLE);
++  
+   // Set base frequency to 1MHz, as we can't use a better resolution anyway
+   for( i = 0; i &lt; 4; i ++ )
+   {
+-    TxTCR = ( PREG )tmr_tcr[ i ];
+-    *TxTCR = 0;
+     platform_timer_set_clock( i, 1000000ULL );
+   }
+-#if VTMR_NUM_TIMERS &gt; 0
+-  // Setup virtual timers here
+-  // Timer 3 is allocated for virtual timers and nothing else in this case
+-  T3TCR = TMR_RESET;
+-  T3MR0 = 1000000ULL / VTMR_FREQ_HZ - 1;
+-  T3IR = 0xFF;
+-  // Set interrupt handle and eanble timer interrupt (and global interrupts)
+-  T3MCR = 0x03; // interrupt on match with MR0 and clear on match
+-  install_irq( TIMER3_INT, tmr_int_handler, HIGHEST_PRIORITY ); 
+-  platform_cpu_enable_interrupts(); 
+-  // Start timer
+-  T3TCR = TMR_ENABLE;
+-#endif
+ }
+ 
+ void platform_s_timer_delay( unsigned id, u32 delay_us )
+ {
+-  PREG TxTCR = ( PREG )tmr_tcr[ id ];
+-  PREG TxTC = ( PREG )tmr_tc[ id ];
+   u32 last;
+ 
+   last = ( ( u64 )delay_us * platform_timer_get_clock( id ) ) / 1000000;
+-  *TxTCR = TMR_ENABLE | TMR_RESET;
+-  *TxTCR = TMR_ENABLE;
+-  while( *TxTC &lt; last );
++  TIM_Cmd( tmr[ id ], ENABLE );
++  TIM_ResetCounter( tmr[ id ] );
++  while( tmr[ id ]-&gt;TC &lt; last );
+ }
+       
+ u32 platform_s_timer_op( unsigned id, int op, u32 data )
+ {
+   u32 res = 0;
+-  PREG TxTCR = ( PREG )tmr_tcr[ id ];
+-  PREG TxTC = ( PREG )tmr_tc[ id ];
+ 
+   switch( op )
+   {
+     case PLATFORM_TIMER_OP_START:
+-      *TxTCR = TMR_ENABLE | TMR_RESET;
+-      *TxTCR = TMR_ENABLE;
++      TIM_Cmd( tmr[ id ], ENABLE );
++      TIM_ResetCounter( tmr[ id ] );
+       break;
+       
+     case PLATFORM_TIMER_OP_READ:
+-      res = *TxTC;
++      res = tmr[ id ]-&gt;TC;
+       break;
+ 
+     case PLATFORM_TIMER_OP_GET_MAX_DELAY:
+@@ -356,14 +315,14 @@
+ 
+ void platform_cpu_enable_interrupts()
+ {
+-  enable_ints();  
++  __enable_irq();  
+ }
+ 
+ void platform_cpu_disable_interrupts()
+ {
+-  disable_ints();
++  __disable_irq();
+ }
+-
++/*
+ // ****************************************************************************
+ // PWM functions
+ 
+
+Modified: trunk/src/platform/lpc17xx/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc17xx/platform_conf.h	2010-01-05 21:49:48 UTC (rev 624)
++++ trunk/src/platform/lpc17xx/platform_conf.h	2010-01-06 06:27:27 UTC (rev 625)
+@@ -32,9 +32,11 @@
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
+   _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+   _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 
+ // *****************************************************************************
+@@ -52,13 +54,13 @@
+ #define NUM_ADC               0
+ #define NUM_CAN               0
+ // If virtual timers are enabled, the last timer will be used only for them
+-// #if VTMR_NUM_TIMERS == 0
+-// #define NUM_TIMER             4
+-// #else
+-// #define NUM_TIMER             3
+-// #endif
+-#define NUM_TIMER             0
++#if VTMR_NUM_TIMERS == 0
++#define NUM_TIMER             4
++#else
++#define NUM_TIMER             3
++#endif
+ 
++
+ // Enable RX buffering on UART
+ // [TODO] make this happen
+ //#define BUF_ENABLE_UART
+@@ -85,35 +87,6 @@
+ #define SRAM_SIZE             0x10000 // [TODO]: make this 96k?
+ #define MEM_START_ADDRESS     { ( void* )end }
+ #define MEM_END_ADDRESS       { ( void* )( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ) }
+-
+-// *****************************************************************************
+-// CPU constants that should be exposed to the eLua &quot;cpu&quot; module
+-
+-#define PINSEL_BASE_ADDR	0xE002C000
+-#define IO_PINSEL0           ( PINSEL_BASE_ADDR + 0x00 )
+-#define IO_PINSEL1           ( PINSEL_BASE_ADDR + 0x04 )
+-#define IO_PINSEL2           ( PINSEL_BASE_ADDR + 0x08 )
+-#define IO_PINSEL3           ( PINSEL_BASE_ADDR + 0x0C )
+-#define IO_PINSEL4           ( PINSEL_BASE_ADDR + 0x10 )
+-#define IO_PINSEL5           ( PINSEL_BASE_ADDR + 0x14 )
+-#define IO_PINSEL6           ( PINSEL_BASE_ADDR + 0x18 )
+-#define IO_PINSEL7           ( PINSEL_BASE_ADDR + 0x1C )
+-#define IO_PINSEL8           ( PINSEL_BASE_ADDR + 0x20 )
+-#define IO_PINSEL9           ( PINSEL_BASE_ADDR + 0x24 )
+-#define IO_PINSEL10          ( PINSEL_BASE_ADDR + 0x28 )
+-
+-#define PLATFORM_CPU_CONSTANTS\
+- _C( IO_PINSEL0 ),\
+- _C( IO_PINSEL1 ),\
+- _C( IO_PINSEL2 ),\
+- _C( IO_PINSEL3 ),\
+- _C( IO_PINSEL4 ),\
+- _C( IO_PINSEL5 ),\
+- _C( IO_PINSEL6 ),\
+- _C( IO_PINSEL7 ),\
+- _C( IO_PINSEL8 ),\
+- _C( IO_PINSEL9 ),\
+- _C( IO_PINSEL10 )
+  
+ #endif // #ifndef __PLATFORM_CONF_H__
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000580.html">[Elua-svn] r624 - in branches/remotefs: inc src src/newlib	src/platform/stm32 src/remotefs
+</A></li>
+	<LI>Next message: <A HREF="000582.html">[Elua-svn] r626 - in branches/remotefs: . rfs_server src/remotefs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#581">[ date ]</a>
+              <a href="thread.html#581">[ thread ]</a>
+              <a href="subject.html#581">[ subject ]</a>
+              <a href="author.html#581">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

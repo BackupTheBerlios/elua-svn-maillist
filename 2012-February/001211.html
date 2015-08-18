@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] 3e48d1: AVR32 bugfix: pwm.setclock() used to stop the syst...
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2012-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%203e48d1%3A%20AVR32%20bugfix%3A%20pwm.setclock%28%29%20used%20to%0A%20stop%20the%20syst...&In-Reply-To=%3C4f297d5189842_29ed3fdbb91162f8728cd%40sh1.rs.github.com.mail%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001210.html">
+   <LINK REL="Next"  HREF="001212.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] 3e48d1: AVR32 bugfix: pwm.setclock() used to stop the syst...</H1>
+    <B>GitHub</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%203e48d1%3A%20AVR32%20bugfix%3A%20pwm.setclock%28%29%20used%20to%0A%20stop%20the%20syst...&In-Reply-To=%3C4f297d5189842_29ed3fdbb91162f8728cd%40sh1.rs.github.com.mail%3E"
+       TITLE="[eLua-svn] [elua/elua] 3e48d1: AVR32 bugfix: pwm.setclock() used to stop the syst...">noreply at github.com
+       </A><BR>
+    <I>Wed Feb  1 18:58:41 CET 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001210.html">[eLua-svn] [elua/elua] d19bb6: Fix typo in commentary
+</A></li>
+        <LI>Next message: <A HREF="001212.html">[eLua-svn] [elua/elua] 005d78: Bug fix: Allow more than one call to uart.set_buff...
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1211">[ date ]</a>
+              <a href="thread.html#1211">[ thread ]</a>
+              <a href="subject.html#1211">[ subject ]</a>
+              <a href="author.html#1211">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+  Commit: 3e48d16846cf9c3df70b0121a6adb116f7c21ff8
+      <A HREF="https://github.com/elua/elua/commit/3e48d16846cf9c3df70b0121a6adb116f7c21ff8">https://github.com/elua/elua/commit/3e48d16846cf9c3df70b0121a6adb116f7c21ff8</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-02-01 (Wed, 01 Feb 2012)
+
+  Changed paths:
+    M src/platform/avr32/pwm.c
+
+  Log Message:
+  -----------
+  AVR32 bugfix: pwm.setclock() used to stop the system timer.
+
+Now that the system timer uses PWM clock B, the pwm setclock() code
+needs to read-modify-write the mode register instead of just setting it.
+The most obvious symptom was that after a call to pwm.setclock() you
+needed to press enter twice to get a new Lua prompt instead of once.
+
+
+  Commit: cd81e0d3dd13da9c2fdd725787ad1517f4a8f7a7
+      <A HREF="https://github.com/elua/elua/commit/cd81e0d3dd13da9c2fdd725787ad1517f4a8f7a7">https://github.com/elua/elua/commit/cd81e0d3dd13da9c2fdd725787ad1517f4a8f7a7</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-02-01 (Wed, 01 Feb 2012)
+
+  Changed paths:
+    M src/platform/avr32/usb-cdc.c
+  M src/platform/avr32/usb-cdc.h
+
+  Log Message:
+  -----------
+  avr32 usb-cdc cleanup: remove tabs and ^Ms and add Atmel copyright
+
+
+  Commit: a2c22b0aacf7bc268bdc528ecd48f22702a5a39c
+      <A HREF="https://github.com/elua/elua/commit/a2c22b0aacf7bc268bdc528ecd48f22702a5a39c">https://github.com/elua/elua/commit/a2c22b0aacf7bc268bdc528ecd48f22702a5a39c</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-02-01 (Wed, 01 Feb 2012)
+
+  Changed paths:
+    M src/platform/avr32/usb-cdc.c
+
+  Log Message:
+  -----------
+  Make compilation of usb-cdc.c conditional on BUILD_USB_CDC
+
+...instead of compiling it and having the linker drop the unused symbols.
+
+
+  Commit: fe8b1d86309a2355cb4aa4e1e99409e2e071ddbb
+      <A HREF="https://github.com/elua/elua/commit/fe8b1d86309a2355cb4aa4e1e99409e2e071ddbb">https://github.com/elua/elua/commit/fe8b1d86309a2355cb4aa4e1e99409e2e071ddbb</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-02-01 (Wed, 01 Feb 2012)
+
+  Changed paths:
+    M src/platform/avr32/MIZAR32/mizar32_conf.h
+
+  Log Message:
+  -----------
+  Rework Mizar32 config so that UART buffering is still available
+
+The usb-cdc config removed UART buffering completely, whereas
+it should still be available via uart.set_buffer().
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/d19bb65...fe8b1d8">https://github.com/elua/elua/compare/d19bb65...fe8b1d8</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001210.html">[eLua-svn] [elua/elua] d19bb6: Fix typo in commentary
+</A></li>
+	<LI>Next message: <A HREF="001212.html">[eLua-svn] [elua/elua] 005d78: Bug fix: Allow more than one call to uart.set_buff...
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1211">[ date ]</a>
+              <a href="thread.html#1211">[ thread ]</a>
+              <a href="subject.html#1211">[ subject ]</a>
+              <a href="author.html#1211">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

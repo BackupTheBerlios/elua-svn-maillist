@@ -1,0 +1,336 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r781 - in branches/ints: inc src src/modules	src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r781%20-%20in%20branches/ints%3A%20inc%20src%20src/modules%0A%09src/platform/str9&In-Reply-To=%3C20100905192050.509E548104F%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000733.html">
+   <LINK REL="Next"  HREF="000735.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r781 - in branches/ints: inc src src/modules	src/platform/str9</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r781%20-%20in%20branches/ints%3A%20inc%20src%20src/modules%0A%09src/platform/str9&In-Reply-To=%3C20100905192050.509E548104F%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r781 - in branches/ints: inc src src/modules	src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Sep  5 21:20:50 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000733.html">[Elua-svn] r780 - in trunk: . romfs src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000735.html">[Elua-svn] r782 - trunk/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#734">[ date ]</a>
+              <a href="thread.html#734">[ thread ]</a>
+              <a href="subject.html#734">[ subject ]</a>
+              <a href="author.html#734">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-09-05 21:20:50 +0200 (Sun, 05 Sep 2010)
+New Revision: 781
+
+Modified:
+   branches/ints/inc/platform.h
+   branches/ints/src/buf.c
+   branches/ints/src/elua_adc.c
+   branches/ints/src/elua_uip.c
+   branches/ints/src/modules/cpu.c
+   branches/ints/src/platform/str9/platform.c
+   branches/ints/src/platform/str9/startup912.s
+Log:
+modified CPU platform interface for interrupts and related files; currently only STR9 was modified for these changes
+
+Modified: branches/ints/inc/platform.h
+===================================================================
+--- branches/ints/inc/platform.h	2010-09-05 18:20:27 UTC (rev 780)
++++ branches/ints/inc/platform.h	2010-09-05 19:20:50 UTC (rev 781)
+@@ -185,8 +185,15 @@
+ // *****************************************************************************
+ // CPU specific functions
+ 
+-void platform_cpu_enable_interrupts();
+-void platform_cpu_disable_interrupts();
++#define PLATFORM_CPU_DISABLE            0
++#define PLATFORM_CPU_ENABLE             1
++#define PLATFORM_CPU_DISABLED           0
++#define PLATFORM_CPU_ENABLED            1
++
++int platform_cpu_set_global_interrupts( int status );
++int platform_cpu_get_global_interrupts();
++int platform_cpu_set_interrupt( unsigned id, int status );
++int platform_cpu_get_interrupt( unsigned id );
+ u32 platform_cpu_get_frequency();
+ 
+ // *****************************************************************************
+
+Modified: branches/ints/src/buf.c
+===================================================================
+--- branches/ints/src/buf.c	2010-09-05 18:20:27 UTC (rev 780)
++++ branches/ints/src/buf.c	2010-09-05 19:20:50 UTC (rev 781)
+@@ -141,6 +141,7 @@
+ int buf_read( unsigned resid, unsigned resnum, t_buf_data *data )
+ {
+   BUF_GETPTR( resid, resnum );
++  int old_status;
+   
+   if( READ16( pbuf-&gt;count ) == 0 )
+     return PLATFORM_UNDERFLOW;
+@@ -150,10 +151,10 @@
+   
+   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
+ 
+-  platform_cpu_disable_interrupts();
++  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+   pbuf-&gt;count --;
+   BUF_MOD_INCR( pbuf, rptr );
+-  platform_cpu_enable_interrupts();
++  platform_cpu_set_global_interrupts( old_status );
+   
+   return PLATFORM_OK;
+ }
+
+Modified: branches/ints/src/elua_adc.c
+===================================================================
+--- branches/ints/src/elua_adc.c	2010-09-05 18:20:27 UTC (rev 780)
++++ branches/ints/src/elua_adc.c	2010-09-05 19:20:50 UTC (rev 781)
+@@ -30,10 +30,11 @@
+   elua_adc_dev_state *d = adc_get_dev_state( dev_id );
+   elua_adc_ch_state *s;
+   unsigned id;
++  int old_status;
+   
+   if( d-&gt;ch_active != d-&gt;last_ch_active || d-&gt;force_reseq == 1 )
+   {
+-    platform_cpu_disable_interrupts();
++    old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+     // Update channel sequence
+     d-&gt;seq_ctr = 0;
+     for( id = 0; id &lt; NUM_ADC; id ++ )
+@@ -61,7 +62,7 @@
+     d-&gt;last_ch_active = d-&gt;ch_active;
+     d-&gt;seq_ctr = 0;
+     d-&gt;force_reseq = 0;
+-    platform_cpu_enable_interrupts();
++    platform_cpu_set_global_interrupts( old_status );
+   }
+ }
+ 
+@@ -70,10 +71,12 @@
+ {
+   elua_adc_ch_state *s = adc_get_ch_state( id );
+   elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  int old_status = platform_cpu_get_global_interrupts();
++
+ #if defined( BUF_ENABLE_ADC )
+   int res;
+ 
+-  platform_cpu_disable_interrupts();
++  old_status = platform_cpu_get_global_interrupts( PLATFORM_CPU_DISABLE );
+   if( ( (u16) 1 &lt;&lt; logcount ) != buf_get_size( BUF_ID_ADC, id ) )
+   {   
+     res = buf_set( BUF_ID_ADC, id, logcount, BUF_DSIZE_U16 );
+@@ -87,7 +90,7 @@
+   s-&gt;op_pending = 1;
+   
+   ACTIVATE_CHANNEL( d, id );
+-  platform_cpu_enable_interrupts();
++  platform_cpu_set_global_interrupts( old_status );
+   
+   return PLATFORM_OK;
+ }
+
+Modified: branches/ints/src/elua_uip.c
+===================================================================
+--- branches/ints/src/elua_uip.c	2010-09-05 18:20:27 UTC (rev 780)
++++ branches/ints/src/elua_uip.c	2010-09-05 19:20:50 UTC (rev 781)
+@@ -513,12 +513,13 @@
+ {
+   int i;
+   struct uip_conn* pconn;
++  int old_status;
+   
+   // [TODO] add UDP support at some point.
+   if( type == ELUA_NET_SOCK_DGRAM )
+     return -1;
+   
+-  platform_cpu_disable_interrupts();
++  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+   // Iterate through the list of connections, looking for a free one
+   for( i = 0; i &lt; UIP_CONNS; i ++ )
+   {
+@@ -530,7 +531,7 @@
+       break;
+     }
+   }
+-  platform_cpu_enable_interrupts();
++  platform_cpu_set_global_interrupts( old_status );
+   return i == UIP_CONNS ? -1 : i;
+ }
+ 
+@@ -554,6 +555,7 @@
+ {
+   volatile struct elua_uip_state *pstate = ( volatile struct elua_uip_state* )&amp;( uip_conns[ s ].appstate );
+   u32 tmrstart = 0;
++  int old_status;
+   
+   if( !ELUA_UIP_IS_SOCK_OK( s ) || !uip_conn_active( s ) )
+     return -1;
+@@ -568,13 +570,13 @@
+       break;
+     if( to_us &gt; 0 &amp;&amp; platform_timer_get_diff_us( timer_id, tmrstart, platform_timer_op( timer_id, PLATFORM_TIMER_OP_READ, 0 ) ) &gt;= to_us )
+     {
+-      platform_cpu_disable_interrupts();
++      old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+       if( pstate-&gt;state != ELUA_UIP_STATE_IDLE )
+       { 
+         pstate-&gt;res = ELUA_NET_ERR_TIMEDOUT;
+         pstate-&gt;state = ELUA_UIP_STATE_IDLE;
+       }
+-      platform_cpu_enable_interrupts();
++      platform_cpu_set_global_interrupts( old_status );
+       break;
+     }
+   }
+@@ -634,6 +636,7 @@
+ int elua_accept( u16 port, unsigned timer_id, u32 to_us, elua_net_ip* pfrom )
+ {
+   u32 tmrstart = 0;
++  int old_status;
+   
+   if( !elua_uip_configured )
+     return -1;
+@@ -641,10 +644,10 @@
+   if( port == ELUA_NET_TELNET_PORT )
+     return -1;
+ #endif  
+-  platform_cpu_disable_interrupts();
++  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+   uip_unlisten( htons( port ) );
+   uip_listen( htons( port ) );
+-  platform_cpu_enable_interrupts();
++  platform_cpu_set_global_interrupts( old_status );
+   elua_uip_accept_sock = -1;
+   elua_uip_accept_request = 1;
+   if( to_us &gt; 0 )
+
+Modified: branches/ints/src/modules/cpu.c
+===================================================================
+--- branches/ints/src/modules/cpu.c	2010-09-05 18:20:27 UTC (rev 780)
++++ branches/ints/src/modules/cpu.c	2010-09-05 19:20:50 UTC (rev 781)
+@@ -87,7 +87,7 @@
+   }
+   else
+ #endif
+-  platform_cpu_disable_interrupts();
++  platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+   return 0;
+ }
+ 
+@@ -108,7 +108,7 @@
+     }
+   }
+ #endif
+-  platform_cpu_enable_interrupts();
++  platform_cpu_set_global_interrupts( PLATFORM_CPU_ENABLE );
+   return 0;
+ }
+ 
+
+Modified: branches/ints/src/platform/str9/platform.c
+===================================================================
+--- branches/ints/src/platform/str9/platform.c	2010-09-05 18:20:27 UTC (rev 780)
++++ branches/ints/src/platform/str9/platform.c	2010-09-05 19:20:50 UTC (rev 781)
+@@ -408,19 +408,36 @@
+ // ****************************************************************************
+ // CPU functions
+ 
++#define INTERRUPT_ENABLED_MASK          0x80
++
+ extern void enable_ints();
+ extern void disable_ints();
++extern u32 get_int_status();
+ 
+-void platform_cpu_enable_interrupts()
++int platform_cpu_set_global_interrupts( int status )
+ {
+-  enable_ints();
++  u32 crt_status = get_int_status();
++
++  if( status == PLATFORM_CPU_ENABLE )
++    enable_ints();
++  else
++    disable_ints();
++  return ( crt_status &amp; INTERRUPT_ENABLED_MASK ) == 0 ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
+ }
+ 
+-void platform_cpu_disable_interrupts()
++int platform_cpu_get_global_interrupts()
+ {
+-  disable_ints();
++  return ( get_int_status() &amp; INTERRUPT_ENABLED_MASK ) == 0 ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
+ }
+ 
++int platform_cpu_set_interrupt( unsigned id, int status )
++{
++}
++
++int platform_cpu_get_interrupt( unsigned id )
++{
++}
++
+ // ****************************************************************************
+ // Platform specific modules go here
+ 
+
+Modified: branches/ints/src/platform/str9/startup912.s
+===================================================================
+--- branches/ints/src/platform/str9/startup912.s	2010-09-05 18:20:27 UTC (rev 780)
++++ branches/ints/src/platform/str9/startup912.s	2010-09-05 19:20:50 UTC (rev 781)
+@@ -298,6 +298,12 @@
+       ldmfd    sp!, {r1}
+       mov      pc, r14
+ 
++# Get interrupt status
++      .global get_int_status
++get_int_status:
++      mrs     r0, CPSR
++      mov     pc, r14
++
+ #*************************************************************************
+ # END
+ #*************************************************************************   
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000733.html">[Elua-svn] r780 - in trunk: . romfs src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000735.html">[Elua-svn] r782 - trunk/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#734">[ date ]</a>
+              <a href="thread.html#734">[ thread ]</a>
+              <a href="subject.html#734">[ subject ]</a>
+              <a href="author.html#734">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r307 - in branches/luarpc: src/lua src/modules test
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r307%20-%20in%20branches/luarpc%3A%20src/lua%20src/modules%20test&In-Reply-To=%3C200906210002.n5L021Ca021764%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000262.html">
+   <LINK REL="Next"  HREF="000264.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r307 - in branches/luarpc: src/lua src/modules test</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r307%20-%20in%20branches/luarpc%3A%20src/lua%20src/modules%20test&In-Reply-To=%3C200906210002.n5L021Ca021764%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r307 - in branches/luarpc: src/lua src/modules test">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sun Jun 21 02:02:01 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000262.html">[Elua-svn] r306 - in branches/luarpc: inc src/lua src/modules
+</A></li>
+        <LI>Next message: <A HREF="000264.html">[Elua-svn] r308 - in branches/luarpc: inc src src/modules test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#263">[ date ]</a>
+              <a href="thread.html#263">[ thread ]</a>
+              <a href="subject.html#263">[ subject ]</a>
+              <a href="author.html#263">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-21 02:02:00 +0200 (Sun, 21 Jun 2009)
+New Revision: 307
+
+Modified:
+   branches/luarpc/src/lua/luaconf.h
+   branches/luarpc/src/modules/luarpc.c
+   branches/luarpc/test/test-rpc.lua
+Log:
+Switch to use cross-compile backend.
+
+Modified: branches/luarpc/src/lua/luaconf.h
+===================================================================
+--- branches/luarpc/src/lua/luaconf.h	2009-06-21 00:01:49 UTC (rev 306)
++++ branches/luarpc/src/lua/luaconf.h	2009-06-21 00:02:00 UTC (rev 307)
+@@ -152,8 +152,7 @@
+ 
+ /* Changed to long for use with integral Lua numbers. */
+ #if !defined LUA_NUMBER_INTEGRAL
+-/*#define LUA_INTEGER ptrdiff_t */
+-#define LUA_INTEGER int
++#define LUA_INTEGER ptrdiff_t
+ #else
+ #define LUA_INTEGER	long
+ #endif
+
+Modified: branches/luarpc/src/modules/luarpc.c
+===================================================================
+--- branches/luarpc/src/modules/luarpc.c	2009-06-21 00:01:49 UTC (rev 306)
++++ branches/luarpc/src/modules/luarpc.c	2009-06-21 00:02:00 UTC (rev 307)
+@@ -359,14 +359,30 @@
+   return 0;
+ }
+ 
++#include &quot;lundump.h&quot;
++#include &quot;ldo.h&quot;
++
+ static void write_function( Transport *tpt, lua_State *L, int var_index )
+ {
++  TValue *o;
+   luaL_Buffer b;
++  DumpTargetInfo target;
+   
++  int test=1;
++  target.little_endian=tpt-&gt;net_little;
++  target.sizeof_int=sizeof(int);
++  target.sizeof_strsize_t=sizeof(strsize_t);
++  target.sizeof_lua_Number=tpt-&gt;lnum_bytes;
++  target.lua_Number_integral=tpt-&gt;net_intnum;
++  target.is_arm_fpa=0;
++  
+   /* push function onto stack, serialize to string */
+   lua_pushvalue( L, var_index );
+   luaL_buffinit( L, &amp;b );
+-  lua_dump( L, writer, &amp;b ); /* deal with errors thrown at this level? */
++  lua_lock(L);
++  o = L-&gt;top - 1;
++  luaU_dump_crosscompile(L,clvalue(o)-&gt;l.p,writer,&amp;b,0,target);
++  lua_unlock(L);
+   /* put string representation on stack and send it */
+   luaL_pushresult( &amp;b );
+   write_variable( tpt, L, lua_gettop( L ) );
+@@ -376,7 +392,6 @@
+ }
+ 
+ 
+-
+ /* write a variable at the given index in the stack. the index must be absolute
+  * (i.e. positive).
+  */
+
+Modified: branches/luarpc/test/test-rpc.lua
+===================================================================
+--- branches/luarpc/test/test-rpc.lua	2009-06-21 00:01:49 UTC (rev 306)
++++ branches/luarpc/test/test-rpc.lua	2009-06-21 00:02:00 UTC (rev 307)
+@@ -1,5 +1,6 @@
+ function error_handler (message)
+ 	io.write (&quot;MY ERROR: &quot; .. message .. &quot;\n&quot;);
++	slave,err = rpc.connect (&quot;/dev/tty.usbserial-ftCYPMYJ&quot;);
+ end
+ 
+ rpc.on_error (error_handler);
+@@ -14,7 +15,7 @@
+ 
+ function mirror( input ) return input end
+ function squareval(x) return x^2 end
+-test_local = {1, 2, 3, 3.143, &quot;234&quot;}
++test_local = {1, 2, 3, 4, &quot;234&quot;}
+ test_local.sval = 23
+ 
+ slave.mirror = mirror
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000262.html">[Elua-svn] r306 - in branches/luarpc: inc src/lua src/modules
+</A></li>
+	<LI>Next message: <A HREF="000264.html">[Elua-svn] r308 - in branches/luarpc: inc src src/modules test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#263">[ date ]</a>
+              <a href="thread.html#263">[ thread ]</a>
+              <a href="subject.html#263">[ subject ]</a>
+              <a href="author.html#263">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

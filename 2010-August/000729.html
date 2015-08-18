@@ -1,0 +1,365 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r776 - in branches/dl: . dynld
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r776%20-%20in%20branches/dl%3A%20.%20dynld&In-Reply-To=%3C20100829185544.F3C3A480FD8%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000728.html">
+   <LINK REL="Next"  HREF="000730.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r776 - in branches/dl: . dynld</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r776%20-%20in%20branches/dl%3A%20.%20dynld&In-Reply-To=%3C20100829185544.F3C3A480FD8%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r776 - in branches/dl: . dynld">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Aug 29 20:55:44 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000728.html">[Elua-svn] r775 - branches/dl/src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000730.html">[Elua-svn] r777 - in branches/dl: . src src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#729">[ date ]</a>
+              <a href="thread.html#729">[ thread ]</a>
+              <a href="subject.html#729">[ subject ]</a>
+              <a href="author.html#729">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-08-29 20:55:44 +0200 (Sun, 29 Aug 2010)
+New Revision: 776
+
+Added:
+   branches/dl/dynld/
+   branches/dl/dynld/gcc_symbol_parser.lua
+   branches/dl/dynld/mktable.lua
+   branches/dl/dynld/symbol_list
+Log:
+symbol parser again :)
+
+Added: branches/dl/dynld/gcc_symbol_parser.lua
+===================================================================
+--- branches/dl/dynld/gcc_symbol_parser.lua	                        (rev 0)
++++ branches/dl/dynld/gcc_symbol_parser.lua	2010-08-29 18:55:44 UTC (rev 776)
+@@ -0,0 +1,21 @@
++-- GCC specific symbol parser (uses ld map files)
++
++module( ..., package.seeall )
++
++parser = {}
++
++new = function( mapname )
++  local f = io.open( mapname, &quot;rb&quot; ) 
++  assert(f)
++  local gp = {}
++  setmetatable( gp, { __index = parser } )
++  gp.data = f:read( &quot;*a&quot; )
++  f:close()
++  return gp
++end
++
++parser.lookup = function( self, symbol )
++  local pattern = string.format( &quot;%%s-(0x%%x-)%%s-%s%%s-\n&quot;, symbol )
++  return self.data:match( pattern )
++end
++
+
+Added: branches/dl/dynld/mktable.lua
+===================================================================
+--- branches/dl/dynld/mktable.lua	                        (rev 0)
++++ branches/dl/dynld/mktable.lua	2010-08-29 18:55:44 UTC (rev 776)
+@@ -0,0 +1,30 @@
++-- Build a symbol table for the eLua binary image
++-- Also build the &quot;driver&quot; for the dynamic modules
++
++require &quot;pack&quot;
++
++local big_endian = false
++
++local function put_number( s, n )
++  return big_endian and s .. string.pack( &quot;&gt;L&quot;, n ) or s .. string.pack( &quot;&lt;L&quot;, n )
++end
++
++local p = require( &quot;dl.gcc_symbol_parser&quot; )
++local parser = p.new( &quot;elua.map&quot; )
++local f = io.open( &quot;dl/symbol_list&quot;, &quot;rb&quot; )
++local outdata = &quot;&quot;
++for l in f:lines() do
++  local l2 = l:gsub( &quot;%s+&quot;, &quot;&quot; )
++  if #l2 &gt; 1 and not l2:match( &quot;^//&quot; ) and not l2:match(&quot;OBSOLETE%s*$&quot;) then
++    local addr = parser:lookup( l2 )
++    if not addr then
++      print( string.format( &quot;WARNING: symbol %s not found&quot;, l2 ) )
++    else
++      outdata = put_number( outdata, addr )
++    end
++  end
++end
++f:close()
++print( #outdata )
++print( outdata )
++
+
+Added: branches/dl/dynld/symbol_list
+===================================================================
+--- branches/dl/dynld/symbol_list	                        (rev 0)
++++ branches/dl/dynld/symbol_list	2010-08-29 18:55:44 UTC (rev 776)
+@@ -0,0 +1,223 @@
++// Lua API
++lua_newstate
++lua_close
++lua_newthread
++lua_atpanic
++lua_gettop
++lua_settop
++lua_pushvalue
++lua_remove
++lua_insert
++lua_replace
++lua_checkstack
++lua_xmove
++lua_isnumber
++lua_isstring
++lua_iscfunction
++lua_isuserdata
++lua_type
++lua_typename
++lua_equal
++lua_rawequal
++lua_lessthan
++lua_tonumber
++lua_tointeger
++lua_toboolean
++lua_tolstring
++lua_objlen
++lua_tocfunction
++lua_touserdata
++lua_tothread
++lua_topointer
++lua_pushnil
++lua_pushnumber
++lua_pushinteger
++lua_pushlstring
++lua_pushstring
++lua_pushvfstring
++lua_pushfstring
++lua_pushcclosure
++lua_pushboolean
++lua_pushlightuserdata
++lua_pushlightfunction
++lua_pushrotable
++lua_pushthread
++lua_gettable
++lua_getfield
++lua_rawget
++lua_rawgeti
++lua_createtable
++lua_newuserdata
++lua_getmetatable
++lua_getfenv
++lua_settable
++lua_setfield
++lua_rawset
++lua_rawseti
++lua_setmetatable
++lua_setfenv
++lua_call
++lua_pcall
++lua_cpcall
++lua_load
++lua_dump
++lua_yield
++lua_resume
++lua_status
++lua_gc
++lua_error
++lua_next
++lua_concat
++lua_getallocf
++lua_setallocf
++lua_setlevel
++lua_getstack
++lua_getinfo
++lua_getlocal
++lua_setlocal
++lua_getupvalue
++lua_setupvalue
++lua_sethook
++lua_gethook
++lua_gethookmask
++lua_gethookcount
++
++// libc/libm symbols
++atoi
++exit
++fclose
++fflush
++fgetc
++fgets
++fopen
++fprintf
++fputc
++fputs
++fread
++freopen
++fscanf
++fseek
++ftell
++fwrite
++getenv
++free
++malloc
++memchr
++memcmp
++memcpy
++memmove
++memset
++printf
++putc
++putchar
++puts
++srand
++rand
++realloc
++remove
++frexp
++ldexp
++modf
++scalbn
++setbuf
++setjmp
++longjmp
++setvbuf
++sprintf
++sscanf
++strcasecmp
++strcat
++strchr
++strcmp
++strcoll
++strcpy
++strcspn
++strerror
++strlen
++strncasecmp
++strncat
++strncmp
++strncpy
++strpbrk
++strrchr
++strstr
++strtof
++strtol
++strtoul
++tmpfile
++tempnam
++tmpnam
++ungetc
++vfprintf
++vfscanf
++vsnprintf
++atexit
++fdopen
++iswspace
++mbrtowc
++nanf
++atan
++ceil
++cos
++fabs
++floor
++sin
++tan
++tanh
++acos
++asin
++atan2
++cosh
++exp
++fmod
++log
++log10
++pow
++sinh
++sqrt
++nan
++rint
++
++// Other eLua symbols
++xmodem_receive
++term_get_lines
++term_get_cols
++term_putch
++term_putstr
++term_get_cx
++term_get_cy
++term_getch
++term_init
++term_left
++term_right
++term_down
++term_up
++term_gotoxy
++term_clreol
++term_clrscr
++platform_pio_has_port
++platform_pio_has_pin
++platform_uart_exists
++platform_timer_exists
++platform_pwm_exists
++platform_get_first_free_ram
++platform_get_last_free_ram
++platform_cpu_get_frequency
++platform_timer_op
++platform_timer_get_diff_us
++platform_timer_delay
++platform_uart_recv
++platform_cpu_disable_interrupts
++platform_cpu_enable_interrupts
++platform_pwm_op
++platform_pwm_setup
++platform_uart_send
++platform_uart_setup
++platform_pio_op
++dm_get_device_at
++dm_get_num_devices
++dm_readdir
++dm_closedir
++dm_opendir
++dm_register
++dm_init
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000728.html">[Elua-svn] r775 - branches/dl/src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000730.html">[Elua-svn] r777 - in branches/dl: . src src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#729">[ date ]</a>
+              <a href="thread.html#729">[ thread ]</a>
+              <a href="subject.html#729">[ subject ]</a>
+              <a href="author.html#729">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

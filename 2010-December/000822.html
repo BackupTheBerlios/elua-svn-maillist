@@ -1,0 +1,487 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r869 - in branches/remotefs_int: . mux_src rfs_server_src
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r869%20-%20in%20branches/remotefs_int%3A%20.%20mux_src%20rfs_server_src&In-Reply-To=%3C20101219175810.202B248146F%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000821.html">
+   <LINK REL="Next"  HREF="000823.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r869 - in branches/remotefs_int: . mux_src rfs_server_src</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r869%20-%20in%20branches/remotefs_int%3A%20.%20mux_src%20rfs_server_src&In-Reply-To=%3C20101219175810.202B248146F%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r869 - in branches/remotefs_int: . mux_src rfs_server_src">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Dec 19 18:58:10 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000821.html">[Elua-svn] r868 - branches/remotefs_int/doc/eluadoc
+</A></li>
+        <LI>Next message: <A HREF="000823.html">[Elua-svn] r870 - in branches/remotefs_int: doc/en src/remotefs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#822">[ date ]</a>
+              <a href="thread.html#822">[ thread ]</a>
+              <a href="subject.html#822">[ subject ]</a>
+              <a href="author.html#822">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-12-19 18:58:09 +0100 (Sun, 19 Dec 2010)
+New Revision: 869
+
+Added:
+   branches/remotefs_int/mux.py
+   branches/remotefs_int/mux_src/
+   branches/remotefs_int/rfs_server_src/
+Removed:
+   branches/remotefs_int/mux.py
+   branches/remotefs_int/mux/
+   branches/remotefs_int/rfs_server/
+Modified:
+   branches/remotefs_int/
+   branches/remotefs_int/mux_src/main.c
+   branches/remotefs_int/rfs_server.py
+   branches/remotefs_int/rfs_server_src/main.c
+   branches/remotefs_int/rfs_server_src/serial.h
+   branches/remotefs_int/rfs_server_src/serial_posix.c
+   branches/remotefs_int/rfs_server_src/serial_win32.c
+Log:
+added flow control options to 'mux' and 'rfs_server', modified some directory names, removed '.elf' extention from 'mux' and 'rfs_server'
+
+
+Property changes on: branches/remotefs_int
+___________________________________________________________________
+Modified: svn:ignore
+   - .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+*.hex
+*.tmp
+*.map
+core
+build-setup.conf
+config.log
+.sconf_temp
+*.exe
+*.obj
+
+
+   + .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+*.hex
+*.tmp
+*.map
+core
+build-setup.conf
+config.log
+.sconf_temp
+*.exe
+*.obj
+mux
+rfs_server
+
+
+
+Deleted: branches/remotefs_int/mux.py
+===================================================================
+--- branches/remotefs_int/mux.py	2010-12-19 16:34:49 UTC (rev 868)
++++ branches/remotefs_int/mux.py	2010-12-19 17:58:09 UTC (rev 869)
+@@ -1,34 +0,0 @@
+-import os, sys, platform
+-
+-flist = &quot;main.c&quot;
+-rfs_flist = ''
+-rfs_flist = &quot;main.c server.c log.c deskutils.c&quot;
+-cdefs = &quot;-DRFS_UDP_TRANSPORT -DRFS_INSIDE_MUX_MODE&quot;
+-socklib = ''
+-ptlib = ''
+-if platform.system() == &quot;Windows&quot;:
+-  cdefs = cdefs + &quot; -DWIN32_BUILD&quot;
+-  rfs_flist = rfs_flist + &quot; os_io_win32.c serial_win32.c net_win32.c&quot;
+-  exeprefix = &quot;exe&quot;
+-  socklib = '-lws2_32'
+-else:
+-  rfs_flist = rfs_flist + &quot; os_io_posix.c serial_posix.c net_posix.c&quot;
+-  exeprefix = &quot;elf&quot;
+-  socklib = ''
+-
+-output = &quot;mux.%s&quot; % exeprefix
+-
+-rfs_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;rfs_server/%s&quot; % name for name in rfs_flist.split() ] )
+-full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;mux/%s&quot; % name for name in flist.split() ] ) + rfs_full_files + &quot; src/remotefs/remotefs.c src/eluarpc.c&quot;
+-local_include = &quot;-Imux -Irfs_server -Iinc -Iinc/remotefs&quot;
+-
+-# Compiler/linker options
+-cccom = &quot;gcc -m32 -O0 -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+-linkcom = &quot;gcc -m32 -o $TARGET $SOURCES %s&quot; % socklib
+-
+-# Env for building the program
+-comp = Environment( CCCOM = cccom,
+-                    LINKCOM = linkcom,
+-                    ENV = os.environ )
+-Decider( 'MD5' )                  
+-Default( comp.Program( output, Split( full_files ) ) )
+
+Added: branches/remotefs_int/mux.py
+===================================================================
+--- branches/remotefs_int/mux.py	                        (rev 0)
++++ branches/remotefs_int/mux.py	2010-12-19 17:58:09 UTC (rev 869)
+@@ -0,0 +1,33 @@
++import os, sys, platform
++
++flist = &quot;main.c&quot;
++rfs_flist = &quot;main.c server.c log.c deskutils.c&quot;
++cdefs = &quot;-DRFS_UDP_TRANSPORT -DRFS_INSIDE_MUX_MODE&quot;
++socklib = ''
++ptlib = ''
++if platform.system() == &quot;Windows&quot;:
++  cdefs = cdefs + &quot; -DWIN32_BUILD&quot;
++  rfs_flist = rfs_flist + &quot; os_io_win32.c serial_win32.c net_win32.c&quot;
++  exeprefix = &quot;.exe&quot;
++  socklib = '-lws2_32'
++else:
++  rfs_flist = rfs_flist + &quot; os_io_posix.c serial_posix.c net_posix.c&quot;
++  exeprefix = &quot;&quot;
++  socklib = ''
++
++output = &quot;mux%s&quot; % exeprefix
++
++rfs_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;rfs_server_src/%s&quot; % name for name in rfs_flist.split() ] )
++full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;mux_src/%s&quot; % name for name in flist.split() ] ) + rfs_full_files + &quot; src/remotefs/remotefs.c src/eluarpc.c&quot;
++local_include = &quot;-Imux_src -Irfs_server_src -Iinc -Iinc/remotefs&quot;
++
++# Compiler/linker options
++cccom = &quot;gcc -m32 -O0 -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++linkcom = &quot;gcc -m32 -o $TARGET $SOURCES %s&quot; % socklib
++
++# Env for building the program
++comp = Environment( CCCOM = cccom,
++                    LINKCOM = linkcom,
++                    ENV = os.environ )
++Decider( 'MD5' )                  
++Default( comp.Program( output, Split( full_files ) ) )
+
+Modified: branches/remotefs_int/mux_src/main.c
+===================================================================
+--- branches/remotefs_int/mux/main.c	2010-12-19 16:12:55 UTC (rev 867)
++++ branches/remotefs_int/mux_src/main.c	2010-12-19 17:58:09 UTC (rev 869)
+@@ -42,6 +42,7 @@
+   ser_handler fd;
+   const char *pname;
+   long speed;
++  int flow;
+ } TRANSPORT_SER;
+ 
+ static SERVICE_DATA *services;
+@@ -77,7 +78,7 @@
+     log_err( &quot;Unable to open %s\n&quot;, pser-&gt;pname );
+     return 0;
+   }
+-  if( ser_setup( pser-&gt;fd, pser-&gt;speed, 8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++  if( ser_setup( pser-&gt;fd, pser-&gt;speed, 8, SER_PARITY_NONE, SER_STOPBITS_1, pser-&gt;flow ) != SER_OK )
+   {
+     log_err( &quot;Unable to setup serial port %s\n&quot;, pser-&gt;pname );
+     return 0;
+@@ -99,20 +100,37 @@
+ // Transport parser
+ static int parse_transport( const char* s )
+ {
+-  const char *c;
+-  static TRANSPORT_SER tser; 
++  const char *c, *c2;
++  static TRANSPORT_SER tser;
++  char *temp;
+ 
+   if( ( c = strchr( s, ',' ) ) == NULL )
+   {
+     log_err( &quot;Invalid serial transport syntax.\n&quot; );
+     return 0;
+   }
+-  if( secure_atoi( c + 1, &amp;tser.speed ) == 0 )
++  tser.pname = l_strndup( s, c - s );
++  if( ( c2 = strchr( c + 1, ',' ) ) == NULL )
+   {
++    log_err( &quot;Invalid serial transport syntax.\n&quot; );
++    return 0;
++  }
++  temp = l_strndup( c + 1, c2 - c - 1 );
++  if( secure_atoi( temp, &amp;tser.speed ) == 0 )
++  {
+     log_err( &quot;Invalid port speed\n&quot; );
+     return 0;
+   }
+-  tser.pname = l_strndup( s, c - s );
++  free( temp );
++  if( !strcmp( c2 + 1, &quot;none&quot; ) )
++    tser.flow = SER_FLOW_NONE;
++  else if( !strcmp( c2 + 1, &quot;rtscts&quot; ) )
++    tser.flow = SER_FLOW_RTSCTS;
++  else
++  {
++    log_err( &quot;Invalid flow control type.\n&quot; );
++    return 0;
++  }
+   transport_data = &tser;
+   transport_send = transport_ser_send;
+   transport_init = transport_ser_init;
+@@ -148,7 +166,7 @@
+     log_err( &quot;  mode: \n&quot; );
+     log_err( &quot;    'mux':                 serial multiplexer mode\n&quot; );
+     log_err( &quot;    'rfsmux:&lt;directory&gt;:   combined RFS and multiplexer mode.\n&quot; );
+-    log_err( &quot;  transport: '&lt;port&gt;,&lt;baud&gt;.\n&quot; );
++    log_err( &quot;  transport: '&lt;port&gt;,&lt;baud&gt;,&lt;flow&gt; ('flow' specifies the flow control type and can be 'none' or 'rtscts').\n&quot; );
+     log_err( &quot;  vcom1, ..., vcomn: multiplexer serial ports.&quot; );
+     log_err( &quot;  Use '-v' for verbose output.\n&quot; );
+     return 1;
+@@ -216,7 +234,7 @@
+       log_err( &quot;Unable to open port %s\n&quot;, argv[ i + FIRST_SERVICE_IDX ] );
+       return 1;
+     }
+-    if( ser_setup( tservice-&gt;fd, transport_data-&gt;speed, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++    if( ser_setup( tservice-&gt;fd, transport_data-&gt;speed, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1, SER_FLOW_NONE ) != SER_OK )
+     {
+       log_err( &quot;Unable to setup serial port %s\n&quot;, argv[ i + FIRST_SERVICE_IDX ] );
+       return 1;
+
+Modified: branches/remotefs_int/rfs_server.py
+===================================================================
+--- branches/remotefs_int/rfs_server.py	2010-12-19 16:34:49 UTC (rev 868)
++++ branches/remotefs_int/rfs_server.py	2010-12-19 17:58:09 UTC (rev 869)
+@@ -15,21 +15,21 @@
+     os.exit( 1 )
+   flist = &quot;main.c server.c os_io_win32.c log.c net_win32.c serial_win32.c deskutils.c&quot;
+   cdefs = cdefs + &quot; -DWIN32_BUILD&quot;
+-  exeprefix = &quot;exe&quot;
++  exeprefix = &quot;.exe&quot;
+   socklib = '-lws2_32'
+ else:
+   flist = &quot;%s server.c os_io_posix.c log.c net_posix.c serial_posix.c deskutils.c&quot; % mainname
+-  exeprefix = &quot;elf&quot;
++  exeprefix = &quot;&quot;
+ 
+ if sim == '0':
+-  output = 'rfs_server.%s' % exeprefix
++  output = 'rfs_server%s' % exeprefix
+ else:
+-  output = 'rfs_sim_server.%s' % exeprefix
++  output = 'rfs_sim_server%s' % exeprefix
+ #endif
+ 
+-full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;rfs_server/%s&quot; % name for name in flist.split() ] )
++full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;rfs_server_src/%s&quot; % name for name in flist.split() ] )
+ full_files = full_files + &quot; src/remotefs/remotefs.c src/eluarpc.c&quot;
+-local_include = &quot;-Irfs_server -Iinc/remotefs -Iinc&quot;
++local_include = &quot;-Irfs_server_src -Iinc/remotefs -Iinc&quot;
+ 
+ # Compiler/linker options
+ cccom = &quot;gcc -m32 -O0 -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+
+Modified: branches/remotefs_int/rfs_server_src/main.c
+===================================================================
+--- branches/remotefs_int/rfs_server/main.c	2010-12-19 16:12:55 UTC (rev 867)
++++ branches/remotefs_int/rfs_server_src/main.c	2010-12-19 17:58:09 UTC (rev 869)
+@@ -95,7 +95,7 @@
+   }
+ }
+ 
+-static int ser_server_init( const char *portname, int serspeed )
++static int ser_server_init( const char *portname, int serspeed, int flow )
+ {
+   // Setup serial port
+   if( ( ser = ser_open( portname ) ) == SER_HANDLER_INVALID )
+@@ -103,7 +103,7 @@
+     log_err( &quot;Cannot open port %s\n&quot;, portname );
+     return 0;
+   }
+-  if( ser_setup( ser, ( u32 )serspeed, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++  if( ser_setup( ser, ( u32 )serspeed, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1, flow ) != SER_OK )
+   {
+     log_err( &quot;Unable to initialize serial port\n&quot; );
+     return 0;
+@@ -317,9 +317,10 @@
+ // Transport parser
+ static int parse_transport_and_init( const char* s )
+ {
+-  const char *c;
+-  char *temps;
++  const char *c, *c2;
++  char *temps, *tempb;
+   long tempi;
++  int flow;
+   
+   if( strstr( s, &quot;ser:&quot; ) == s )
+   {
+@@ -330,13 +331,29 @@
+       log_err( &quot;Invalid serial transport syntax\n&quot; );
+       return 0;
+     }
+-    if( secure_atoi( c + 1, &amp;tempi ) == 0 )
++    temps = l_strndup( s, c - s );
++    if( ( c2 = strchr( c + 1, ',' ) ) == NULL )
+     {
++      log_err( &quot;Invalid serial transport syntax.\n&quot; );
++      return 0;
++    }
++    tempb = l_strndup( c + 1, c2 - c - 1 );
++    if( secure_atoi( tempb, &amp;tempi ) == 0 )
++    {
+       log_err( &quot;Invalid port speed\n&quot; );
+       return 0;
+     }
+-    temps = l_strndup( s, c - s );
+-    tempi = ser_server_init( temps, tempi );
++    free( tempb );   
++    if( !strcmp( c2 + 1, &quot;none&quot; ) )
++      flow = SER_FLOW_NONE;
++    else if( !strcmp( c2 + 1, &quot;rtscts&quot; ) )
++      flow = SER_FLOW_RTSCTS;
++    else
++    {
++      log_err( &quot;Invalid flow control type.\n&quot; );
++      return 0;
++    }
++    tempi = ser_server_init( temps, tempi, flow );
+     free( temps );    
+     return tempi;
+   }
+@@ -381,7 +398,7 @@
+   if( argc &lt; MIN_ARGC_COUNT )
+   {
+     log_err( &quot;Usage: %s &lt;transport&gt; &lt;dirname&gt; [-v]\n&quot;, argv[ 0 ] );
+-    log_err( &quot;  Serial transport: 'ser:&lt;sername&gt;,&lt;serspeed&gt;'\n&quot; );
++    log_err( &quot;  Serial transport: 'ser:&lt;sername&gt;,&lt;serspeed&gt;,&lt;flow&gt; ('flow' defines the flow control and can be either 'none' or 'rtscts')\n&quot; );
+     log_err( &quot;  UDP transport: 'udp:&lt;port&gt;'\n&quot; );
+     log_err( &quot;Use -v for verbose output.\n&quot; );
+     return 1;
+
+Modified: branches/remotefs_int/rfs_server_src/serial.h
+===================================================================
+--- branches/remotefs_int/rfs_server/serial.h	2010-12-19 16:12:55 UTC (rev 867)
++++ branches/remotefs_int/rfs_server_src/serial.h	2010-12-19 17:58:09 UTC (rev 869)
+@@ -28,10 +28,13 @@
+ #define SER_DATABITS_7          7
+ #define SER_DATABITS_8          8
+ 
++#define SER_FLOW_NONE           0
++#define SER_FLOW_RTSCTS         1
++
+ // Serial access functions (to be implemented by each platform)
+ ser_handler ser_open( const char *sername );
+ void ser_close( ser_handler id );
+-int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits );
++int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits, int flow );
+ u32 ser_read( ser_handler id, u8* dest, u32 maxsize, u32 timeout );
+ int ser_read_byte( ser_handler id, u32 timeout );
+ u32 ser_write( ser_handler id, const u8 *src, u32 size );
+
+Modified: branches/remotefs_int/rfs_server_src/serial_posix.c
+===================================================================
+--- branches/remotefs_int/rfs_server/serial_posix.c	2010-12-19 16:12:55 UTC (rev 867)
++++ branches/remotefs_int/rfs_server_src/serial_posix.c	2010-12-19 17:58:09 UTC (rev 869)
+@@ -65,7 +65,7 @@
+   return 0;
+ }
+ 
+-int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits )
++int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits, int flow )
+ {
+   struct termios termdata;
+   int hnd = ( int )id;
+@@ -79,7 +79,7 @@
+   cfsetospeed( &amp;termdata, ser_baud_to_id( baud ) );
+ 
+   // Parity / stop bits
+-  if ( stopbits == SER_STOPBITS_2)
++  if( stopbits == SER_STOPBITS_2 )
+     termdata.c_cflag |= CSTOPB;
+   else
+     termdata.c_cflag &amp;= ~CSTOPB;
+@@ -105,7 +105,10 @@
+   termdata.c_cflag |= ser_number_of_bits_to_id( databits );
+ 
+   // Disable HW and SW flow control
+-  termdata.c_cflag &amp;= ~CRTSCTS;
++  if( flow == SER_FLOW_NONE )
++    termdata.c_cflag &amp;= ~CRTSCTS;
++  else
++    termdata.c_cflag |= CRTSCTS;
+   termdata.c_iflag &amp;= ~( IXON | IXOFF | IXANY );
+   termdata.c_iflag |= IGNBRK;
+ 
+
+Modified: branches/remotefs_int/rfs_server_src/serial_win32.c
+===================================================================
+--- branches/remotefs_int/rfs_server/serial_win32.c	2010-12-19 16:12:55 UTC (rev 867)
++++ branches/remotefs_int/rfs_server_src/serial_win32.c	2010-12-19 17:58:09 UTC (rev 869)
+@@ -86,7 +86,7 @@
+   free( id );
+ }
+ 
+-int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits )
++int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits, int flow )
+ {
+   HANDLE hComm = id-&gt;hnd;
+   DCB dcb;
+@@ -107,12 +107,19 @@
+   dcb.fInX = FALSE;
+   dcb.fNull = FALSE;
+   /**/ dcb.fAbortOnError = FALSE;
+-  dcb.fOutxCtsFlow = FALSE;
+   dcb.fOutxDsrFlow = FALSE;
+   dcb.fDtrControl = DTR_CONTROL_DISABLE;
+   dcb.fDsrSensitivity = FALSE;
+-  dcb.fRtsControl = RTS_CONTROL_DISABLE;
+-  dcb.fOutxCtsFlow = FALSE;
++  if( flow == SER_FLOW_NONE )
++  {
++    dcb.fRtsControl = RTS_CONTROL_DISABLE;
++    dcb.fOutxCtsFlow = FALSE;
++  }
++  else
++  {
++    dcb.fRtsControl = RTS_CONTROL_HANDSHAKE;
++    dcb.fOutxCtsFlow = TRUE;
++  }
+   if( SetCommState( hComm, &amp;dcb ) == 0 )
+   {
+     CloseHandle( hComm );
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000821.html">[Elua-svn] r868 - branches/remotefs_int/doc/eluadoc
+</A></li>
+	<LI>Next message: <A HREF="000823.html">[Elua-svn] r870 - in branches/remotefs_int: doc/en src/remotefs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#822">[ date ]</a>
+              <a href="thread.html#822">[ thread ]</a>
+              <a href="subject.html#822">[ subject ]</a>
+              <a href="author.html#822">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

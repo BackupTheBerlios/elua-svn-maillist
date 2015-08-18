@@ -1,0 +1,324 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r69 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc288x platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r69%20-%20in%20trunk/src%3A%20.%20modules%20platform/at91sam7x%0A%09platform/lm3s%20platform/lpc288x%20platform/str9&In-Reply-To=%3C200808281941.m7SJfxSR007323%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000023.html">
+   <LINK REL="Next"  HREF="000025.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r69 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc288x platform/str9</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r69%20-%20in%20trunk/src%3A%20.%20modules%20platform/at91sam7x%0A%09platform/lm3s%20platform/lpc288x%20platform/str9&In-Reply-To=%3C200808281941.m7SJfxSR007323%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r69 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc288x platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Aug 28 21:41:59 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000023.html">[Elua-svn] r68 - trunk/examples
+</A></li>
+        <LI>Next message: <A HREF="000025.html">[Elua-svn] r70 - in trunk/src: . platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-08-28 21:41:58 +0200 (Thu, 28 Aug 2008)
+New Revision: 69
+
+Modified:
+   trunk/src/main.c
+   trunk/src/modules/pio.c
+   trunk/src/platform/at91sam7x/pio.c
+   trunk/src/platform/at91sam7x/pio.h
+   trunk/src/platform/at91sam7x/platform.c
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lpc288x/platform.c
+   trunk/src/platform/str9/platform.c
+Log:
+- platform_pio_op can now return an error (for operations like pullup, pulldown, nopull) which will be translated by the PIO module to a Lua error
+- fixed an error in the &quot;pio_pin_get&quot; function from the PIO module
+- fixed an error in the platform_pio_op implementation of AT91SAM7X
+
+
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2008-08-27 20:09:13 UTC (rev 68)
++++ trunk/src/main.c	2008-08-28 19:41:58 UTC (rev 69)
+@@ -19,7 +19,7 @@
+ 
+ // Maximum file size that can be received via XMODEM
+ // Should be a multiple of 128
+-#define XMODEM_MAX_FILE_SIZE    4096
++#define XMODEM_MAX_FILE_SIZE    1024
+ 
+ #ifdef BUILD_XMODEM
+ 
+
+Modified: trunk/src/modules/pio.c
+===================================================================
+--- trunk/src/modules/pio.c	2008-08-27 20:09:13 UTC (rev 68)
++++ trunk/src/modules/pio.c	2008-08-28 19:41:58 UTC (rev 69)
+@@ -1,4 +1,4 @@
+-// Module for interfacing with PIO
++// Module for interfacing wit5~h PIO
+ 
+ #include &quot;lua.h&quot;
+ #include &quot;lualib.h&quot;
+@@ -41,7 +41,8 @@
+   // Ask platform to execute the given operation
+   for( i = 0; i &lt; PLATFORM_IO_PORTS; i ++ )
+     if( pio_masks[ i ] )
+-      platform_pio_op( i, pio_masks[ i ], op );
++      if( !platform_pio_op( i, pio_masks[ i ], op ) )
++        return luaL_error( L, &quot;invalid PIO operation&quot; );
+   return 0;
+ }
+ 
+@@ -67,7 +68,8 @@
+   // Ask platform to execute the given operation
+   for( i = 0; i &lt; PLATFORM_IO_PORTS; i ++ )
+     if( pio_masks[ i ] )
+-      platform_pio_op( i, pio_masks[ i ], op );
++      if( !platform_pio_op( i, pio_masks[ i ], op ) )
++        return luaL_error( L, &quot;invalid PIO operation&quot; );
+   return 0;
+ }
+ 
+@@ -163,7 +165,7 @@
+       return luaL_error( L, &quot;invalid pin&quot; );
+     else
+     {
+-      value = platform_pio_op( port, PLATFORM_IO_PIN_GET, 1 &lt;&lt; pin );
++      value = platform_pio_op( port, 1 &lt;&lt; pin, PLATFORM_IO_PIN_GET );
+       lua_pushinteger( L, value );
+     }
+   }
+
+Modified: trunk/src/platform/at91sam7x/pio.c
+===================================================================
+--- trunk/src/platform/at91sam7x/pio.c	2008-08-27 20:09:13 UTC (rev 68)
++++ trunk/src/platform/at91sam7x/pio.c	2008-08-28 19:41:58 UTC (rev 69)
+@@ -284,9 +284,9 @@
+ /// level; otherwise returns 0.
+ /// \param pin  Pointer to a Pin instance describing one or more pins.
+ //------------------------------------------------------------------------------
+-unsigned char PIO_Get(const Pin *pin)
++unsigned long PIO_Get(const Pin *pin)
+ {
+-    unsigned int reg;
++    unsigned long reg;
+     if ((pin-&gt;type == PIO_OUTPUT_0) || (pin-&gt;type == PIO_OUTPUT_1)) {
+ 
+         reg = READ(pin-&gt;pio, PIO_ODSR);
+@@ -295,15 +295,8 @@
+ 
+         reg = READ(pin-&gt;pio, PIO_PDSR);
+     }
+-
+-    if ((reg &amp; pin-&gt;mask) == 0) {
+-
+-        return 0;
+-    }
+-    else {
+-
+-        return 1;
+-    }
++    
++    return reg;
+ }
+ 
+ 
+
+Modified: trunk/src/platform/at91sam7x/pio.h
+===================================================================
+--- trunk/src/platform/at91sam7x/pio.h	2008-08-27 20:09:13 UTC (rev 68)
++++ trunk/src/platform/at91sam7x/pio.h	2008-08-28 19:41:58 UTC (rev 69)
+@@ -161,7 +161,7 @@
+ extern unsigned char PIO_Configure(const Pin *list, unsigned int size);
+ extern void PIO_Set(const Pin *pin );
+ extern void PIO_Clear(const Pin *pin);
+-extern unsigned char PIO_Get(const Pin *pin);
++extern unsigned long PIO_Get(const Pin *pin);
+ extern unsigned int PIO_GetISR(const Pin *pin);
+ extern unsigned char PIO_GetOutputDataStatus(const Pin *pin);
+ 
+
+Modified: trunk/src/platform/at91sam7x/platform.c
+===================================================================
+--- trunk/src/platform/at91sam7x/platform.c	2008-08-27 20:09:13 UTC (rev 68)
++++ trunk/src/platform/at91sam7x/platform.c	2008-08-28 19:41:58 UTC (rev 69)
+@@ -123,7 +123,7 @@
+ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
+ {
+   Pin* pin;
+-  pio_type retval = 0;
++  pio_type retval = 1;
+   
+   pin = pio_port_desc + port;
+   pin-&gt;mask = pinmask;
+@@ -153,12 +153,11 @@
+       break;      
+             
+     case PLATFORM_IO_PORT_GET_VALUE:
+-      pin-&gt;mask = 0x7FFFFFFF;
+       retval = PIO_Get( pin );
+       break;
+       
+     case PLATFORM_IO_PIN_GET:
+-      retval = PIO_Get( pin ) ? 1 : 0;
++      retval = PIO_Get( pin ) &amp; pinmask ? 1 : 0;
+       break;
+       
+     case PLATFORM_IO_PIN_PULLUP:
+@@ -168,6 +167,10 @@
+     case PLATFORM_IO_PIN_NOPULL:
+       pin-&gt;pio-&gt;PIO_PPUDR = pinmask;
+       break;
++      
++    default:
++      retval = 0;
++      break;
+   }
+   return retval;
+ }
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2008-08-27 20:09:13 UTC (rev 68)
++++ trunk/src/platform/lm3s/conf.py	2008-08-28 19:41:58 UTC (rev 69)
+@@ -11,9 +11,9 @@
+ 
+ # Toolset data
+ tools[ 'lm3s' ] = {}
+-tools[ 'lm3s' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=cortex-m3 -mthumb %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
+-tools[ 'lm3s' ][ 'linkcom' ] = &quot;arm-elf-gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
+-tools[ 'lm3s' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++tools[ 'lm3s' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=cortex-m3 -mthumb -msoft-float -mfpu=vfp %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
++tools[ 'lm3s' ][ 'linkcom' ] = &quot;arm-elf-gcc -nostartfiles -nostdlib -msoft-float -mfpu=vfp -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
++tools[ 'lm3s' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb -msoft-float -mfpu=vfp %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+ 
+ # Programming function
+ def progfunc_lm3s( target, source, env ):
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2008-08-27 20:09:13 UTC (rev 68)
++++ trunk/src/platform/lm3s/platform.c	2008-08-28 19:41:58 UTC (rev 69)
+@@ -118,7 +118,7 @@
+ 
+ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
+ {
+-  pio_type retval = 0, base = pio_base[ port ];
++  pio_type retval = 1, base = pio_base[ port ];
+   
+   switch( op )
+   {
+@@ -157,13 +157,15 @@
+     case PLATFORM_IO_PIN_PULLUP:
+     case PLATFORM_IO_PIN_PULLDOWN:
+       GPIOPadConfigSet( base, pinmask, GPIO_STRENGTH_8MA, op == PLATFORM_IO_PIN_PULLUP ? GPIO_PIN_TYPE_STD_WPU : GPIO_PIN_TYPE_STD_WPD );
+-      retval = 1;
+       break;
+       
+     case PLATFORM_IO_PIN_NOPULL:
+       GPIOPadConfigSet( base, pinmask, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD );
+-      retval = 1;
+       break;
++      
++    default:
++      retval = 0;
++      break;
+   }
+   return retval;
+ }
+
+Modified: trunk/src/platform/lpc288x/platform.c
+===================================================================
+--- trunk/src/platform/lpc288x/platform.c	2008-08-27 20:09:13 UTC (rev 68)
++++ trunk/src/platform/lpc288x/platform.c	2008-08-28 19:41:58 UTC (rev 69)
+@@ -88,7 +88,7 @@
+ 
+ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
+ {
+-  pio_type retval = 0;
++  pio_type retval = 1;
+   
+   switch( op )
+   {
+@@ -129,6 +129,10 @@
+     case PLATFORM_IO_PIN_GET:
+       retval = *pio_pin_regs[ port ] &amp; pinmask ? 1 : 0;
+       break;
++      
++    default:
++      retval = 0;
++      break;
+   }
+   return retval;  
+ }
+
+Modified: trunk/src/platform/str9/platform.c
+===================================================================
+--- trunk/src/platform/str9/platform.c	2008-08-27 20:09:13 UTC (rev 68)
++++ trunk/src/platform/str9/platform.c	2008-08-28 19:41:58 UTC (rev 69)
+@@ -135,7 +135,7 @@
+ {
+   GPIO_TypeDef* base = ( GPIO_TypeDef* )port_data[ port ];
+   GPIO_InitTypeDef data;
+-  pio_type retval = 0;
++  pio_type retval = 1;
+   
+   GPIO_StructInit( &amp;data );
+   switch( op )
+@@ -176,6 +176,10 @@
+     case PLATFORM_IO_PIN_GET:
+       retval = GPIO_ReadBit( base, ( u8 )pinmask );
+       break;
++      
++    default:
++      retval = 0;
++      break;
+   }
+   return retval;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000023.html">[Elua-svn] r68 - trunk/examples
+</A></li>
+	<LI>Next message: <A HREF="000025.html">[Elua-svn] r70 - in trunk/src: . platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

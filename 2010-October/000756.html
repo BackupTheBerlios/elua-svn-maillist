@@ -1,0 +1,734 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r803 - trunk/src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r803%20-%20trunk/src/platform/str9&In-Reply-To=%3C20101010222437.3614C481099%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000755.html">
+   <LINK REL="Next"  HREF="000757.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r803 - trunk/src/platform/str9</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r803%20-%20trunk/src/platform/str9&In-Reply-To=%3C20101010222437.3614C481099%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r803 - trunk/src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Oct 11 00:24:37 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000755.html">[Elua-svn] r802 - in trunk/doc: . en
+</A></li>
+        <LI>Next message: <A HREF="000757.html">[Elua-svn] r804 - trunk/src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#756">[ date ]</a>
+              <a href="thread.html#756">[ thread ]</a>
+              <a href="subject.html#756">[ subject ]</a>
+              <a href="author.html#756">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-10-11 00:24:36 +0200 (Mon, 11 Oct 2010)
+New Revision: 803
+
+Added:
+   trunk/src/platform/str9/91x_wiu.c
+   trunk/src/platform/str9/91x_wiu.h
+Modified:
+   trunk/src/platform/str9/conf.py
+   trunk/src/platform/str9/interrupt.c
+   trunk/src/platform/str9/platform.c
+   trunk/src/platform/str9/platform_conf.h
+   trunk/src/platform/str9/stacks.h
+Log:
+EXTINT interrupt support for STR9 (UNTESTED)
+
+Added: trunk/src/platform/str9/91x_wiu.c
+===================================================================
+--- trunk/src/platform/str9/91x_wiu.c	                        (rev 0)
++++ trunk/src/platform/str9/91x_wiu.c	2010-10-10 22:24:36 UTC (rev 803)
+@@ -0,0 +1,201 @@
++/******************** (C) COPYRIGHT 2008 STMicroelectronics ********************
++* File Name          : 91x_wiu.c
++* Author             : MCD Application Team
++* Version            : V2.1
++* Date               : 12/22/2008
++* Description        : This file provides all the WIU firmware functions.
++**********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS WITH
++* CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT, INDIRECT
++* OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE CONTENT
++* OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING INFORMATION
++* CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*********************************************************************************/
++
++/* Standard include ----------------------------------------------------------*/
++#include &quot;91x_wiu.h&quot;
++#include &quot;91x_scu.h&quot;
++
++/* Include of other module interface headers ---------------------------------*/
++/* Local includes ------------------------------------------------------------*/
++/* Private typedef -----------------------------------------------------------*/
++/* Private define ------------------------------------------------------------*/
++
++
++/* WIU Masks &quot;used&quot; only in this module */
++#define WIU_Enable        0x02
++
++
++/* Private macro -------------------------------------------------------------*/
++/* Private variables ---------------------------------------------------------*/
++/* Private function prototypes -----------------------------------------------*/
++/* Interface functions -------------------------------------------------------*/
++/* Private functions ---------------------------------------------------------*/
++/******************************************************************************
++* Function Name  : WIU_Init
++* Description    : Initializes the WIU unit according to the specified parameters
++*                  in the WIU_InitTypeDef structure.
++* Input          : WIU_InitStruct: pointer to a WIU_InitTypeDef structure that
++*                  contains the configuration information for the WIU peripheral.
++* Output         : None
++* Return         : None
++******************************************************************************/
++void WIU_Init(WIU_InitTypeDef* WIU_InitStruct)
++{
++  /* select the Wake-up line to be used */
++  WIU-&gt;MR |= WIU_InitStruct-&gt;WIU_Line;
++
++  /* configure the triggering edge */
++  if(WIU_InitStruct-&gt;WIU_TriggerEdge == WIU_RisingEdge)
++  {
++    /* trigger on rising edge */
++    WIU-&gt;TR |= WIU_InitStruct-&gt;WIU_Line;
++  }
++  else
++  {
++    /* trigger on falling edge */
++    WIU-&gt;TR &amp;= ~WIU_InitStruct-&gt;WIU_Line;
++  }
++
++}
++
++/******************************************************************************
++* Function Name  : WIU_DeInit
++* Description    : Deinitializes the WIU registers to their default reset values.
++* Input          : None
++* Output         : None
++* Return         : None
++******************************************************************************/
++void WIU_DeInit(void)
++{
++  /* initialize the WIU registers to their reset value */
++  SCU_APBPeriphReset(__WIU, ENABLE);
++  SCU_APBPeriphReset(__WIU, DISABLE);
++}
++
++/******************************************************************************
++* Function Name  : WIU_StructInit
++* Description    : Fills in a WIU_InitTypeDef structure with the reset value of
++*                  each parameter.
++* Input          : WIU_InitStruct : pointer to a WIU_InitTypeDef structure
++*                  which will be initialized.
++* Output         : None
++* Return         : None
++******************************************************************************/
++void WIU_StructInit(WIU_InitTypeDef* WIU_InitStruct)
++{
++  /* initialize the WIU_InitStruct fields to their reset values */
++  WIU_InitStruct-&gt;WIU_Line = 0x0 ;
++  WIU_InitStruct-&gt;WIU_TriggerEdge = WIU_FallingEdge ;
++}
++
++/*******************************************************************************
++* Function Name  : WIU_Cmd
++* Description    : Enables or disables the WIU peripheral.
++* Input          : NewState: new state of the WIU peripheral (Newstate can be
++*                  ENABLE or DISABLE)
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void WIU_Cmd(FunctionalState NewState )
++{
++     if(NewState == ENABLE)
++  {
++      /* Enable the Wake-up Unit (for interrupts and wake-up from low power modes) */
++      WIU-&gt;CTRL |= WIU_Enable ;
++  }
++    else
++  {
++        /* Disable the Wake-up Unit (for interrupts and wake-up from low power modes) */
++
++     WIU-&gt;CTRL &amp;= ~WIU_Enable ;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : WIU_GenerateSWInterrupt
++* Description    : Generates a Software interrupt.
++* Input          : - WIU_Line: specifies the WIU lines to be enabled or
++*                    disabled. This parameter can be:
++*                     - WIU_Linex: External interrupt line x where x(0..31)
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void WIU_GenerateSWInterrupt(u32 WIU_Line)
++{
++  WIU-&gt;INTR |= WIU_Line;
++}
++
++/*******************************************************************************
++* Function Name  : WIU_GetFlagStatus
++* Description    : Checks whether the specified WIU line flag is set or not.
++* Input          : - WIU_Line: specifies the WIU lines flag to check.
++*                    This parameter can be:
++*                     - WIU_Linex: External interrupt line x where x(0..31)
++* Output         : None
++* Return         : The new state of WIU_Line (SET or RESET).
++*******************************************************************************/
++FlagStatus WIU_GetFlagStatus(u32 WIU_Line)
++{
++  if((WIU-&gt;PR &amp; WIU_Line) != RESET)
++  {
++    return SET;
++  }
++  else
++  {
++    return RESET;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : WIU_ClearFlag
++* Description    : Clears the WIU&#146;s line pending flags.
++* Input          : - WIU_Line: specifies the WIU lines flags to clear.
++*                    This parameter can be:
++*                     - WIU_Linex: External interrupt line x where x(0..31)
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void WIU_ClearFlag(u32 WIU_Line)
++{
++  WIU-&gt;PR = WIU_Line;
++}
++
++/*******************************************************************************
++* Function Name  : WIU_GetITStatus
++* Description    : Checks whether the specified WIU line is asserted or not.
++* Input          : - WIU_Line: specifies the WIU lines to check.
++*                    This parameter can be:
++*                     - WIU_Linex: External interrupt line x where x(0..31)
++* Output         : None
++* Return         : The new state of WIU_Line (SET or RESET).
++*******************************************************************************/
++ITStatus WIU_GetITStatus(u32 WIU_Line)
++{
++  if(((WIU-&gt;PR &amp; WIU_Line) != RESET)&amp;&amp; ((WIU-&gt;MR &amp; WIU_Line) != RESET))
++  {
++    return SET;
++  }
++  else
++  {
++    return RESET;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : WIU_ClearITPendingBit
++* Description    : Clears the WIU&#146;s line pending bits.
++* Input          : - WIU_Line: specifies the WIU lines to clear.
++*                    This parameter can be:
++*                     - WIU_Linex: External interrupt line x where x(0..31)
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void WIU_ClearITPendingBit(u32 WIU_Line)
++{
++  WIU-&gt;PR = WIU_Line;
++}
++
++
++/******************* (C) COPYRIGHT 2008 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str9/91x_wiu.h
+===================================================================
+--- trunk/src/platform/str9/91x_wiu.h	                        (rev 0)
++++ trunk/src/platform/str9/91x_wiu.h	2010-10-10 22:24:36 UTC (rev 803)
+@@ -0,0 +1,90 @@
++/******************** (C) COPYRIGHT 2008 STMicroelectronics ********************
++* File Name          : 91x_wiu.h
++* Author             : MCD Application Team
++* Version            : V2.1
++* Date               : 12/22/2008
++* Description        : This file contains all the functions prototypes for the
++*                      WIU firmware library.
++**********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS WITH
++* CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT, INDIRECT
++* OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE CONTENT
++* OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING INFORMATION
++* CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*********************************************************************************/
++
++/* Define to prevent recursive inclusion ------------------------------------ */
++#ifndef __91x_WIU_H
++#define __91x_WIU_H
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;91x_map.h&quot;
++
++/* Exported types ------------------------------------------------------------*/
++/* WIU Init structure type define */
++typedef struct
++{
++  u8   WIU_TriggerEdge;
++  u32  WIU_Line ;
++}WIU_InitTypeDef ;
++
++/* Exported constants --------------------------------------------------------*/
++/* Wake-up line triggering edge */
++#define WIU_FallingEdge  0x00
++#define WIU_RisingEdge   0x01
++
++/* Wake-up lines*/
++#define WIU_Line0  0x0001
++#define WIU_Line1  (WIU_Line0&lt;&lt;1)
++#define WIU_Line2  (WIU_Line1&lt;&lt;1)
++#define WIU_Line3  (WIU_Line2&lt;&lt;1)
++#define WIU_Line4  (WIU_Line3&lt;&lt;1)
++#define WIU_Line5  (WIU_Line4&lt;&lt;1)
++#define WIU_Line6  (WIU_Line5&lt;&lt;1)
++#define WIU_Line7  (WIU_Line6&lt;&lt;1)
++#define WIU_Line8  (WIU_Line7&lt;&lt;1)
++#define WIU_Line9  (WIU_Line8&lt;&lt;1)
++#define WIU_Line10 (WIU_Line9&lt;&lt;1)
++#define WIU_Line11 (WIU_Line10&lt;&lt;1)
++#define WIU_Line12 (WIU_Line11&lt;&lt;1)
++#define WIU_Line13 (WIU_Line12&lt;&lt;1)
++#define WIU_Line14 (WIU_Line13&lt;&lt;1)
++#define WIU_Line15 (WIU_Line14&lt;&lt;1)
++#define WIU_Line16 (WIU_Line15&lt;&lt;1)
++#define WIU_Line17 (WIU_Line16&lt;&lt;1)
++#define WIU_Line18 (WIU_Line17&lt;&lt;1)
++#define WIU_Line19 (WIU_Line18&lt;&lt;1)
++#define WIU_Line20 (WIU_Line19&lt;&lt;1)
++#define WIU_Line21 (WIU_Line20&lt;&lt;1)
++#define WIU_Line22 (WIU_Line21&lt;&lt;1)
++#define WIU_Line23 (WIU_Line22&lt;&lt;1)
++#define WIU_Line24 (WIU_Line23&lt;&lt;1)
++#define WIU_Line25 (WIU_Line24&lt;&lt;1)
++#define WIU_Line26 (WIU_Line25&lt;&lt;1)
++#define WIU_Line27 (WIU_Line26&lt;&lt;1)
++#define WIU_Line28 (WIU_Line27&lt;&lt;1)
++#define WIU_Line29 (WIU_Line28&lt;&lt;1)
++#define WIU_Line30 (WIU_Line29&lt;&lt;1)
++#define WIU_Line31 (WIU_Line30&lt;&lt;1)
++
++/* Exported constants --------------------------------------------------------*/
++/* Module private variables --------------------------------------------------*/
++/* Exported macro ------------------------------------------------------------*/
++/* Private functions ---------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++
++void WIU_DeInit(void);
++void WIU_StructInit(WIU_InitTypeDef* WIU_InitStruct);
++void WIU_Init(WIU_InitTypeDef* WIU_InitStruct);
++void WIU_Cmd(FunctionalState NewState );
++void WIU_GenerateSWInterrupt(u32 WIU_Line);
++FlagStatus WIU_GetFlagStatus(u32 WIU_Line);
++void WIU_ClearFlag(u32 WIU_Line);
++ITStatus WIU_GetITStatus(u32 WIU_Line);
++void WIU_ClearITPendingBit(u32 WIU_Line);
++
++#endif /* __91x_WIU_H */
++
++/******************* (C) COPYRIGHT 2008 STMicroelectronics *****END OF FILE****/
++
+
+Modified: trunk/src/platform/str9/conf.py
+===================================================================
+--- trunk/src/platform/str9/conf.py	2010-10-06 18:05:09 UTC (rev 802)
++++ trunk/src/platform/str9/conf.py	2010-10-10 22:24:36 UTC (rev 803)
+@@ -2,7 +2,7 @@
+ 
+ cpumode = ARGUMENTS.get( 'cpumode', 'arm' ).lower()
+ 
+-specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c 91x_vic.c interrupt.c str9_pio.c 91x_i2c.c&quot;
++specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c 91x_vic.c interrupt.c str9_pio.c 91x_i2c.c 91x_wiu.c&quot;
+ 
+ # Check CPU
+ if comp[ 'cpu' ] == 'STR912FAW44':
+
+Modified: trunk/src/platform/str9/interrupt.c
+===================================================================
+--- trunk/src/platform/str9/interrupt.c	2010-10-06 18:05:09 UTC (rev 802)
++++ trunk/src/platform/str9/interrupt.c	2010-10-10 22:24:36 UTC (rev 803)
+@@ -251,30 +251,30 @@
+ * Function Name  : EXTIT0_IRQHandler
+ * Description    : This function handles the EXTIT0 interrupt request
+ *******************************************************************************/
+-void EXTIT0_IRQHandler(void)
++/*void EXTIT0_IRQHandler(void)
+ {
+-}
++}*/
+ /*******************************************************************************
+ * Function Name  : EXTIT1_IRQHandler
+ * Description    : This function handles the EXTIT1 interrupt request
+ *******************************************************************************/
+-void EXTIT1_IRQHandler(void)
++/*void EXTIT1_IRQHandler(void)
+ {
+-}
++}*/
+ /*******************************************************************************
+ * Function Name  : EXTIT2_IRQHandler
+ * Description    : This function handles the EXTIT2 interrupt request
+ *******************************************************************************/
+-void EXTIT2_IRQHandler(void)
++/*void EXTIT2_IRQHandler(void)
+ {
+-}
++}*/
+ /*******************************************************************************
+ * Function Name  : EXTIT3_IRQHandler
+ * Description    : This function handles the EXTIT3 interrupt request
+ *******************************************************************************/
+-void EXTIT3_IRQHandler(void)
++/*void EXTIT3_IRQHandler(void)
+ {
+-}
++}*/
+ /*******************************************************************************
+ * Function Name  : USBWU_IRQHandler
+ * Description    : This function handles the USBWU interrupt request
+
+Modified: trunk/src/platform/str9/platform.c
+===================================================================
+--- trunk/src/platform/str9/platform.c	2010-10-06 18:05:09 UTC (rev 802)
++++ trunk/src/platform/str9/platform.c	2010-10-10 22:24:36 UTC (rev 803)
+@@ -20,6 +20,7 @@
+ #include &quot;91x_vic.h&quot;
+ #include &quot;lrotable.h&quot;
+ #include &quot;91x_i2c.h&quot;
++#include &quot;91x_wiu.h&quot;
+ 
+ // ****************************************************************************
+ // Platform initialization
+@@ -62,6 +63,10 @@
+   // Enable the GPIO clocks  
+   SCU_APBPeriphClockConfig(__GPIO_ALL, ENABLE);  
+ 
++  // Enable the WIU clock
++  SCU_APBPeriphClockConfig(__WIU, ENABLE);
++  SCU_APBPeriphReset(__WIU, DISABLE);
++
+   // Enable the I2C clocks
+   SCU_APBPeriphClockConfig(__I2C0, ENABLE);
+   SCU_APBPeriphReset(__I2C0, DISABLE);
+@@ -81,6 +86,13 @@
+ static const u8 uart_pin_data[] = { GPIO_Pin_2, GPIO_Pin_3 };
+ #endif
+ 
++// Dummy interrupt handlers avoid spurious interrupts (AN2593)
++static void dummy_int_handler()
++{
++  VIC0-&gt;VAR = 0xFF;
++  VIC1-&gt;VAR = 0xFF;
++}  
++
+ // Plaform specific GPIO UART setup
+ static void platform_gpio_uart_setup()
+ {
+@@ -115,7 +127,24 @@
+     
+   // Initialize VIC
+   VIC_DeInit();
++  VIC0-&gt;DVAR = ( u32 )dummy_int_handler;
++  VIC1-&gt;DVAR = ( u32 )dummy_int_handler;
++
++  // Enablue WIU
++  WIU_DeInit();
+   
++  // Initialize all external interrupts
++  VIC_Config( EXTIT0_ITLine, VIC_IRQ, 1 );
++  VIC_Config( EXTIT1_ITLine, VIC_IRQ, 2 );
++  VIC_Config( EXTIT2_ITLine, VIC_IRQ, 3 );
++  VIC_Config( EXTIT3_ITLine, VIC_IRQ, 4 );
++  VIC_ITCmd( EXTIT0_ITLine, ENABLE );
++  VIC_ITCmd( EXTIT1_ITLine, ENABLE );
++  VIC_ITCmd( EXTIT2_ITLine, ENABLE );
++  VIC_ITCmd( EXTIT3_ITLine, ENABLE );
++  // Enable interrupt generation on WIU
++  WIU-&gt;CTRL |= 2; 
++
+   // UART setup
+   platform_gpio_uart_setup();
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+@@ -135,7 +164,7 @@
+   cmn_platform_init();
+ 
+   return PLATFORM_OK;
+-} 
++}
+ 
+ // ****************************************************************************
+ // PIO functions
+@@ -514,6 +543,159 @@
+ }
+ 
+ // ****************************************************************************
++// EXTINT handlers and support functions
++
++static const u8 exint_group_to_gpio[] = { 3, 5, 6, 7 };
++
++// Convert an EXINT source number to a GPIO ID
++static u16 exint_src_to_gpio( u32 exint )
++{
++  return PLATFORM_IO_ENCODE( exint_group_to_gpio[ exint &gt;&gt; 3 ], exint &amp; 0x07, 0 ); 
++}
++
++// Convert a GPIO ID to a EXINT number
++static int exint_gpio_to_src( pio_type piodata )
++{
++  u16 port = PLATFORM_IO_GET_PORT( piodata );
++  u16 pin = PLATFORM_IO_GET_PIN( piodata );
++  unsigned i;
++
++  for( i = 0; i &lt; sizeof( exint_group_to_gpio ) / sizeof( u8 ); i ++ )
++    if( exint_group_to_gpio[ i ] == port )
++      break;
++  // Restrictions: only the specified port(s) have interrupt capabilities
++  //               for port 0 (GPIO3), only pins 2..7 have interrupt capabilities
++  if( ( i == sizeof( exint_group_to_gpio ) / sizeof( u8 ) ) || ( ( i == 0 ) &amp;&amp; ( pin &lt; 2 ) ) )
++    return -1;
++  return ( i &lt;&lt; 3 ) + pin;
++}
++
++// External interrupt handlers
++static void exint_irq_handler( int group )
++{
++  u32 bmask;
++  u32 pr = WIU-&gt;PR;
++  u32 mr = WIU-&gt;MR;
++  u32 tr = WIU-&gt;TR;
++  u32 shift = group &lt;&lt; 3;
++  unsigned i;
++
++  // Check interrupt mask
++  if( ( ( pr &gt;&gt; shift ) &amp; 0xFF ) == 0 )
++  {
++    VIC1-&gt;VAR = 0xFF;
++    return;
++  }
++
++  // Iterate through all the bits in the mask, queueing interrupts as needed
++  for( i = 0, bmask = 1 &lt;&lt; shift; i &lt; 8; i ++, bmask &lt;&lt;= 1 )
++    if( ( pr &amp; bmask ) &amp;&amp; ( mr &amp; bmask ) )
++    {
++      // Enqueue interrupt
++      if( tr &amp; bmask )
++        elua_int_add( INT_GPIO_POSEDGE, exint_src_to_gpio( shift + i ) );
++      else
++        elua_int_add( INT_GPIO_NEGEDGE, exint_src_to_gpio( shift + i ) );
++      // Then clear it
++      WIU-&gt;PR  = bmask;
++    }
++
++  // Clear interrupt source
++  VIC1-&gt;VAR = 0xFF;
++}
++
++void EXTIT0_IRQHandler()
++{
++  exint_irq_handler( 0 );
++}
++
++void EXTIT1_IRQHandler()
++{
++  exint_irq_handler( 1 );
++}
++
++void EXTIT2_IRQHandler()
++{
++  exint_irq_handler( 2 );
++}
++
++void EXTIT3_IRQHandler()
++{
++  exint_irq_handler( 3 );
++}
++
++// ****************************************************************************
++// CPU functions
++
++// Helper: return the status of a specific interrupt (enabled/disabled)
++static int platform_cpuh_get_int_status( elua_int_id id, elua_int_resnum resnum )
++{
++  int temp;
++  u32 mask;
++  
++  if( id == INT_GPIO_POSEDGE || id == INT_GPIO_NEGEDGE )
++  {
++    if( ( temp = exint_gpio_to_src( resnum ) ) == -1 )
++    {
++      fprintf( stderr, &quot;Error: not a valid source for an external interrupt\n&quot; );
++      return 0;
++    }
++    mask = 1 &lt;&lt; temp;
++    if( WIU-&gt;MR &amp; mask )
++    {
++      if( id == INT_GPIO_POSEDGE )
++        return ( WIU-&gt;TR &amp; mask ) != 0;
++      else
++        return ( WIU-&gt;TR &amp; mask ) == 0;
++    }
++    else
++      return 0;
++  } 
++  else
++    fprintf( stderr, &quot;Error: %d not a valid interrupt ID\n&quot;, id );
++  return 0;
++}
++
++int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status )
++{
++  int crt_status = platform_cpuh_get_int_status( id, resnum );
++  int temp;
++  u32 mask;
++  
++  if( id == INT_GPIO_POSEDGE || id == INT_GPIO_NEGEDGE )
++  {
++    if( ( temp = exint_gpio_to_src( resnum ) ) == -1 )
++    {
++      fprintf( stderr, &quot;Error: not a valid source for an external interrupt\n&quot; );
++      return 0;
++    }
++    mask = 1 &lt;&lt; temp;
++    if( status == PLATFORM_CPU_ENABLE )
++    {
++      // Set edge type
++      if( id == INT_GPIO_POSEDGE )
++        WIU-&gt;TR |= mask;
++      else
++        WIU-&gt;TR &amp;= ~mask;
++      // Clear interrupt flag?
++      // WIU-&gt;PR = mask;
++      // Enable interrupt
++      WIU-&gt;MR |= mask;
++    }     
++    else
++      WIU-&gt;MR &amp;= ~mask; 
++  }
++  else
++    fprintf( stderr, &quot;Error: %d not a valid interrupt ID\n&quot;, id );
++  return crt_status;
++}
++
++int platform_cpu_get_interrupt( elua_int_id id, elua_int_resnum resnum )
++{
++  return platform_cpuh_get_int_status( id, resnum );
++}
++
++// ****************************************************************************
+ // Platform specific modules go here
+ 
+ #define MIN_OPT_LEVEL 2
+
+Modified: trunk/src/platform/str9/platform_conf.h
+===================================================================
+--- trunk/src/platform/str9/platform_conf.h	2010-10-06 18:05:09 UTC (rev 802)
++++ trunk/src/platform/str9/platform_conf.h	2010-10-10 22:24:36 UTC (rev 803)
+@@ -6,6 +6,8 @@
+ #include &quot;auxmods.h&quot;
+ #include &quot;stacks.h&quot;
+ #include &quot;type.h&quot;
++#include &quot;elua_int.h&quot;
++#include &quot;buf.h&quot;
+ 
+ // *****************************************************************************
+ // Define here what components you want for this platform
+@@ -16,6 +18,7 @@
+ #define BUILD_TERM
+ #define BUILD_CON_GENERIC
+ //#define BUILD_RPC
++#define BUILD_LUA_INT_HANDLERS
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -53,6 +56,9 @@
+ #define RPC_TIMER_ID          CON_TIMER_ID
+ #define RPC_UART_SPEED        CON_UART_SPEED
+ 
++// Interrupt queue configuration
++#define PLATFORM_INT_QUEUE_LOG_SIZE   BUF_SIZE_32
++
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ u32 SCU_GetMCLKFreqValue();
+ #define CPU_FREQUENCY         ( SCU_GetMCLKFreqValue() * 1000 )
+@@ -103,4 +109,17 @@
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
+   _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
+ 
++ // Interrupt list
++enum
++{
++  // Platform interrupts
++  INT_GPIO_POSEDGE = ELUA_INT_FIRST_ID,
++  INT_GPIO_NEGEDGE,
++};
++
++#define PLATFORM_CPU_CONSTANTS\
++ _C( INT_GPIO_POSEDGE ),\
++ _C( INT_GPIO_NEGEDGE )
++
+ #endif // #ifndef __PLATFORM_CONF_H__
++
+
+Modified: trunk/src/platform/str9/stacks.h
+===================================================================
+--- trunk/src/platform/str9/stacks.h	2010-10-06 18:05:09 UTC (rev 802)
++++ trunk/src/platform/str9/stacks.h	2010-10-10 22:24:36 UTC (rev 803)
+@@ -4,7 +4,7 @@
+ #define __STACKS_H__
+ 
+ #define STACK_SIZE_SVC   2048
+-#define STACK_SIZE_IRQ   64
++#define STACK_SIZE_IRQ   96
+ #define STACK_SIZE_TOTAL ( STACK_SIZE_SVC + STACK_SIZE_IRQ )
+ 
+ #endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000755.html">[Elua-svn] r802 - in trunk/doc: . en
+</A></li>
+	<LI>Next message: <A HREF="000757.html">[Elua-svn] r804 - trunk/src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#756">[ date ]</a>
+              <a href="thread.html#756">[ thread ]</a>
+              <a href="subject.html#756">[ subject ]</a>
+              <a href="author.html#756">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

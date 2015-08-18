@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r472 - tags/pre0.6/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r472%20-%20tags/pre0.6/doc/en&In-Reply-To=%3C200910051411.n95EB3AY017978%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000427.html">
+   <LINK REL="Next"  HREF="000429.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r472 - tags/pre0.6/doc/en</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r472%20-%20tags/pre0.6/doc/en&In-Reply-To=%3C200910051411.n95EB3AY017978%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r472 - tags/pre0.6/doc/en">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Oct  5 16:11:03 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000427.html">[Elua-svn] r471 - in tags/pre0.6/doc: . en images pt
+</A></li>
+        <LI>Next message: <A HREF="000429.html">[Elua-svn] r473 - tags/pre0.6/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#428">[ date ]</a>
+              <a href="thread.html#428">[ thread ]</a>
+              <a href="subject.html#428">[ subject ]</a>
+              <a href="author.html#428">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-10-05 16:11:03 +0200 (Mon, 05 Oct 2009)
+New Revision: 472
+
+Modified:
+   tags/pre0.6/doc/en/building.html
+   tags/pre0.6/doc/en/examples.html
+Log:
+Updated ADC docs.
+
+Modified: tags/pre0.6/doc/en/building.html
+===================================================================
+--- tags/pre0.6/doc/en/building.html	2009-10-05 10:31:31 UTC (rev 471)
++++ tags/pre0.6/doc/en/building.html	2009-10-05 14:11:03 UTC (rev 472)
+@@ -175,10 +175,7 @@
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_ADC&lt;/td&gt;
+-&lt;td&gt;Generic ADC support code. You need to enable this if
+-you want to use the &lt;a href=&quot;refman_gen_adc.html&quot;&gt;adc&lt;/a&gt;
+-module, or simply the ADC functions from the platform interface. You
+-don't need it if you're not planning to use the ADC.
++&lt;td&gt;Define this to build support for ADC peripherals. This must be enabled to use the &lt;a href=&quot;refman_gen_adc.html&quot;&gt;adc module&lt;/a&gt;, or the &lt;a href=&quot;arch_platform_adc.html&quot;&gt;adc platform interface&lt;/a&gt;.
+ To enable:
+ &lt;pre&gt;&lt;code&gt;#define BUILD_ADC&lt;/code&gt;&lt;/pre&gt;
+ &lt;a href=&quot;building.html#static&quot;&gt;Static configuration data dependencies:&lt;/a&gt; &lt;b&gt;ADC_BIT_RESOLUTION, ADC_TIMER_FIRST_ID, ADC_NUM_TIMERS&lt;/b&gt;
+@@ -226,7 +223,7 @@
+ via &lt;i&gt;platform_conf.h&lt;/i&gt; check &lt;a href=&quot;refman_gen.html&quot;&gt;the
+ eLua reference manual&lt;/a&gt;.&lt;/p&gt;
+ &lt;a name=&quot;static&quot;&gt;&lt;h2&gt;Static configuration data&lt;/h2&gt;&lt;/a&gt;
+-&lt;p&gt;&quot;Static configuration&quot; reffers to the compile-time
++&lt;p&gt;&quot;Static configuration&quot; refers to the compile-time
+ configuration. Static configuration parameters are hard-coded in the
+ firmware image and can't be changed at run-time. The table below lists
+ the static configuration parameters and their semantics.
+@@ -284,9 +281,17 @@
+ all, so you can define as many constants as you want here. &lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;ADC_BIT_RESOLUTION&lt;br&gt;ADC_TIMER_FIRST_ID&lt;br&gt;ADC_NUM_TIMERS
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUF_ENABLE_ADC&lt;/td&gt;
++&lt;td&gt;If the &lt;a href=&quot;arch_platform_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, this controls whether or not the ADC will create a buffer so that more than one sample per channel can be held in a buffer before being returned through adc.getsample or adc.getsamples.  If disabled, only one conversion result will be buffered.  This option does NOT affect the behavior of the moving average filter.&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;ADC_BUF_SIZE&lt;/td&gt;
++&lt;td&gt;If the &lt;a href=&quot;arch_platform_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, and BUF_ENABLE_ADC is defined, this will define the default buffer length allocated at startup.  This does not limit buffer sizes, it only defines the default length.  Appropriate values range from BUF_SIZE_2 to BUF_SIZE_32768, with the numeric component at the end being in powers of 2.&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;ADC_BIT_RESOLUTION
+ &lt;/td&gt;
+-&lt;td&gt;##&lt;/td&gt;
++&lt;td&gt;If the &lt;a href=&quot;arch_platform_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, this will define the number of bits per adc conversion result.  This is used to determine the maximum conversion value that can be returned by the ADC.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;/tbody&gt;
+ &lt;/table&gt;
+
+Modified: tags/pre0.6/doc/en/examples.html
+===================================================================
+--- tags/pre0.6/doc/en/examples.html	2009-10-05 10:31:31 UTC (rev 471)
++++ tags/pre0.6/doc/en/examples.html	2009-10-05 14:11:03 UTC (rev 472)
+@@ -156,14 +156,14 @@
+ &lt;br /&gt;
+ 
+ &lt;h3&gt;adcscope.lua: ADCs and eLua, part I&lt;/h3&gt;
+-&lt;p&gt;&lt;b&gt;Runs on: &lt;/b&gt;##TODO&lt;/p&gt;
+-&lt;p&gt;&lt;b&gt;Description: &lt;/b&gt;##TODO
++&lt;p&gt;&lt;strong&gt;Runs on: &lt;/strong&gt;EK-LM3S8962, EK-LM3S6965, ET-STM32&lt;/p&gt;
++&lt;p&gt;&lt;strong&gt;Description: &lt;/strong&gt;This uses the ADC module to acquire samples as quickly as possible on available ADC channels, and display them using the term module.  Additionally, for different channels, different length moving average filters are used to smooth the data being acquired (see the adcchannels and adcsmoothing variables).  While running the script also provides the average length of time required to get conversion results from each channel and the amount of memory used by garbage collectable objects in the running Lua environment.
+ &lt;/p&gt;
+ &lt;br /&gt;
+ 
+ &lt;h3&gt;adcpoll.lua: ADCs and eLua, part II&lt;/h3&gt;
+-&lt;p&gt;&lt;b&gt;Runs on: &lt;/b&gt;##TODO&lt;/p&gt;
+-&lt;p&gt;&lt;b&gt;Description: &lt;/b&gt;##TODO
++&lt;p&gt;&lt;strong&gt;Runs on: &lt;/strong&gt;EK-LM3S8962, EK-LM3S6965, ET-STM32&lt;/p&gt;
++&lt;p&gt;&lt;strong&gt;Description: &lt;/strong&gt;This is another example of the ADC and term modules.  This version uses hardware timers to acquire samples deterministically at a rate of 4 samples per second.  When run, note that data from some channels appear before that of others.  This is due to the moving average (smoothing) filter being enabled.  This filter will only return conversion results after enough samples are acquired to fill the filter length.  In addition, this example utilizes a polling mechanism.  When adc.getsample or adc.getsamples return nil, no samples were available to be returned.  Values for each channel, in this example, are only displayed when there is a non-nil value returned by adc.getsample.
+ &lt;/p&gt;
+ &lt;br /&gt;
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000427.html">[Elua-svn] r471 - in tags/pre0.6/doc: . en images pt
+</A></li>
+	<LI>Next message: <A HREF="000429.html">[Elua-svn] r473 - tags/pre0.6/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#428">[ date ]</a>
+              <a href="thread.html#428">[ thread ]</a>
+              <a href="subject.html#428">[ subject ]</a>
+              <a href="author.html#428">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

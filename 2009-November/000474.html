@@ -1,0 +1,511 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r518 - trunk/doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r518%20-%20trunk/doc&In-Reply-To=%3C200911042047.nA4Kl4iu030075%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000473.html">
+   <LINK REL="Next"  HREF="000475.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r518 - trunk/doc</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r518%20-%20trunk/doc&In-Reply-To=%3C200911042047.nA4Kl4iu030075%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r518 - trunk/doc">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Nov  4 21:47:04 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000473.html">[Elua-svn] r517 - trunk/doc/eluadoc
+</A></li>
+        <LI>Next message: <A HREF="000475.html">[Elua-svn] r519 - trunk/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#474">[ date ]</a>
+              <a href="thread.html#474">[ thread ]</a>
+              <a href="subject.html#474">[ subject ]</a>
+              <a href="author.html#474">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-11-04 21:47:03 +0100 (Wed, 04 Nov 2009)
+New Revision: 518
+
+Removed:
+   trunk/doc/build_dist_doc.sh
+   trunk/doc/builddoc.lua
+Log:
+fixing merge error on doc/, part III (and probably the last one)
+
+Deleted: trunk/doc/build_dist_doc.sh
+===================================================================
+--- trunk/doc/build_dist_doc.sh	2009-11-04 20:42:59 UTC (rev 517)
++++ trunk/doc/build_dist_doc.sh	2009-11-04 20:47:03 UTC (rev 518)
+@@ -1,54 +0,0 @@
+-#!/bin/bash
+-# Builds a full documentation package in the &quot;dist/&quot; directory
+-
+-# Delete and recreate directory
+-rm -rf dist
+-mkdir dist
+-
+-# Build platform docs
+-lua builddoc.lua
+-if [ $? -ne 0 ]
+-then
+-  exit
+-fi
+-cd wb
+-lua wb_build.lua
+-cd ..
+-
+-# Copy the required files to the dist/ directory
+-for lang in en pt
+-do
+-  cp -R $lang/ dist/
+-done
+-cp -R wb_img dist/
+-for f in wb*.html style.css index*.html
+-do
+-  echo Copying $f...
+-  cp $f dist/
+-done
+-cp dist/index_en.html dist/index.html
+-
+-# Remove all version data from dist
+-find dist/ -name &quot;.svn&quot; | xargs rm -rf
+-
+-if [ &quot;$1&quot; != &quot;noclean&quot; ]
+-then
+-  # Remove unneeded files from base dir
+-  echo
+-  echo &quot;Cleaning up...&quot;
+-  for lang in en pt
+-  do
+-    rm -f $lang/arch_platform_*.html
+-    rm -f $lang/refman_gen_*.html
+-  done
+-  rm -f index_*.html wb/wb_usr.lua ssSearch*.html wb_bar_*.html
+-  rm -f wb_search*.txt wb_title*.html wb_tree*.html
+-else
+-  echo
+-  echo &quot;NOT cleaning base directory!&quot;
+-fi
+-
+-# All done
+-echo
+-echo &quot;DONE! Enjoy your documentation in dist/ :)&quot;
+-
+
+Deleted: trunk/doc/builddoc.lua
+===================================================================
+--- trunk/doc/builddoc.lua	2009-11-04 20:42:59 UTC (rev 517)
++++ trunk/doc/builddoc.lua	2009-11-04 20:47:03 UTC (rev 518)
+@@ -1,374 +0,0 @@
+--- eLua doc builder tool 
+-
+--- List here all the sections for which we're generating the documentation
+-local doc_sections = { &quot;arch_platform&quot;, &quot;refman_gen&quot; }
+-
+--- List here all the components of each section
+-local components = 
+-{ 
+-  arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+-  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;pack&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;adc&quot; }
+-}
+-
+--- List here all languages for the documentation (make sure to keep English (&quot;en&quot;) the first one)
+-local languages = { &quot;en&quot;, &quot;pt&quot; }
+--- Also list here the translation for a bunch of fixed strings
+-local overview_tr = { en = &quot;Overview&quot;, pt = &quot;##Overview&quot; }
+-local structures_tr = { en = &quot;Data structures&quot;, pt = &quot;##Data structures&quot; }
+-local functions_tr = { en = &quot;Functions&quot;, pt = &quot;##Functions&quot; }
+-
+--- Format a name to a link by changing all the spaces to &quot;_&quot; and
+--- making all letters lowercase
+-local function name2link( str )
+-  str = str:gsub( &quot; &quot;, &quot;_&quot; )
+-  return str:lower()
+-end
+-
+--- Returns the part of the string enclosed between two '#' chars
+--- Used for parsing function sig. 
+-local function namefromsig( str )
+-  local _, _, name = str:find( &quot;#(.*)#&quot; )
+-  return name
+-end
+-
+---[[ Process the given string as follows:
+-- $string$ becomes &lt;b&gt;string&lt;/b&gt;
+-- %string% becomes &lt;i&gt;string&lt;/i&gt;
+-- @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">ref at text</A>@ becomes &lt;a href=&quot;ref&quot;&gt;text&lt;/a&gt;
+-- ^ref^text^ becomes &lt;a target=&quot;_blank&quot; href=&quot;ref&quot;&gt;text&lt;/a&gt;
+-- $$, %%, @@, ^^ become $, %, @, ^ respectively
+-- the string &quot;eLua&quot; becomes &lt;b&gt;eLua&lt;/b&gt;
+-- strings between two tildas (~~) get special code-like formatting
+-- newlines are changed to ' ' if 'keepnl' isn't true
+-- '&amp;' is translated to its corresponding HTML code.
+-- '&lt;&lt;' and '&gt;&gt;&quot; are also translated to the corresponding HTML codes (note the repetition).
+---]]
+-local function format_string( str, keepnl )
+-  -- replace double &quot;special chars&quot; with &quot;temps&quot; for later use
+-  str = str:gsub( &quot;%$%$&quot;, &quot;\001&quot; )
+-  str = str:gsub( &quot;%%%%&quot;, &quot;\002&quot; )
+-  str = str:gsub( &quot;@@&quot;, &quot;\003&quot; )
+-  str = str:gsub( &quot;%^%^&quot;, &quot;\004&quot; )
+-  str = str:gsub( &quot;~~&quot;, &quot;\005&quot; )
+-
+-   -- Translate 'special' HTML chars to their equivalents
+-  local tr_table = 
+-  {
+-    [ &quot;%&amp;&quot; ] = &quot;&amp;&quot;,
+-  }
+-  for char, rep in pairs( tr_table ) do
+-    str = str:gsub( char, rep )
+-  end
+-
+-  -- some double chars are replaced directly with their HTML codes
+-  str = str:gsub( &quot;&lt;&lt;&quot;, &quot;&lt;&quot; )
+-  str = str:gsub( &quot;&gt;&gt;&quot;, &quot;&gt;&quot; )
+-
+-  -- replace eLua with &lt;b&gt;eLua&lt;/b&gt;
+-  str = str:gsub( &quot;eLua&quot;, &quot;&lt;b&gt;eLua&lt;/b&gt;&quot; )
+-
+-  -- $string$ becomes &lt;b&gt;string&gt;&lt;/b&gt;
+-  str = str:gsub( &quot;%$([^%s%$][^%$]*)%$&quot;, &quot;&lt;b&gt;%1&lt;/b&gt;&quot; )
+-
+-  -- %string% becomes &lt;i&gt;string&lt;/i&gt;
+-  str = str:gsub( &quot;%%([^%s%%][^%%]*)%%&quot;, &quot;&lt;i&gt;%1&lt;/i&gt;&quot; )
+-
+-  -- @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">ref at text</A>@ becomes &lt;a href=&quot;ref&quot;&gt;text&lt;/a&gt;
+-  str = str:gsub( &quot;@([^%s@][^@]*)@([^%s@][^@]*)@&quot;, '&lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;' )
+-
+-  -- ^ref^text^ becomes &lt;a target=&quot;_blank&quot; href=&quot;ref&quot;&gt;text&lt;/a&gt;
+-  str = str:gsub( &quot;%^([^%s%^][^%^]*)%^([^%s%^][^%^]*)%^&quot;, '&lt;a target=&quot;_blank&quot; href=&quot;%1&quot;&gt;%2&lt;/a&gt;' )
+-
+-  -- strings between two tildas (~~) get special code-like formatting
+-  str = str:gsub( &quot;~([^%s~][^~]*)~&quot;, function( x )
+-    x = x:gsub( &quot;\n&quot;, &quot;&lt;br&gt;&quot; )
+-    x = x:gsub( &quot;%s%s+&quot;, function( x ) return ( &quot;&nbsp;&quot; ):rep( #x ) end )
+-    return &quot;&lt;p&gt;&lt;code&gt;&quot; .. x .. &quot;&lt;/code&gt;&lt;/p&gt;&quot;
+-  end )
+-  str = str:gsub( &quot;~~&quot;, &quot;~&quot; )
+-
+-  -- other &quot;\n&quot; chars should dissapear now
+-  if not keepnl then  str = str:gsub( &quot;\n&quot;, &quot; &quot; ) end
+-
+-  -- put back the &quot;temps&quot;
+-  str = str:gsub( &quot;\001&quot;, &quot;%$&quot; )
+-  str = str:gsub( &quot;\002&quot;, &quot;%%&quot; )
+-  str = str:gsub( &quot;\003&quot;, &quot;@&quot; )
+-  str = str:gsub( &quot;\004&quot;, &quot;%^&quot; )
+-  str = str:gsub( &quot;\005&quot;, &quot;~&quot; )
+-
+-  -- all done
+-  return str
+-end
+-
+-local header = [[
+-&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+-&lt;html&gt;&lt;head&gt;
+-&lt;meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=ISO-8859-1&quot;&gt;
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;%s&lt;/title&gt;
+-
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
+-&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;]]
+-
+--- Build the documentation starting from the given file
+-local function build_file( fname )
+-  dofile( fname )
+-  local res = {}
+-
+-  for _, lang in pairs( languages ) do
+-    res[ lang ] = {}
+-    res[ lang ].wb = {}
+-    local wb = res[ lang ].wb
+-    
+-    -- we need english always
+-    -- the other languages will be substituted with english if not found
+-    local resname = string.format( &quot;data_%s&quot;, lang )
+-    local r = _G[ resname ]
+-    if not r then
+-      if lang == &quot;en&quot; then
+-        return false, &quot;data_en must exist in the description&quot;
+-      else
+-        print( string.format( &quot;'%s': data for language '%s' not found, defaulting to english&quot;, fname, lang ) )
+-        r = _G[ &quot;data_en&quot; ]
+-      end
+-    end
+-
+-    -- process names
+-    if not r.menu_name then
+-      return false, &quot;menu_names not found&quot;
+-    end
+-    wb.name = r.menu_name
+-
+-    -- process title
+-    if not r.title then
+-      return false, &quot;title not found&quot;
+-    end
+-    local page = header:format( r.title ) .. &quot;\n\n&quot;
+-
+-    -- process overview
+-    if not r.overview then
+-      return false, &quot;overview not found&quot;
+-    end
+-    page = page .. '&lt;a name=&quot;overview&quot;&gt;&lt;h3&gt;Overview&lt;/h3&gt;&lt;/a&gt;\n&lt;p&gt;' .. format_string( r.overview ) .. &quot;&lt;/p&gt;\n\n&quot;
+-
+-    -- process structures if needed
+-    if r.structures then
+-      local structures = r.structures
+-      wb.structs = {}
+-      page = page .. '&lt;a name=&quot;structures&quot;&gt;&lt;h3&gt;Data structures, constants and types&lt;/h3&gt;&lt;/a&gt;\n'
+-      for i = 1, #structures do
+-        local s = structures[ i ]
+-        wb.structs[ #wb.structs + 1 ] = s.name
+-        if not s.text or not s.desc or not s.name then
+-          return false, &quot;structure without text, desc or name fields&quot;
+-        end
+-        -- text/name. The link name is ALWAYS the one in ENGLISH.
+-        page = page .. string.format( '&lt;a name=&quot;%s&quot;&gt;', name2link( res.en.wb.structs[ i ] ) )
+-        page = page .. &quot;&lt;p&gt;&lt;pre&gt;&lt;code&gt;&quot; .. format_string( s.text, true ) .. &quot;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&quot;
+-        page = page .. &quot;&lt;/a&gt;&quot;
+-        -- description
+-        page = page .. &quot;\n&lt;p&gt;&quot; .. format_string( s.desc ) .. &quot;&lt;/p&gt;\n\n&quot;
+-      end 
+-    end
+-
+-    -- process functions now
+-    if not r.funcs then
+-      return false, &quot;funcs not found&quot;
+-    end
+-    local funcs = r.funcs
+-    page = page .. '&lt;a name=&quot;funcs&quot;&gt;&lt;h3&gt;Functions&lt;/h3&gt;&lt;/a&gt;\n'
+-    wb.funcs = {}
+-    for i = 1, #funcs do
+-      local f = funcs[ i ]
+-      if not f.sig or not f.desc then
+-        return false, &quot;function without sig or desc fields&quot;
+-      end
+-      local funcname = namefromsig( f.sig )
+-      if not funcname then
+-        return false, string.format( &quot;'%s' should contain the function name between '*' chars&quot;, f.sig )
+-      end
+-      wb.funcs[ #wb.funcs + 1 ] = funcname
+-      -- signature
+-      page = page .. string.format( '&lt;a name=&quot;%s&quot;&gt;', funcname )
+-      page = page .. &quot;&lt;p&gt;&lt;pre&gt;&lt;code&gt;&quot; .. f.sig:gsub( '#', '' ) .. &quot;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&quot;
+-      page = page .. &quot;&lt;/a&gt;&quot;
+-      -- description
+-      page = page .. &quot;\n&lt;p&gt;&quot; .. format_string( f.desc ) .. &quot;&lt;/p&gt;\n&quot;
+-      -- arguments
+-      page = page .. &quot;&lt;p&gt;&lt;b&gt;Arguments&lt;/b&gt;: &quot;
+-      if f.args then
+-        local a = f.args
+-        if type( a ) == &quot;string&quot; or ( type( a ) == &quot;table&quot; and #a == 1 ) then
+-          local text = type( a ) == &quot;string&quot; and a or a[ 1 ]
+-          page = page .. format_string( text )
+-        else
+-          page = page .. &quot;\n&lt;ul&gt;\n&quot;
+-          for i = 1, #a do page = page .. &quot;  &lt;li&gt;&quot; .. format_string( a[ i ] ) .. &quot;&lt;/li&gt;\n&quot; end
+-          page = page .. &quot;&lt;/ul&gt;&quot;
+-        end
+-      else
+-        page = page .. &quot;none&quot;
+-      end
+-      page = page .. &quot;&lt;/p&gt;\n&quot;
+-      -- return value
+-      page = page .. &quot;&lt;p&gt;&lt;b&gt;Returns&lt;/b&gt;: &quot;
+-      if f.ret then
+-        local r = f.ret
+-        if type( r ) == &quot;string&quot; or ( type( r ) == &quot;table&quot; and #r == 1 ) then
+-          local text = type( r ) == &quot;string&quot; and r or r[ 1 ]
+-          page = page .. format_string( text )
+-        else
+-          page = page .. &quot;\n&lt;ul&gt;\n&quot;
+-          for i = 1, #r do page = page .. &quot;  &lt;li&gt;&quot; .. format_string( r[ i ] ) .. &quot;&lt;/li&gt;\n&quot; end
+-          page = page .. &quot;&lt;/ul&gt;&quot;
+-        end
+-      else
+-        page = page .. &quot;nothing&quot;
+-      end
+-      page = page .. &quot;&lt;/p&gt;\n\n&quot;
+-    end
+-
+-    -- aux data (if any)
+-    if r.auxdata then
+-      local auxdata = r.auxdata
+-      wb.auxdata = {}
+-      for i = 1, #auxdata do
+-        local a = auxdata[ i ]
+-        wb.auxdata[ #wb.auxdata + 1 ] = a.title
+-        if not a.title or not a.desc then
+-          return false, &quot;auxdata without title or desc&quot;
+-        end
+-        -- the link name is ALWAYS the one in ENGLISH
+-        page = page .. string.format( '&lt;a name=&quot;%s&quot;&gt;', name2link( res.en.wb.auxdata[ i ] ) )
+-        page = page .. &quot;&lt;h3&gt;&quot; .. a.title .. &quot;&lt;/h3&gt;&quot;
+-        page = page .. &quot;&lt;/a&gt;&quot;
+-        page = page .. &quot;\n&lt;p&gt;&quot; .. format_string( a.desc ) .. &quot;&lt;/p&gt;\n\n&quot;
+-      end
+-    end
+-
+-    -- footer
+-    page = page .. &quot;&lt;/body&gt;&lt;/html&gt;\n&quot;
+-    res[ lang ].page = page
+-  end
+-  return res
+-end
+-
+--- Helper function to get strings in all languages when needed
+-local function alllangs( getstr )
+-  local str =  &quot;name = {&quot;
+-  for _, lang in pairs( languages ) do
+-    str = str .. string.format( ' %s = &quot;%s&quot;,', lang, getstr( lang ) )
+-  end
+-  return str .. &quot; }&quot;
+-end
+-
+--- Transform the data from the wb dictionary (in 'fulldata') for module 'modname' to a wb string, for section 'sect'
+-local function wb2str( fulldata, modname, sect )
+-  local relfname = sect .. &quot;_&quot; .. modname .. &quot;.html&quot;
+-  local res = fulldata[ modname ]
+-  local wbstr = string.format( '    { %s,\n      link = &quot;%s&quot;,\n      folder =\n      {\n', alllangs( function( x ) return res[ x ].wb.name end ), relfname )
+-
+-  -- Overview
+-  wbstr = wbstr .. string.format( '        { %s,\n          link = &quot;%s#overview&quot;\n        },\n', alllangs( function( x ) return overview_tr[ x ] end ), relfname )
+-
+-  -- Data structures (if needed)
+-  if res.en.wb.structs then
+-    wbstr = wbstr .. string.format( '        { %s,\n          link = &quot;%s#structures&quot;,\n          folder =\n          {\n', alllangs( function( x ) return structures_tr[ x ] end ), relfname )
+-    for i = 1, #res.en.wb.structs do
+-      local v = res.en.wb.structs[ i ]
+-      wbstr = wbstr .. string.format( '            { %s,\n              link = &quot;%s#%s&quot;,\n            },\n', alllangs( function( x ) return res[ x ].wb.structs[ i ] end ), relfname, name2link( v ) )
+-    end
+-    wbstr = wbstr .. &quot;          }\n        },\n&quot;
+-  end
+-
+-  -- Functions
+-  wbstr = wbstr .. string.format( '        { %s,\n          link = &quot;%s#funcs&quot;,\n          folder =\n          {\n', alllangs( function( x ) return functions_tr[ x ] end ), relfname )
+-  for _, v in pairs( res.en.wb.funcs ) do
+-    wbstr = wbstr .. string.format( '            { name = { en = &quot;%s&quot;, pt = &quot;%s&quot; },\n              link = &quot;%s#%s&quot;,\n            },\n', v, v, relfname, name2link( v ) )
+-  end
+-  wbstr = wbstr .. &quot;          }\n        },\n&quot;
+-
+-  -- Aux data (if needed)
+-  if res.en.wb.auxdata then
+-    for i = 1, #res.en.wb.auxdata do
+-      local v = res.en.wb.auxdata[ i ]
+-      wbstr = wbstr .. string.format(  '        { %s,\n          link = &quot;%s#%s&quot;\n        },\n', alllangs( function( x ) return res[ x ].wb.auxdata[ i ] end ), relfname, name2link( v ) )
+-    end
+-  end
+-
+-  -- Close the structure and return
+-  wbstr = wbstr .. &quot;      }\n    },\n&quot;
+-  return wbstr
+-end
+-
+--- Read our complete template for wb_usr.lua
+-local wbloc = &quot;wb/wb_usr_template.lua&quot;
+-local realwbloc = &quot;wb/wb_usr.lua&quot;
+-local wbf = io.open( wbloc, &quot;rb&quot; )
+-if not wbf then
+-  print( string.format( &quot;Cannot open %s for reading&quot;, wbloc ) )
+-  return 1
+-end
+-local wbdata = wbf:read( &quot;*a&quot; )
+-wbf:close()
+--- Open the actual wb_usr.lua in write mode
+-local realwbf = io.open( realwbloc, &quot;wb&quot; )
+-if not realwbf then
+-  print( string.format( &quot;Cannot open %s for writing&quot;, realwbloc ) )
+-  return 1
+-end
+-
+--- Generate documentation for each section in part
+-for _, section in pairs( doc_sections ) do 
+-
+-  -- Check for pattern in wb_usr_template.lua
+-  local pattern = &quot;%$%$&quot; .. section:upper() .. &quot;%$%$&quot;
+-  if not wbdata:find( pattern ) then
+-    print( string.format( &quot;$$%s$$ not found in wb_usr_template.lua&quot;, section:upper(), modname ) )
+-    return 1
+-  end
+-
+-  -- Generate documentation for each module in turn
+-  local fulldata = {}
+-  for _, modname in pairs( components[ section ] ) do
+-    local descfname = string.format( &quot;luadoc/%s_%s.lua&quot;, section, modname )
+-    local res, err = build_file( descfname )
+-    if res then
+-      fulldata[ modname ] = res
+-      -- Write doc for each language
+-      for _, lang in pairs( languages ) do
+-        local fname = string.format( &quot;%s/%s_%s.html&quot;, lang, section, modname )
+-        local f = io.open( fname, &quot;wb&quot; )
+-        if not f then
+-          print( string.format( &quot;Unable to open %s for writing&quot;, fname ) )
+-          return 1
+-        else
+-          f:write( res[ lang ].page )
+-          f:close()
+-          print( ( &quot;Wrote %s&quot; ):format( fname ) )
+-        end
+-      end
+-    else
+-      print( string.format( &quot;Error processing module '%s': %s&quot;, modname, err ) )
+-      return 1
+-    end
+-    print &quot;&quot;
+-  end 
+-
+-  -- Now it's finally time to get our wb/wb_usr.lua
+-  local fullwb = ''
+-  for _, modname in pairs( components[ section ] ) do
+-    local wbstr = wb2str( fulldata, modname, section )
+-    fullwb = fullwb .. wbstr
+-  end
+-
+-  -- Substitute our pattern and write everything back to disk
+-  wbdata = wbdata:gsub( pattern, fullwb )
+-end
+-
+--- Write wb_usr.lua to disk (finally)
+-realwbf:write( wbdata )
+-realwbf:close()
+-
+-print &quot;All done, remember to run 'lua wb_build.lua' in the 'wb' directory to build your navigation tree&quot;
+-
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000473.html">[Elua-svn] r517 - trunk/doc/eluadoc
+</A></li>
+	<LI>Next message: <A HREF="000475.html">[Elua-svn] r519 - trunk/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#474">[ date ]</a>
+              <a href="thread.html#474">[ thread ]</a>
+              <a href="subject.html#474">[ subject ]</a>
+              <a href="author.html#474">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

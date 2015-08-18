@@ -1,0 +1,1231 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r104 - in trunk/src: . modules platform/str7
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r104%20-%20in%20trunk/src%3A%20.%20modules%20platform/str7&In-Reply-To=%3C200810061914.m96JEVjI008284%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000059.html">
+   <LINK REL="Next"  HREF="000061.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r104 - in trunk/src: . modules platform/str7</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r104%20-%20in%20trunk/src%3A%20.%20modules%20platform/str7&In-Reply-To=%3C200810061914.m96JEVjI008284%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r104 - in trunk/src: . modules platform/str7">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Oct  6 21:14:31 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000059.html">[Elua-svn] r103 - in trunk: . src/modules src/platform	src/platform/str7 src/uip
+</A></li>
+        <LI>Next message: <A HREF="000061.html">[Elua-svn] r105 - trunk/src/platform/str7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#60">[ date ]</a>
+              <a href="thread.html#60">[ thread ]</a>
+              <a href="subject.html#60">[ subject ]</a>
+              <a href="author.html#60">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-10-06 21:14:30 +0200 (Mon, 06 Oct 2008)
+New Revision: 104
+
+Added:
+   trunk/src/platform/str7/71x_tim.c
+   trunk/src/platform/str7/71x_tim.h
+Modified:
+   trunk/src/main.c
+   trunk/src/modules/pio.c
+   trunk/src/platform/str7/71x_conf.h
+   trunk/src/platform/str7/71x_gpio.c
+   trunk/src/platform/str7/71x_gpio.h
+   trunk/src/platform/str7/build.h
+   trunk/src/platform/str7/conf.py
+   trunk/src/platform/str7/platform.c
+   trunk/src/platform/str7/platform_libs.h
+Log:
+added timer and GPIO support to STR7. Also changed the baud rate for STR7 to 38400 baud from 115200, since my board can't handle 115200 properly
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/main.c	2008-10-06 19:14:30 UTC (rev 104)
+@@ -26,7 +26,11 @@
+ 
+ #ifdef BUILD_XMODEM
+ 
++#if ELUA_BOARD == MOD711
++#define XMODEM_UART_ID          1
++#else
+ #define XMODEM_UART_ID          0
++#endif // #if ELUA_BOARD == MOD711
+ #define XMODEM_TIMER_ID         0
+ 
+ static void xmodem_send( u8 data )
+@@ -62,7 +66,11 @@
+ 
+ #ifdef BUILD_TERM
+ 
++#if ELUA_BOARD == MOD711
++#define TERM_UART_ID          1
++#else
+ #define TERM_UART_ID          0
++#endif // #if ELUA_BOARD == MOD711
+ #define TERM_TIMER_ID         0
+ #define TERM_TIMEOUT          100000
+ 
+
+Modified: trunk/src/modules/pio.c
+===================================================================
+--- trunk/src/modules/pio.c	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/modules/pio.c	2008-10-06 19:14:30 UTC (rev 104)
+@@ -241,7 +241,6 @@
+   
+   if( !key || *key != 'P' )
+     return 0;
+-  printf( &quot;Key: %s\n&quot;, key );
+   if( isupper( key[ 1 ] ) ) // PA, PB, ...
+   {
+     port = key[ 1 ] - 'A';
+
+Modified: trunk/src/platform/str7/71x_conf.h
+===================================================================
+--- trunk/src/platform/str7/71x_conf.h	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/platform/str7/71x_conf.h	2008-10-06 19:14:30 UTC (rev 104)
+@@ -7,6 +7,7 @@
+ #define _GPIO
+ #define _RCCU
+ #define _UART
++#define _TIM
+ 
+ #define RCCU_Main_Osc 4000000
+ 
+
+Modified: trunk/src/platform/str7/71x_gpio.c
+===================================================================
+--- trunk/src/platform/str7/71x_gpio.c	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/platform/str7/71x_gpio.c	2008-10-06 19:14:30 UTC (rev 104)
+@@ -102,6 +102,11 @@
+   return ((GPIOx-&gt;PD &gt;&gt; Port_Pin) &amp; 0x0001);
+ }
+ 
++u8 GPIO_BitRead_Mask(GPIO_TypeDef *GPIOx, u8 Port_Mask)
++{
++  return (GPIOx-&gt;PD &amp; Port_Mask) ? 1 : 0;
++}
++
+ /*******************************************************************************
+ * Function Name  : GPIO_ByteRead
+ * Description    : Reads the specified data port byte and returns its value.
+@@ -152,6 +157,18 @@
+   }
+ }
+ 
++void GPIO_BitWrite_Mask(GPIO_TypeDef *GPIOx, u8 Port_Mask, u8 Bit_Val)
++{
++  if (Bit_Val &amp; 0x01)
++  {
++    GPIOx-&gt;PD |= Port_Mask;
++  }
++  else
++  {
++    GPIOx-&gt;PD &amp;= ~Port_Mask;
++  }
++}
++
+ /*******************************************************************************
+ * Function Name  : GPIO_ByteWrite
+ * Description    : Write byte value to the selected GPIOx PD register.
+
+Modified: trunk/src/platform/str7/71x_gpio.h
+===================================================================
+--- trunk/src/platform/str7/71x_gpio.h	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/platform/str7/71x_gpio.h	2008-10-06 19:14:30 UTC (rev 104)
+@@ -43,9 +43,11 @@
+ void GPIO_Config (GPIO_TypeDef *GPIOx, u16 Port_Pins,
+                   GpioPinMode_TypeDef GPIO_Mode);
+ u8 GPIO_BitRead(GPIO_TypeDef *GPIOx, u8 Port_Pin);
++u8 GPIO_BitRead_Mask(GPIO_TypeDef *GPIOx, u8 Port_Mask);
+ u8 GPIO_ByteRead(GPIO_TypeDef *GPIOx, u8 Port_Byte);
+ u16 GPIO_WordRead(GPIO_TypeDef *GPIOx);
+ void GPIO_BitWrite(GPIO_TypeDef *GPIOx, u8 Port_Pin, u8 Port_Val);
++void GPIO_BitWrite_Mask(GPIO_TypeDef *GPIOx, u8 Port_Mask, u8 Port_Val);
+ void GPIO_ByteWrite(GPIO_TypeDef *GPIOx, u8 Port_Byte, u8 Port_Val);
+ void GPIO_WordWrite(GPIO_TypeDef *GPIOx, u16 Port_Val);
+ 
+
+Added: trunk/src/platform/str7/71x_tim.c
+===================================================================
+--- trunk/src/platform/str7/71x_tim.c	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/platform/str7/71x_tim.c	2008-10-06 19:14:30 UTC (rev 104)
+@@ -0,0 +1,591 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_tim.c
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file provides all the TIM firmware functions.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_tim.h&quot;
++
++/* Private typedef -----------------------------------------------------------*/
++/* Private define ------------------------------------------------------------*/
++/* Private macro -------------------------------------------------------------*/
++/* Private variables ---------------------------------------------------------*/
++/* Private function prototypes -----------------------------------------------*/
++/* Private functions ---------------------------------------------------------*/
++
++/*******************************************************************************
++* Function Name  : TIM_Init
++* Description    : This routine is used to Initialize the TIM peripheral
++*                  registers to their default values.
++* Input          : - TIMx: the Timer to be Initialized.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_Init(TIM_TypeDef *TIMx)
++{
++  TIMx-&gt;CR1 = 0x0000;
++  TIMx-&gt;CR2 = 0x0000;
++  TIMx-&gt;SR  = 0x0000;
++}
++
++/*******************************************************************************
++* Function Name  : TIM_ClockSourceConfig
++* Description    : This routine is used to configure the TIM clock source
++* Input          : - TIMx: specifies the TIM to be configured.
++*                  - Xclock: specifies the TIM source clock. It can be:
++*                     TIM_INTERNAL : the TIM is clocked by the APB2 frequency
++*                                    divided by the prescaler value.
++*                     TIM_EXTERNAL : the TIM is clocked by an external Clock.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_ClockSourceConfig (TIM_TypeDef *TIMx, TIM_Clocks Xclock)
++{
++  if (Xclock == TIM_EXTERNAL)
++  {
++    TIMx-&gt;CR1 |= TIM_ECKEN_Mask;
++  }
++  else
++  {
++    TIMx-&gt;CR1 &amp;= ~TIM_ECKEN_Mask;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : TIM_ClockSourceValue
++* Description    : This routine is used to get the TIM clock source
++* Input          : - TIMx: specifies the TIM to check its source clock.
++* Output         : None.
++* Return         : The TIM source clock. It can be:
++*                   TIM_INTERNAL: The TIM is clocked by the APB2 frequency
++*                                 divided by the prescaler value.
++*                   TIM_EXTERNAL: The TIM is clocked by an external Clock.
++*******************************************************************************/
++TIM_Clocks TIM_ClockSourceValue (TIM_TypeDef *TIMx)
++{
++  if ((TIMx-&gt;CR1 &amp; TIM_ECKEN_Mask) == 0)
++  {
++    return TIM_INTERNAL;	
++  }
++  else
++  {
++    return TIM_EXTERNAL;
++  }	
++}
++
++/*******************************************************************************
++* Function Name  : TIM_PrescalerConfig
++* Description    : This routine is used to configure the TIM prescaler value
++*                  to divide the internal clock.
++* Input          : - TIMx: specifies the TIM to be configured.
++*                  - Xprescaler: specifies the TIM prescaler value (8bit).
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_PrescalerConfig (TIM_TypeDef *TIMx, u8 Xprescaler)
++{
++  TIMx-&gt;CR2 = (TIMx-&gt;CR2 &amp; 0xFF00) | Xprescaler;
++}
++
++/*******************************************************************************
++* Function Name  : TIM_PrescalerValue
++* Description    : This routine is used to get the TIM prescaler value 
++*                  when the internal clock is used.
++* Input          : - TIMx: specifies the timer to get its prescaler value.
++* Output         : None.
++* Return         : The Current TIM prescaler Value (8bit).
++*******************************************************************************/
++u8 TIM_PrescalerValue (TIM_TypeDef *TIMx)
++{
++  return TIMx-&gt;CR2 &amp; 0x00FF;
++}
++
++/*******************************************************************************
++* Function Name  : TIM_ClockLevelConfig
++* Description    : This routine is used to configure the TIM clock level
++*                  when an external clock source is used.
++* Input          : - TIMx: specifies the TIM to be configured.
++*                  - Xedge: specifies the active edge of the external clock.
++*                    It can be:
++*                     TIM_RISING : The rising  edge.
++*                     TIM_FALLING: The falling edge.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_ClockLevelConfig (TIM_TypeDef *TIMx, TIM_Clock_Edges Xedge)
++{
++  if (Xedge == TIM_RISING)
++  {
++    TIMx-&gt;CR1 |= TIM_EXEDG_Mask;
++  }
++  else
++  {
++    TIMx-&gt;CR1 &amp;= ~TIM_EXEDG_Mask;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : TIM_ClockLevelValue
++* Description    : This routine is used to get and return the clock active level
++*                  when using an external clock source
++* Input          : - TIMx: specifies the TIM to be configured.
++* Output         : None.
++* Return         : The external clock level of the specified timer.
++*                  It can be:            
++*                    TIM_RISING  : The rising  edge.
++*                    TIM_FALLING : The falling edge.
++*******************************************************************************/
++TIM_Clock_Edges TIM_ClockLevelValue (TIM_TypeDef *TIMx)
++{
++  if ((TIMx-&gt;CR1 &amp; TIM_EXEDG_Mask) == 0)
++  {
++    return TIM_FALLING;	
++  }	
++  else
++  {
++    return TIM_RISING;	
++  }
++}
++
++/*******************************************************************************
++* Function Name  : TIM_ICAPModeConfig
++* Description    : This routine is used to configure the input capture feature
++* Input          : - TIMx: specifies the TIM to be configured.
++*                  - Xchannel: specifies the input Capture Channel, it can be:
++*                     TIM_CHANNEL_A, TIM_CHANNEL_B
++*                  - Xedge: specifies the Active Edge, it can be:
++*                     TIM_RISING, TIM_FALLING
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_ICAPModeConfig (TIM_TypeDef  *TIMx, TIM_Channels Xchannel,
++                         TIM_Clock_Edges  Xedge)
++{
++  switch (Xchannel)
++  {
++    case TIM_CHANNEL_A :
++      if (Xedge == TIM_RISING)
++      {
++        TIMx-&gt;CR1 |= TIM_IEDGA_Mask;
++      }
++      else
++      {
++        TIMx-&gt;CR1 &amp;= ~TIM_IEDGA_Mask;
++      }
++      break;
++    case TIM_CHANNEL_B :
++      if (Xedge == TIM_RISING)
++      {
++        TIMx-&gt;CR1 |= TIM_IEDGB_Mask;
++      }
++      else
++      {
++        TIMx-&gt;CR1 &amp;= ~TIM_IEDGB_Mask;
++      }
++      break;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : TIM_ICAPValue
++* Description    : This routine is used to get and return the Input Capture 
++*                  value.
++* Input          : - TIMx: specifies the TIM to check its Input Capture value.
++*                  - Xchannel: specifies the Input Capture channel, it can be:
++*                     TIM_Channel_A, TIM_Channel_B 
++* Output         : None.
++* Return         : The input capture value of the specified timer and channel.
++*******************************************************************************/
++u16 TIM_ICAPValue (TIM_TypeDef *TIMx, TIM_Channels Xchannel)
++{
++  if (Xchannel == TIM_CHANNEL_A)
++  {
++    return TIMx-&gt;ICAR;	
++  } 	
++  else
++  {
++    return TIMx-&gt;ICBR;	
++  }
++}
++
++/*******************************************************************************
++* Function Name  : TIM_OCMPModeConfig
++* Description    : This routine is used to configure the output compare mode.
++* Input          : - TIMx: specifies the TIM to be configured.
++*                  - Xchannel: specifies the output compare channel, it can be:
++*                     TIM_CHANNEL_A, TIM_CHANNEL_B
++*                  - XpulseLength: specifies the pulse length.
++*                  - Xmode: specifies the output compare mode, it can be:
++*                      TIM_TIMING, TIM_WAVE 
++*                  - Xlevel: specifies the level of the external signal after
++*                    the match occurs, it can be:
++*                      TIM_HIGH, TIM_LOW 
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_OCMPModeConfig (TIM_TypeDef  *TIMx, TIM_Channels Xchannel,
++                         u16 XpulseLength, TIM_OC_Modes Xmode,
++                         TIM_Logic_Levels Xlevel)
++{
++  u16 Tmp1 = 0x0000;
++  u16 Tmp2 = TIMx-&gt;CR2;
++
++  TIMx-&gt;CR2 = 0x0000;
++  /* Start The TIM Counter */
++  TIMx-&gt;CR1  = TIM_EN_Mask;
++  /* Update the CR2 Register */
++  TIMx-&gt;CR2  = Tmp2;
++  switch (Xmode)
++  {
++    case TIM_TIMING:
++      /* Output Compare Used only for Internal Timing Operation */
++       if (Xchannel == TIM_CHANNEL_A)
++       {
++         Tmp1 &amp;= ~TIM_OCAE_Mask;
++       }
++       else
++       {
++       	 Tmp1 &amp;= ~TIM_OCBE_Mask;
++       }
++      break;
++      
++    case TIM_WAVE:
++      /* Output Compare Used for external wave generation */
++       if (Xchannel == TIM_CHANNEL_A)
++       {
++         Tmp1 = TIM_OCAE_Mask;
++       }
++       else
++       {
++       	 Tmp1 = TIM_OCBE_Mask;
++       } 
++            
++      if (Xlevel == TIM_HIGH)
++      {
++      	if (Xchannel == TIM_CHANNEL_A)
++      	{
++      	  Tmp1 |= TIM_OLVLA_Mask;
++        }
++        else
++        {
++          Tmp1 |= TIM_OLVLB_Mask;	
++        }
++      }
++      else
++      {
++      	if (Xchannel == TIM_CHANNEL_A)
++      	{
++      	  Tmp1 &amp;= ~TIM_OLVLA_Mask;	
++      	}
++      	else
++      	{
++      	  Tmp1 &amp;= ~TIM_OLVLB_Mask;	
++      	}
++      }
++      break;
++      
++    default:
++      break;
++  }
++  
++  if (Xchannel == TIM_CHANNEL_A)
++  {
++    TIMx-&gt;OCAR = (XpulseLength);
++  }
++  else
++  {
++    TIMx-&gt;OCBR = (XpulseLength);
++  }
++  TIMx-&gt;CNTR = 0x0000;
++  TIMx-&gt;CR1 |= Tmp1;
++}
++
++/*******************************************************************************
++* Function Name  : TIM_OPModeConfig
++* Description    : This routine is used to configure the one pulse mode.
++* Input          : - TIMx: specifies the TIM to be configured.
++*                  - XpulseLength: specifies the pulse length.
++*                  - XLevel1: specifies the output level on the OCMPA pin during
++*                    the pulse it can be:
++*                     TIM_HIGH, TIM_LOW
++*                  - XLevel2: specifies the output level on the OCMPB pin after
++*                    the pulse it can be:
++*                     TIM_HIGH, TIM_LOW
++*                  - Xedge:  specifies the edge to be detected by the input 
++*                    capture A pin it can be:
++*                     TIM_RISING, TIM_FALLING
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_OPModeConfig (TIM_TypeDef *TIMx, u16 XpulseLength,
++                       TIM_Logic_Levels XLevel1, TIM_Logic_Levels XLevel2,
++                       TIM_Clock_Edges Xedge)
++{
++  u16 Tmp = 0;
++
++  /* Set the Level During the pulse */
++  if (XLevel1 == TIM_HIGH)
++  {
++    Tmp |= TIM_OLVLB_Mask;
++  }
++  
++  /* Set the Level after After the pulse */
++  if (XLevel2 == TIM_HIGH)
++  {
++    Tmp |= TIM_OLVLA_Mask;
++  }
++  
++  /* Set the Activation Edge on the INCAP 1 */  /* to be verified*/
++  if (Xedge == TIM_RISING)
++  {
++    Tmp |= TIM_IEDGA_Mask;
++  }
++  
++  /* Set the Output Compare Function */
++  Tmp |= TIM_OCAE_Mask;
++  
++  /* Set the One pulse mode */
++  Tmp |= TIM_OPM_Mask;
++  
++  /* Update the CR1 register Value */
++  TIMx-&gt;CR1 = Tmp;
++  
++  /* Set the Pulse length */
++  TIMx-&gt;OCAR = XpulseLength;
++}
++
++/*******************************************************************************
++* Function Name  : TIM_PWMOModeConfig
++* Description    : This routine is used to configure the PWM output mode.
++* Input          : - TIMx: specifies the TIM to be configured.
++*                  - XDutyCycle: specifies the PWM signal duty cycle.
++*                  - XLevel1: specifies the PWM signal level during the duty
++*                    cycle, it can be:
++*                     TIM_HIGH, TIM_LOW
++*                  - XFullperiod: specifies the PWM signal full period.
++*                  - XLevel2: specifies the PWM signal level out of the duty
++*                    cycle, it can be:
++*                     TIM_HIGH, TIM_LOW
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_PWMOModeConfig (TIM_TypeDef *TIMx, u16 XDutyCycle,
++                         TIM_Logic_Levels XLevel1, u16 XFullperiod,
++                         TIM_Logic_Levels XLevel2)
++{
++  vu16 Tmp = TIMx-&gt;CR1;
++  
++  /* Set the level during the pulse */
++  if (XLevel1 == TIM_HIGH)
++  {
++    Tmp |= TIM_OLVLB_Mask;	
++  }
++  else
++  {
++    Tmp &amp;= ~TIM_OLVLB_Mask;	
++  }
++  
++  /* Set the level after the pulse */
++  if (XLevel2 == TIM_HIGH)
++  {
++    Tmp |= TIM_OLVLA_Mask;
++  }
++  else
++  {
++    Tmp &amp;= ~TIM_OLVLA_Mask;	
++  }
++
++  /* Set the OCAE */
++  Tmp |= TIM_OCAE_Mask;
++  
++  /* Set the PWM Bit */
++  Tmp |= TIM_PWM_Mask;
++  
++  /* Update the CR1 */
++  TIMx-&gt;CR1 = Tmp;
++  
++  /* Set the Duty Cycle value */
++  if (XDutyCycle &lt; 5)
++  {
++    XDutyCycle = 4;
++  }
++  
++  TIMx-&gt;OCAR = XDutyCycle - 4;
++  
++  /* Set the Full Period */
++  TIMx-&gt;OCBR = XFullperiod - 4;
++}
++
++/*******************************************************************************
++* Function Name  : TIM_PWMIModeConfig
++* Description    : This routine is used to configure the PWM input mode.
++* Input          : - TIMx: specifies the TIM to be configured.
++*                : - Xedge: specifies the first edge of the external PWM signal.
++*                    It can be:
++*                     TIM_RISING, TIM_FALLING
++* Output         : None.
++* Output         : None.
++*******************************************************************************/
++void TIM_PWMIModeConfig (TIM_TypeDef  *TIMx,  TIM_Clock_Edges  Xedge)
++{
++  vu16 Tmp = TIMx-&gt;CR1;
++  
++  if (Xedge == TIM_RISING)
++  {
++    Tmp |= TIM_IEDGA_Mask;	
++  }
++  else
++  {
++    Tmp &amp;= ~TIM_IEDGA_Mask;
++  }
++  
++  /* Set the first edge Level */
++  /* Set the Second edge Level (Opposit of the first level)*/
++  if (Xedge == TIM_FALLING)
++  {
++    Tmp |= TIM_IEDGB_Mask;
++  }
++  else
++  {
++    Tmp &amp;= ~TIM_IEDGB_Mask;	
++  }
++
++  /* Set the PWM I Bit */
++  Tmp |= TIM_PWMI_Mask;
++
++  /* Update the CR1 */
++  TIMx-&gt;CR1 = Tmp;
++}
++
++/*******************************************************************************
++* Function Name  : TIM_PWMIValue
++* Description    : This routine is used to get the PWMI values.
++* Input          : - TIMx: specifies the TIM to get its PWM parameters values.
++* Output         : None.
++* Return         : The PWM input parameters: pulse and period.
++*******************************************************************************/
++PWMI_parameters TIM_PWMIValue (TIM_TypeDef  *TIMx)
++{
++  PWMI_parameters Tmp;
++  
++  Tmp.Pulse  = TIMx-&gt;ICBR;
++  Tmp.Period = TIMx-&gt;ICAR;
++  return Tmp;
++}
++
++/*******************************************************************************
++* Function Name  : TIM_CounterConfig
++* Description    : This routine is used to start/stop and clear the selected 
++*                  timer counter.
++* Input          : - TIMx: specifies the TIM to be configured.
++*                  - Xoperation: specifies the operation of the counter.
++*                    It can be:
++*                     TIM_START, TIM_STOP, TIM_CLEAR
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_CounterConfig (TIM_TypeDef  *TIMx, TIM_CounterOperations Xoperation)
++{
++  switch (Xoperation)
++  {
++    case TIM_START :
++      TIMx-&gt;CR1 |= TIM_EN_Mask;
++      break;
++      
++    case TIM_STOP :
++      TIMx-&gt;CR1 &amp;= ~TIM_EN_Mask;
++      break;
++      
++    case TIM_CLEAR :
++      TIMx-&gt;CNTR = 0x1234;
++      break;
++      
++    default:
++      break;  
++  }
++}
++
++/*******************************************************************************
++* Function Name  : TIM_ITConfig
++* Description    : This routine is used to configure the TIM interrupt.
++* Input          : - TIMx: specifies the TIM to be configured.
++*                  - New_IT: specifies the TIM interrupt to be configured.
++*                    You can specify one or more TIM interrupts to be configured
++*                    using the logical operator 'OR'. It can be:
++*                     TIM_OCBIE, TIM_ICBIE, TIM_TOE, TIM_OCAIE, TIM_ICAIE
++*                  - NewState: specifies the TIM interrupt state whether it
++*                    would be enabled or disabled, it can be:
++*                     ENABLE: the corresponding TIM interrupt(s) will be enabled.
++*                     DISABLE: the corresponding TIM interrupt(s) will be
++*                     disabled.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_ITConfig (TIM_TypeDef *TIMx, u16 New_IT, FunctionalState NewState)
++{
++   if (NewState == ENABLE)
++   {
++    TIMx-&gt;CR2 |= New_IT;
++   }
++   else
++   {
++    TIMx-&gt;CR2 &amp;= ~New_IT;
++   }
++}
++
++/*******************************************************************************
++* Function Name  : TIM_FlagStatus
++* Description    : Specifies the TIM to check a flag.
++* Input          : - TIMx: specifies the TIM to check a flag.
++*                  - Xflag: specifies the TIM flag to be tested. It can be:
++*                     TIM_ICFA, TIM_OCFA, TIM_TOF,TIM_ICFB, TIM_OCFB
++* Output         : None.
++* Return         : The flag status passed in parameter.
++*******************************************************************************/
++FlagStatus TIM_FlagStatus (TIM_TypeDef *TIMx, TIM_Flags Xflag)
++{
++  if ((TIMx-&gt;SR &amp; Xflag) == 0)
++  {
++    return RESET;	 
++  }
++  else
++  {
++    return SET;	
++  }
++}
++
++/*******************************************************************************
++* Function Name  : TIM_FlagClear
++* Description    : This routine is used to clear the TIM flags.
++* Input          : - TIMx: specifies the TIM to clear a flag.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void TIM_FlagClear (TIM_TypeDef *TIMx, TIM_Flags Xflag)
++{
++  TIMx-&gt;SR &amp;= ~Xflag;
++}
++
++/*******************************************************************************
++* Function Name  : TIM_CounterValue
++* Description    : This routine returns the timer counter value.
++* Input          : - TIMx: specifies the TIM to get its counter value.
++* Output         : None.
++* Return         : The selected timer counter value.
++*******************************************************************************/
++u16 TIM_CounterValue(TIM_TypeDef *TIMx)
++{
++  return TIMx-&gt;CNTR;
++}
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_tim.h
+===================================================================
+--- trunk/src/platform/str7/71x_tim.h	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/platform/str7/71x_tim.h	2008-10-06 19:14:30 UTC (rev 104)
+@@ -0,0 +1,152 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_tim.h
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file contains all the functions prototypes for the
++*                      TIM firmware library.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Define to prevent recursive inclusion -------------------------------------*/
++#ifndef __71x_TIM_H
++#define __71x_TIM_H
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_map.h&quot;
++
++/* Exported types ------------------------------------------------------------*/
++typedef enum
++{
++  TIM_EXTERNAL,
++  TIM_INTERNAL
++}TIM_Clocks;
++
++typedef enum
++{
++  TIM_RISING,
++  TIM_FALLING
++}TIM_Clock_Edges;
++
++typedef enum
++{
++  TIM_CHANNEL_A,
++  TIM_CHANNEL_B
++}TIM_Channels;
++
++typedef enum
++{
++  TIM_WITH_IT,
++  TIM_WITHOUT_IT
++}TIM_IT_Mode;
++
++typedef enum
++{
++  TIM_TIMING,
++  TIM_WAVE
++}TIM_OC_Modes;
++
++typedef enum
++{
++  TIM_HIGH,
++  TIM_LOW
++}TIM_Logic_Levels;
++
++typedef enum
++{
++  TIM_START,
++  TIM_STOP,
++  TIM_CLEAR
++}TIM_CounterOperations;
++
++typedef enum
++{
++  TIM_ICFA = 0x8000,
++  TIM_OCFA = 0x4000,
++  TIM_TOF  = 0x2000,
++  TIM_ICFB = 0x1000,
++  TIM_OCFB = 0x0800
++}TIM_Flags;
++
++
++typedef struct
++{
++  u16 Pulse;
++  u16 Period;
++}PWMI_parameters;
++
++/* Exported constants --------------------------------------------------------*/
++#define TIM_ECKEN_Mask       0x0001
++#define TIM_EXEDG_Mask       0x0002
++
++#define TIM_IEDGA_Mask       0x0004
++#define TIM_IEDGB_Mask       0x0008
++
++#define TIM_PWM_Mask         0x0010
++
++#define TIM_OPM_Mask         0x0020
++
++#define TIM_OCAE_Mask        0x0040
++#define TIM_OCBE_Mask        0x0080
++
++#define TIM_OLVLA_Mask       0x0100
++#define TIM_OLVLB_Mask       0x0200
++
++#define TIM_FOLVA_Mask       0x0400
++#define TIM_FOLVB_Mask       0x0800
++
++#define TIM_PWMI_Mask        0x4000
++
++#define TIM_EN_Mask          0x8000
++
++#define TIM_OCBIE_Mask       0x0800  
++#define TIM_ICBIE_Mask       0x1000  
++#define TIM_TOIE_Mask        0x2000  
++#define TIM_OCAIE_Mask       0x4000
++#define TIM_ICAIE_Mask       0x8000  
++
++#define TIM_ICA_IT           0x8000 /* Input Capture Channel A  */
++#define TIM_OCA_IT           0x4000 /* Output Compare Channel A */
++#define TIM_TO_IT            0x2000 /* Timer OverFlow           */
++#define TIM_ICB_IT           0x1000 /* Input Capture Channel B  */
++#define TIM_OCB_IT           0x0800 /* Output Compare Channel B */
++
++/* Exported macro ------------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++void TIM_Init(TIM_TypeDef *TIMx);
++void TIM_ClockSourceConfig (TIM_TypeDef *TIMx, TIM_Clocks Xclock);
++TIM_Clocks TIM_ClockSourceValue (TIM_TypeDef *TIMx);
++void TIM_PrescalerConfig (TIM_TypeDef *TIMx, u8 Xprescaler);
++u8 TIM_PrescalerValue (TIM_TypeDef *TIMx);
++void TIM_ClockLevelConfig (TIM_TypeDef *TIMx, TIM_Clock_Edges Xedge);
++TIM_Clock_Edges TIM_ClockLevelValue (TIM_TypeDef *TIMx);
++void TIM_ICAPModeConfig (TIM_TypeDef  *TIMx, TIM_Channels Xchannel,
++                         TIM_Clock_Edges  Xedge);
++u16 TIM_ICAPValue (TIM_TypeDef *TIMx, TIM_Channels Xchannel);
++void TIM_OCMPModeConfig (TIM_TypeDef  *TIMx, TIM_Channels Xchannel,
++                         u16 XpulseLength, TIM_OC_Modes Xmode,
++                         TIM_Logic_Levels Xlevel );
++void TIM_OPModeConfig (TIM_TypeDef  *TIMx, u16 XpulseLength,
++                       TIM_Logic_Levels XLevel1, TIM_Logic_Levels XLevel2,
++                       TIM_Clock_Edges  Xedge );
++void TIM_PWMOModeConfig (TIM_TypeDef  *TIMx, u16 XDutyCycle,
++                         TIM_Logic_Levels XLevel1, u16 XFullperiod,
++                         TIM_Logic_Levels XLevel2);
++void TIM_PWMIModeConfig (TIM_TypeDef *TIMx, TIM_Clock_Edges Xedge);
++PWMI_parameters TIM_PWMIValue (TIM_TypeDef *TIMx);
++void TIM_CounterConfig (TIM_TypeDef *TIMx, TIM_CounterOperations Xoperation);
++void TIM_ITConfig (TIM_TypeDef *TIMx, u16 New_IT,
++                   FunctionalState NewState);
++FlagStatus TIM_FlagStatus (TIM_TypeDef *TIMx, TIM_Flags Xflag);
++void TIM_FlagClear (TIM_TypeDef *TIMx, TIM_Flags Xflag);
++u16 TIM_CounterValue(TIM_TypeDef *TIMx);
++
++#endif /*__71x_TIM_H*/
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Modified: trunk/src/platform/str7/build.h
+===================================================================
+--- trunk/src/platform/str7/build.h	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/platform/str7/build.h	2008-10-06 19:14:30 UTC (rev 104)
+@@ -3,10 +3,10 @@
+ #ifndef __BUILD_H__
+ #define __BUILD_H__
+ 
+-//#define BUILD_XMODEM
++#define BUILD_XMODEM
+ #define BUILD_SHELL
+ #define BUILD_ROMFS
+-//#define BUILD_TERM
++#define BUILD_TERM
+ #define BUILD_CON_GENERIC
+ 
+ #endif
+
+Modified: trunk/src/platform/str7/conf.py
+===================================================================
+--- trunk/src/platform/str7/conf.py	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/platform/str7/conf.py	2008-10-06 19:14:30 UTC (rev 104)
+@@ -2,7 +2,7 @@
+ 
+ cpumode = ARGUMENTS.get( 'cpumode', 'thumb' ).lower()
+ 
+-specific_files = &quot;platform.c crt0.s 71x_rccu.c 71x_uart.c 71x_apb.c 71x_gpio.c&quot;
++specific_files = &quot;platform.c crt0.s 71x_rccu.c 71x_uart.c 71x_apb.c 71x_gpio.c 71x_tim.c&quot;
+ if cputype == 'STR711FR2':
+   ldscript = &quot;str711fr2.lds&quot;
+ else:
+
+Modified: trunk/src/platform/str7/platform.c
+===================================================================
+--- trunk/src/platform/str7/platform.c	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/platform/str7/platform.c	2008-10-06 19:14:30 UTC (rev 104)
+@@ -37,12 +37,6 @@
+ // Clock initialization
+ static void clock_init()
+ {
+-  // Configure PCLK1 = RCLK / 2
+-  RCCU_PCLK1Config( RCCU_RCLK_2 );
+-
+-  // Configure PCLK2 = RCLK / 2
+-  RCCU_PCLK2Config( RCCU_RCLK_2 );
+-
+   // Configure MCLK clock for the CPU, RCCU_DEFAULT = RCLK /1
+   RCCU_MCLKConfig( RCCU_DEFAULT );
+    
+@@ -50,12 +44,18 @@
+   RCCU_PLL1Config( RCCU_PLL1_Mul_20, RCCU_Div_1 );
+ 
+   // Wait PLL to lock
+-  while(RCCU_FlagStatus( RCCU_PLL1_LOCK) == RESET );
++  while(RCCU_FlagStatus( RCCU_PLL1_LOCK ) == RESET );
+ 
+   // Select PLL1_Output as RCLK clock
+   RCCU_RCLKSourceConfig( RCCU_PLL1_Output );  
+   
+-  // At this step the MCLK = 40MHz, PCLK1 = 20MHz and PCLK2 = 20MHz with an external oscilator equal to 4MHz  
++  // Configure PCLK1 = RCLK / 2
++  RCCU_PCLK1Config( RCCU_RCLK_2 );
++
++  // Configure PCLK2 = RCLK / 4
++  RCCU_PCLK2Config( RCCU_RCLK_4 );  
++  
++  // At this step the MCLK = 40MHz, PCLK1 = 20MHz and PCLK2 = 10MHz with an external oscilator equal to 4MHz  
+ }
+ 
+ int platform_init()
+@@ -64,8 +64,11 @@
+   clock_init();
+   
+   // Setup UART1 for operation
+-  platform_uart_setup( CON_UART, 115200, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
++  platform_uart_setup( CON_UART, 19200, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+   
++  // Initialize Timer 0 for XMODEM
++  platform_timer_op( 0, PLATFORM_TIMER_OP_SET_CLOCK, 39000 ); 
++  
+   // Set the send/recv functions                          
+   std_set_send_func( uart_send );
+   std_set_get_func( uart_recv );
+@@ -74,6 +77,77 @@
+ } 
+ 
+ // ****************************************************************************
++// PIO functions
++
++#define NUM_PORTS   2
++
++static const GPIO_TypeDef *gpio_periph[ NUM_PORTS ] = { GPIO0, GPIO1 };
++
++int platform_pio_has_port( unsigned port )
++{
++  return port &lt; 2;
++}
++
++const char* platform_pio_get_prefix( unsigned port )
++{
++  static char c[ 3 ];
++  
++  sprintf( c, &quot;P%d&quot;, port );
++  return c;
++}
++
++int platform_pio_has_pin( unsigned port, unsigned pin )
++{
++  return port &lt; 2 &amp;&amp; pin &lt; 16;
++}
++
++pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
++{
++  GPIO_TypeDef* base = ( GPIO_TypeDef* )gpio_periph[ port ];
++  pio_type retval = 1;
++  
++  switch( op )
++  {
++    case PLATFORM_IO_PORT_SET_VALUE:    
++      GPIO_WordWrite( base, ( u16 )pinmask );
++      break;
++      
++    case PLATFORM_IO_PIN_SET:
++      GPIO_BitWrite_Mask( base, ( u16 )pinmask, 1 );
++      break;
++      
++    case PLATFORM_IO_PIN_CLEAR:
++      GPIO_BitWrite_Mask( base, ( u16 )pinmask, 0 );
++      break;
++      
++    case PLATFORM_IO_PORT_DIR_OUTPUT:
++      pinmask = 0xFFFF;     
++    case PLATFORM_IO_PIN_DIR_OUTPUT:
++      GPIO_Config( base, ( u16 )pinmask, GPIO_OUT_PP );
++      break;
++      
++    case PLATFORM_IO_PORT_DIR_INPUT:
++      pinmask = 0xFFFF;     
++    case PLATFORM_IO_PIN_DIR_INPUT:
++      GPIO_Config( base, ( u16 )pinmask, GPIO_IN_TRI_CMOS );
++      break;    
++            
++    case PLATFORM_IO_PORT_GET_VALUE:
++      retval = GPIO_WordRead( base );
++      break;
++      
++    case PLATFORM_IO_PIN_GET:
++      retval = GPIO_BitRead_Mask( base, ( u16 )pinmask );
++      break;
++      
++    default:
++      retval = 0;
++      break;
++  }
++  return retval;
++}
++
++// ****************************************************************************
+ // UART
+ 
+ #define NUM_UARTS   4
+@@ -192,49 +266,97 @@
+ // ****************************************************************************
+ // Timer
+ 
++#define NUM_TIMERS      4
++            
++static const TIM_TypeDef *tim_periph[ NUM_TIMERS ] = { TIM0, TIM1, TIM2, TIM3 };
++
+ int platform_timer_exists( unsigned id )
+ {
+-  return 0;
++  return id &lt; NUM_TIMERS;
+ }
+ 
+ // Helper: get timer clock
+ static u32 platform_timer_get_clock( unsigned id )
+ {
+-  return 0;
++  TIM_TypeDef* ptimer = ( TIM_TypeDef* )tim_periph[ id ];
++  
++  return RCCU_FrequencyValue( RCCU_PCLK2 ) / ( ( int )TIM_PrescalerValue( ptimer ) + 1 );
+ }
+ 
+ // Helper: set timer clock
+ static u32 platform_timer_set_clock( unsigned id, u32 clock )
+ {
+-  return 0;
++  TIM_TypeDef* ptimer = ( TIM_TypeDef* )tim_periph[ id ];
++  u32 baseclk = RCCU_FrequencyValue( RCCU_PCLK2 );
++  u64 bestdiv;
++  
++  bestdiv = ( ( u64 )baseclk &lt;&lt; 16 ) / clock;
++  if( bestdiv &amp; 0x8000 )
++    bestdiv += 0x10000;
++  bestdiv &gt;&gt;= 16;
++  if( bestdiv &gt; 256 )
++    bestdiv = 256;
++  TIM_PrescalerConfig( ptimer, ( u8 )( bestdiv - 1 ) );
++  return baseclk / bestdiv;
+ }
+ 
+ void platform_timer_delay( unsigned id, u32 delay_us )
+ {
++  TIM_TypeDef* ptimer = ( TIM_TypeDef* )tim_periph[ id ];  
++  u32 freq;
++  timer_data_type final;
++  
++  freq = platform_timer_get_clock( id );
++  final = ( ( u64 )delay_us * freq ) / 1000000;
++  if( final &gt; 2 )
++    final -= 2;
++  else
++    final = 0;
++  if( final &gt; 0xFFFF )
++    final = 0xFFFF;
++  TIM_CounterConfig( ptimer, TIM_STOP );
++  TIM_CounterConfig( ptimer, TIM_CLEAR );  
++  TIM_CounterConfig( ptimer, TIM_START );  
++  while( TIM_CounterValue( ptimer ) &gt;= 0xFFFC );
++  while( TIM_CounterValue( ptimer ) &lt; final );  
+ }
+       
+ u32 platform_timer_op( unsigned id, int op, u32 data )
+ {
+   u32 res = 0;
+-
++  TIM_TypeDef* ptimer = ( TIM_TypeDef* )tim_periph[ id ];  
++  u8 pre;
++  
+   switch( op )
+   {
+     case PLATFORM_TIMER_OP_START:
++      pre = TIM_PrescalerValue( ptimer );
++      TIM_Init( ptimer );
++      TIM_PrescalerConfig( ptimer, pre );
++      TIM_CounterConfig( ptimer, TIM_STOP );
++      TIM_CounterConfig( ptimer, TIM_CLEAR );  
++      TIM_CounterConfig( ptimer, TIM_START );  
++      while( TIM_CounterValue( ptimer ) &gt;= 0xFFFC );        
+       break;
+       
+     case PLATFORM_TIMER_OP_READ:
++      res = TIM_CounterValue( ptimer );
+       break;
+       
+     case PLATFORM_TIMER_OP_GET_MAX_DELAY:
++      res = platform_timer_get_diff_us( id, 0, 0xFFFF );
+       break;
+       
+     case PLATFORM_TIMER_OP_GET_MIN_DELAY:
++      res = platform_timer_get_diff_us( id, 0, 1 );
+       break;      
+       
+     case PLATFORM_TIMER_OP_SET_CLOCK:
++      res = platform_timer_set_clock( id, data );
+       break;
+       
+     case PLATFORM_TIMER_OP_GET_CLOCK:
++      res = platform_timer_get_clock( id );
+       break;
+   }
+   return res;
+
+Modified: trunk/src/platform/str7/platform_libs.h
+===================================================================
+--- trunk/src/platform/str7/platform_libs.h	2008-10-02 21:21:39 UTC (rev 103)
++++ trunk/src/platform/str7/platform_libs.h	2008-10-06 19:14:30 UTC (rev 104)
+@@ -3,7 +3,16 @@
+ #ifndef __PLATFORM_LIBS_H__
+ #define __PLATFORM_LIBS_H__
+ 
++#include &quot;auxmods.h&quot;
++
+ #define LUA_PLATFORM_LIBS\
+-  { LUA_MATHLIBNAME, luaopen_math }
++  { AUXLIB_PIO, luaopen_pio },\
++  { AUXLIB_TMR, luaopen_tmr },\
++  { AUXLIB_PD, luaopen_pd },\
++  { AUXLIB_UART, luaopen_uart },\
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PACK, luaopen_pack },\
++  { AUXLIB_BIT, luaopen_bit },\
++  { LUA_MATHLIBNAME, luaopen_math }  
+   
+ #endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000059.html">[Elua-svn] r103 - in trunk: . src/modules src/platform	src/platform/str7 src/uip
+</A></li>
+	<LI>Next message: <A HREF="000061.html">[Elua-svn] r105 - trunk/src/platform/str7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#60">[ date ]</a>
+              <a href="thread.html#60">[ thread ]</a>
+              <a href="subject.html#60">[ subject ]</a>
+              <a href="author.html#60">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

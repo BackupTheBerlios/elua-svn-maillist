@@ -1,0 +1,1461 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r140 - trunk/docs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r140%20-%20trunk/docs&In-Reply-To=%3C200812312201.mBVM1Ruc002340%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000095.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r140 - trunk/docs</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r140%20-%20trunk/docs&In-Reply-To=%3C200812312201.mBVM1Ruc002340%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r140 - trunk/docs">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Wed Dec 31 23:01:27 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000095.html">[Elua-svn] r139 - trunk/docs
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#96">[ date ]</a>
+              <a href="thread.html#96">[ thread ]</a>
+              <a href="subject.html#96">[ subject ]</a>
+              <a href="author.html#96">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2008-12-31 23:01:26 +0100 (Wed, 31 Dec 2008)
+New Revision: 140
+
+Removed:
+   trunk/docs/adding_a_new_platform.txt
+   trunk/docs/building.txt
+   trunk/docs/crosscompilation.txt
+   trunk/docs/elua_components.txt
+   trunk/docs/generic_modules.txt
+   trunk/docs/platform_interface.txt
+   trunk/docs/platform_modules.txt
+   trunk/docs/tcpip_in_elua.txt
+   trunk/docs/terminal_support.txt
+   trunk/docs/the_elua_shell.txt
+   trunk/docs/the_rom_file_system.txt
+Log:
+Independent txt doc files removed from trunk
+
+
+
+Deleted: trunk/docs/adding_a_new_platform.txt
+===================================================================
+--- trunk/docs/adding_a_new_platform.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/adding_a_new_platform.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,56 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-Adding a new platform to eLua
+-================================================================================
+-
+-If you want to add a new platform to eLua, the first thing you need to check is
+-if the platform has enough resources to run Lua. Roughly speaking, 256k of Flash
+-(or even 128k for the integer-only version) and 64k of RAM should be enough for
+-a 32-bit platform. As usual, the more, the better (this is especially true for
+-the RAM memory).
+-Next, check if a GCC/Newlib toolchain is available for the platform. To be more 
+-precise, the compiler doesn't really matter, as long as you're able to compile
+-Newlib with it. If you don't, you won't be able to compile eLua. This limitation
+-might be eliminated in future versions, but it's not a priority of the project, 
+-so don't count on it happening too soon.
+-After this, you need to make sure that you have a basic understanding of the 
+-platform, or at least of its initialization sequence. Most platforms require 
+-specific sequences for initializing the clock subsystem, or for disabling the 
+-watchdog timer, or for remapping the internal memory, and many others. 
+-Fortunately the vast majority of chips manufacturers provide support packages 
+-for their CPUs, so once you download the support package and understand the 
+-initialization code, you should be safe. At the very least, you'll need:
+-
+-- a &quot;startup&quot; sequence, generally written in assembler, that does very low level
+-  intialization, sets the stack pointer, zeroes the BSS section, copies ROM to 
+-  RAM for the DATA section, and then jumps to main.
+-- a linker command file for GNU LD.
+-- the &quot;high-level&quot; initialization code (for example peripheral initialization).
+-
+-Let's suppose that your new platform is called &quot;foo&quot;. In order to compile eLua
+-for foo, follow these steps:
+-
+-1. create the src/platform/foo directory
+-2. modify the SConstruct file from the base directory to make it aware of your
+-   new CPU, platform and board(s). A &quot;board&quot; translates into a simple macro
+-   definition at compile time, and makes it easy to adapt your platform code for
+-   different situations. For example, you might have 2 boards with the same CPU,
+-   but different I/O pin assignments. By checking the value of the &quot;ELUA_BOARD&quot;
+-   macro in your code you can adapt it for each board.
+-3. you need at least 4 files (besides your platform specific files) in the 
+-   src/platform/foo directory:
+-
+-  - conf.py: this is read by SConstruct and describes how to build files for
+-    the platform, as well as the platform specific files. Start from an existent
+-    conf.py file and modify it to suit your needs, it's easier this way.
+-  - type.h: data types used by eLua, declared in a platform independent way. 
+-    Again, start from an existent type.h file and modify it if needed.
+-  - platform_conf.h: see &quot;platform modules.txt&quot;, &quot;elua_components.txt&quot; and
+-    &quot;tcpip_in_elua.txt&quot; for details
+-
+-4. implement the platform interface functions (see &quot;platform interface.txt&quot;). By
+-   convention, they should be implemented in a file called &quot;platform.c&quot;. Note that
+-   SConstruct defines 3 macros that might prove useful: ELUA_CPU, ELUA_PLATFORM
+-   and ELUA_BOARD. 
+-  
+-5. That's it! Build (see &quot;building.txt&quot;) and enjoy!
+
+Deleted: trunk/docs/building.txt
+===================================================================
+--- trunk/docs/building.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/building.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,133 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-Prerequisites
+-================================================================================
+-
+-Before you start, you might want to check if the list of platform modules and 
+-eLua components are set according to your needs. See docs/platform_modules.txt 
+-and docs/elua_components.txt for details. 
+-
+-Building eLua
+-================================================================================
+-
+-To build eLua you'll need:
+-
+-- a GCC/Newlib toolchain for your target (see <A HREF="http://elua.berlios.de">http://elua.berlios.de</A> for 
+-  instructions on how to build your own toolchain). Please note that even if
+-  you already have a compiled toolchain, the differences in the Newlib configure
+-  flags (mainly the --disable-newlib-supplied-syscalls flags) might prevent 
+-  eLua for building properly on your machine.
+-- Linux. Compiling under windows should be possible, however this isn't tested. 
+-  I'm using Ubuntu, so I'm also using &quot;apt-get&quot;. If you're using a distro with a 
+-  different package manager you'll need to translate the &quot;apt-get&quot; calls to your 
+-  specific distribution.
+-- python. It should be already installed; if it's not:
+-
+-  $ sudo apt-get install python
+-  
+-- scons. eLua uses scons instead of make and makefiles, because I find scons
+-  much more &quot;natural&quot; and easier to use than make. To install it:
+-  
+-  $ sudo apt-get install scons
+-  
+-- your toolchain's &quot;bin&quot; directory (this is generally something like 
+-  /usr/local/cross-arm/bin, where /usr/local/cross-arm is the directory in which 
+-  you installed your toolchain) must be in $PATH. 
+-- if you're building for the i386 platform, you'll also need &quot;nasm&quot;:
+-
+-  $ sudo apt-get install nasm
+-  
+-For each platform, eLua assumes a certain name for the compiler/linker/assembler
+-executable files, as shown below.
+-
+-================================================================================
+-| Tool       |      Compiler       |         Linker       |      Assembler     |  
+-|------------|---------------------|----------------------|--------------------|  
+-| Platform   |                     |                      |                    |
+-|============|=====================|======================|====================|
+-| ARM (all)  |    arm-elf-gcc      |     arm-elf-gcc      |     arm-elf-gcc    |
+-|============|=====================|======================|====================|
+-| i386       |    i686-elf-gcc     |     i686-elf-gcc     |        nasm        |
+-|============|=====================|======================|====================|
+-| Cortex-M3  |    arm-elf-gcc      |     arm-elf-gcc      |     arm-elf-gcc    |
+-|============|=====================|======================|====================|
+-
+-If your toolchain uses different names, you have to modify the &quot;conf.py&quot; file
+-from src/platform/[your platform].
+-
+-To build, go to the directory where you unpacked your eLua distribution and 
+-invoke scons:
+-
+-$ scons [target=lua | lualong] 
+-  [cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | 
+-        lm3s6965 | lpc2888 | str711fr2 ]
+-  [board=ek-lm3s8962 | ek-lm3s6965 | str9-comstick | sam7-ex256 | lpc-h2888 | 
+-        | mod711 | pc]
+-  [cpumode=arm | thumb] 
+-  [allocator = newlib | multiple]
+-  [prog]
+-
+-Your build target is specified by two paramters: cpu and board. &quot;cpu&quot; gives the
+-name of your CPU, and &quot;board&quot; the name of the board. A board can be associated
+-with more than one CPU. This allows the build system to be very flexible. You 
+-can use these two options together or separately, as shown below:
+-
+-- cpu=name: build for the specified CPU. A board name will be assigned by the
+-  build system automatically.
+-- board=name: build for the specified board. The CPU name will be inferred by 
+-  the build system automatically.
+-- cpu=name board=name: build for the specified board and CPU.
+-
+-For board/CPU assignment look at the beginning of the SConstruct file from the 
+-base directory, it's self-explanatory.
+-
+-The other options are as follows:
+-  
+-- target=lua | lualong: specify if you want to build full Lua (with floating 
+-  point support) or integer only Lua (lualong). The default is &quot;lua&quot;.
+-- cpumode=arm | thumb: for ARM target (not Cortex) this specifies the
+-  compilation mode. Its default value is 'thumb' for AT91SAM7X targets and
+-  'arm' for STR9 and LPC2888 targets.
+-- allocator = newlib | multiple: choose between the default newlib allocator
+-  (newlib) and the multiple memory spaces allocator (multiple). You should
+-  use the 'multiple' allocator only if you need to support multiple memory 
+-  spaces, as it's larger that the default Newlib allocator (newlib). For more
+-  information about this reffer to platform_interface.txt. The default value
+-  is 'newlib' for all CPUs except 'lpc2888', since my lpc-h2888 comes with
+-  external SDRAM memory and thus it's an ideal target for 'multiple'.
+-- prog: by default, the above 'scons' command will build only the 'elf' file.
+-  Specify &quot;prog&quot; to build also the platform-specific programming file where
+-  appropriate (for example, on a AT91SAM7X256 this results in a .bin file that
+-  can be programmed in the CPU). 
+-  
+-The output will be a file named elua_[target]_[cpu].elf (and also another
+-file with the same name but ending in .bin if &quot;prog&quot; was specified for platforms
+-that need .bin files for programming).
+-If you want the equivalent of a &quot;make clean&quot;, invoke &quot;scons&quot; as shown above,
+-but add a &quot;-c&quot; at the end of the command line. &quot;scons -c&quot; is also recommended 
+-after you change the list of modules/components to build for your target (see 
+-section &quot;prerequisites&quot; of this document), as scons seems to &quot;overlook&quot; the 
+-changes to these files on some occasions.
+-
+-A few examples:
+-
+-$ scons cpu=at91sam7x256
+-
+-Build eLua for the AT91SAM7X256 CPU. The board name is detected as sam7-ex256.
+-
+-$ scons board=sam7-ex256
+-
+-Build eLua for the SAM7-EX256 board. The CPU is detected as AT91SAM7X256.
+-
+-$ scons board=sam7-ex256 cpu=at91sam7x512
+-
+-Build eLua for the SAM7-EX256 board, but &quot;overwrite&quot; the default CPU. This is 
+-useful when you'd like to see how the specified board would behave with a 
+-different CPU (in the case of the SAM7-EX256 board it's possible to switch the
+-on-board AT91SAM7X256 CPU for an AT91SAM7X512 which has the same pinout but 
+-comes with more Flash/RAM memory).
+-
+-$ scons cpu=lpc2888 prog 
+-
+-Build eLua for the lpc2888 CPU. The board name is detected as LPC-H2888. Also,
+-the bin file required for target programming is generated.
+
+Deleted: trunk/docs/crosscompilation.txt
+===================================================================
+--- trunk/docs/crosscompilation.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/crosscompilation.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,53 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-Cross-compiling Lua programs
+-================================================================================
+-&quot;Cross compilation&quot; is the process of compiling a program on one system for a 
+-different system. For example, the process of compiling the eLua binary image on
+-a PC is cross-compiling. Lua can be cross-compiled, too. By cross-compiling Lua
+-to bytecode on a PC and executing the resulting bytecode directly on your eLua
+-board you have two advantages:
+-
+-- speed: the Lua interpreter on the eLua board doesn't have to compile your Lua
+-  source code, it just executes the compiled bytecode
+-- memory: this is more important. If you're exectuing bytecode directly, no more
+-  memory is &quot;wasted&quot; on the eLua board for compiling the Lua code to bytecode.
+-  Many times this could be a &quot;life saver&quot;. If you're trying to run Lua code
+-  directly on your board and you're getting &quot;not enough memory&quot; errors, you 
+-  might be able to overcome this by compiling the Lua program on the PC and 
+-  running the bytecode instead.
+-
+-But for this cross-compilation to work, the two Lua targets must be compatible
+-(they should have the same data types, with the same size, and the same memory
+-representation). This isn't completely true for Intel and ARM targets, as gcc
+-for ARM uses a very specific representation for double numbers (called FPA
+-format) by default, which makes bytecode files generated on the PC useless on
+-ARM boards. To overcome this, a &quot;Lua cross-compilation&quot; patch was posted on the
+-Lua mailing list a while ago, and it was further modified as part of the eLua
+-project to work with ARM targets. This is how to use it (the following 
+-instructions were tested on Linux, not Windows, but they should work on Windows 
+-too with little or no tweaking):
+-
+-- first, make sure that your PC has already a build system intalled (gcc,
+-  binutils, libc, headers...). You'll also need &quot;scons&quot;. The good news is that 
+-  you should have it already installed, since otherwise you won't be able to 
+-  build even regular eLua.
+-
+-- from the eLua base directory, issue this command:
+-
+-  $ scons -f cross-lua.py
+-
+-  You should get a file called &quot;luac&quot; in the same directory after this.
+-
+-- to compile your Lua code (in &lt;source&gt;.lua), issue this command:
+-
+-  $ ./luac -s -ccn float_arm 64 -o &lt;source&gt;.luac &lt;source&gt;.lua
+-  if you're using &quot;regular&quot; (floating point) Lua, or:
+-
+-  $ ./luac -s -ccn int 32 -o &lt;source&gt;.luac &lt;source&gt;.lua
+-  if you're using int-ony Lua.
+-
+-- that's it! You can use the resulting file (&lt;source&gt;.luac) in two ways:
+-
+-  - &quot;recv&quot; it (docs/the_elua_shell.txt)
+-  - copy it to the ROM file system (docs/the_rom_file_system.txt)
+
+Deleted: trunk/docs/elua_components.txt
+===================================================================
+--- trunk/docs/elua_components.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/elua_components.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,117 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-eLua components
+-================================================================================
+-
+-Besides the Lua core, the platform modules (docs/platform_modules.txt) and the
+-Newlib 'glue code', eLua uses a number of other code modules (components) for
+-extended functionality. This is a great thing if you actually need the whole
+-functionality in your code, but otherwise it becomes a waste of memory space. 
+-Since eLua was designed to be as flexible as possible, it includes a mechanism 
+-that allows the user to select exactly what components he needs. Only the 
+-selected components will be part of the eLua image. Please note that this is 
+-_not_ a replacement of the platform modules mechanism, the two are complementary
+-to each other, since the components are not connected with the platform 
+-interface (docs/platform_interface.txt) in any way.
+-To use this feature, every platform (src/platform/[name]) must include a file
+-named &quot;platform_conf.h&quot; that specifies (among other things) what components 
+-should be built for that platform. For example, the LM3S &quot;platform_conf.h&quot; file 
+-might look like this:
+-
+-(BEGIN src/platform/lm3s/platform_conf.h)
+-// Define here what components you want for this platform
+-
+-#ifndef __PLATFORM_CONF_H__
+-#define __PLATFORM_CONF_H__
+-
+-#define BUILD_XMODEM
+-#define BUILD_SHELL
+-#define BUILD_ROMFS
+-#define BUILD_TERM
+-........................................
+-(END src/platform/lm3s/platform_conf.h)
+-
+-In this case, the XMODEM, SHELL, ROMFS and TERM components will be built. On the
+-other hand, the i386 &quot;platform_conf.h&quot; will probably have less components:
+-
+-(BEGIN src/platform/i386/platform_conf.h)
+-// Define here what components you want for this platform
+-
+-#ifndef __PLATFORM_CONF_H__
+-#define __PLATFORM_CONF_H__
+-
+-#define BUILD_ROMFS
+-#define BUILD_SHELL
+-........................................
+-(END src/platform/i386/platform_conf.h)
+-
+-You don't need to modify any other part of your code, just rebuild your image
+-after you made changes to this file (docs/building.txt)
+-Below you can find a list of eLua components and their functionality.
+-
+-XMODEM
+-================================================================================
+-The XMODEM component enables eLua to receive Lua source files via its shell and 
+-execute them (docs/the_elua_shell.txt). If you don't need to use &quot;recv&quot; from the
+-shell you can skip this component.
+-To enable: 
+-  #define BUILD_XMODEM
+-
+-Also, XMODEM is configured with a number of constants also defined in
+-platform_conf.h. They are:
+-
+-XMODEM_UART_ID : the id of the UART on which XMODEM runs
+-XMODEM_TIMER_ID : the id of the timer used by the XMODEM implementation
+-
+-
+-SHELL
+-================================================================================
+-This enables the build of the eLua shell (docs/the_elua_shell.txt). If you don't
+-need the shell, don't enable this component. eLua will execute the &quot;lua&quot; command
+-at startup if the eLua shell is not built. The shell comes in two flavours: over
+-a serial line or over TCP/IP (currently you can't have both at the same time).
+-To enable shell over a serial line:
+-  #define BUILD_SHELL
+-  #define BUILD_CON_GENERIC
+-To enable shell over TCP/IP:
+-  #define BUILD_SHELL
+-  #define BUILD_CON_TCP
+-
+-ROMFS
+-================================================================================
+-If you need to use the ROM file system (docs/the_rom_file_system.txt) enable
+-this component, otherwise you can skip it.
+-To enable: 
+-  #define BUILD_ROMFS
+-
+-TERM
+-================================================================================
+-The TERM module adds support for ANSI terminals. See docs/terminal_support.txt
+-for details. If you don't need it, and if you're willing to miss the opportunity
+-of playing hangman in eLua (examples/hangman.lua) you can skip this component :)
+-To enable: 
+-  #define BUILD_TERM
+-
+-Also, TERM is configured with a number of constants also defined in 
+-platform_conf.h. THey are:
+-
+-TERM_UART_ID - the id of the UART on which TERM runs
+-TERM_TIMER_ID - the id of the timer used by the TERM implementation
+-TERM_LINES - number of lines in the terminal emulator
+-TERM_COLS - number of columns in the terminal emulator
+-TERM_TIMEOUT - inter-key timeout (used to detect keys that send multiple codes,
+-  such as up/down/left/right keys).
+-
+-IMPORTANT NOTE: TERM doesn't currently work over TCP/IP. 
+-
+-uIP
+-================================================================================
+-uIP is the TCP/IP stack used curently by eLua to provide networking support
+-(docs/tcpip_in_elua.txt). You can enable the TCP/IP stack and two of its services 
+-(the DHCP client and the DNS resolver).
+-To enable uIP (thus TCP/IP support): 
+-  #define BUILD_UIP
+-To enable the DHCP client:
+-  #define BUILD_DHCPC
+-To enable the DNS resolver:
+-  #define BUILD_DNS
+
+Deleted: trunk/docs/generic_modules.txt
+===================================================================
+--- trunk/docs/generic_modules.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/generic_modules.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,175 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-eLua generic modules
+-================================================================================
+-
+-Before you read this file, please make sure that you read and understood the 
+-theory from &quot;platform_modules.txt&quot; (at least the first part which describes
+-the platform modules implementation). The generic modules use the exact same
+-mechanism. In fact, the only difference between them is that the generic modules
+-are exactly what their name implies: generic. They don't depend on the platform
+-interface, so they don't need specific support for each platform, but they still
+-behave identically on all platforms. They are selected by the same mechanism
+-used by the platform modules (platform_libs.h). Following is a list of these 
+-modules and their exported functions.
+-
+-The &quot;term&quot; module
+-================================================================================
+-The &quot;term&quot; component (see terminal_support.txt) exports its functions to Lua via 
+-the &quot;term&quot; module. The methods of the &quot;term&quot; module are presented below.
+-
+-term.clrscr(): clear the screen
+-
+-term.clreol(): clear from the current cursor position to the end of the line 
+-
+-term.gotoxy( x, y ): position the cursor at the given coordinates
+-
+-term.up( delta ): move the cursor up &quot;delta&quot; lines
+-
+-term.down( delta ): move the cursor down &quot;delta&quot; lines
+-
+-term.left( delta ): move the cursor left &quot;delta&quot; lines
+-
+-term.right( delta ): move the cursor right &quot;delta&quot; lines
+-
+-Lines = term.lines(): returns the number of lines
+-
+-Cols = term.cols(): returns the number of columns
+-
+-term.put( c1, c2, ... ): writes the specified character(s) to the terminal
+-
+-term.putstr( s1, s2, ... ): writes the specified string(s) to the terminal
+-
+-Cx = term.cursorx(): return the cursor X position
+-
+-Cy = term.cursory(): return the cursor Y position
+-
+-c = term.getch( term.WAIT | term.NOWAIT ): returns a char read from the 
+-  terminal. If term.WAIT is specified the function will wait for a character to
+-  be ready, with term.NOWAIT it returns -1 if no char is available or the char
+-  code if a char is available. The return of getch can be checked against the
+-  char codes defined in inc/term.h, by appending &quot;term.&quot; to the constant name 
+-  (for example: term.KC_UP, term.KC_LEFT, term.KC_ESC ... )
+-
+-The &quot;pack&quot; module
+-================================================================================
+-Pack allows packing/unpacking of binary data. For example, it allows one to save 
+-a specific data type (for example a 16-bit integer) from Lua to a file and then 
+-read it back to a Lua variable without having to worry about the different
+-physical representations of a Lua number and a 16-bit integer. It's originally
+-written by Luiz Henrique de Figueiredo, one of the &quot;fathers&quot; of Lua.
+-It exports just two methods (&quot;pack&quot; and &quot;unpack&quot;), but it uses some format
+-specifiers for the pack/unpack operations that take a while to get used to. For
+-more information download the original distribution and check its documentation
+-and examples (<A HREF="http://www.tecgraf.pub-rio.br/~lhf/ftp/lua/~lpack">http://www.tecgraf.pub-rio.br/~lhf/ftp/lua/~lpack</A>).
+-
+-The &quot;bit&quot; module
+-================================================================================
+-As Lua doesn't have built-in operators for bit operations (and, or, xor, not)
+-they are provided by this module. It's based on &quot;bitlib&quot; by Reuben Thomas and
+-was slightly adapted and augmented for eLua.
+-
+-Res = bit.bnot( value ): unary negation
+-
+-Res = bit.band( v1, v2, ... ): binary &quot;and&quot;
+-
+-Res = bit.bor( v1, v2, ... ): binary &quot;or&quot;
+-
+-Res = bit.bxor( v1, v2, ... ): binary &quot;exclusive or&quot;
+-
+-Res = bit.lshift( value, pos ): shift &quot;value&quot; left &quot;pos&quot; positions.
+-
+-Res = bit.rshift( value, pos ): shift &quot;value&quot; right &quot;pos&quot; positions. The sign is
+-  not propagated.
+-
+-Res = bit.arshift( value, pos ): shift &quot;value&quot; right &quot;pos&quot; positions. The sign
+-  is propagated (&quot;arithmetic shift&quot;).
+-
+-Res = bit.bit( bitno ): a shortcut for bit.lshift( 1, bitno )
+-
+-Res1, Res2, ... = bit.set( bitno, v1, v2, ... ): set the bit at position &quot;bitno&quot;
+-  in v1, v2, ... to 1.
+-
+-Res1, Res2, ... = bit.clear( bitno, v1, v2, ... ): set the bit at position 
+-  &quot;bitno&quot;in v1, v2, ... to 0.
+-
+-Res = bit.isset( value, bitno ): returns true if bit at position &quot;bitno&quot; in 
+-  &quot;value&quot; is 1, false otherwise.
+-
+-Res = bit.isclear( value, bitno ): returns true if bit at position &quot;bitno&quot; in
+-  &quot;value&quot; is 0, false otherwise.
+-
+-The &quot;math&quot; module
+-================================================================================
+-This is actually part of the official Lua distribution, not a separate module.
+-Its purpose is to provide mathematic functiosn (sin, cos, tan...) to Lua. Since
+-these kind of functions are rarely needed in an embedded environment, the &quot;math&quot;
+-module can be enabled and disabled just like the other generic and platform 
+-modules in eLua.
+-
+-The &quot;net&quot; module
+-================================================================================
+-TCP/IP networking support is provided to eLua via the &quot;net&quot; module. It contains
+-a small set of function, tailored for embedded systems (lighter and less resource
+-demanding).
+-
+-IMPORTANT NOTE: TCP/IP support in eLua is still largely experimental.
+-
+-Sock = socket( type ): creates a new socket and returns its identifier. type can
+-be either net.SOCK_STREAM or net.SOCK_DGRAM, but currently only TCP/IP sockets
+-(SOCK_STREAM) are implemented.
+-
+-Res = close( socket ): closes the given socket, returning an error status.
+-
+-IP = packip( ip0, ip1, ip2, ip3 ) or IP = packip( &quot;ipstring&quot; ): packs the given
+-IP (either in unpacked form or as a string) returning a value that completely
+-identifies that IP (it's not actually a new IP datatype, just a 32-bit number).
+-
+-IP0, IP1, IP2, IP3 = unpackip( ip, &quot;*n&quot; ) or IPString = unpackip( ip, &quot;*s&quot; ):
+-unpacks the given IP value, returning it either as 4 numbers or as a string.
+-
+-Sock, RemoteIp, Err = accept( port, [timer_id, timeout] ): listens on the 
+-specified port, waiting for connections. If timer ID and timeout are specified,
+-it uses the specified timer to wait for a connection for at most &quot;timeout&quot; 
+-microseconds. Returns the socket descriptor for the new connection, the IP of
+-the remote end, and an error status.
+-
+-Sent, Res = send( sock, string ): send the given &quot;string&quot; on the specified
+-socket, returning the number of bytes actually send and an error status.
+-
+-Data, Res = recv( sock, maxsize, [timer_id, timeout] ) or
+-Data, Res = recv( sock, &quot;*l&quot;, [timer_id, timeout] ): read data from the 
+-socket. The first form reads up to a maximum size specified by &quot;maxsize&quot;, the
+-second form reads a single line (until '\n' is received, ignoring any '\r'
+-chars in the stream). 
+-IMPORTANT NOTE: currently, the &quot;*l&quot; (line) mode is partially broken, in that it 
+-might loose some of the data sent by the remote end. If the remote end sends
+-more than one line, only the first is kept, the rest is ignored. For example, 
+-if the remote sends &quot;line\n&quot;, everything is OK, but if the remote sends
+-&quot;line1\nline2\n&quot;, &quot;line1&quot; is returned correctly after calling &quot;recv&quot; once, but
+-&quot;line2&quot; won't be returned after calling &quot;recv&quot; again. This is due to the &quot;single
+-buffer&quot; design of uIP. If you want to make sure you receive all the data you're
+-looking for, use the first form of recv, specifying a maximum size. &quot;*l&quot; is only
+-usable for line-oriented conversations (like you'd find in a command line shell,
+-for example).
+-
+-IP = lookup( &quot;hostname&quot; ): invokes the DNS resolver to find the IP address of
+-&quot;hostname&quot;.
+-
+-Err = connect( sock, ip, port ): connects the specified socket (that must be
+-created previously using &quot;socket&quot;) to the specified host and port. Returns an
+-error status.
+-
+-The error status is defined in inc/elua_net.h in one enum:
+-
+-(BEGIN inc/elua_net.h)
+-// eLua net error codes
+-enum
+-{
+-  ELUA_NET_ERR_OK = 0,
+-  ELUA_NET_ERR_TIMEDOUT,
+-  ELUA_NET_ERR_CLOSED,
+-  ELUA_NET_ERR_ABORTED,
+-  ELUA_NET_ERR_OVERFLOW
+-};
+-(END inc/elua_net.h)
+
+Deleted: trunk/docs/platform_interface.txt
+===================================================================
+--- trunk/docs/platform_interface.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/platform_interface.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,258 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-eLua platform interface
+-================================================================================
+-
+-This document describes the &quot;platform&quot; interface in eLua. Its purpose is to ease
+-the task of porting eLua to a new platform, as well as having a uniform layer
+-for accesing peripherals (such as PIO, UART, SPI ...) on all platforms.
+-
+-The definitions of the functions shown here are in the &quot;inc/platform.h&quot; file.
+-Some of the functions are required, others are optional; see also the &quot;adding 
+-a new platform.txt&quot; and &quot;platform modules.txt&quot; files for additional information.
+-Also, for each function or function group, the name of the module(s) that use
+-it (if any) is specified. If other part of the code uses the module, a
+-&quot;ALSO USED BY&quot; line will be present in the module description.
+-
+-================================================================================
+-
+-int platform_init();
+-
+-TYPE: REQUIRED
+-USED BY MODULE: N/A
+-
+-PURPOSE: platform-specific initialization (this is a good place to initialize 
+-the platform CPU, as well as the CPU peripherals, like the UART).
+-RETURNS: PLATFORM_OK or PLATFORM_ERR (if PLATFORM_ERR is returned the program
+-blocks in an infinite loop).
+-
+-================================================================================
+-
+-void* platform_get_first_free_ram( unsigned id );
+-void* platform_get_last_free_ram( unsigned id );
+-
+-TYPE: REQUIRED
+-USED BY MODULE: N/A
+-
+-PURPOSE: returns the first and the last free RAM address; the space between them 
+-will be used for the system heap. 'id' is a memory space identifier. This can be
+-used if there is more than one RAM memory available in the system, and their
+-address ranges do not overlap. For example, one can have a CPU with internal RAM 
+-(a very common case) but also an external RAM chip. In this case there are two 
+-memory spaces, the first one being the internal RAM and the other one the 
+-external RAM. While each of them in part is contiguous, they are generally not
+-contigous to each other in the system address space, so they must be treated as
+-two separate address spaces. If the multiple allocator (see building.txt) is
+-used you can define as many memory spaces as you wish in your system, the 
+-allocator will make sure to use all of them.
+-If the system RAM exists in a single memory space (for example the internal RAM 
+-on the MCU) the CPU's stack pointer should be set at the end of the RAM at 
+-startup. Thus, the first free ram will start right after the data/bss sections, 
+-and the last free RAM is the last physical address of RAM minus the size of the 
+-stack. The heap and the stack will grow on opposite directions (upward/downward) 
+-and the heap will stop if asked to grow &quot;over&quot; the stack.
+-If the MCU has both internal RAM and external RAM, a simple arrangement is to 
+-place the CPU stack at the end of the internal RAM and the heap in the external 
+-memory (which is generally much larger than the MCU's internal memory). Another
+-arrangement is to use the multiple allocator and the memory space id as 
+-described above.
+-
+-================================================================================
+-
+-int platform_pio_has_port( unsigned port );
+-const char* platform_pio_get_prefix( unsigned port );
+-int platform_pio_has_pin( unsigned port, unsigned pin );
+-pio_type platform_pio_op( unsigned port, pio_type pinmask, int op );
+-
+-TYPE: OPTIONAL
+-USED BY MODULE: pio
+-
+-PURPOSE: PIO operations. eLua defines a number of &quot;virtual ports&quot;, each one 32 
+-bits in size, as shows in &quot;inc/platform.h&quot;. But since it somehow needs to map 
+-these virtual ports to physical ports, it will ask the platform if a port is 
+-physically present (via platform_pio_has_port) and also if a bit (a &quot;pin&quot;) in 
+-the port is physically present (via platform_pio_has_pin). 
+-platform_pio_get_prefix gets a port number and return the &quot;port name&quot; as defined
+-in the device datasheet. Some devices use PA0, PA1, others simply P0, P1. This
+-is what this function is expected to return.
+-The platform_pio_op function is the one that does the actual work with the PIO
+-subsystem. It receives an operation id (&quot;op&quot;) as well as a mask (&quot;pinmask&quot;) to 
+-which the operation applies. The possible operations are shown in the 'enum' 
+-below (taken from &quot;inc/platform.h&quot;):
+-
+-(BEGIN inc/platform.h)
+-enum
+-{
+-  // Pin operations
+-  PLATFORM_IO_PIN_SET,                      // Set pin(s) to 1
+-  PLATFORM_IO_PIN_CLEAR,                    // Set pin(s) to 0
+-  PLATFORM_IO_PIN_GET,                      // Get value of pin
+-  PLATFORM_IO_PIN_DIR_INPUT,                // Configure pin(s) as input
+-  PLATFORM_IO_PIN_DIR_OUTPUT,               // Configure pin(s) as output
+-  PLATFORM_IO_PIN_PULLUP,                   // Enable pullups on the pin(s)
+-  PLATFORM_IO_PIN_PULLDOWN,                 // Enable pulldowns on the pin(s)
+-  PLATFORM_IO_PIN_NOPULL,                   // Disable all pulls on the pin(s)
+-  // Port operations
+-  PLATFORM_IO_PORT_SET_VALUE,               // Set port value
+-  PLATFORM_IO_PORT_GET_VALUE,               // Get port value
+-  PLATFORM_IO_PORT_DIR_INPUT,               // Configure port as input
+-  PLATFORM_IO_PORT_DIR_OUTPUT               // Configure port as output
+-};
+-(END inc/platform.h)
+-
+-================================================================================
+-
+-int platform_spi_exists( unsigned id );
+-u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, 
+-                        unsigned cpha, unsigned databits );
+-spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data );
+-void platform_spi_select( unsigned id, int is_select );
+-
+-TYPE: OPTIONAL
+-USED BY MODULE: spi
+-
+-PURPOSE: SPI operations. eLua defines 4 &quot;virtual&quot; SPI interfaces. The function
+-platform_spi_exists() gets an identifier from 0 to 3 and returns 1 if the SPI
+-interface with the given identifier exists on the target machine, 0 ohterwise.
+-platform_spi_setup() is called to configure the SPI interface with the given
+-parameters, returning the actual clock that was set for the interface. The
+-actual data transfer is done by calling platform_spi_send_recv(), which executes
+-a SPI &quot;cycle&quot; (send one byte, receive one byte). Finally, platform_spi_select()
+-is used to set the state of the SPI SS (slave select) pin, if the target's SPI
+-interface provides this functionality.
+-
+-================================================================================
+-
+-int platform_uart_exists( unsigned id );
+-u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, 
+-                         int stopbits );
+-void platform_uart_send( unsigned id, u8 data );
+-int platform_uart_recv( unsigned id, unsigned timer_id, int timeout );
+-
+-TYPE: OPTIONAL
+-USED BY MODULE: uart
+-ALSO USED BY: XMODEM, TERM over UART
+-
+-PURPOSE: UART operations. eLua defines 4 &quot;virtual&quot; UART interfaces. The function
+-platform_uart_exists() gets an identifier from 0 to 3 and returns 1 if the UART
+-interface with the given identifier exists on the target machine, 0 ohterwise.
+-platform_uart_setup() is called to configure the SPI interface with the given
+-parameters, returning the actual baud that was set for the interface. The
+-actual data transfer is done by calling platform_uart_send to send a byte, and
+-platform_uart_recv to receive a byte. The receive function has a timeout than
+-can take different values:
+-
+-- timeout == 0: receive without waiting for data. If a data byte is available 
+-  return it, otherwise return -1.
+-- timeout == PLATFORM_UART_INFINITE_TIMEOUT: wait until a data byte is available 
+-  and then return it. This will block indefinetely if no data is available.
+-- timeout &gt; 0: if a data byte is available in the give time (expressed in us)
+-  return id, otherwise return -1.
+-
+-================================================================================
+-
+-int platform_timer_exists( unsigned id );
+-void platform_timer_delay( unsigned id, u32 delay_us );
+-u32 platform_timer_op( unsigned id, int op, u32 data );
+-u32 platform_timer_get_diff_us( unsigned id, timer_data_type end, 
+-                                timer_data_type start );
+-                                
+-TYPE: OPTIONAL
+-USED BY MODULE: tmr, uart (for receive with timeout)
+-ALSO USED BY: XMODEM, TERM over UART
+-
+-PURPOSE: timer operations. eLua defines 16 &quot;virtual&quot; timers. The function
+-platform_timer_exists() gets an identifier from 0 to 15 and returns 1 if the 
+-timer with the given identifier exists on the target machine, 0 otherwise.
+-platform_timer_delay() will block the execution for the specified number of
+-microseconds, and platform_timer_get_diff_us() gets two timer values and returns
+-the time difference (in microseconds) between them.
+-platform_timer_op() executes the specified operation on the givem timer. The
+-operations are defined in an enum from inc/platform.h:
+-                             
+-(BEGIN inc/platform.h)
+-// Timer operations
+-enum
+-{
+-  PLATFORM_TIMER_OP_START,              // Start the timer
+-  PLATFORM_TIMER_OP_READ,               // Read the value of timer
+-  PLATFORM_TIMER_OP_SET_CLOCK,          // Set the clock of the timer
+-  PLATFORM_TIMER_OP_GET_CLOCK,          // Read the clock of the timer
+-  PLATFORM_TIMER_OP_GET_MAX_DELAY,      // Get the maximum achievable delay
+-  PLATFORM_TIMER_OP_GET_MIN_DELAY       // Get the minimum achievable delay
+-};
+-(END inc/platform.h)
+-
+-================================================================================
+-
+-int platform_pwm_exists( unsigned id );
+-u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty );
+-u32 platform_pwm_op( unsigned id, int op, u32 data );
+-
+-TYPE: optional
+-USED BY MODULE: pwm
+-
+-PURPOSE: PWM operations. eLua defines 16 &quot;virtual&quot; PWM blocks. The function
+-platform_pwm_exists() gets an identifier from 0 to 15 and returns 1 if the PWM
+-block with the given identifier exists on the target machinem, 0 otherwise.
+-platform_pwm_setup() is called to configure the SPI interface with the given 
+-frequency and duty cycle (the duty cycle is a number from 0 to 100 representing
+-the duty cycle in percents). 
+-Finally, platform_pwm_op() implements PWM specific operations. They are all
+-defined in an enum from inc/platform.h, shown below:
+-
+-(BEGIN inc/platform.h)
+-// PWM operations
+-enum
+-{
+-  PLATFORM_PWM_OP_START,                // Start the PWM block
+-  PLATFORM_PWM_OP_STOP,                 // Stop the PWM block
+-  PLATFORM_PWM_OP_SET_CLOCK,            // Set the base clock of the PWM block
+-  PLATFORM_PWM_OP_GET_CLOCK             // Get the base clock of the PWM block
+-};
+-(END inc/platform.h) 
+-
+-================================================================================
+-
+-void platform_cpu_enable_interrupts();
+-void platform_cpu_disable_interrupts();
+-u32 platform_cpu_get_frequency();
+-
+-TYPE: optional
+-USED BY MODULE: cpu
+-
+-PURPOSE: CPU interfacing. It allows the user to control some of the CPU functions
+-directly from Lua. platform_cpu_enable_interrupts() enables the CPU interrupts
+-(globally), while platform_cpu_disable_interrupts() disables them. 
+-platform_cpu_get_frequency() returns the CPU &quot;core&quot; frequency in Hz.
+-
+-================================================================================
+-
+-void platform_eth_send_packet( const void* src, u32 size );
+-u32 platform_eth_get_packet_nb( void* buf, u32 maxlen );
+-void platform_eth_force_interrupt();
+-u32 platform_eth_get_elapsed_time();
+-
+-TYPE: optional
+-USED BY MODULE: net, also used by the generic TCP/IP support
+-
+-PURPOSE: network support. These functions are used by uIP (the TCP/IP stack of
+-eLua) to implement TCP/IP services on top of the Ethernet ones (for platforms
+-that have an integrated Ethernet controller, or are using an external Ethernet
+-controller). 
+-platform_eth_send_packet() sends the packet pointed by &quot;src&quot; with size &quot;size&quot;
+-over the network.
+-platform_eth_get_packet_nb() reads an Ethernet packet in &quot;buf&quot;, without 
+-exceeding &quot;maxlen&quot; of data. If an Ethernet packet is not available when this
+-function is called, it returns 0 immediately (non-blocking receive), otherwise
+-it returns a negative integer if the packet size is too large or the length of
+-the packet if it fits in &quot;maxlen&quot; bytes.
+-platform_eth_force_interrupt() is used to force an Ethernet receive interrupt.
+-This is needed because uIP's processing function is called from this Ethernet
+-interrupt handler alone.
+-platform_eth_get_elapsed_time() will return the approximate time (in ms) that
+-passed since the last call to platform_eth_get_elapsed_time(). It is used by uIP
+-to process periodic events.
+-
+-For an example of how these functions should be implemented, take a look at the
+-LM3S backend (src/platform/lm3s/platform.c)
+
+Deleted: trunk/docs/platform_modules.txt
+===================================================================
+--- trunk/docs/platform_modules.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/platform_modules.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,267 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-eLua platform modules
+-================================================================================
+-
+-(NOTE: after reading this, check also the &quot;generic_modules.txt&quot; file to
+-learn about the generic (not platform specific) modules from eLua).
+-
+-In order to make eLua usable on different platform, eLua provides a number of 
+-&quot;platform modules&quot; that link the language with the hardware platform. They're 
+-mainly tied up with the platform peripherals (PIO, UART, SPI and others). 
+-They are loaded when Lua starts (just like the &quot;standard&quot; modules like os, math,
+-string).
+-
+-All the platform modules have two parts: the generic part (the one that is
+-exposed directly to Lua and it's supposed to be platform independent) and the
+-platform specific part (the one that links the module operations to actual 
+-hardware operations). Consequently, when adding a new platform, one doesn't need
+-to rewrite the whole module, just the platform-dependent part. The &quot;platform 
+-interface.txt&quot; file shows the conenction between platform modules and platform
+-interface functions. For example, the &quot;pio&quot; module (src/modules/pio.c) needs 3 
+-functions for interfacing with a specific platform: platform_pio_has_port,
+-platform_pio_has_pin and platform_pio_op.
+-
+-All the modules are located in the &quot;src/modules&quot; directory. Besides their
+-actual implementation, the &quot;src/modules/auxmods.h&quot; file contains the Lua
+-compatible description of all the modules in the system.
+-
+-Sometimes it doesn't make sense to include all the modules for a particular
+-platform. For example, for the i386 platform it doesn't make sense to include 
+-the &quot;pio&quot; module (although this is technically possible by providing &quot;bogus&quot; 
+-platform interface functions, the  module won't be able to do anything on a i386 
+-CPU, unless you want to &quot;emulate&quot; it via the parallel port or some other 
+-peripheral). To accomodate this, each platform must provide a &quot;platform_conf.h&quot; 
+-(src/platform/&lt;your platform&gt;) which (amongst other things) lists the modules 
+-that are used for that specific platform. For example, if we want to enable 
+-only the PIO module for the AT91SAM7X platform, the &quot;platform_conf.h&quot; file 
+-would look like this:
+-
+-(BEGIN src/platform/at91sam7x/platform_conf.h)
+-// Auxiliary libraries that will be compiled for this platform
+-
+-#ifndef __PLATFORM_CONF_H__
+-#define __PLATFORM_CONF_H__
+-
+-#include &quot;auxmods.h&quot;
+-
+-...............................................................
+-
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio }
+-  
+-#endif
+-(END src/platform/at91sam7x/platform_conf.h)
+-
+-On the other hand, for a platform that doesn't need to enable any modules at
+-all, you don't even need to define the LUA_PLATFORM_LIBS macro.
+-This is why some of platform functions described in &quot;platform interface.txt&quot; are
+-optional. If there are no modules that use them in one platform, then you don't
+-need to define them at all for that platform, not even as &quot;bogus&quot; functions.
+-
+-================================================================================
+-=== The PIO module
+-================================================================================
+-
+-The PIO module lets Lua access the programmable input/output (PIO) pins of the
+-microcontroller. It exposes symbolic name for ports (pio.PA, pio.PB, ... pio.PF)
+-and symbolic names for port pins (pio.PA_0, pio.PA_1, ... pio.PB_30, ...). Also,
+-it exposes functions to access both ports and pins:
+-
+-pio.setpin( value, Pin1, Pin2 ... ): set the value to all the pins in the list 
+-  to &quot;value&quot; (0 or 1).
+-  
+-pio.set( Pin1, Pin2, ... ): set the value of all the pins in the list to 1.
+-
+-Val1, Val2, ... = pio.get( Pin1, Pin2, ... ): reads one or more pins and returns
+-  their values (0 or 1).
+-
+-pio.clear( Pin1, Pin2, ... ): set the value of all the pins in the list to 0.
+-  
+-pio.input( Pin1, Pin2, ... ): set the specified pin(s) as input(s).
+-
+-pio.output( Pin1, Pin2, ... ): set the specified pin(s) as output(s).
+-
+-pio.setport( value, Port1, Port2, ... ): set the value of all the ports in the
+-  list to &quot;value&quot;.
+-  
+-Val1, Val2, ... = pio.getport( Port1, Port2, ... ): reads one or more ports and
+-  returns their values.
+-
+-pio.port_input( Port1, Port2, ... ): set the specified port(s) as input(s).
+-
+-pio.port_output( Port1, Port2, ... ): set the specified port(s) as output(s).
+-
+-pio.pullup( Pin1, Pin2, ... ): enable internal pullups on the specified pins.
+-Note that some CPUs might not provide this feature.
+-
+-pio.pulldown( Pin1, Pin2, ... ): enable internal pulldowns on the specified
+-pins. Note that some CPUs might not provide this feature.
+-
+-pio.nopull( Pin1, Pin2, ... ): disable the pullups/pulldowns on the specified
+-pins. Note that some CPUs might not provide this feature.
+-
+-Port = pio.port( code ): return the physical port number associated with the
+-given code. For example, &quot;pio.port( pio.P0_20 )&quot; will return 0.
+-
+-Pin = pio.pin( code ): return the physical port number associated with the
+-given code. For example, &quot;pio.pin( pio.P0_20 )&quot; will return 20.
+-
+-================================================================================
+-=== The SPI module
+-================================================================================
+-
+-The SPI module lets Lua access the SPI interfaces of the target CPU. It exposes
+-functions for SPI setup and sending/receiving data, selecting/unselecting slave
+-devices, as well as different SPI specific constants.
+-
+-Actual_clock = spi.setup( id, spi.MASTER | spi.SLAVE, clock, cpol, cpha,
+-  databits): set the SPI interface with the given parameters, returns the clock
+-  that was set for the interface.
+-  
+-spi.select( id ): sets the SS line of the given interface.
+-
+-spi.unselect( id ): clears the SS line of the given interface.
+-
+-spi.send( id, Data1, Data2, ... ): sends all the data to the specified SPI
+-  interface.
+-  
+-In1, In2, ... = spi.send_recv( id, Out1, Out2, ... ): sends all the &quot;out&quot; bytes
+-  to the specified SPI interface and returts the data read after each sent byte.
+-  
+-================================================================================
+-=== The UART module
+-================================================================================
+-
+-The UART module lets Lua access the UART interfaces of the target CPU. It
+-exposes functions for UART setup and sending/receiving data, as well as some
+-UART specific constants.
+-  
+-Actual_baud = uart.setup( id, baud, databits, 
+-  uart.PAR_EVEN |uart.PAR_ODD | uart.PAR_NONE, 
+-  uart.STOP_1 | uart.SSTOP_1_5 | uart.STOP_2 ): set the UART interface with the
+-  given parameters, returns the baud rate that was set for the UART.
+-  
+-uart.send( id, Data1, Data2, ... ): send all the data to the specified UART
+-  interface.
+-  
+-Data = uart.recv( id, uart.NO_TIMEOUT | uart.INF_TIMEOUT | timeout ): reads a 
+-  byte from the specified UART interface.
+-  
+-uart.sendstr( id, str1, str2, ... ): this is similar to &quot;uart.send&quot;, but its 
+-  parameters are string.  
+-
+-================================================================================
+-=== The timer module
+-================================================================================
+-
+-It allows Lua to execute timer specific operations (delay, read timer value,
+-start timer, get time difference).
+-
+-tmr.delay( id, delay ): uses timer 'id' to wait for 'delay' us.
+-
+-Data = tmr.read( id ): reads the value of timer 'id'. The returned value is 
+-  platform dependent.
+-  
+-Data = tmr.start( id ): start the timer 'id', and also returns its value at
+-  the moment of start. The returned value is platform dependent.
+-  
+-diff = tmr.diff( id, end, start ): returns the time difference (in us) between
+-  the timer values 'end' and 'start' (obtained from calling tmr.start or
+-  tmr.read). The order of end/start is irrelevant. 
+-  
+-Data = tmr.mindelay( id ): returns the minimum delay (in us ) that can be 
+-  achieved by calling the tmr.delay function. If the return value is 0, the 
+-  platform layer is capable of executing sub-microsecond delays.
+-  
+-Data = tmr.maxdelay( id ): returns the maximum delay (in us) that can be
+-  achieved by calling the tmr.delay function.
+-  
+-Data = tmr.setclock( id, clock ): sets the clock of the given timer. Returns the
+-  actual clock set for the timer.
+-  
+-Data = tmr.getclock( id ): return the clock of the given timer.
+-
+-================================================================================
+-=== The platform data module
+-================================================================================
+-
+-It allows Lua to identify the platform on which it runs.
+-
+-Platform = pd.platform(): returns the platform name (f.e. LM3S)
+-
+-Cpu = pd.cpu(): returns the CPU name (f.e. LM3S8962)
+-
+-Board = pd.board(): returns the CPU board (f.e. EK-LM3S8962)
+-
+-================================================================================
+-=== The PWM module
+-================================================================================
+-
+-It allows Lua to use the PWM blocks on the target CPU.
+-
+-Data = pwm.setup( id, frequency, duty ): sets the PWM block 'id' to generate the
+-  specified frequency with the specified duty cycle (duty is an integer number
+-  from 0 to 100, specifying the duty cycle in percents). It returns the actual
+-  frequency set on the PWM block.
+-
+-pwm.start( id ): start the PWM block 'id'.
+-
+-pwm.stop( id ): stop the PWM block 'id'.
+-
+-Data = pwm.setclock( id, clock ): set the base clock of the PWM block 'id' to
+-  the given clock. In returns the actual clock set on the PWM block.
+-
+-Data = pwm.getclock( id ): returns the base clock of the PWM block 'id'.
+-
+-================================================================================
+-=== The CPU module
+-================================================================================
+-
+-It brings low level CPU access to Lua (read/write memory, enable/disable 
+-interrupts).
+-
+-w32( address, data ) : write the 32-bit data at the specified address
+-
+-w16( address, data ) : write the 16-bit data at the specified address
+-
+-w8( address, data ) : write the 8-bit data at the specified address
+-
+-Data = r32( address ) : reads 32-bit data from the specified address
+-
+-Data = r16( address ) : reads 16-bit data from the specified address
+-
+-Data = r8( address ) : reads 8-bit data from the specified address
+-
+-cli(): disable CPU interrupts
+-
+-sei(): enable CPU interrupts
+-
+-Clock = clock(): returns the CPU frequency
+-
+-Also, you can expose as many CPU constants (for example memory mapped registers)
+-as you want to this module. You might want to use this feature to access some 
+-CPU memory areas (as defined in the CPU header files from the CPU support 
+-package) directly from Lua. To do this, you'll need to define the 
+-PLATFORM_CPU_CONSTANTS macro in the platform's platform_conf.h file 
+-(src/platform/&lt;platform name&gt;/platform_conf.h). Include all your constants in a 
+-_C( &lt;constant name&gt; ) definition, and then build your project.
+-For example, let's suppose that your CPU's interrupt controler has 3 memory
+-mapped registers: INT_REG_ENABLE, INT_REG_DISABLE and INT_REG_MASK. If you want
+-to access them from Lua, locate the header that defines the values of these
+-registers (I'll assume its name is &quot;cpu.h&quot;) and add these lines to the
+-platform_conf.h:
+-
+-#include &quot;cpu.h&quot;
+-
+-#define PLATFORM_CPU_CONSTANTS\
+-  _C( INT_REG_ENABLE ),\
+-  _C( INT_REG_DISABLE ),\
+-  _C( INT_REG_MASK )
+-
+-After this you'll be able to access the regs directly from Lua, like this:
+-
+-data = cpu.r32( cpu.INT_REG_ENABLE )
+-cpu.w32( cpu.INT_REG_ENABLE, data )
+-
+-For a &quot;real-life&quot; example, see the src/platform/lm3s/platform_conf.h file.
+
+Deleted: trunk/docs/tcpip_in_elua.txt
+===================================================================
+--- trunk/docs/tcpip_in_elua.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/tcpip_in_elua.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,79 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-TCP/IP in eLua
+-================================================================================
+-
+-eLua's TCP/IP support was designed with flexibility and ease of use in mind. It
+-might not provide all the functions of a &quot;full-fledged&quot; TCP/IP stack, but it's 
+-still fully functional and probably easier to use than a &quot;regular&quot; (POSIX) TCP/IP
+-stack. These are the services provided by the TCP/IP stack:
+-
+-- a set of functions for network access (defined in inc/elua_net.h)
+-- a DHCP client
+-- a DNS resolver
+-- a module (&quot;net&quot;) which can be used from Lua to access the network functions
+-- a Telnet miniclient, which is used to support the eLua shell via TCP/IP instead
+-  of serial connections.
+-
+-For more details about the networking API, consult docs/generic_modules.txt.
+-
+-TCP/IP configuration
+-================================================================================
+-
+-To configure the TCP/IP subsystem, edit src/platform/[platform]/platform_conf.h
+-and:
+-
+-1. #define BUILD_UIP to enable TCP/IP support
+-2. if you'll be using the DHCP client, just #define BUILD_DHCPC to build the 
+-   DHCP client. In any case, you must also define a static network configuration:
+-
+-  #define ELUA_CONF_IPADDR0 ... ELUA_CONF_IPADDR3 : the IP address
+-  #define ELUA_CONF_NETMASK0 ... ELUA_CONF_NETMASK3 : the network mask
+-  #define ELUA_CONF_DEFGW0 ... ELUA_CONF_DEFGW3 : the default gateway
+-  #define ELUA_CONF_DNS0 ... ELUA_CONF_DNS3 : the DNS server  
+-
+-  Note that you must define both BUILD_DHCPC and the ELUA_CONF_* macros. If the
+-  DHCP client fails to obtain a valid IP address, the static configuration will 
+-  be used instead. To use only the static configuration (and make the eLua image
+-  size a bit smaller) don't define the BUILD_DHCPC client.
+-
+-3. #define BUILD_DNS if you want support for the DNS server.
+-4. #define BUILD_CON_TCP if you want support for shell over telnet instead of
+-   serial. Note that you must NOT define BUILD_CON_GENERIC in this case.
+-
+-TCP/IP implementation internals
+-================================================================================
+-The TCP/IP support was designed in such a way that it doesn't require a specific
+-TCP/IP stack implementation. To work with eLua, a TCP/IP stack must simply 
+-implement all the functions defined in the inc/elua_net.h file. This allows for
+-easy integration of more than one TCP/IP stack. Currently only uIP is used in 
+-eLua, but lwIP (and possibly others) are planned to be added at some point.
+-Another key point of the TCP/IP implementation (and of the whole eLua design
+-for that matter) is that it should be as platform independent as possible: write
+-everything in a platform-independent manner, except for some functions (as few as
+-possible and as simple as possible) that must be implemented by each platform).
+-To illustrate the above, a short overview of the uIP integration is given below.
+-
+-uIP in eLua
+-================================================================================
+-
+-uIP (<A HREF="http://www.sics.se/~adam/uip/index.php/Main_Page">http://www.sics.se/~adam/uip/index.php/Main_Page</A>) is a minimalistic TCP/IP
+-stack designed specifically for resource constrained embedded systems. While the
+-design and implementation of uIP are an excellent example of what can be done
+-with a few kilobytes of memory, it has a number of quirks that make it hard to
+-integrate with eLua. First, it uses a callback approach, as opposed to the 
+-sequential approach of &quot;regular&quot; TCP/IP stacks. It provides a &quot;protosocket&quot; 
+-library that can be used to write uIP applications in a more &quot;traditional&quot; way,
+-but it's quite restrictive. So, to use it with eLua, a translation layer was
+-needed. It is implemented in src/elua_uip.c, and its sole purpose is to &quot;adapt&quot;
+-the uIP stack to the eLua model: implement the functions in inc/elua_net.h and
+-you're ready to use the stack. In this case the &quot;adaption layer&quot; is quite large
+-because of uIP's callback-based design.
+-To make the uIP implementation as platform-independent as possible, a special
+-networking layer is added to the platform interface (docs/platform_interface.txt
+-for details). There are only 4 functions that must be implemented by a backend
+-to use the networking layer. They might change as more TCP/IP stacks are added
+-to eLua, but probably the networking layer won't get much bigger than it is now.
+-
+-For a more in-depth understanding of how the networking layer is implemented,
+-look at the LM3S implementation in src/platform/lm3s/platform.c.
+
+Deleted: trunk/docs/terminal_support.txt
+===================================================================
+--- trunk/docs/terminal_support.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/terminal_support.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,68 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-Terminal support in eLua
+-================================================================================
+-
+-NOTE: currently, this only works over serial connections (not over TCP/IP)
+-
+-Besides standard stdio/stdout/stderr support (docs/console_input_output.txt), 
+-eLua provides the &quot;term&quot; module to access ANSI compatible terminal emulators. 
+-It is designed to be as flexible as possible, thus allowing a large number of
+-terminal emulators to be used.
+-To use the term module, remember to:
+-
+-- build it (add BUILD_TERM in your build.h file)
+-- build its Lua binding ( add AUXLIB_TERM in your platform_libs.h)
+-
+-See docs/elua_components.h and docs/platform_modules.txt for details.
+-
+-To use it, first call the &quot;term_init&quot; function:
+-
+-(BEGIN inc/term.h)
+-...........................
+-// Terminal output function
+-typedef void ( *p_term_out )( u8 );
+-// Terminal input function
+-typedef int ( *p_term_in )( int );
+-// Terminal translate input function
+-typedef int ( *p_term_translate )( u8 );
+-...........................
+-// Terminal initialization
+-void term_init( unsigned lines, unsigned cols, p_term_out term_out_func, 
+-                p_term_in term_in_func, p_term_translate term_translate_func );
+-(END inc/term.h)
+-
+-The initialization function gets the physical size of the terminal emulator
+-window (usually 80 lines and 25 cols) and three function pointers:
+-
+-- p_term_out: this function will be called to output characters to the terminal.
+-  It receives the character to output as its single parameter.
+-- p_term_in: this function will be called to read a character from the terminal.
+-  It receives a parameter that can be either TERM_INPUT_DONT_WAIT (in which case
+-  the function returns -1 immediately if no character is available) or
+-  TERM_INPUT_WAIT (in which case the function will wait for the character).
+-- p_term_translate: this function translates terminal-specific codes to &quot;term&quot;
+-  codes. The &quot;term&quot; codes are defined in an enum from inc/term.h:
+-
+-(BEGIN inc/term.h)
+-...........................
+-  _D( KC_UP ),\
+-  _D( KC_DOWN ),\
+-  _D( KC_LEFT ),\
+-...........................
+-  _D( KC_ESC ),\
+-  _D( KC_UNKNOWN )  
+-...........................
+-(END inc/term.h)
+-
+-By using this function, it is possible to adapt a very large number of &quot;term
+-emulators&quot; to eLua. For example, you might want to run eLua in a &quot;standalone
+-mode&quot; that does not require a PC at all, just an external LCD display and maybe
+-a keyboard for data input. Your eLua board can connect to this standalone 
+-terminal using its I/O pins, for example via SPI. By writing the three functions
+-described above, the effort of making eLua work with this new type of device is
+-minimal, as writing an &quot;ANSI emulation&quot; for your terminal device is not hard.
+-For an example, see src/main.c, where these functions are implemented for an
+-UART connection with a terminal emulator program running on PC.
+-To see what functions are exported to eLua by the &quot;term&quot; module reffer to the
+-&quot;generic_modules.txt&quot; file from the docs/ directory.
+
+Deleted: trunk/docs/the_elua_shell.txt
+===================================================================
+--- trunk/docs/the_elua_shell.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/the_elua_shell.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,73 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-The eLua shell
+-================================================================================
+-
+-After you burn eLua to your board and you connect the board to your terminal
+-emulator running on the PC, you'll be greeted with the eLua shell prompt, which
+-allows you to:
+-
+-- run 'lua' as you would run it from the Linux or Windows command prompt
+-- upload a Lua source file via XMODEM and execute in on board
+-- query the eLua version
+-- get help on shell usage
+-
+-To enable the shell, define BUILD_SHELL in your build.h file, and also
+-BUILD_XMODEM if you want to use the &quot;recv&quot; command (see below). See 
+-docs/elua_components.txt for more details about enabling the shell.
+-
+-You'll need to configure your terminal emulation program to connect to your eLua
+-board. These are the parameters you'll need to set for your serial connection:
+-
+-- speed 115200, 8N1 (8 data bits, no parity, one stop bit)
+-- no flow control
+-- newline handling (if available): CR on receive, CR+LF on send
+-
+-After you setup your terminal program, press the RESET button on the bord.
+-When you see the &quot;eLua# &quot; prompt, just enter &quot;help&quot; to see the on-line shell
+-help:
+-
+-eLua# help
+-Shell commands:
+-  help - print this help
+-  lua [args] - run Lua with the given arguments
+-  recv - receive a file (XMODEM) and execute it
+-  ver - print eLua version
+-  exit - exit from this shelll
+-
+-More details about some of the shell commands are presented below.
+-
+-The &quot;recv&quot; command
+-================================================================================
+-To use this, your eLua target image must be built with support for XMODEM (see 
+-docs/elua_components.txt for details). Also, your terminal emulation program must 
+-support sending files via the XMODEM protocol. Both XMODEM with checksum (the 
+-original version) and XMODEM with CRC are supported, but only XMODEM with 128 
+-byte packets is allowed (XMODEM with 1K packets won't work).
+-To use this feature, enter &quot;recv&quot; at the shell prompt. eLua will respond with 
+-&quot;Waiting for file ...&quot;. At this point you can send the file to the eLua board 
+-via XMODEM. eLua will receive and execute the file. Don't worry when you see 'C'
+-characters suddenly appearing on your terminal after you enter this command, 
+-this is how the XMODEM transfer is initiated.
+-
+-The &quot;lua&quot; command
+-================================================================================
+-This allows you to start the Lua interpreter with command line parameters, just 
+-as you would do from a Linux or Windows command prompt. This command has some
+-restrictions:
+-
+-- the command line can't be longer than 50 chars
+-- character escaping is not implemented. For example, the next command won't work
+-  because of the \' escape sequences:
+-
+-eLua# lua -e 'print(\'Hello, World!\')' -i
+-Press CTRL+Z to exit Lua
+-lua: (command line):1: unexpected symbol near '\'
+-
+-However, if you use both '' and &quot;&quot; for string quoting, it will work:
+-
+-eLua# lua -e 'print(&quot;Hello, World&quot;)' -i
+-Press CTRL+Z to exit Lua
+-Lua 5.1.4  Copyright (C) 1994-2008 Lua.org, PUC-Rio
+-Hello,World
+-&gt;
+
+Deleted: trunk/docs/the_rom_file_system.txt
+===================================================================
+--- trunk/docs/the_rom_file_system.txt	2008-12-31 21:57:32 UTC (rev 139)
++++ trunk/docs/the_rom_file_system.txt	2008-12-31 22:01:26 UTC (rev 140)
+@@ -1,36 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-The ROM file system
+-================================================================================
+-
+-This is a small, read-only file system built inside eLua. It is integrated with
+-Newlib, so you can use standard POSIX calls (fopen/fread/fwrite...) to access
+-it. It is also accessible directly from Lua. The files in the file system are 
+-part of the eLua binary image, thus they can't be modified after the image is
+-built. For the seame reason, you can't add/delete files after the image is built.
+-To use this file system:
+-
+-- copy all the files you need to the romfs/ directory.
+-- Build eLua (docs/building.txt). As part of the build process, &quot;mkfs.py&quot; will
+-  be called, which will read the contents of the &quot;romfs/&quot; directory and will
+-  output a file that contains a binary description of the file system.
+-- burn your image to the target
+-- from your code, whenever you want to access a file, prefix its name with
+-  &quot;/rom/&quot;. For example, if you want to open the &quot;a.txt&quot; file, you should call 
+-  fopen like this:
+-
+-  f = fopen( &quot;/rom/a.txt&quot;, &quot;rb&quot; )
+-
+-  If you want to execute one file from the ROM file system with Lua, simply do
+-  this from the shell:
+-
+-  eLua# lua /rom/bisect.lua
+-
+-  Or directly from Lua:
+-
+-  &gt; dofile &quot;/rom/bisect.lua&quot;
+-
+-The maximum file name of a ROMFS file is 14 characters, including the dot
+-between the file name and its extension. Make sure that the file names from
+-romfs/ follow this rule.
+-
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000095.html">[Elua-svn] r139 - trunk/docs
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#96">[ date ]</a>
+              <a href="thread.html#96">[ thread ]</a>
+              <a href="subject.html#96">[ subject ]</a>
+              <a href="author.html#96">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

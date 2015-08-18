@@ -1,0 +1,239 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r135 - in trunk: . inc src src/lua src/newlib	src/platform/avr32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r135%20-%20in%20trunk%3A%20.%20inc%20src%20src/lua%20src/newlib%0A%09src/platform/avr32&In-Reply-To=%3C200812142139.mBELdqpr026638%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000090.html">
+   <LINK REL="Next"  HREF="000092.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r135 - in trunk: . inc src src/lua src/newlib	src/platform/avr32</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r135%20-%20in%20trunk%3A%20.%20inc%20src%20src/lua%20src/newlib%0A%09src/platform/avr32&In-Reply-To=%3C200812142139.mBELdqpr026638%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r135 - in trunk: . inc src src/lua src/newlib	src/platform/avr32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Dec 14 22:39:52 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000090.html">[Elua-svn] r134 - in trunk: . inc src src/newlib src/platform	src/platform/avr32 src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000092.html">[Elua-svn] r136 - in trunk: romfs src/platform/avr32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#91">[ date ]</a>
+              <a href="thread.html#91">[ thread ]</a>
+              <a href="subject.html#91">[ subject ]</a>
+              <a href="author.html#91">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-12-14 22:39:51 +0100 (Sun, 14 Dec 2008)
+New Revision: 135
+
+Modified:
+   trunk/
+   trunk/inc/dlmalloc.h
+   trunk/src/lua/luaconf.h
+   trunk/src/newlib/stubs.c
+   trunk/src/platform/avr32/at32uc3a0512.ld
+   trunk/src/platform/avr32/board.h
+   trunk/src/platform/avr32/crt0.s
+   trunk/src/platform/avr32/stacks.h
+   trunk/src/romfs.c
+Log:
+many fixed to the AVR32 backend, update if you need AVR32 support
+
+
+Property changes on: trunk
+___________________________________________________________________
+Name: svn:ignore
+   - .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+
+   + .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+*.hex
+
+
+Modified: trunk/inc/dlmalloc.h
+===================================================================
+--- trunk/inc/dlmalloc.h	2008-12-13 23:31:40 UTC (rev 134)
++++ trunk/inc/dlmalloc.h	2008-12-14 21:39:51 UTC (rev 135)
+@@ -1146,4 +1146,4 @@
+ };  /* end of extern &quot;C&quot; */
+ #endif /* __cplusplus */
+ 
+-#endif
+\ No newline at end of file
++#endif
+
+Modified: trunk/src/lua/luaconf.h
+===================================================================
+--- trunk/src/lua/luaconf.h	2008-12-13 23:31:40 UTC (rev 134)
++++ trunk/src/lua/luaconf.h	2008-12-14 21:39:51 UTC (rev 135)
+@@ -273,7 +273,7 @@
+ @* stand-alone interpreter.
+ ** CHANGE it if you need longer lines.
+ */
+-#define LUA_MAXINPUT	256
++#define LUA_MAXINPUT	128
+ 
+ 
+ /*
+
+Modified: trunk/src/newlib/stubs.c
+===================================================================
+--- trunk/src/newlib/stubs.c	2008-12-13 23:31:40 UTC (rev 134)
++++ trunk/src/newlib/stubs.c	2008-12-14 21:39:51 UTC (rev 135)
+@@ -200,6 +200,10 @@
+   if( incr == 0 )
+     return heap_ptr;
+     
++  // If increment is negative, return -1
++  if( incr &lt; 0 )
++    return ( void* )-1;
++    
+   // Otherwise ask the platform about our memory space (if needed)
+   // We do this for all our memory spaces
+   while( 1 )
+@@ -389,3 +393,18 @@
+ }
+ 
+ #endif // #if !defined( BUILD_CON_GENERIC ) &amp;&amp; !defined( BUILD_CON_TCP )
++
++#if ELUA_PLATFORM == AVR32
++void* memcpy( void *dst, const void* src, size_t len )
++{
++  char *pdest = ( char* )dst;
++  const char* psrc = ( const char* )src;
++  
++  while( len )
++  {
++    *pdest ++ = *psrc ++;
++    len --;
++  }
++  return dst;
++}
++#endif // #if ELUA_PLATFORM == AVR32
+
+Modified: trunk/src/platform/avr32/at32uc3a0512.ld
+===================================================================
+--- trunk/src/platform/avr32/at32uc3a0512.ld	2008-12-13 23:31:40 UTC (rev 134)
++++ trunk/src/platform/avr32/at32uc3a0512.ld	2008-12-14 21:39:51 UTC (rev 135)
+@@ -1,6 +1,6 @@
+ MEMORY
+ {
+-    sram (W!RX) : ORIGIN = 0x00000000, LENGTH = 0x00010000
++    sram (W!RX) : ORIGIN = 0x00000004, LENGTH = 0x0000FFFC
+     flash (RX) : ORIGIN = 0x80002000, LENGTH = 0x00080000
+ }
+ 
+
+Modified: trunk/src/platform/avr32/board.h
+===================================================================
+--- trunk/src/platform/avr32/board.h	2008-12-13 23:31:40 UTC (rev 134)
++++ trunk/src/platform/avr32/board.h	2008-12-14 21:39:51 UTC (rev 135)
+@@ -74,10 +74,7 @@
+   #define FRCOSC    AVR32_PM_RCOSC_FREQUENCY  //!&lt; Default RCOsc frequency.
+ #endif
+ 
+-//#define REQ_CPU_FREQ      60000000
+-//#define REQ_PBA_FREQ      15000000
++#define REQ_CPU_FREQ      60000000
++#define REQ_PBA_FREQ      15000000
+ 
+-#define REQ_CPU_FREQ      48000000
+-#define REQ_PBA_FREQ      12000000
+-
+ #endif  // _BOARD_H_
+
+Modified: trunk/src/platform/avr32/crt0.s
+===================================================================
+--- trunk/src/platform/avr32/crt0.s	2008-12-13 23:31:40 UTC (rev 134)
++++ trunk/src/platform/avr32/crt0.s	2008-12-14 21:39:51 UTC (rev 135)
+@@ -44,7 +44,6 @@
+ 
+ 
+ #include &lt;avr32/io.h&gt;
+-#include &quot;stacks.h&quot;
+ 
+ //! @{
+ //! \verbatim
+@@ -60,7 +59,6 @@
+ _stext:
+   // Set initial stack pointer.
+   lda.w   sp, _sstack
+-  sub     sp, STACK_SIZE_TOTAL
+ 
+   // Set up EVBA so interrupts can be enabled.
+   lda.w   r0, _evba
+
+Modified: trunk/src/platform/avr32/stacks.h
+===================================================================
+--- trunk/src/platform/avr32/stacks.h	2008-12-13 23:31:40 UTC (rev 134)
++++ trunk/src/platform/avr32/stacks.h	2008-12-14 21:39:51 UTC (rev 135)
+@@ -3,7 +3,7 @@
+ #ifndef __STACKS_H__
+ #define __STACKS_H__
+ 
+-#define  STACK_SIZE       256
++#define  STACK_SIZE       512
+ #define  STACK_SIZE_TOTAL ( STACK_SIZE )
+ 
+ #endif
+
+Modified: trunk/src/romfs.c
+===================================================================
+--- trunk/src/romfs.c	2008-12-13 23:31:40 UTC (rev 134)
++++ trunk/src/romfs.c	2008-12-14 21:39:51 UTC (rev 135)
+@@ -38,10 +38,6 @@
+ }
+ 
+ 
+-
+-  
+-
+-
+ // Open the given file, returning one of FS_FILE_NOT_FOUND, FS_FILE_ALREADY_OPENED
+ // or FS_FILE_OK
+ u8 romfs_open_file( const char* fname, p_read_fs_byte p_read_func, FS* pfs )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000090.html">[Elua-svn] r134 - in trunk: . inc src src/newlib src/platform	src/platform/avr32 src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000092.html">[Elua-svn] r136 - in trunk: romfs src/platform/avr32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#91">[ date ]</a>
+              <a href="thread.html#91">[ thread ]</a>
+              <a href="subject.html#91">[ subject ]</a>
+              <a href="author.html#91">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,215 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r179 - in trunk: inc src
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r179%20-%20in%20trunk%3A%20inc%20src&In-Reply-To=%3C200902100550.n1A5onUM003706%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000134.html">
+   <LINK REL="Next"  HREF="000136.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r179 - in trunk: inc src</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r179%20-%20in%20trunk%3A%20inc%20src&In-Reply-To=%3C200902100550.n1A5onUM003706%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r179 - in trunk: inc src">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Feb 10 06:50:49 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000134.html">[Elua-svn] r178 - in trunk: inc src src/platform/at91sam7x	src/platform/avr32 src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000136.html">[Elua-svn] r180 - in trunk: inc romfs src/lua src/modules	src/newlib src/platform/at91sam7x src/platform/avr32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#135">[ date ]</a>
+              <a href="thread.html#135">[ thread ]</a>
+              <a href="subject.html#135">[ subject ]</a>
+              <a href="author.html#135">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-02-10 06:50:48 +0100 (Tue, 10 Feb 2009)
+New Revision: 179
+
+Modified:
+   trunk/inc/buf.h
+   trunk/inc/platform.h
+   trunk/src/buf.c
+   trunk/src/common.c
+Log:
+Modification of buf.c so that logsize^2 represents number of bytes in buffer.
+Element byte counts must be a power of 2.
+
+Modified: trunk/inc/buf.h
+===================================================================
+--- trunk/inc/buf.h	2009-02-09 03:43:47 UTC (rev 178)
++++ trunk/inc/buf.h	2009-02-10 05:50:48 UTC (rev 179)
+@@ -25,7 +25,7 @@
+   u8 logsize;
+   volatile u16 wptr, rptr, count;
+   t_buf_data *buf;
+-  size_t dsize;
++  u8 logdsize;
+ } buf_desc;
+ 
+ // Buffer sizes (there are power of 2 to speed up modulo operations)
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2009-02-09 03:43:47 UTC (rev 178)
++++ trunk/inc/platform.h	2009-02-10 05:50:48 UTC (rev 179)
+@@ -230,4 +230,9 @@
+ void* platform_get_first_free_ram( unsigned id );
+ void* platform_get_last_free_ram( unsigned id );
+ 
++// *****************************************************************************
++// Misc support
++
++unsigned int intlog2( unsigned int v );
++
+ #endif
+
+Modified: trunk/src/buf.c
+===================================================================
+--- trunk/src/buf.c	2009-02-09 03:43:47 UTC (rev 178)
++++ trunk/src/buf.c	2009-02-10 05:50:48 UTC (rev 179)
+@@ -22,7 +22,11 @@
+   static buf_desc buf_desc_uart[ 0 ];
+ #endif
+ 
+-static buf_desc buf_desc_adc [ NUM_ADC ];
++#ifdef BUF_ENABLE_ADC
++  static buf_desc buf_desc_adc [ NUM_ADC ];
++#else
++  static buf_desc buf_desc_adc [ 0 ];
++#endif
+ 
+ // NOTE: the order of descriptors here MUST match the order of the BUF_ID_xx
+ // enum in inc/buf.h
+@@ -33,8 +37,10 @@
+ };
+ 
+ // Helper macros
+-#define BUF_MOD_INCR( p, m ) p-&gt;m = ( p-&gt;m + p-&gt;dsize ) &amp; ( ( ( u16 )1 &lt;&lt; ( p-&gt;logsize + ( p-&gt;dsize - 1 ) ) ) - 1 )
+-#define BUF_REALSIZE( p ) ( ( u16 )1 &lt;&lt; p-&gt;logsize )
++#define BUF_MOD_INCR( p, m ) p-&gt;m = ( p-&gt;m + ( ( u16 )1 &lt;&lt; p-&gt;logdsize ) ) &amp; ( ( ( u16 )1 &lt;&lt; ( p-&gt;logsize + p-&gt;logdsize) ) - 1 )
++#define BUF_REALSIZE( p ) ( ( u16 )1 &lt;&lt; ( p-&gt;logsize - p-&gt;logdsize ) )
++#define BUF_BYTESIZE( p ) ( ( u16 )1 &lt;&lt; p-&gt;logsize )
++#define BUF_REALDSIZE( p ) ( ( u16 )1 &lt;&lt; p-&gt;logdsize )
+ #define BUF_GETPTR( resid, resnum ) buf_desc *pbuf = ( buf_desc* )buf_desc_array[ resid ] + resnum
+ 
+ // READ16 and WRITE16 macros are here to ensure _atomic_ reads and writes of 
+@@ -42,23 +48,25 @@
+ #define READ16( p )     p
+ #define WRITE16( p, x ) p = x
+ 
+-
+-
+ // Initialize the buffer of the specified resource
+ // resid - resource ID (BUF_ID_UART ...)
+ // resnum - resource number (0, 1, 2...)
+ // bufsize - new size of the buffer (one of the BUF_SIZE_xxx constants from
+-// dsize - number of bytes held by each element
++// dsize - number of bytes held by each element (must be a power of 2)
+ //   buf.h, or BUF_SIZE_NONE to disable buffering
+ // Returns 1 on success, 0 on failure
+ int buf_set( unsigned resid, unsigned resnum, u8 logsize, size_t dsize )
+ {
+   BUF_GETPTR( resid, resnum );
+   
++  // Make sure dsize is a power of 2
++  if ( ( dsize = 0 ) || ( dsize &amp; ( dsize - 1 ) ) )
++    return PLATFORM_ERR; 
++  
+   pbuf-&gt;logsize = logsize;
+-  pbuf-&gt;dsize = dsize;
++  pbuf-&gt;logdsize = intlog2( dsize );
+   
+-  if( ( pbuf-&gt;buf = ( t_buf_data* )realloc( pbuf-&gt;buf, BUF_REALSIZE( pbuf ) * pbuf-&gt;dsize ) ) == NULL )
++  if( ( pbuf-&gt;buf = ( t_buf_data* )realloc( pbuf-&gt;buf, BUF_BYTESIZE( pbuf ) ) ) == NULL )
+   {
+     pbuf-&gt;logsize = BUF_SIZE_NONE;
+     pbuf-&gt;rptr = pbuf-&gt;wptr = pbuf-&gt;count = 0;
+@@ -80,10 +88,10 @@
+   BUF_GETPTR( resid, resnum );
+   
+   // Make sure we only add more of same type
+-  if (pbuf-&gt;dsize != dsize)
++  if ( dsize != BUF_REALDSIZE( pbuf ) )
+     return PLATFORM_ERR;
+   
+-  memcpy(&amp;pbuf-&gt;buf[ pbuf-&gt;wptr ], data, dsize);
++  memcpy( &amp;pbuf-&gt;buf[ pbuf-&gt;wptr ], data, dsize );
+   
+   BUF_MOD_INCR( pbuf, wptr );
+   
+@@ -133,13 +141,13 @@
+   BUF_GETPTR( resid, resnum );
+ 
+   // Make sure buffer contains right type
+-  if (pbuf-&gt;dsize != dsize)
++  if ( dsize != BUF_REALDSIZE( pbuf ) )
+     return PLATFORM_ERR;
+   
+   if( READ16( pbuf-&gt;count ) == 0 )
+     return PLATFORM_UNDERFLOW;
+     
+-  memcpy(data, &amp;pbuf-&gt;buf[ pbuf-&gt;rptr ], dsize);
++  memcpy( data, &amp;pbuf-&gt;buf[ pbuf-&gt;rptr ], dsize );
+   
+   platform_cpu_disable_interrupts();
+   pbuf-&gt;count --;
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2009-02-09 03:43:47 UTC (rev 178)
++++ trunk/src/common.c	2009-02-10 05:50:48 UTC (rev 179)
+@@ -71,7 +71,6 @@
+ {
+ #ifdef BUF_ENABLE_UART
+   t_buf_data data;
+-  int res;
+   
+   if( buf_is_enabled( BUF_ID_UART, id ) )
+   {
+@@ -294,5 +293,4 @@
+     r++;
+   }
+   return r;
+-}
+-
++}
+\ No newline at end of file
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000134.html">[Elua-svn] r178 - in trunk: inc src src/platform/at91sam7x	src/platform/avr32 src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000136.html">[Elua-svn] r180 - in trunk: inc romfs src/lua src/modules	src/newlib src/platform/at91sam7x src/platform/avr32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#135">[ date ]</a>
+              <a href="thread.html#135">[ thread ]</a>
+              <a href="subject.html#135">[ subject ]</a>
+              <a href="author.html#135">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

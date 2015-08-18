@@ -1,0 +1,345 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r253 - trunk/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r253%20-%20trunk/doc/en&In-Reply-To=%3C200903111358.n2BDwvGf030478%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000208.html">
+   <LINK REL="Next"  HREF="000210.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r253 - trunk/doc/en</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r253%20-%20trunk/doc/en&In-Reply-To=%3C200903111358.n2BDwvGf030478%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r253 - trunk/doc/en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Mar 11 14:58:57 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000208.html">[Elua-svn] r252 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000210.html">[Elua-svn] r254 - in trunk/doc: . en wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#209">[ date ]</a>
+              <a href="thread.html#209">[ thread ]</a>
+              <a href="subject.html#209">[ subject ]</a>
+              <a href="author.html#209">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-03-11 14:58:57 +0100 (Wed, 11 Mar 2009)
+New Revision: 253
+
+Added:
+   trunk/doc/en/arch_ltr.html
+Log:
+forgot to add the LTR page to the repository :)
+
+Added: trunk/doc/en/arch_ltr.html
+===================================================================
+--- trunk/doc/en/arch_ltr.html	2009-03-11 13:58:20 UTC (rev 252)
++++ trunk/doc/en/arch_ltr.html	2009-03-11 13:58:57 UTC (rev 253)
+@@ -0,0 +1,269 @@
++&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
++&lt;html&gt;&lt;head&gt;
++&lt;meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=ISO-8859-1&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;Modules and LTR&lt;/title&gt;
++
++&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
++&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++&lt;h3&gt;Modules and LTR&lt;/h3&gt;
++&lt;p&gt;LTR (Lua Tiny RAM) is a Lua patch (written specifically for &lt;b&gt;eLua&lt;/b&gt; by Bogdan Marinescu) that significantly decreases the RAM usage of Lua scripts,
++  thus making it possible to run large Lua programs on systems with limited RAM. This section gives a full description of LTR. If you're writing &lt;b&gt;eLua&lt;/b&gt;
++  modules, this page will certainly be of interest to you, as it shows how to interact with LTR in a portable and easy to configure way.&lt;/p&gt;
++&lt;h2&gt;Motivation&lt;/h2&gt;
++&lt;p&gt;The main thing that drove me to write this patch is the relatively high Lua memory consumption at startup (obtained by running 
++  &lt;i&gt;lua -e &quot;print(collectgarbage'count')&quot;&lt;/i&gt;). It's about 17k for regular Lua 5.1.4, and more than 25k for some of eLua's platforms. These figures are 
++  mainly a result of registering many different modules to Lua. Each time you register a module (via luaL_register) you create a new table and populate 
++  it with the module's methods. But a table is a read/write datatype, so luaL_register is quite inefficient if you don't plan to do any write operations 
++  on that table later (adding new elements or manipulating existing ones). I found that I almost never have to do any such operations on a module's 
++  table after it was created, I just query it for its elements. So, from the perspective of someone worried about memory usage, I'd rather have a 
++  different type of table in this case, one that wouldn't need any RAM at all, since it would be read only, so it could reside entirely in ROM.&lt;/p&gt;
++  &lt;p&gt;There's one more thing related to this context: Lua's functions. While Lua does have the concept of C functions, they still require data structures 
++  that need to be allocated (see lua_pushcclosure in lapi.c for details), as they can have upvalues or environments. Once again, this isn't something I 
++  use often with eLua. Most of the times my functions (especially the ones exported by a C module) are very simple, and they don't need upvalues or 
++  environments at all. In conclusion, having a &quot;simpler&quot; function type would improve memory usage.
++&lt;/p&gt;
++&lt;h2&gt;Details&lt;/h2&gt;
++&lt;p&gt;The patch adds two new data types to Lua. Both or them are based on the lightuserdata type already found in Lua, and they share the same basic 
++  attributes: they don't need to be dynamically allocated (as they're just pointers on steroids) and they're compared in the same way lightuserdatas 
++  are compared (by value). And of course, they are not collectable, so the garbage collector won't have anything to do with them. The new types are:
++&lt;ol&gt;
++&lt;li&gt;&lt;b&gt;lightfunctions&lt;/b&gt;: these are &quot;simple&quot; functions, in the sense that they can't have upvalues or environments. They are just pointers to regular 
++  C functions. Other than that, you can use them from Lua just as you'd use any other function.&lt;/li&gt;
++
++&lt;li&gt;&lt;b&gt;rotables&lt;/b&gt;: these are read-only tables, but unlike the read-only tables that one can already implement in Lua with metamethods, they have a 
++  very specific property: they don't need any RAM at all. They are fully constant, so they can be read directly from ROM. They have a number of 
++  special features and limitations when compared with a regular table:
++&lt;ul&gt;
++  &lt;li&gt;rotables can only contain values of type &quot;lightfunction&quot;, lua_Number or pointers to other rotables.&lt;/li&gt;
++  &lt;li&gt;you can't add/delete/modify elements from rotables (obviously). However, rotables will honour the &quot;__newindex&quot; metamethod.&lt;/li&gt;
++  &lt;li&gt;you can use rotables as metatables for both &quot;regular&quot; tables and for Lua types (via debug.setmetatable)&lt;/li&gt;
++  &lt;li&gt;a rotable can have another rotable (or tself) as a metatable&lt;/li&gt;
++  &lt;li&gt;you can iterate over rotables with pairs/ipairs/next just as you do with &quot;regular&quot; tables.&lt;/li&gt;
++&lt;/ul&gt;&lt;/li&gt;&lt;/ol&gt;&lt;/p&gt;
++&lt;p&gt;Just as with lightuserdata, you can only create lightfunctions and rotables from C code, never from Lua itself.&lt;p&gt;
++&lt;h2&gt;Testing&lt;/h2&gt;
++&lt;p&gt;I tested my patch with the (&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://lua-users.org/lists/lua-l/2006-03/msg00723.html">http://lua-users.org/lists/lua-l/2006-03/msg00723.html</A>&quot;&gt;Lua 5.1 test suite&lt;/a&gt;). The test suite 
++  was an excellent testing tool. I thought I had the patch ready until I found the test suite and ran it. After another week of work, I had something 
++  that could be called functional :)&lt;/p&gt;
++&lt;p&gt;I tested everything via &quot;make generic&quot;, which is how I always build Lua for my embedded environments. This means (among other things) that I didn't 
++test pipes and dynamic module loading, although I don't see why they wouldn't work.&lt;/p&gt;
++&lt;p&gt;I never tested the patch in a multithreaded environment with more threads running different lua_States. I never even used regular Lua like this, 
++so I can't make asumptions about how my patch would behave in a multithreaded environment. It doesn't use any global or static variables, but you 
++might encounter other problems with it.&lt;/p&gt;
++&lt;h2&gt;Results&lt;/h2&gt;
++&lt;p&gt;The table below summarizes the RAM usage in KBytes (as obtained by running &lt;i&gt;lua -e &quot;print(collectgarbage'count')&quot;&lt;/i&gt; from the &lt;b&gt;eLua&lt;/b&gt; shell). 
++  &lt;b&gt;OPT=0&lt;/b&gt; is LTR's &quot;compatibility mode&quot; (basically this means that the patch is disabled, so you're running plain Lua) and &lt;b&gt;OPT=2&lt;/b&gt; is the 
++  patch in action.&lt;/p&gt;
++&lt;table style=&quot;width: 325px;&quot; class=&quot;table_center&quot;&gt;
++&lt;tbody&gt;
++&lt;tr&gt;
++&lt;th style=&quot;text-align: left;&quot;&gt;Platform&lt;/th&gt;
++&lt;th style=&quot;text-align: center;&quot;&gt;OPT=0&lt;/th&gt;
++&lt;th style=&quot;text-align: center;&quot;&gt;OPT=2&lt;/th&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;AVR32&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;23.75&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;5.42&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;AT91SAM7X&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;25.16&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;5.42&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;STR7&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;24.92&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;5.42&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;STR9&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;22.23&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;5.42&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;LPC2888&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;22.23&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;5.42&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;i386&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;16.90&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;5.42&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;LM3S&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;27.14&lt;/td&gt;
++  &lt;td style=&quot;text-align: center;&quot;&gt;5.42&lt;/td&gt;
++&lt;/tr&gt;
++&lt;/tbody&gt;
++&lt;/table&gt;
++&lt;/p&gt;
++&lt;p&gt;As you can see, the differences are significant, and (more important) it doesn't matter how many modules you load in &lt;b&gt;eLua&lt;/b&gt;, the RAM consumption
++   doesn't modify.&lt;/p&gt;
++&lt;p&gt;Currently, there aren't any performane measurements related to LTR. It's clear from the implementation that the patch slows down the virtual machine, 
++   but a precise performance penalty figure is not known. Experience suggests that the peformance penalty is minimal, and it certainly can't be observed 
++   with &quot;regular&quot; (non-computationally intensive) Lua programs.&lt;/p&gt;
++&lt;h2&gt;How to enable LTR&lt;/h2&gt;
++&lt;p&gt;Enabling LTR is very easy: all you need to do is specify the &lt;b&gt;opt=1&lt;/b&gt; as a paramater to scons when bulding &lt;b&gt;eLua&lt;/b&gt;, as explained
++   &lt;a href=&quot;building.html&quot;&gt;here&lt;/a&gt;. You don't even to specify this explicitly, as LTR is enabled by default for all &lt;b&gt;eLua&lt;/b&gt; targets.&lt;/p&gt;
++&lt;p&gt;When &lt;b&gt;optram&lt;/b&gt; is 0, LTR is not active. In this mode the patch just tries to keep the modified version as close as possible to the unpatched version 
++  in terms of speed and functionality. You might want to use this if you want full Lua compatibility (although this is rarely an issue in practice),
++  or need to overcome the read-only limitations of rotables (but check &lt;a href=&quot;faq.html#rotables&quot;&gt;this&lt;/a&gt; first). If your program behaves weird and you
++  suspect that LTR might be the cause of your problems, recompiling with &lt;b&gt;optram=0&lt;/b&gt; is a quick way to eliminate or confirm your suspicions.&lt;/p&gt;
++&lt;p&gt;When &lt;b&gt;optram&lt;/b&gt; is 1 (default), all the LTR optimizations are enabled. The implementation of the Lua standard libraries is modified to take advantage
++   of the new datatypes. In particular, the IO library is modified to use the registry instead of environments, thus making it more resource-friendly, 
++   the side effect  being that this mode doesn't support pipes in the &lt;b&gt;io&lt;/b&gt; module (which isn't an issue for &lt;b&gt;eLua&lt;/b&gt;). 
++   It also leaves the &lt;b&gt;_G&lt;/b&gt; (globals) table with a single method (&lt;i&gt;__index&lt;/i&gt;) and sets it as its own metatable, so all accesses to globals are
++   now sligthly slower because of the &lt;i&gt;__index&lt;/i&gt; metamethod call.&lt;/p&gt;
++&lt;h2&gt;Writing LTR-compatible modules&lt;/h2&gt;
++&lt;p&gt;The LTR patch introduces a specific method for writing modules in such a way that they're fully compatible with both &lt;b&gt;optram=0&lt;/b&gt; and &lt;b&gt;optram=1&lt;/b&gt;.
++   If you're writing a new &lt;b&gt;eLua&lt;/b&gt; module you should use this method, as it keeps code coherency. &lt;/p&gt;
++&lt;p&gt;We'll show this method using a simple example. Let's assume that you want to register a simple module called &quot;mod&quot; that has a single function named &quot;f&quot;. 
++  For regular Lua, you'd do something like this:&lt;/p&gt;
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;static const luaL_reg mod_map[] =
++{
++  { &quot;f&quot;, f_implementation },
++  { NULL, NULL }
++};
++
++LUALIB_API int luaopen_mod( lua_State *L )
++{
++  luaL_register( L, &quot;mod&quot;, mod_map );
++  return 1;
++}&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;p&gt;For the rotables implementation, however, you'd need to define the same thing like this:&lt;p&gt;
++
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;const luaR_entry mod_map[] = &lt;font color=&quot;red&quot;&gt;// note: no static this time&lt;/font&gt;
++{
++  { LRO_STRKEY( &quot;f&quot; ), LRO_FUNCVAL( f_implementation ) },
++  { LRO_NILKEY, LRO_NILVAL }
++};
++
++&lt;font color=&quot;red&quot;&gt;// note: in this case the &quot;luaopen_mod&quot; function isn't really needed anymore&lt;/font&gt;
++LUALIB_API int luaopen_mod( lua_State *L )
++{
++  return 0;
++}&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++
++&lt;p&gt;A few points about the rotables example above:
++&lt;ul&gt;
++  &lt;li&gt;a rotable needs a &quot;map&quot; (mod_map) array much like a regular module, but you need to define that array with special macros:
++  &lt;ul&gt;
++    &lt;li&gt;&lt;b&gt;for keys&lt;/b&gt;: &lt;b&gt;LRO_STRKEY(&quot;str&quot;)&lt;/b&gt; defines a string key, &lt;b&gt;LRO_NUMKEY(n)&lt;/b&gt; defines an integer key, and &lt;b&gt;LRO_NILKEY&lt;/b&gt; defines a NULL 
++       (empty) key&lt;/li&gt;
++    &lt;li&gt;&lt;b&gt;for values&lt;/b&gt;: &lt;b&gt;LRO_FUNCVAL(f)&lt;/b&gt; defines a lightfunction value, &lt;b&gt;LRO_NUMVAL(f)&lt;/b&gt; defines a number value, &lt;b&gt;LRO_RO(p)&lt;/b&gt; defines a 
++       rotable value (p is the pointer to the rotable) and &lt;b&gt;LRO_NILVAL&lt;/b&gt; defines a NULL (empty) value.&lt;/li&gt;
++  &lt;/ul&gt;
++  &lt;li&gt;all the &quot;global&quot; rotables in the system (the ones that must be visible from &lt;b&gt;_G&lt;/b&gt;, like the rotables of all the modules exported to Lua) must be 
++  included in a special array, called &lt;b&gt;lua_rotable&lt;/b&gt; (defined in &lt;i&gt;linit.c&lt;/i&gt;). Simply including the rotable's definition array (mod_map in this case)
++  in the lua_rotable array makes it visible globally, thus you don't need to call any kind of register function. This is why &lt;b&gt;luaopen_mod&lt;/b&gt; now returns
++  0.&lt;/li&gt;
++&lt;/ul&gt;&lt;/p&gt;
++&lt;p&gt;The two forms above (for regular tables and for rotables) are clearly different, but we want to keep them both to be able to work at both &lt;b&gt;optram=0&lt;/b&gt;
++  and &lt;b&gt;optram=2&lt;/b&gt;. You can use #ifdefs to differentiate between the two cases in different optimization levels, but this becomes really annoying after 
++  a (short) while. This is why I added another file called &lt;b&gt;lrodefs.h&lt;/b&gt; (&lt;i&gt;src/lua&lt;/i&gt;) that can be used to give an &quot;universal&quot; definition to our map 
++  arrays. Here's how our example looks after rewriting it to take advantage of &lt;b&gt;lrodefs.h&lt;/b&gt;:&lt;/p&gt;
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;&lt;font color=&quot;red&quot;&gt;#define MIN_OPT_LEVEL  2 // the minimum optimization level at which we use rotables&lt;/font&gt;
++#include &quot;lrodefs.h&quot;
++const &lt;font color=&quot;red&quot;&gt; LUA_REG_TYPE&lt;/font&gt; mod_map[] = &lt;font color=&quot;red&quot;&gt;// note: no more luaL_reg or luaR_entry&lt;/font&gt;
++{
++  { LSTRKEY( &quot;f&quot; ), LFUNCVAL( f_implementation ) },
++  { LNILKEY, LNILVAL }
++};
++// &lt;font color=&quot;red&quot;&gt;note: no more LRO_something, just Lsomething (for example LRO_STRKEY becomes LSTRKEY)&lt;/font&gt;
++
++LUALIB_API int luaopen_mod( lua_State *L )
++{
++  &lt;font color=&quot;red&quot;&gt;LREGISTER&lt;/font&gt;( L, &quot;mod&quot;, mod_map ); // &lt;font color=&quot;red&quot;&gt;note: no more luaL_register, no &quot;return 1&quot;&lt;/font&gt;
++}&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;p&gt;Now, if &lt;b&gt;LUA_OPTIMIZE_MEMORY&lt;/b&gt; (a macro defined by the system as 0 when &lt;b&gt;optram=0&lt;/b&gt; and as 2 when &lt;b&gt;optram=1&lt;/b&gt;) is less than 
++  &lt;b&gt;MIN_OPT_LEVEL&lt;/b&gt;, the above definition will compile in its &quot;regular table&quot; format. If &lt;b&gt;LUA_OPTIMIZE_MEMORY&lt;/b&gt; is 2, it compiles to the 
++  rotables format. Problem solved :) &lt;b&gt;LREGISTER&lt;/b&gt; will also take care of calling &lt;b&gt;luaL_register&lt;/b&gt; and return 1 when &lt;b&gt;optram=0&lt;/b&gt; and do 
++  absolutely nothing when &lt;b&gt;optram=1&lt;/b&gt;. You can see more examples of this in any module from &lt;i&gt;src/modules&lt;/i&gt;, and you're encouraged to do so,
++  as this is only a very basic example; &lt;i&gt;src/modules&lt;/i&gt; contains real life examples that can serve as a good basis for a new module.&lt;/p&gt;
++&lt;p&gt;As you know by now, rotables can have metatables, and also you can set a rotable as a metatable for a regular table. If a rotable must have a 
++  metatable, it needs a &quot;__metatable&quot; field to point to its metatable (which is also a rotable, not necessarily another rotable) and the usual 
++  metatable functions. For example, let's make our &lt;b&gt;mod&lt;/b&gt; rotable its own metatable and declare an &lt;b&gt;__index&lt;/b&gt; function. Moreover, let's do 
++  this for both &lt;b&gt;optram=0&lt;/b&gt; and &lt;b&gt;optram=1&lt;/b&gt;.&lt;/p&gt;
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;static int mod_mt_index( lua_State *L ) 
++{
++  return 0;
++}
++
++#define MIN_OPT_LEVEL  2 // the minimum optimization level at which we use rotables
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE mod_map[] =
++{
++  { LSTRKEY( &quot;f&quot; ), LFUNCVAL( f_implementation ) },
++&lt;font color=&quot;red&quot;&gt;#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;__metatable&quot; ), LROVAL( mod_map ) },
++#endif&lt;/font&gt;
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( mod_mt_index) },
++  { LNILKEY, LNILVAL };
++};
++	  
++LUALIB_API int luaopen_mod( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else
++  luaL_register( L, &quot;mod&quot;, mod_map );
++	      
++  &lt;font color=&quot;red&quot;&gt;// Set &quot;mod&quot; as its own metatable
++  lua_pushvalue( L, -1 );
++  lua_setmetatable( L, -2 );&lt;/font&gt;
++		    
++ return 1;
++ #endif
++}&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;p&gt;If you want to register a module using a regular Lua table, but use lightfunctions instead of regular functions, use &lt;i&gt;luaL_register_light&lt;/i&gt; instead
++  of &lt;i&gt;luaL_register&lt;/i&gt; (same syntax). &lt;/p&gt;
++&lt;p&gt;More important things to keep in mind when working with LTR:
++&lt;ul&gt;
++  &lt;li&gt;currently, &lt;b&gt;MIN_OPT_LEVEL&lt;/b&gt; should be always set to 2&lt;/li&gt;
++  &lt;li&gt;you need a C99-compatible compiler to use LTR (because of the compile-time explicit union initialization that's needed to declare const rotables). 
++  Fortunately this isn't a issue right now, as all current eLua targets use GCC and GCC knows how to handle this.&lt;/li&gt;
++  &lt;li&gt;your linker command file should export two symbols: &lt;b&gt;stext&lt;/b&gt; and &lt;b&gt;etext&lt;/b&gt;. They should be declared before and after the .rodata* section 
++  placement (generally you'd declare stext at the beginning of .text definition and etext and the end of .text definition, see for example 
++  &lt;i&gt;src/lua/at91sam7x256/flash256.lds&lt;/i&gt;). These are needed by the patch to differentiate between a regular table and a rotable (although this is likely
++  to change in a future version of the patch.&lt;/li&gt;
++  &lt;li&gt;&lt;b&gt;&lt;font color=&quot;red&quot;&gt;remember to declare all you rotable's definition array as 'const'!!&lt;/font&gt;&lt;/b&gt; Forgetting to do so will not only increase 
++  memory usage, it will also make the patch not functional, because of the way it recognizes rotables (see above).&lt;/li&gt;
++&lt;/ul&gt;&lt;/p&gt;
++&lt;a name=&quot;config&quot;&gt;&lt;h2&gt;LTR and module configuration at build time&lt;/h2&gt;&lt;/a&gt;
++&lt;p&gt;With unpatched Lua, you can specify what modules to be part of the Lua image by modifying &lt;i&gt;src/lua/linit.c&lt;/i&gt;. In the particular case of &lt;b&gt;eLua&lt;/b&gt;
++  one had to declare a list of the modules that must be compiled in &lt;i&gt;src/platform/&lt;name&gt;/platform_conf.h&lt;/i&gt; like this:&lt;/p&gt;
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;#define LUA_PLATFORM_LIBS\
++  { AUXLIB_PIO, luaopen_pio },\
++  { AUXLIB_TMR, luaopen_tmr },\
++  { AUXLIB_PD, luaopen_pd },\
++  { AUXLIB_UART, luaopen_uart },\
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PWM, luaopen_pwm },\
++  { AUXLIB_PACK, luaopen_pack },\
++  { AUXLIB_BIT, luaopen_bit },\
++  { LUA_MATHLIBNAME, luaopen_math }
++&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt; 
++  Things are a bit more complex with LTR, but not by much. The list of modules that must be compiled is declared via a preprocessor macro in 
++  &lt;i&gt;src/platform/&lt;name&gt;/platform_conf.h&lt;/i&gt; and it looks like this:&lt;/p&gt;
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;p&gt;(&lt;b&gt;IMPORTANT NOTE&lt;/b&gt;: the fact that there are no commas between two different _ROM declarations (as seen above) is NOT an error; 
++  on the contrary, this is very much intended. Try using commas and you'll get in trouble very soon :) ).&lt;/p&gt;
++&lt;p&gt;Note the 3rd parameter of the &lt;b&gt;_ROM&lt;/b&gt; macro, which is the name of the definition array for the (ro)table. That's it. The code in linit.c will take 
++  care of everything else, including initializing the list of modules in LUA_PLATFORM_LIBS_ROM with regular tables instead of rotables at &lt;b&gt;optram=0&lt;/b&gt; 
++  (to maintain compatilibity with regular Lua). You can also have a list of modules that you want to use with regular tables no matter what the 
++  optimization level is. In that case, list it in the &lt;b&gt;LUA_PLATFORM_LIBS_REG&lt;/b&gt; macro via the old syntax for &lt;b&gt;LUA_PLATFORM_LIBS&lt;/b&gt;, as shown
++  above (the regular Lua syntax for defining a module to be registered with luaL_register). If you want this module to use lightfunctions instead of 
++  regular functions (at &lt;b&gt;optram=1&lt;/b&gt;), use &lt;i&gt;luaL_register_light&lt;/i&gt; instead of &lt;i&gt;luaL_register&lt;/i&gt;.
++&lt;/p&gt;
++&lt;/body&gt;&lt;/html&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000208.html">[Elua-svn] r252 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000210.html">[Elua-svn] r254 - in trunk/doc: . en wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#209">[ date ]</a>
+              <a href="thread.html#209">[ thread ]</a>
+              <a href="subject.html#209">[ subject ]</a>
+              <a href="author.html#209">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

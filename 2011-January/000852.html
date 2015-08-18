@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r899 - trunk/src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r899%20-%20trunk/src/platform/stm32&In-Reply-To=%3C20110127232556.0B14A480D42%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000851.html">
+   <LINK REL="Next"  HREF="000853.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r899 - trunk/src/platform/stm32</H1>
+    <B>jbsnyder at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r899%20-%20trunk/src/platform/stm32&In-Reply-To=%3C20110127232556.0B14A480D42%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r899 - trunk/src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Jan 28 00:25:55 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000851.html">[Elua-svn] r898 - trunk/src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000853.html">[Elua-svn] r900 - branches/pre0.8
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#852">[ date ]</a>
+              <a href="thread.html#852">[ thread ]</a>
+              <a href="subject.html#852">[ subject ]</a>
+              <a href="author.html#852">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2011-01-28 00:25:55 +0100 (Fri, 28 Jan 2011)
+New Revision: 899
+
+Modified:
+   trunk/src/platform/stm32/platform_int.c
+Log:
+STM32: allow simultaneous rising/falling interrupt registration for a given line
+
+Modified: trunk/src/platform/stm32/platform_int.c
+===================================================================
+--- trunk/src/platform/stm32/platform_int.c	2011-01-27 19:04:40 UTC (rev 898)
++++ trunk/src/platform/stm32/platform_int.c	2011-01-27 23:25:55 UTC (rev 899)
+@@ -142,18 +142,39 @@
+ static int gpioh_set_int_status( elua_int_id id, elua_int_resnum resnum, int status )
+ {
+   int prev = gpioh_get_int_status( id, resnum );
++  u32 mask = 1 &lt;&lt; exint_gpio_to_src( resnum );
+   EXTI_InitTypeDef exti_init_struct;
+   
+-  GPIO_EXTILineConfig( PLATFORM_IO_GET_PORT( resnum ), PLATFORM_IO_GET_PIN( resnum ) );
++  if( status == PLATFORM_CPU_ENABLE )
++  {
++    // Configure port for interrupt line
++    GPIO_EXTILineConfig( PLATFORM_IO_GET_PORT( resnum ), PLATFORM_IO_GET_PIN( resnum ) );
+ 
+-  EXTI_StructInit(&amp;exti_init_struct);
+-  exti_init_struct.EXTI_Line = exti_line[ exint_gpio_to_src( resnum ) ];
+-  exti_init_struct.EXTI_Mode = EXTI_Mode_Interrupt;
+-  exti_init_struct.EXTI_Trigger = id == INT_GPIO_POSEDGE ? EXTI_Trigger_Rising : EXTI_Trigger_Falling;
+-  exti_init_struct.EXTI_LineCmd = ENABLE;
+-  EXTI_Init(&amp;exti_init_struct);
++    EXTI_StructInit(&amp;exti_init_struct);
++    exti_init_struct.EXTI_Line = exti_line[ exint_gpio_to_src( resnum ) ];
++    exti_init_struct.EXTI_Mode = EXTI_Mode_Interrupt;
++    if( ( ( ( EXTI-&gt;RTSR &amp; mask ) != 0 ) &amp;&amp; ( id == INT_GPIO_NEGEDGE ) ) ||
++	( ( ( EXTI-&gt;FTSR &amp; mask ) != 0 ) &amp;&amp; ( id == INT_GPIO_POSEDGE ) ) )
++      exti_init_struct.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
++    else
++      exti_init_struct.EXTI_Trigger = id == INT_GPIO_POSEDGE ? EXTI_Trigger_Rising : EXTI_Trigger_Falling;
++    exti_init_struct.EXTI_LineCmd = ENABLE;
++    EXTI_Init(&amp;exti_init_struct);
+ 
+-  EXTI_ClearITPendingBit( exti_line[ exint_gpio_to_src( resnum ) ] );
++    EXTI_ClearITPendingBit( exti_line[ exint_gpio_to_src( resnum ) ] );
++  }
++  else
++  {
++    //Disable edge
++    if( id == INT_GPIO_POSEDGE )
++      EXTI-&gt;RTSR &amp;= ~mask;
++    else
++      EXTI-&gt;FTSR &amp;= ~mask;
++    
++    //If no edges enabled, disable line interrupt
++    if( ( ( EXTI-&gt;RTSR | EXTI-&gt;FTSR ) &amp; mask ) == 0 )
++      EXTI-&gt;IMR &amp;= ~mask;
++  }
+   return prev;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000851.html">[Elua-svn] r898 - trunk/src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000853.html">[Elua-svn] r900 - branches/pre0.8
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#852">[ date ]</a>
+              <a href="thread.html#852">[ thread ]</a>
+              <a href="subject.html#852">[ subject ]</a>
+              <a href="author.html#852">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

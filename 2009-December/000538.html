@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r582 - branches/pre0.7/doc/eluadoc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r582%20-%20branches/pre0.7/doc/eluadoc&In-Reply-To=%3C200912120009.nBC09e8v004686%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000537.html">
+   <LINK REL="Next"  HREF="000539.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r582 - branches/pre0.7/doc/eluadoc</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r582%20-%20branches/pre0.7/doc/eluadoc&In-Reply-To=%3C200912120009.nBC09e8v004686%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r582 - branches/pre0.7/doc/eluadoc">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Dec 12 01:09:40 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000537.html">[Elua-svn] r581 - branches/pre0.7/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000539.html">[Elua-svn] r583 - in branches/pre0.7: doc/en romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#538">[ date ]</a>
+              <a href="thread.html#538">[ thread ]</a>
+              <a href="subject.html#538">[ subject ]</a>
+              <a href="author.html#538">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-12 01:09:29 +0100 (Sat, 12 Dec 2009)
+New Revision: 582
+
+Modified:
+   branches/pre0.7/doc/eluadoc/refman_gen_cpu.lua
+   branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua
+Log:
+Add more detail to LuaRPC doc.
+
+Modified: branches/pre0.7/doc/eluadoc/refman_gen_cpu.lua
+===================================================================
+--- branches/pre0.7/doc/eluadoc/refman_gen_cpu.lua	2009-12-11 07:38:50 UTC (rev 581)
++++ branches/pre0.7/doc/eluadoc/refman_gen_cpu.lua	2009-12-12 00:09:29 UTC (rev 582)
+@@ -12,7 +12,7 @@
+   -- Overview
+   overview = [[This module deals with low-level access to CPU (and related modules) functionality, such as reading and writing memory, or 
+   enabling and disabling interrupts. It also offers access to platform specific CPU-related constants using a special macro defined in the
+-  platform's $platform_conf.h$ file, as exaplained @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">cpu_constants at here</A>@.]],
++  platform's $platform_conf.h$ file, as explained @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">cpu_constants at here</A>@.]],
+ 
+   -- Data structures, constants and types
+   structures = 
+
+Modified: branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua
+===================================================================
+--- branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua	2009-12-11 07:38:50 UTC (rev 581)
++++ branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua	2009-12-12 00:09:29 UTC (rev 582)
+@@ -14,6 +14,25 @@
+   &lt;p&gt;It works by providing a $handle$ to the client session which allows control over remote state. Functions can
+   be called in the remote environment and variables can be manipulated by treating the $handle$ (representing 
+   the remote global table) as if it were a local table.&lt;/p&gt;
++  &lt;p&gt;In order to open a connection, it is necessary to specify the interface through wich the connection is made.
++  Currently the connections are limited to serial ports on the desktop side, and uart devices on the eLua side.
++  For a number of the connections below, a parameter labeled $transport_identifiers$ is used to specify the port
++  to be used in a platform specific manner:
++  &lt;ul&gt;
++    &lt;li&gt;eLua: $transport_identifiers$ = $uart_id$, $timer_id$
++      &lt;ul&gt;
++        &lt;li&gt;$uart_id$ - the ID of the serial port (as in the @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">refman_gen_uart.html at uart</A> module@). This uart must already be configured using $uart.setup$ before being used in this module.&lt;/li&gt;
++        &lt;li&gt;$timer_id$ - the ID of the timer for send/receive timeouts (as with send/receive functions in the @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">refman_gen_uart.html at uart</A> module@)&lt;/li&gt;
++      &lt;/ul&gt;
++    &lt;/li&gt;
++    &lt;li&gt;Linux/Mac OS X luarpc: $transport_identifiers$ = $uart_path$
++      &lt;ul&gt;
++        &lt;li&gt;$uart_path$ - the path to the serial port to use (e.g.: &quot;/dev/ttyS0&quot;)&lt;/li&gt;
++      &lt;/ul&gt;
++    &lt;/li&gt;
++  &lt;/ul&gt;
++  &lt;/p&gt;
++  
+   &lt;p&gt;&lt;span class=&quot;warning&quot;&gt;IMPORTANT&lt;/span&gt;: This module is considered experimental. It currently works over a 
+   serial port with eLua targets and on desktop systems implementing POSIX serial communications (Linux, Mac OS X, etc).
+   ]],
+@@ -25,9 +44,16 @@
+       desc = &quot;Initiate connection from client to server.&quot;,
+       args = 
+       {
+-        &quot;$transport_identifiers$ - identifiers for channel connecting to server (specific to selected transport)&quot;,
++        &quot;$transport_identifiers$ - platform-specific serial port identification (see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">overview at overview</A>@)&quot;
+       },
+-      ret = &quot;$handle$ - used to interact with the remote Lua state.&quot;
++      ret = [[$handle$ - handle used to interact with the remote Lua state.  Usage styles are as follows:
++              &lt;ul&gt;
++                &lt;li&gt;$handle$.$remote_variable$ = $local_variable$ - send contents of $local_variable$ to remote host and assign to $remote_variable$ (registered on global table). This also works where the destination variable is nested within tables.&lt;/li&gt;
++                &lt;li&gt;$local_variable$ = $handle$.$remote_variable$:get() - get contents of $remote_variable$ from remote global table and assign to $local_variable$.&lt;/li&gt;
++                &lt;li&gt;$val1$, $val2$, $valn$ = $handle$.$remote_function$() - call $remote_function$ on the server side, and return values to local state&lt;/li&gt;
++                &lt;li&gt;$helper$ = $handle$.$remote_variable$ - create a $helper$ which points to $remote_variable$, and can be used as shorthand later (e.g.: $helper$:get() would get the contents of the remote variable. If $remote_variable$ were a table with functions on it: $helper$.$funcname$() would call $funcname$, on table $remote_variable$ on the server, and return any results.)&lt;/li&gt;
++              &lt;/ul&gt;
++            ]]
+     },
+ 
+     { sig = &quot;#rpc.close#( handle )&quot;,
+@@ -37,7 +63,7 @@
+ 
+     { sig = &quot;#rpc.server#( transport_identifiers )&quot;,
+       desc = &quot;Start a blocking/captive RPC server, which will wait for incoming connections.&quot;,
+-      args = &quot;$transport_identifiers$ - identifiers for the transport channel to listen on (specific to selected transport).&quot;,
++      args = &quot;$transport_identifiers$ - platform-specific serial port identification (see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">overview at overview</A>@)&quot;,
+     },
+ 
+     { sig = &quot;#rpc.on_error#( err_handler )&quot;,
+@@ -47,7 +73,7 @@
+ 
+     { sig = &quot;server_handle = #rpc.listen#( transport_identifiers )&quot;,
+       desc = &quot;Open a listener on transport and await incoming connections.&quot;,
+-      args = &quot;$transport_identifiers$ - identifiers for the transport channel to listen on (specific to selected transport).&quot;,
++      args = &quot;$transport_identifiers$ - platform-specific serial port identification (see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">overview at overview</A>@)&quot;,
+       ret = &quot;server handle to use with @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">rpc.peek at rpc.peek</A>@ and @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">rpc.dispatch at rpc.dispatch</A>@&quot;
+     },
+     
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000537.html">[Elua-svn] r581 - branches/pre0.7/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000539.html">[Elua-svn] r583 - in branches/pre0.7: doc/en romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#538">[ date ]</a>
+              <a href="thread.html#538">[ thread ]</a>
+              <a href="subject.html#538">[ subject ]</a>
+              <a href="author.html#538">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

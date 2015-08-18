@@ -1,0 +1,1871 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r364 - in tags/pre0.6: . doc doc/luadoc romfs src	src/modules src/platform src/platform/sim
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r364%20-%20in%20tags/pre0.6%3A%20.%20doc%20doc/luadoc%20romfs%20src%0A%09src/modules%20src/platform%20src/platform/sim&In-Reply-To=%3C200907201939.n6KJdL9x031488%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000319.html">
+   <LINK REL="Next"  HREF="000321.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r364 - in tags/pre0.6: . doc doc/luadoc romfs src	src/modules src/platform src/platform/sim</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r364%20-%20in%20tags/pre0.6%3A%20.%20doc%20doc/luadoc%20romfs%20src%0A%09src/modules%20src/platform%20src/platform/sim&In-Reply-To=%3C200907201939.n6KJdL9x031488%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r364 - in tags/pre0.6: . doc doc/luadoc romfs src	src/modules src/platform src/platform/sim">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Jul 20 21:39:21 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000319.html">[Elua-svn] r363 - tags/pre0.6/inc
+</A></li>
+        <LI>Next message: <A HREF="000321.html">[Elua-svn] r365 - in trunk: romfs src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#320">[ date ]</a>
+              <a href="thread.html#320">[ thread ]</a>
+              <a href="subject.html#320">[ subject ]</a>
+              <a href="author.html#320">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-07-20 21:39:18 +0200 (Mon, 20 Jul 2009)
+New Revision: 364
+
+Added:
+   tags/pre0.6/doc/luadoc/refman_gen_term.lua
+   tags/pre0.6/run_elua_sim.sh
+   tags/pre0.6/src/platform/sim/
+   tags/pre0.6/src/platform/sim/boot.s
+   tags/pre0.6/src/platform/sim/conf.py
+   tags/pre0.6/src/platform/sim/host.c
+   tags/pre0.6/src/platform/sim/host.h
+   tags/pre0.6/src/platform/sim/hostif.h
+   tags/pre0.6/src/platform/sim/hostif_linux.c
+   tags/pre0.6/src/platform/sim/i386.ld
+   tags/pre0.6/src/platform/sim/platform.c
+   tags/pre0.6/src/platform/sim/platform_conf.h
+   tags/pre0.6/src/platform/sim/stacks.h
+   tags/pre0.6/src/platform/sim/type.h
+   tags/pre0.6/src/platform/sim/utils.s
+Modified:
+   tags/pre0.6/SConstruct
+   tags/pre0.6/doc/build_dist_doc.sh
+   tags/pre0.6/doc/builddoc.lua
+   tags/pre0.6/doc/luadoc/arch_platform_uart.lua
+   tags/pre0.6/doc/luadoc/template.lua
+   tags/pre0.6/doc/style.css
+   tags/pre0.6/romfs/adcpoll.lua
+   tags/pre0.6/romfs/adcscope.lua
+   tags/pre0.6/romfs/dualpwm.lua
+   tags/pre0.6/romfs/hangman.lua
+   tags/pre0.6/romfs/morse.lua
+   tags/pre0.6/romfs/piano.lua
+   tags/pre0.6/romfs/pong.lua
+   tags/pre0.6/romfs/pwmled.lua
+   tags/pre0.6/src/main.c
+   tags/pre0.6/src/modules/term.c
+Log:
+syntax revision on term, more docs, added simulator
+
+Modified: tags/pre0.6/SConstruct
+===================================================================
+--- tags/pre0.6/SConstruct	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/SConstruct	2009-07-20 19:39:18 UTC (rev 364)
+@@ -57,6 +57,7 @@
+   'lm3s' : { 'cpus' : [ 'LM3S8962', 'LM3S6965', 'LM3S6918' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'str9' : { 'cpus' : [ 'STR912FAW44' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'i386' : { 'cpus' : [ 'I386' ], 'toolchains' : [ 'i686-gcc' ] },
++  'sim' : { 'cpus' : [ 'LINUX' ], 'toolchains' : [ 'i686-gcc' ] },
+   'lpc288x' : { 'cpus' : [ 'LPC2888' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'str7' : { 'cpus' : [ 'STR711FR2' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'stm32' : { 'cpus' : [ 'STM32F103ZE', 'STM32F103RE' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+@@ -69,6 +70,7 @@
+                'EK-LM3S6965' : [ 'LM3S6965' ],
+                'STR9-COMSTICK' : [ 'STR912FAW44' ],
+                'PC' : [ 'I386' ],
++               'SIM' : [ 'LINUX' ],
+                'LPC-H2888' : [ 'LPC2888' ],
+                'MOD711' : [ 'STR711FR2' ],
+                'STM3210E-EVAL' : [ 'STM32F103ZE' ],
+@@ -104,6 +106,7 @@
+               'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope','adcpoll' ],
+               'STR9-COMSTICK' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'PC' : [ 'bisect', 'hello', 'info', 'life', 'hangman' ],
++              'SIM' : [ 'bisect', 'hello', 'info', 'life', 'hangman' ],
+               'LPC-H2888' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'MOD711' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'dualpwm' ],
+               'STM3210E-EVAL' : [ 'bisect', 'hello', 'info' ],
+@@ -203,6 +206,10 @@
+ elif allocator == 'simple':
+   cdefs = cdefs + &quot; -DUSE_SIMPLE_ALLOCATOR&quot;
+ 
++# Special macro definitions for the SYM target
++if platform == 'sim':
++  cdefs = cdefs + &quot; -DELUA_SIMULATOR -DELUA_SIM_%s&quot; % cputype
++
+ # Lua source files and include path
+ lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
+    lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
+
+Modified: tags/pre0.6/doc/build_dist_doc.sh
+===================================================================
+--- tags/pre0.6/doc/build_dist_doc.sh	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/doc/build_dist_doc.sh	2009-07-20 19:39:18 UTC (rev 364)
+@@ -6,13 +6,9 @@
+ mkdir dist
+ 
+ # Build platform docs
+-lua builddoc.lua
+-if [ $? -ne 0 ]
+-then
+-  exit
+-fi
++lua builddoc.lua || exit 1
+ cd wb
+-lua wb_build.lua
++lua wb_build.lua || exit 1
+ cd ..
+ 
+ # Copy the required files to the dist/ directory
+
+Modified: tags/pre0.6/doc/builddoc.lua
+===================================================================
+--- tags/pre0.6/doc/builddoc.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/doc/builddoc.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -7,7 +7,7 @@
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+-  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot; }
++  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot; }
+ }
+ 
+ -- List here all languages for the documentation (make sure to keep English (&quot;en&quot;) the first one)
+@@ -17,6 +17,14 @@
+ local structures_tr = { en = &quot;Data structures&quot;, pt = &quot;##Data structures&quot; }
+ local functions_tr = { en = &quot;Functions&quot;, pt = &quot;##Functions&quot; }
+ 
++-- Paragraph indentation flag
++local p_indent = false
++
++-- Return a proper &lt;p&gt; tag based on the p_indent flag
++local function get_p()
++  return p_indent and '&lt;p class=&quot;doc&quot;&gt;' and '&lt;p&gt;'
++end
++
+ -- Format a name to a link by changing all the spaces to &quot;_&quot; and
+ -- making all letters lowercase
+ local function name2link( str )
+@@ -87,6 +95,10 @@
+   end )
+   str = str:gsub( &quot;~~&quot;, &quot;~&quot; )
+ 
++  if p_indent then
++    str = str:gsub( &quot;&lt;p&gt;&quot;, '&lt;p class=&quot;doc&quot;&gt;' )
++  end
++
+   -- other &quot;\n&quot; chars should dissapear now
+   if not keepnl then  str = str:gsub( &quot;\n&quot;, &quot; &quot; ) end
+ 
+@@ -167,7 +179,9 @@
+         page = page .. &quot;&lt;p&gt;&lt;pre&gt;&lt;code&gt;&quot; .. format_string( s.text, true ) .. &quot;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&quot;
+         page = page .. &quot;&lt;/a&gt;&quot;
+         -- description
+-        page = page .. &quot;\n&lt;p&gt;&quot; .. format_string( s.desc ) .. &quot;&lt;/p&gt;\n\n&quot;
++        p_indent = true
++        page = page .. &quot;\n&lt;p class=\&quot;doc\&quot;&gt;&quot; .. format_string( s.desc ) .. &quot;&lt;/p&gt;\n\n&quot;
++        p_indent = false
+       end 
+     end
+ 
+@@ -193,9 +207,10 @@
+       page = page .. &quot;&lt;p&gt;&lt;pre&gt;&lt;code&gt;&quot; .. f.sig:gsub( '#', '' ) .. &quot;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&quot;
+       page = page .. &quot;&lt;/a&gt;&quot;
+       -- description
+-      page = page .. &quot;\n&lt;p&gt;&quot; .. format_string( f.desc ) .. &quot;&lt;/p&gt;\n&quot;
++      p_indent = true
++      page = page .. &quot;\n&lt;p class=\&quot;doc\&quot;&gt;&quot; .. format_string( f.desc ) .. &quot;&lt;/p&gt;\n&quot;
+       -- arguments
+-      page = page .. &quot;&lt;p&gt;&lt;b&gt;Arguments&lt;/b&gt;: &quot;
++      page = page .. &quot;&lt;p class=\&quot;doc\&quot;&gt;&lt;b&gt;Arguments&lt;/b&gt;: &quot;
+       if f.args then
+         local a = f.args
+         if type( a ) == &quot;string&quot; or ( type( a ) == &quot;table&quot; and #a == 1 ) then
+@@ -211,7 +226,7 @@
+       end
+       page = page .. &quot;&lt;/p&gt;\n&quot;
+       -- return value
+-      page = page .. &quot;&lt;p&gt;&lt;b&gt;Returns&lt;/b&gt;: &quot;
++      page = page .. &quot;&lt;p class=\&quot;doc\&quot;&gt;&lt;b&gt;Returns&lt;/b&gt;: &quot;
+       if f.ret then
+         local r = f.ret
+         if type( r ) == &quot;string&quot; or ( type( r ) == &quot;table&quot; and #r == 1 ) then
+@@ -226,6 +241,7 @@
+         page = page .. &quot;nothing&quot;
+       end
+       page = page .. &quot;&lt;/p&gt;\n\n&quot;
++      p_indent = false
+     end
+ 
+     -- aux data (if any)
+
+Modified: tags/pre0.6/doc/luadoc/arch_platform_uart.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/arch_platform_uart.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/doc/luadoc/arch_platform_uart.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -88,7 +88,7 @@
+         &quot;$timer_id$ - the ID of the timer used in this operation (see @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">arch_platform_timers.html at here</A>@ for details). See also the description of the $timeout$ argument.&quot;,
+         [[$timeout$ - specifies a timeout for the receive operation as follows:
+   &lt;ul&gt;
+-    &lt;li&gt;$timeout &gt; 0$: the timer with the specified $timer_id$ will be used to timeout the receive operation after $timeout$ microseconds.&lt;/li&gt;
++    &lt;li&gt;$timeout &gt; 0$: the timer with the specified $timer_id$ will be used to timeout the receive operation after $timeout$ microseconds.&lt;/li&gt;
+     &lt;li&gt;$timeout = 0$: the function returns immediately regardless of data being available or not. $timer_id$ is ignored.&lt;/li&gt;
+     &lt;li&gt;$timeout$ = @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_timeout at PLATFORM_UART_INFINITE_TIMEOUT</A>@: the function waits indefinitely for UART data to be available and returns it. In this mode the function doesn't 
+         time out, so $timer_id$ is ignored.&lt;/li&gt;
+@@ -96,7 +96,7 @@
+       },
+       ret = 
+       {
+-        &quot;if $timeout &gt; 0$ and data from the UART is available in $timeout$ microseconds of less it is returned, otherwise -1 is returned&quot;,
++        &quot;if $timeout &gt; 0$ and data from the UART is available in $timeout$ microseconds of less it is returned, otherwise -1 is returned&quot;,
+         &quot;if $timeout = 0$ and data from the UART is available when the function is called it is returned, otherwise -1 is returned&quot;,
+         &quot;if $timeout$ = @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_timeout at PLATFORM_UART_INIFINITE_TIMEOUT</A>@ it returns the data read from the UART after it becomes available&quot;
+       }
+
+Added: tags/pre0.6/doc/luadoc/refman_gen_term.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/refman_gen_term.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/doc/luadoc/refman_gen_term.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,157 @@
++-- eLua reference manual - term module
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - term module&quot;,
++
++  -- Menu name
++  menu_name = &quot;term&quot;,
++
++  -- Overview
++  overview = [[This module contains functions for accessing ANSI-compatible terminals (and terminal emulators) from Lua.]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;#term.clrscr#()&quot;,
++      desc = &quot;Clear the screen&quot;,
++    },
++
++    { sig = &quot;#term.clreol#()&quot;,
++      desc = &quot;Clear from the current cursor position to the end of the line&quot;,
++    },
++
++    { sig = &quot;#term.moveto#( x, y )&quot;,
++      desc = &quot;Move the cursor to the specified coordinates&quot;,
++      args=
++      {
++        &quot;$x$ - the column (starting with 1)&quot;,
++        &quot;$y$ - the line (starting with 1)&quot;
++      }
++    },
++
++    { sig = &quot;#term.moveup#( delta )&quot;,
++      desc = &quot;Move the cursor up&quot;,
++      args = &quot;$delta$ - number of lines to move the cursor up&quot;
++    },
++
++    { sig = &quot;#term.movedown#( delta )&quot;,
++      desc = &quot;Move the cursor down&quot;,
++      args = &quot;$delta$ - number of lines to move the cursor down&quot;,
++    },
++
++    { sig = &quot;#term.moveleft#( delta )&quot;,
++      desc = &quot;Move the cursor left&quot;,
++      args = &quot;$delta$ - number of columns to move the cursor left&quot;,
++    },
++ 
++    { sig = &quot;#term.moveright#( delta )&quot;,
++      desc = &quot;Move the cursor right&quot;,
++      args = &quot;$delta$ - number of columns to move the cursor right&quot;,
++    },
++
++    { sig = &quot;numlines = #term.getlines#()&quot;,
++      desc = &quot;Get the number of lines in the terminal&quot;,
++      ret = &quot;The number of lines in the terminal&quot;,
++    },
++
++    { sig = &quot;numcols = #term.getcols#()&quot;,
++      desc = &quot;Get the number of columns in the terminal&quot;,
++      ret = &quot;The number of columns in the terminal&quot;,
++    },
++
++    { sig = &quot;#term.print#( [ x, y ], str1, [ str2, ..., strn ] )&quot;,
++      desc = &quot;Write one or more strings in the terminal&quot;,
++      args = 
++      {
++        &quot;$x (optional)$ - write the string at this column. If $x$ is specified, $y$ must also be specified&quot;,
++        &quot;$y (optional)$ - write the string at this line. If $y$ is specified, $x$ must also be specified&quot;,
++        &quot;$str1$ - the first string to write&quot;,
++        &quot;$str2 (optional)$ - the second string to write&quot;,
++        &quot;$strn (optional)$ - the nth string to write&quot;
++      }
++    },
++
++    { sig = &quot;cx = #term.getcx#()&quot;,
++      desc = &quot;Get the current column of the cursor&quot;,
++      ret = &quot;The column of the cursor&quot;
++    },
++
++    { sig = &quot;cy = #term.getcy#()&quot;,
++      desc = &quot;Get the current line of the cursor&quot;,
++      ret = &quot;The line of the cursor&quot; 
++    },
++
++    { sig = &quot;ch = #term.getchar#( [ mode ] )&quot;,
++      desc = &quot;Read a char (a key press) from the terminal&quot;,
++      args = [[$mode (optional)$ - terminal input mode. It can be either:
++  &lt;ul&gt;
++    &lt;li&gt;$term.WAIT$ - wait for a key to be pressed, then return it. This is the default behaviour if $mode$ is not specified. &lt;/li&gt;
++    &lt;li&gt;$term.NOWAIT$ - if a key was pressed on the terminal return it, otherwise return -1.&lt;/li&gt;
++  &lt;/ul&gt;]],
++      ret = [[The char read from a terminal or -1 if no char is available. The 'char' can be an actual ASCII char, or a 'pseudo-char' which encodes special keys on
++  the keyboard. The list of the special chars and their meaning is given in the table below:&lt;/p&gt;
++&lt;table style=&quot;text-align: left; margin-left: 2em;&quot;&gt;
++&lt;tbody&gt;
++&lt;tr&gt;
++  &lt;th style=&quot;text-align: left;&quot;&gt;Key code&lt;/th&gt;
++  &lt;th style=&quot;text-align: left;&quot;&gt;Meaning&lt;/th&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_UP$&lt;/td&gt;
++  &lt;td&gt;the UP key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_DOWN$&lt;/td&gt;
++  &lt;td&gt;the DOWN key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++  &lt;td&gt;$KC_LEFT$&lt;/td&gt;
++  &lt;td&gt;the LEFT key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_RIGHT$&lt;/td&gt;
++  &lt;td&gt;the RIGHT key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_HOME$&lt;/td&gt;
++  &lt;td&gt;the HOME key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_END$&lt;/td&gt;
++  &lt;td&gt;the END key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_PAGEUP$&lt;/td&gt;
++  &lt;td&gt;the PAGE UP key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_PAGEDOWN$&lt;/td&gt;
++  &lt;td&gt;the PAGE DOWN key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_ENTER$&lt;/td&gt;
++  &lt;td&gt;the ENTER (CR) key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_TAB$&lt;/td&gt;
++  &lt;td&gt;the TAB key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_BACKSPACE$&lt;/td&gt;
++  &lt;td&gt;the BACKSPACE key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;$KC_ESC$&lt;/td&gt;
++  &lt;td&gt;the ESC (escape) key on the terminal&lt;/td&gt;
++&lt;/tr&gt;
++&lt;/tbody&gt;
++&lt;/table&gt;
++&lt;p&gt;]]
++    },
++
++  },
++
++}
++
+
+Modified: tags/pre0.6/doc/luadoc/template.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/template.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/doc/luadoc/template.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -29,8 +29,8 @@
+       desc = [[ ]],
+       args = 
+       {
+-        { name = &quot;&quot;, desc = &quot;&quot; },
+-        { name = &quot;&quot;, desc = &quot;&quot; }
++        &quot;$name$ - desc&quot;,
++        &quot;$name$ - desc&quot;,
+       },
+       ret = 
+       {
+
+Modified: tags/pre0.6/doc/style.css
+===================================================================
+--- tags/pre0.6/doc/style.css	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/doc/style.css	2009-07-20 19:39:18 UTC (rev 364)
+@@ -12,7 +12,7 @@
+ h2 {
+   border: 1px solid #808080;
+   padding: 4px;
+-  background-color: #aaffcc;
++  background-color: #a0ffa0;
+   font-size: 99%;
+   margin-left: 1em;
+ }
+@@ -26,9 +26,9 @@
+   margin-left: 1em;
+ }
+ pre {
+-  border: 1px dashed #62a0ff;
++  border: 1px dashed #ffcc33;
+   padding: 4px;
+-  background-color: #cee7ff;
++  background-color: #ffff99;
+   font-family: 'Monotype.com',&quot;Courier New&quot;,Courier,monospace;
+   font-size: 90%;
+   line-height: 125%;
+@@ -39,6 +39,9 @@
+ p.info {
+   margin-left: 3em;
+ }
++p.doc {
++  margin-left: 2em;
++}
+ ul {
+   margin-left: 2em;
+ }
+
+Modified: tags/pre0.6/romfs/adcpoll.lua
+===================================================================
+--- tags/pre0.6/romfs/adcpoll.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/romfs/adcpoll.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -19,12 +19,9 @@
+ 
+ -- Draw static text on terminal
+ term.clrscr()
+-term.gotoxy(1,1)
+-term.putstr(&quot;ADC Status:&quot;)
+-term.gotoxy(1,3)
+-term.putstr(&quot; CH   SLEN   RES&quot;)
+-term.gotoxy(1,#adcchannels+5)
+-term.putstr(&quot;Press ESC to exit.&quot;)
++term.print(1,1,&quot;ADC Status:&quot;)
++term.print(1,3,&quot; CH   SLEN   RES&quot;)
++term.print(1,#adcchannels+5,&quot;Press ESC to exit.&quot;)
+ 
+ -- start sampling on all channels at the same time 
+ adc.sample(adcchannels,128) 
+@@ -39,15 +36,14 @@
+     
+     -- If we have a new sample, then update display
+     if not (tsample == nil) then 
+-    	term.gotoxy(1,i+3)
+-    	term.putstr(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i], tsample))
++    	term.print(1,i+3,string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i], tsample))
+     end
+   end
+   
+   -- Exit if user hits Escape
+-  key = term.getch( term.NOWAIT )
++  key = term.getchar( term.NOWAIT )
+   if key == term.KC_ESC then break end 
+ end
+ 
+ term.clrscr()
+-term.gotoxy(1, 1)
++term.moveto(1, 1)
+
+Modified: tags/pre0.6/romfs/adcscope.lua
+===================================================================
+--- tags/pre0.6/romfs/adcscope.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/romfs/adcscope.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -20,12 +20,9 @@
+ 
+ -- Draw static text on terminal
+ term.clrscr()
+-term.gotoxy(1,1)
+-term.putstr(&quot;ADC Status:&quot;)
+-term.gotoxy(1,3)
+-term.putstr(&quot; CH   SLEN   RES&quot;)
+-term.gotoxy(1,#adcchannels+7)
+-term.putstr(&quot;Press ESC to exit.&quot;)
++term.print(1,1,&quot;ADC Status:&quot;)
++term.print(1,3,&quot; CH   SLEN   RES&quot;)
++term.print(1,#adcchannels+7,&quot;Press ESC to exit.&quot;)
+ 
+ -- Use some locals for speed
+ local adcvals = {}
+@@ -47,20 +44,19 @@
+   dtime = tmr.diff(0,etime,stime)/numiter -- compute average acquisition time per cycle
+   
+   -- draw last acquired samples on the console
+-  term.gotoxy(1,4)
++  term.moveto(1,4)
+   for i, v in ipairs(adcchannels) do
+-    term.putstr(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
+-    term.gotoxy(1,i+4)
++    term.print(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
++    term.moveto(1,i+4)
+   end
+   
+   -- draw acquisition statistics
+-  term.putstr(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
+-	term.gotoxy(1,#adcchannels+5)
+-	term.putstr(string.format(&quot;Mem:  %03.2f (kB)\n&quot;,collectgarbage(&quot;count&quot;)))
++  term.print(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
++	term.print(1,#adcchannels+5,string.format(&quot;Mem:  %03.2f (kB)\n&quot;,collectgarbage(&quot;count&quot;)))
+ 
+-  key = term.getch( term.NOWAIT )
++  key = term.getchar( term.NOWAIT )
+   if key == term.KC_ESC then break end -- exit if user hits Escape
+ end
+ 
+ term.clrscr()
+-term.gotoxy( 1 , 1 )
+\ No newline at end of file
++term.moveto( 1 , 1 )
+
+Modified: tags/pre0.6/romfs/dualpwm.lua
+===================================================================
+--- tags/pre0.6/romfs/dualpwm.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/romfs/dualpwm.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -1,19 +1,25 @@
+ -- Control LED intensity with PWM on two channels
+ 
+-local pwmid1, pwmid2, tmrid = 0, 1, 3
++local pwmid1, pwmid2, tmrid
+ 
+-if pd.board() ~= &quot;MOD711&quot; then
+-  print &quot;Unsopported board&quot;
++if pd.board() == 'MOD711' or pd.board() == 'ET-STM32' then
++  pwmid1, pwmid2, tmrid = 0, 1, 3
++else
++  print( pd.board() .. &quot; not supported by this example&quot; )
+   return
+ end
+  
+ print &quot;Control LED with PWM (fade up/down)&quot;
+ print &quot;Press any key to exit&quot;
+ local crtduty, incr = 10, 5
++tmr.start( tmrid )
++
+ pwm.setup( pwmid1, 50000, crtduty )
+ pwm.setup( pwmid2, 50000, 100 - crtduty )
++
+ pwm.start( pwmid1 )
+ pwm.start( pwmid2 )
++
+ while uart.recv( 1, 0, 0 ) &lt; 0 do
+   if crtduty == 95 or crtduty == 5 then
+     incr = -incr
+
+Modified: tags/pre0.6/romfs/hangman.lua
+===================================================================
+--- tags/pre0.6/romfs/hangman.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/romfs/hangman.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -8,7 +8,7 @@
+   return
+ end
+ 
+-local h, w = term.lines(), term.cols()
++local h, w = term.getlines(), term.getcols()
+ local tries = 0
+ 
+ -- &quot;Database&quot; with our words
+@@ -19,41 +19,30 @@
+ function hang()
+   if tries == 0 then
+     -- Build the basic structure
+-    term.gotoxy( 5, 1 )
+-    term.putstr( string.rep( '_', 6 ) )
+-    term.gotoxy( 5, 2 )
+-    term.putstr( '|    |')
+-    local i
++    term.print( 5, 1, string.rep( '_', 6 ) )
++    term.print( 5, 2, '|    |')
+     for i = 3, 6 do
+-      term.gotoxy( 5, i )
+-      term.putstr( '|' )
++      term.print( 5, i, '|' )
+     end
+-    term.gotoxy( 3, 7 )
+-    term.putstr( '__|_____')
+-    term.gotoxy( 3, 8 )
+-    term.putstr( '|      |___')
+-    term.gotoxy( 3, 9 )
+-    term.putstr( '|__________|') 
++    term.print( 3, 7, '__|_____')
++    term.print( 3, 8, '|      |___')
++    term.print( 3, 9, '|__________|') 
+     
+   elseif tries == 1 then
+     -- Draw the head
+-    term.gotoxy( 10, 3 )
+-    term.putstr( &quot;O&quot; )
++    term.print( 10, 3, &quot;O&quot; )
+     
+   elseif tries == 2 or tries == 3 then
+     -- First or second part of body
+-    term.gotoxy( 10, tries + 2 )
+-    term.putstr( &quot;|&quot; )
++    term.print( 10, tries + 2, &quot;|&quot; )
+     
+   elseif tries == 4 or tries == 5 then
+     -- First leg / first hand
+-    term.gotoxy( 9, tries == 4 and 6 or 4 )
+-    term.putstr( &quot;/&quot; )
++    term.print( 9, tries == 4 and 6 or 4, &quot;/&quot; )
+   
+   elseif tries == 6 or tries == 7 then
+     -- Second hand / second leg
+-    term.gotoxy( 11, tries == 7 and 6 or 4 )
+-    term.putstr( &quot;\\&quot; )
++    term.print( 11, tries == 7 and 6 or 4, &quot;\\&quot; )
+   end  
+ end
+ 
+@@ -61,18 +50,14 @@
+ 
+ -- Show the game statistics
+ function stats()
+-  term.gotoxy( w - 20, 5 )
+-  term.putstr( &quot;Total words: &quot;, tostring( total ) )
+-  term.gotoxy( w - 20, 6 )
+-  term.putstr( &quot;Guessed words: &quot;, tostring( guessed ) )
++  term.print( w - 20, 5, &quot;Total words: &quot;, tostring( total ) )
++  term.print( w - 20, 6, &quot;Guessed words: &quot;, tostring( guessed ) )
+ end
+ 
+ while true do
+   term.clrscr()
+-  term.gotoxy( 3, 12 )
+-  term.putstr( &quot;eLua hangman&quot; )
+-  term.gotoxy( 3, 13 ) 
+-  term.putstr( &quot;ESC to exit&quot; )
++  term.print( 3, 12, &quot;eLua hangman&quot; )
++  term.print( 3, 13, &quot;ESC to exit&quot; )
+   stats()
+   
+   -- Draw the hanging site
+@@ -80,29 +65,27 @@
+   hang()
+     
+   -- Then write the &quot;Guess&quot; line
+-  term.gotoxy( 2, h - 3 )
+-  term.putstr( &quot;Word: &quot; )
++  term.print( 2, h - 3, &quot;Word: &quot; )
+   local lword = words[ math.random( #words ) ]:lower()
+-  term.putstr( string.rep( &quot;-&quot;, #lword ) )
+-  term.gotoxy( 2, h - 2 )
+-  term.putstr( &quot;Guess: &quot; )
++  term.print( string.rep( &quot;-&quot;, #lword ) )
++  term.print( 2, h - 2, &quot;Guess: &quot; )
+   
+   local nguess = 0
+   local tried = {}
+   local key
+   while tries &lt; 7 and nguess &lt; #lword do     
+-    key = term.getch( term.WAIT )
++    key = term.getchar()
+     if key == term.KC_ESC then break end
+     if key &gt; 0 and key &lt; 255 then
+       key = string.char( key ):lower()
+-      term.gotoxy( 2, h - 1 )
++      term.moveto( 2, h - 1 )
+       term.clreol()       
+       if not key:find( '%l' ) then
+-        term.putstr( &quot;Invalid character&quot; )
++        term.print( &quot;Invalid character&quot; )
+       else
+         key = key:byte()
+         if tried[ key ] ~= nil then
+-          term.putstr( &quot;Already tried this key&quot; )
++          term.print( &quot;Already tried this key&quot; )
+         else
+           tried[ key ] = true
+           local i
+@@ -110,8 +93,7 @@
+           for i = 1, #lword do
+             if key == lword:byte( i ) then
+               ok = true
+-              term.gotoxy( 7 + i, h - 3 )
+-              term.put( key )
++              term.print( 7 + i, h - 3, string.char( key ) )
+               nguess = nguess + 1
+             end
+           end
+@@ -121,28 +103,26 @@
+           end
+         end
+       end
+-      term.gotoxy( 9, h - 2 )
++      term.moveto( 9, h - 2 )
+     end
+   end
+   if key == term.KC_ESC then break end 
+   
+-  term.gotoxy( 2, h - 1 )
++  term.moveto( 2, h - 1 )
+   total = total + 1
+   if nguess == #lword then
+-    term.putstr( &quot;Congratulations! Another game? (y/n)&quot; )
++    term.print( &quot;Congratulations! Another game? (y/n)&quot; )
+     guessed = guessed + 1
+   else
+-    term.gotoxy( 8, h - 3 )
+-    term.putstr( lword )
+-    term.gotoxy( 2, h - 1 )
+-    term.putstr( &quot;Game over. Another game? (y/n)&quot; )
++    term.print( 8, h - 3, lword )
++    term.print( 2, h - 1, &quot;Game over. Another game? (y/n)&quot; )
+   end
+   
+   -- Show statistics again
+   stats()
+   
+   repeat
+-    key = string.char( term.getch( term.WAIT ) ):lower()
++    key = string.char( term.getchar() ):lower()
+   until key == 'y' or key == 'n'
+     
+   if key == 'n' then 
+@@ -152,5 +132,5 @@
+ end
+ 
+ term.clrscr()
+-term.gotoxy( 1 , 1 )
++term.moveto( 1 , 1 )
+ 
+
+Modified: tags/pre0.6/romfs/morse.lua
+===================================================================
+--- tags/pre0.6/romfs/morse.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/romfs/morse.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -53,7 +53,7 @@
+ ------------ Auxiliar Functions ------------
+ 
+ local function play(m)
+-  term.putstr(m)
++  term.print(m)
+   if m == ' ' then
+     tmr.delay(tmrid, 2 * dotDelay)
+   else
+@@ -96,19 +96,19 @@
+ 
+ while true do
+   term.clrscr()
+-  term.gotoxy(0, 0)
++  term.moveto(1, 1)
+   print(&quot;Welcome to eLua Morse Playing on &quot; .. pd.cpu())
+   io.write(&quot;Enter phrase (empty phrase to exit): &quot;)
+   local msg, enabled = io.read(), true
+   if #msg == 0 then break end
+ 
+-  term.putstr('   ')
+-  while term.getch(term.NOWAIT) ~= -1 do end        -- flush
++  term.print('   ')
++  while term.getchar(term.NOWAIT) ~= -1 do end        -- flush
+ 
+   while enabled do                                  -- Main Loop
+     for i = 1, #msg do                              -- msg loop
+       local ch = msg:sub(i, i):upper()
+-      term.putstr(ch)                               -- show what will be played
++      term.print(ch)                               -- show what will be played
+       if ch ~= ' ' and Morse[ch] then
+         for j = 1, #Morse[ch] do                    -- Morse symbol loop
+           play(Morse[ch]:sub(j,j))                  -- play each morse symbol
+@@ -117,7 +117,7 @@
+         play(' ') play(' ')                         -- Between words
+       end
+       play(' ')                                     -- Extra between words &amp; lett
+-      key = term.getch(term.NOWAIT)                 -- Handle UI actions
++      key = term.getchar(term.NOWAIT)                 -- Handle UI actions
+       if key ~= -1 then
+         if HandleKbd(key) then
+           enabled = false
+
+Modified: tags/pre0.6/romfs/piano.lua
+===================================================================
+--- tags/pre0.6/romfs/piano.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/romfs/piano.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -26,35 +26,35 @@
+   
+ -- Write the curent octave
+ function show_octave()
+-  term.putstrxy( 2, 4, &quot;Oct: &quot; .. tostring( oct ) .. &quot;(+/-)&quot; )
+-  term.gotoxy( 2, 19 )  
++  term.print( 2, 4, &quot;Oct: &quot; .. tostring( oct ) .. &quot;(+/-)&quot; )
++  term.moveto( 2, 19 )  
+ end
+ 
+ -- Write the current pause between notes
+ function show_pause()
+-  term.gotoxy( 2, 5 )
++  term.moveto( 2, 5 )
+   term.clreol()
+-  term.putstrxy( 2, 5, &quot;Pause between notes: &quot; .. tostring( pause ) .. &quot;ms (&lt;/&gt;)&quot; )
+-  term.gotoxy( 2, 19 )  
++  term.print( 2, 5, &quot;Pause between notes: &quot; .. tostring( pause ) .. &quot;ms (&lt;/&gt;)&quot; )
++  term.moveto( 2, 19 )  
+ end
+ 
+ -- Show the main interface
+ function show_all()
+-  term.putstrxy( 2, 2, &quot;eLua piano demo&quot; )  
++  term.print( 2, 2, &quot;eLua piano demo&quot; )  
+   show_octave()
+   show_pause()
+-  term.putstrxy( 4,  7, &quot; w   r  t   u  i  o   [  ]  &quot; )
+-  term.putstrxy( 4,  8, &quot; |   |  |   |  |  |   |  |  &quot; )
+-  term.putstrxy( 4,  9, &quot; A#  C# D#  F# G# A#  C# D# &quot; )
+-  term.putstrxy( 4, 10, &quot;A  BC  D  EF  G  A  BC  D  E&quot; )
+-  term.putstrxy( 4, 11, &quot;|  ||  |  ||  |  |  ||  |  |&quot; )
+-  term.putstrxy( 4, 12, &quot;a  sd  f  gh  j  k  l;  '  \\&quot; )  
+-  term.putstrxy( 2, 14, &quot;Use above keys to play notes.&quot; )
+-  term.putstrxy( 2, 15, &quot;+/- to change octave.&quot; )
+-  term.putstrxy( 2, 16, &quot;&lt;/&gt; to change pause between notes.&quot; )
+-  term.putstrxy( 2, 17, &quot;Space to stop playing.&quot; ) 
+-  term.putstrxy( 2, 18, &quot;ESC to exit.&quot; ) 
+-  term.gotoxy( 2, 19 )
++  term.print( 4,  7, &quot; w   r  t   u  i  o   [  ]  &quot; )
++  term.print( 4,  8, &quot; |   |  |   |  |  |   |  |  &quot; )
++  term.print( 4,  9, &quot; A#  C# D#  F# G# A#  C# D# &quot; )
++  term.print( 4, 10, &quot;A  BC  D  EF  G  A  BC  D  E&quot; )
++  term.print( 4, 11, &quot;|  ||  |  ||  |  |  ||  |  |&quot; )
++  term.print( 4, 12, &quot;a  sd  f  gh  j  k  l;  '  \\&quot; )  
++  term.print( 2, 14, &quot;Use above keys to play notes.&quot; )
++  term.print( 2, 15, &quot;+/- to change octave.&quot; )
++  term.print( 2, 16, &quot;&lt;/&gt; to change pause between notes.&quot; )
++  term.print( 2, 17, &quot;Space to stop playing.&quot; ) 
++  term.print( 2, 18, &quot;ESC to exit.&quot; ) 
++  term.moveto( 2, 19 )
+ end
+ 
+ -- Conversion of note to frequency
+@@ -67,7 +67,7 @@
+ pwm.setclock( pwmid, 1000000 )
+ show_all()
+ while true do
+-  local key = term.getch( term.WAIT )
++  local key = term.getchar()
+   if key == term.KC_ESC then break end
+   local res, strkey = pcall( string.char, key )
+   if res then     
+@@ -99,4 +99,4 @@
+ 
+ pwm.stop( pwmid )
+ term.clrscr()
+-term.gotoxy( 1, 1 )
++term.moveto( 1, 1 )
+
+Modified: tags/pre0.6/romfs/pong.lua
+===================================================================
+--- tags/pre0.6/romfs/pong.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/romfs/pong.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -1,9 +1,9 @@
+ require(&quot;LM3S&quot;)
+ 
+ function drawPaddle( y, color )
+-  disp.stringdraw(&quot;|&quot;, 0, y,   color)
+-  disp.stringdraw(&quot;|&quot;, 0, y+4, color)
+-  disp.stringdraw(&quot;|&quot;, 0, y+8, color)
++  disp.print(&quot;|&quot;, 0, y,   color)
++  disp.print(&quot;|&quot;, 0, y+4, color)
++  disp.print(&quot;|&quot;, 0, y+8, color)
+ end
+ 
+ function updateBallPos()
+@@ -14,9 +14,9 @@
+   if(( by &gt;= 89 ) or ( by &lt;= 0 )) then
+     dy = -dy;
+   end
+-  disp.stringdraw( ball, bx, by, 0 )
++  disp.print( ball, bx, by, 0 )
+   bx, by = ( bx + dx ), ( by + dy );
+-  disp.stringdraw( ball, bx, by, 15 )
++  disp.print( ball, bx, by, 15 )
+ end
+ 
+ function updatePaddlePos()
+@@ -41,9 +41,9 @@
+ disp.init(1000000)
+ 
+ term.clrscr()
+-term.gotoxy( 5, 1 )
++term.moveto( 5, 1 )
+ print( &quot;Welcome to eLua Pong on a RIT display&quot; )
+-disp.stringdraw( &quot;eLua Pong&quot;, 30, 40, 11 )
++disp.print( &quot;eLua Pong&quot;, 30, 40, 11 )
+ tmr.delay ( 0, 2000000 )
+ 
+ highscore = 0
+@@ -98,7 +98,7 @@
+         change = 0
+     end
+     
+-    disp.stringdraw( tostring( dscore ), 118, 0, 6 )
++    disp.print( tostring( dscore ), 118, 0, 6 )
+     
+   end
+   
+@@ -107,10 +107,10 @@
+   end
+ 
+   disp.clear()
+-  disp.stringdraw( &quot;Game Over :(&quot;, 30, 20, 11 )
+-  disp.stringdraw( &quot;Your score was &quot; .. tostring( score ), 15, 40, 11 )
+-  disp.stringdraw( &quot;High score: &quot; .. tostring( highscore ), 15, 50, 11 )
+-  disp.stringdraw( &quot;SELECT to restart&quot;, 6, 70, 11 )
++  disp.print( &quot;Game Over :(&quot;, 30, 20, 11 )
++  disp.print( &quot;Your score was &quot; .. tostring( score ), 15, 40, 11 )
++  disp.print( &quot;High score: &quot; .. tostring( highscore ), 15, 50, 11 )
++  disp.print( &quot;SELECT to restart&quot;, 6, 70, 11 )
+   for i=0, 500000 do
+     if LM3S.btnpressed( LM3S.BTN_SELECT ) then
+       play = true
+
+Modified: tags/pre0.6/romfs/pwmled.lua
+===================================================================
+--- tags/pre0.6/romfs/pwmled.lua	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/romfs/pwmled.lua	2009-07-20 19:39:18 UTC (rev 364)
+@@ -1,7 +1,7 @@
+ -- Control LED intensity with PWM
+ 
+ local pwmid, tmrid, ledpin
+-if pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' then
++if pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' or pd.board() == 'ET-STM32' then
+   pwmid, tmrid = 0, 1
+   pwm.setclock( pwmid, 25000000 )
+ else
+@@ -12,6 +12,7 @@
+ print &quot;Control LED with PWM (fade up/down)&quot;
+ print &quot;Press any key to exit&quot;
+ local crtduty, incr = 10, 5
++tmr.start( tmrid )
+ pwm.setup( pwmid, 50000, crtduty )
+ pwm.start( pwmid )
+ while uart.recv( 0, 0, 0 ) &lt; 0 do
+
+Added: tags/pre0.6/run_elua_sim.sh
+===================================================================
+--- tags/pre0.6/run_elua_sim.sh	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/run_elua_sim.sh	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,5 @@
++#!/bin/bash
++
++stty -echo raw -igncr
++./elua_lua_linux.elf
++stty echo cooked
+
+
+Property changes on: tags/pre0.6/run_elua_sim.sh
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Modified: tags/pre0.6/src/main.c
+===================================================================
+--- tags/pre0.6/src/main.c	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/main.c	2009-07-20 19:39:18 UTC (rev 364)
+@@ -11,6 +11,9 @@
+ #include &quot;lua.h&quot;
+ #include &quot;term.h&quot;
+ #include &quot;platform_conf.h&quot;
++#ifdef ELUA_SIMULATOR
++#include &quot;hostif.h&quot;
++#endif
+ 
+ // Validate eLua configuratin options
+ #include &quot;validate.h&quot;
+@@ -56,5 +59,10 @@
+   else
+     shell_start();
+ 
++#ifdef ELUA_SIMULATOR
++  hostif_exit(0);
++  return 0;
++#else
+   while( 1 );
++#endif
+ }
+
+Modified: tags/pre0.6/src/modules/term.c
+===================================================================
+--- tags/pre0.6/src/modules/term.c	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/modules/term.c	2009-07-20 19:39:18 UTC (rev 364)
+@@ -24,8 +24,8 @@
+   return 0;
+ }
+ 
+-// Lua: gotoxy( x, y )
+-static int luaterm_gotoxy( lua_State* L )
++// Lua: moveto( x, y )
++static int luaterm_moveto( lua_State* L )
+ {
+   unsigned x, y;
+   
+@@ -35,8 +35,8 @@
+   return 0;
+ }
+ 
+-// Lua: up( lines )
+-static int luaterm_up( lua_State* L )
++// Lua: moveup( lines )
++static int luaterm_moveup( lua_State* L )
+ {
+   unsigned delta;
+   
+@@ -45,8 +45,8 @@
+   return 0;
+ }
+ 
+-// Lua: down( lines )
+-static int luaterm_down( lua_State* L )
++// Lua: movedown( lines )
++static int luaterm_movedown( lua_State* L )
+ {
+   unsigned delta;
+   
+@@ -55,8 +55,8 @@
+   return 0;
+ }
+ 
+-// Lua: left( cols )
+-static int luaterm_left( lua_State* L )
++// Lua: moveleft( cols )
++static int luaterm_moveleft( lua_State* L )
+ {
+   unsigned delta;
+   
+@@ -65,8 +65,8 @@
+   return 0;
+ }
+ 
+-// Lua: right( cols )
+-static int luaterm_right( lua_State* L )
++// Lua: moveright( cols )
++static int luaterm_moveright( lua_State* L )
+ {
+   unsigned delta;
+   
+@@ -75,82 +75,39 @@
+   return 0;
+ }
+ 
+-// Lua: lines = lines()
+-static int luaterm_lines( lua_State* L )
++// Lua: lines = getlines()
++static int luaterm_getlines( lua_State* L )
+ {
+   lua_pushinteger( L, term_get_lines() );
+   return 1;
+ }
+ 
+-// Lua: columns = cols()
+-static int luaterm_cols( lua_State* L )
++// Lua: columns = getcols()
++static int luaterm_getcols( lua_State* L )
+ {
+   lua_pushinteger( L, term_get_cols() );
+   return 1;
+ }
+ 
+-// Lua: put( c1, c2, ... )
+-static int luaterm_put( lua_State* L )
++// Lua: print( string1, string2, ... )
++// or print( x, y, string1, string2, ... )
++static int luaterm_print( lua_State* L )
+ {
+-  int total = lua_gettop( L ), i;
+-  u8 data;
+-  
+-  for( i = 1; i &lt;= total; i ++ )
+-  {
+-    data = ( u8 )luaL_checkinteger( L, 1 );
+-    term_putch( data );
+-  }
+-  return 0;
+-}
+-
+-// Lua: putxy( x, y, c1, c2, ... )
+-static int luaterm_putxy( lua_State* L )
+-{
+-  int total = lua_gettop( L ), i;
+-  unsigned x, y;
+-  u8 data;
+-  
+-  x = ( unsigned )luaL_checkinteger( L, 1 );
+-  y = ( unsigned )luaL_checkinteger( L, 2 );
+-  term_gotoxy( x, y );
+-  for( i = 3; i &lt;= total; i ++ )
+-  {
+-    data = ( u8 )luaL_checkinteger( L, i );
+-    term_putch( data );
+-  }
+-  return 0;
+-}
+-
+-// Lua: putstr( string1, string2, ... )
+-static int luaterm_putstr( lua_State* L )
+-{
+   const char* buf;
+   size_t len, i;
+-  int total = lua_gettop( L ), s;
+-  
+-  for( s = 1; s &lt;= total; s ++ )
+-  {
+-    luaL_checktype( L, s, LUA_TSTRING );
+-    buf = lua_tolstring( L, s, &amp;len );
+-    for( i = 0; i &lt; len; i ++ )
+-      term_putch( buf[ i ] );
+-  }
+-  return 0;
+-}
++  int total = lua_gettop( L ), s = 1;
++  int x = -1, y = -1;
+ 
+-// Lua: putstrxy( x, y, string1, string2, ... )
+-static int luaterm_putstrxy( lua_State* L )
+-{
+-  const char* buf;
+-  unsigned x, y;
+-  size_t len, i;
+-  int total = lua_gettop( L ), s;
+-  
+-  x = ( unsigned )luaL_checkinteger( L, 1 );
+-  y = ( unsigned )luaL_checkinteger( L, 2 );
+-  term_gotoxy( x, y );
+-  for( s = 3; s &lt;= total; s ++ )
++  // Check if the function has integer arguments
++  if( lua_isnumber( L, 1 ) &amp;&amp; lua_isnumber( L, 2 ) )
+   {
++    x = lua_tointeger( L, 1 );
++    y = lua_tointeger( L, 2 );
++    term_gotoxy( x, y );
++    s = 3;
++  } 
++  for( ; s &lt;= total; s ++ )
++  {
+     luaL_checktype( L, s, LUA_TSTRING );
+     buf = lua_tolstring( L, s, &amp;len );
+     for( i = 0; i &lt; len; i ++ )
+@@ -159,26 +116,27 @@
+   return 0;
+ }
+ 
+-// Lua: cursorx = cursorx()
+-static int luaterm_cx( lua_State* L )
++// Lua: cursorx = getcx()
++static int luaterm_getcx( lua_State* L )
+ {
+   lua_pushinteger( L, term_get_cx() );
+   return 1;
+ }
+ 
+-// Lua: cursory = cursory()
+-static int luaterm_cy( lua_State* L )
++// Lua: cursory = getcy()
++static int luaterm_getcy( lua_State* L )
+ {
+   lua_pushinteger( L, term_get_cy() );
+   return 1;
+ }
+ 
+-// Lua: key = getch( mode )
+-static int luaterm_getch( lua_State* L )
++// Lua: key = getchar( [ mode ] )
++static int luaterm_getchar( lua_State* L )
+ {
+-  int temp;
++  int temp = TERM_INPUT_WAIT;
+   
+-  temp = luaL_checkinteger( L, 1 );
++  if( lua_isnumber( L, 1 ) )
++    temp = lua_tointeger( L, 1 );
+   lua_pushinteger( L, term_getch( temp ) );
+   return 1;
+ }
+@@ -216,20 +174,17 @@
+ {
+   { LSTRKEY( &quot;clrscr&quot; ), LFUNCVAL( luaterm_clrscr ) },
+   { LSTRKEY( &quot;clreol&quot; ), LFUNCVAL( luaterm_clreol ) },
+-  { LSTRKEY( &quot;gotoxy&quot; ), LFUNCVAL( luaterm_gotoxy ) },
+-  { LSTRKEY( &quot;up&quot; ), LFUNCVAL( luaterm_up ) },
+-  { LSTRKEY( &quot;down&quot; ), LFUNCVAL( luaterm_down ) },
+-  { LSTRKEY( &quot;left&quot; ), LFUNCVAL( luaterm_left ) },
+-  { LSTRKEY( &quot;right&quot; ), LFUNCVAL( luaterm_right ) },
+-  { LSTRKEY( &quot;lines&quot; ), LFUNCVAL( luaterm_lines ) },
+-  { LSTRKEY( &quot;cols&quot; ), LFUNCVAL( luaterm_cols ) },
+-  { LSTRKEY( &quot;put&quot; ), LFUNCVAL( luaterm_put ) },
+-  { LSTRKEY( &quot;putstr&quot; ), LFUNCVAL( luaterm_putstr ) },
+-  { LSTRKEY( &quot;putxy&quot; ), LFUNCVAL( luaterm_putxy ) },
+-  { LSTRKEY( &quot;putstrxy&quot; ), LFUNCVAL( luaterm_putstrxy ) },
+-  { LSTRKEY( &quot;cursorx&quot; ), LFUNCVAL( luaterm_cx ) },
+-  { LSTRKEY( &quot;cursory&quot; ), LFUNCVAL( luaterm_cy ) },
+-  { LSTRKEY( &quot;getch&quot; ), LFUNCVAL( luaterm_getch ) },
++  { LSTRKEY( &quot;moveto&quot; ), LFUNCVAL( luaterm_moveto ) },
++  { LSTRKEY( &quot;moveup&quot; ), LFUNCVAL( luaterm_moveup ) },
++  { LSTRKEY( &quot;movedown&quot; ), LFUNCVAL( luaterm_movedown ) },
++  { LSTRKEY( &quot;moveleft&quot; ), LFUNCVAL( luaterm_moveleft ) },
++  { LSTRKEY( &quot;moveright&quot; ), LFUNCVAL( luaterm_moveright ) },
++  { LSTRKEY( &quot;getlines&quot; ), LFUNCVAL( luaterm_getlines ) },
++  { LSTRKEY( &quot;getcols&quot; ), LFUNCVAL( luaterm_getcols ) },
++  { LSTRKEY( &quot;print&quot; ), LFUNCVAL( luaterm_print ) },
++  { LSTRKEY( &quot;getcx&quot; ), LFUNCVAL( luaterm_getcx ) },
++  { LSTRKEY( &quot;getcy&quot; ), LFUNCVAL( luaterm_getcy ) },
++  { LSTRKEY( &quot;getchar&quot; ), LFUNCVAL( luaterm_getchar ) },
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;__metatable&quot; ), LROVAL( term_map ) },
+   { LSTRKEY( &quot;NOWAIT&quot; ), LNUMVAL( TERM_INPUT_DONT_WAIT ) },
+@@ -264,3 +219,4 @@
+   return 0;
+ #endif // #ifdef BUILD_TERM  
+ }
++
+
+Added: tags/pre0.6/src/platform/sim/boot.s
+===================================================================
+--- tags/pre0.6/src/platform/sim/boot.s	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/boot.s	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,22 @@
++;
++; boot.s -- Kernel start location. Also defines multiboot header.
++;           Based on Bran's kernel development tutorial file start.asm
++;
++
++[BITS 32]                       ; All instructions should be 32-bit.
++
++[GLOBAL start]                  ; Kernel entry point.
++[EXTERN main]                   ; This is the entry point of our C code
++[EXTERN platform_ll_init]       ; Low level initializatin function
++[SECTION .text]
++    
++start:
++
++    push ebx
++    call platform_ll_init
++
++    ; Execute the kernel:
++    call main                   ; call our main() function.
++    jmp $                       ; Enter an infinite loop, to stop the processor
++                                ; executing whatever rubbish is in the memory
++                                ; after our kernel!
+
+Added: tags/pre0.6/src/platform/sim/conf.py
+===================================================================
+--- tags/pre0.6/src/platform/sim/conf.py	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/conf.py	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,24 @@
++# Configuration file for the linux backend
++
++specific_files = &quot;boot.s utils.s hostif_%s.c platform.c host.c&quot; % cputype.lower()
++ldscript = &quot;i386.ld&quot;
++  
++# override default optimize settings (-Os is broken right now)
++opt = &quot; -g -O0 &quot;
++
++# Prepend with path
++specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
++
++# Toolset data
++tools[ 'sim' ] = {}
++tools[ 'sim' ][ 'cccom' ] = &quot;%s %s $_CPPINCFLAGS -march=i386 -mfpmath=387 -m32 -ffunction-sections -fdata-sections -fno-builtin -fno-stack-protector %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, cdefs )
++tools[ 'sim' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -march=i386 -mfpmath=387 -m32 -T %s -Wl,--gc-sections -Wl,-e,start -Wl,--allow-multiple-definition -Wl,-static -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
++tools[ 'sim' ][ 'ascom' ] = &quot;%s -felf $SOURCE&quot; % toolset[ 'asm' ]
++
++# Programming function for i386 (not needed, empty function)
++def progfunc_dummy( target, source, env ):
++  print &quot;Run the simulator and enjoy :)&quot;
++  
++tools[ 'sim' ][ 'progfunc' ] = progfunc_dummy
++
+
+Added: tags/pre0.6/src/platform/sim/host.c
+===================================================================
+--- tags/pre0.6/src/platform/sim/host.c	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/host.c	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,57 @@
++#include &quot;host.h&quot;
++
++#define __NR_read     3
++#define __NR_write    4
++#define __NR_mmap2    192
++#define __NR_exit     1
++
++int host_errno = 0;
++
++#define __syscall_return(type, res) do { \
++	if((unsigned long)(res) &gt;= (unsigned long)(-125)) { \
++		host_errno = -(res); \
++		res = -1; \
++	} \
++	return (type) (res); \
++} while(0)
++
++#define _syscall1(type,name,type1,arg1) \
++type host_##name(type1 arg1) \
++{ \
++long __res; \
++__asm__ volatile (&quot;int $0x80&quot; \
++        : &quot;=a&quot; (__res) \
++        : &quot;0&quot; (__NR_##name),&quot;b&quot; ((long)(arg1))); \
++__syscall_return(type,__res); \
++}
++
++
++#define _syscall3(type,name,type1,arg1,type2,arg2,type3,arg3) \
++type host_##name(type1 arg1,type2 arg2,type3 arg3) \
++{ \
++long __res; \
++__asm__ volatile (&quot;int $0x80&quot; \
++        : &quot;=a&quot; (__res) \
++        : &quot;0&quot; (__NR_##name),&quot;b&quot; ((long)(arg1)),&quot;c&quot; ((long)(arg2)), \
++                  &quot;d&quot; ((long)(arg3))); \
++__syscall_return(type,__res); \
++}
++
++#define _syscall6(type,name,type1,arg1,type2,arg2,type3,arg3,type4,arg4, \
++          type5,arg5,type6,arg6) \
++type host_##name (type1 arg1,type2 arg2,type3 arg3,type4 arg4,type5 arg5,type6 arg6) \
++{ \
++long __res; \
++__asm__ volatile (&quot;push %%ebp ; movl %%eax,%%ebp ; movl %1,%%eax ; int $0x80 ; pop %%ebp&quot; \
++        : &quot;=a&quot; (__res) \
++        : &quot;i&quot; (__NR_##name),&quot;b&quot; ((long)(arg1)),&quot;c&quot; ((long)(arg2)), \
++          &quot;d&quot; ((long)(arg3)),&quot;S&quot; ((long)(arg4)),&quot;D&quot; ((long)(arg5)), \
++          &quot;0&quot; ((long)(arg6))); \
++	__syscall_return(type, __res); \
++}
++
++_syscall3(ssize_t, read, int, fd, void *, buf, size_t, count);
++_syscall3(ssize_t, write, int, fd, const void *, buf, size_t, count);
++_syscall6(void *,mmap2, void *,addr, size_t, length, int, prot, int, flags, int, fd, off_t, offset);
++_syscall1(void, exit, int, status);
++
+
+Added: tags/pre0.6/src/platform/sim/host.h
+===================================================================
+--- tags/pre0.6/src/platform/sim/host.h	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/host.h	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,30 @@
++// host.h -- Defines syscall wrappers to access host OS.
++
++#ifndef _HOST_H
++#define _HOST_H
++
++#include &lt;stddef.h&gt;
++#include &lt;sys/types.h&gt;
++
++extern int host_errno;
++
++ssize_t host_read( int fd, void * buf, size_t count);
++ssize_t host_write( int fd, const void * buf, size_t count);
++
++#define PROT_READ 0x1   /* Page can be read.  */
++#define PROT_WRITE  0x2   /* Page can be written.  */
++#define PROT_EXEC 0x4   /* Page can be executed.  */
++#define PROT_NONE 0x0   /* Page can not be accessed.  */
++
++#define MAP_SHARED  0x01    /* Share changes.  */
++#define MAP_PRIVATE 0x02    /* Changes are private.  */
++#define MAP_FIXED 0x10    /* Interpret addr exactly.  */
++#define MAP_ANONYMOUS  0x20    /* Don't use a file.  */
++
++#define MAP_FAILED (void *)(-1)
++
++void *host_mmap2(void *addr, size_t length, int prot, int flags, int fd, off_t pgoffset);
++void host_exit(int status);
++
++#endif // _HOST_H
++
+
+Added: tags/pre0.6/src/platform/sim/hostif.h
+===================================================================
+--- tags/pre0.6/src/platform/sim/hostif.h	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/hostif.h	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,22 @@
++// Host I/O operations for eLua 'simulator'
++
++#ifndef __HOSTIO_H__
++#define __HOSTIO_H__
++
++// Write a single character out to the screen.
++void hostif_put(char c);
++
++// Output a null-terminated ASCII string to the monitor.
++void hostif_write(const char *c);
++
++// Get a char from keyboard
++int hostif_getch();
++
++// Get memory
++void *hostif_getmem( unsigned size );
++
++// Terminate the simulator (exit program)
++void hostif_exit();
++
++#endif // __HOSTIO_H__
++
+
+Added: tags/pre0.6/src/platform/sim/hostif_linux.c
+===================================================================
+--- tags/pre0.6/src/platform/sim/hostif_linux.c	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/hostif_linux.c	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,46 @@
++// Host I/O operations for eLua 'simulator'
++
++#include &lt;ctype.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdio.h&gt;
++#include &quot;term.h&quot;
++#include &quot;host.h&quot;
++#include &quot;hostif.h&quot;
++
++#define EOF (-1)
++#define STDIN_FILENO 0
++#define STDOUT_FILENO 1
++
++void hostif_put(char c)
++{
++	host_write(STDOUT_FILENO, &amp;c, 1);
++}
++
++void hostif_write(const char *c)
++{
++  int i = 0;
++  while (c[i])
++    hostif_put(c[i++]);
++}
++
++int hostif_getch()
++{
++ 	unsigned char ch = 0;
++	if(host_read(STDIN_FILENO, &amp;ch, 1) != 1) {
++		return EOF;
++	}
++	return (int)ch;
++ 
++}
++
++void* hostif_getmem( unsigned size )
++{
++  void *pmem = host_mmap2( 0, size, (PROT_READ|PROT_WRITE), (MAP_PRIVATE|MAP_ANONYMOUS), -1, 0 );
++  return pmem == MAP_FAILED ? NULL : pmem;
++}
++
++void hostif_exit()
++{
++  host_exit( 0 );
++}
++
+
+Added: tags/pre0.6/src/platform/sim/i386.ld
+===================================================================
+--- tags/pre0.6/src/platform/sim/i386.ld	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/i386.ld	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,40 @@
++/* Link.ld -- Linker script for the kernel - ensure everything goes in the */
++/*            Correct place.  */
++/*            Original file taken from Bran's Kernel Development */
++/*            tutorials: <A HREF="http://www.osdever.net/bkerndev/index.php.">http://www.osdever.net/bkerndev/index.php.</A> */
++
++SECTIONS
++{
++
++    .text 0x100000 :
++    {
++	KEEP(*(.header))
++        code = .; _code = .; __code = .;
++        PROVIDE(stext = .);
++        *(.text .text.*)
++        *(.rodata .rodata.*)        
++        *(.gnu.linkonce.r.*)    
++        *(.gnu.linkonce.t.*)                    
++        . = ALIGN(4096);
++        PROVIDE(etext = .);
++    }
++
++    .data :
++    {
++        data = .; _data = .; __data = .;
++        *(.data .data.*)
++        *(.gnu.linkonce.d.*)        
++        . = ALIGN(4096);
++    }
++
++    .bss :
++    {
++        bss = .; _bss = .; __bss = .;
++        *(.bss .bss.*)
++        *(.gnu.linkonce.b.*)        
++        *(COMMON)        
++        . = ALIGN(4096);
++    }
++
++    end = .; _end = .; __end = .;
++}
+
+Added: tags/pre0.6/src/platform/sim/platform.c
+===================================================================
+--- tags/pre0.6/src/platform/sim/platform.c	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/platform.c	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,151 @@
++// Platform-dependent functions
++
++#include &quot;platform.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;type.h&quot;
++#include &quot;devman.h&quot;
++#include &quot;genstd.h&quot;
++#include &lt;reent.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;string.h&gt;
++#include &lt;ctype.h&gt;
++#include &quot;term.h&quot;
++
++// Platform specific includes
++#include &quot;hostif.h&quot;
++
++// ****************************************************************************
++// Terminal support code
++
++#ifdef BUILD_TERM
++
++static void i386_term_out( u8 data )
++{
++  hostif_put( data );
++}
++
++static int i386_term_in( int mode )
++{
++  if( mode == TERM_INPUT_DONT_WAIT )
++    return -1;
++  else
++    return hostif_getch();
++}
++
++static int i386_term_translate( int data )
++{
++  int newdata = data;
++
++  if( data == 0 )
++    return KC_UNKNOWN;
++  else switch( data )
++  {
++    case '\n':
++      newdata = KC_ENTER;
++      break;
++
++    case '\t':
++      newdata = KC_TAB;
++      break;
++
++    case '\b':
++      newdata = KC_BACKSPACE;
++      break;
++
++    case 0x1B:
++      newdata = KC_ESC;
++      break;
++  }
++  return newdata;
++}
++
++#endif // #ifdef BUILD_TERM
++
++// *****************************************************************************
++// std functions
++static void scr_write( int fd, char c )
++{
++  fd = fd;
++  hostif_put( c );
++}
++
++static int kb_read( s32 to )
++{
++  int res;
++
++  if( to != STD_INFINITE_TIMEOUT )
++    return -1;
++  else
++  {
++    while( ( res = hostif_getch() ) &gt;= TERM_FIRST_KEY );
++    return res;
++  }
++}
++
++// ****************************************************************************
++// Platform initialization (low-level and full)
++
++void *memory_start_address = 0;
++void *memory_end_address = 0;
++
++void platform_ll_init()
++{
++	// Initialise heap memory region.
++	memory_start_address = hostif_getmem( MEM_LENGTH ); 
++	memory_end_address = memory_start_address + MEM_LENGTH;
++}
++
++int platform_init()
++{ 
++	if( memory_start_address == NULL ) 
++  {
++    hostif_write( &quot;platform_init(): mmap failed\n&quot; );
++		return PLATFORM_ERR;
++	}
++
++  // Set the std input/output functions
++  // Set the send/recv functions                          
++  std_set_send_func( scr_write );
++  std_set_get_func( kb_read );       
++
++  // Set term functions
++#ifdef BUILD_TERM  
++  term_init( TERM_LINES, TERM_COLS, i386_term_out, i386_term_in, i386_term_translate );
++#endif
++
++  term_clrscr();
++  term_gotoxy( 1, 1 );
++ 
++  // All done
++  return PLATFORM_OK;
++}
++
++// ****************************************************************************
++// &quot;Dummy&quot; UART functions
++
++u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
++{
++  return 0;
++}
++
++void platform_uart_send( unsigned id, u8 data )
++{
++}
++
++int platform_s_uart_recv( unsigned id, s32 timeout )
++{
++  return -1;
++}
++
++// ****************************************************************************
++// &quot;Dummy&quot; timer functions
++
++void platform_s_timer_delay( unsigned id, u32 delay_us )
++{
++}
++
++u32 platform_s_timer_op( unsigned id, int op, u32 data )
++{
++  return 0;
++}
++
+
+Added: tags/pre0.6/src/platform/sim/platform_conf.h
+===================================================================
+--- tags/pre0.6/src/platform/sim/platform_conf.h	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/platform_conf.h	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,66 @@
++// eLua platform configuration
++
++#ifndef __PLATFORM_CONF_H__
++#define __PLATFORM_CONF_H__
++
++#include &quot;auxmods.h&quot;
++#include &quot;type.h&quot;
++#include &quot;stacks.h&quot;
++
++// *****************************************************************************
++// Define here what components you want for this platform
++
++#define BUILD_SHELL
++#define BUILD_ROMFS
++#define BUILD_CON_GENERIC
++#define BUILD_TERM
++
++#define TERM_LINES    25
++#define TERM_COLS     80
++
++// *****************************************************************************
++// Auxiliary libraries that will be compiled for this platform
++
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )
++
++// Bogus defines for common.c
++#define CON_UART_ID           0
++#define CON_TIMER_ID          0
++
++// *****************************************************************************
++// Configuration data
++
++// Virtual timers (0 if not used)
++#define VTMR_NUM_TIMERS       0
++
++// Number of resources (0 if not available/not implemented)
++#define NUM_PIO               0
++#define NUM_SPI               0
++#define NUM_UART              0
++#define NUM_TIMER             0
++#define NUM_PWM               0
++#define NUM_ADC               0
++
++// CPU frequency (needed by the CPU module, 0 if not used)
++#define CPU_FREQUENCY         0
++
++// PIO prefix ('0' for P0, P1, ... or 'A' for PA, PB, ...)
++#define PIO_PREFIX            'A'
++// Pins per port configuration:
++// #define PIO_PINS_PER_PORT (n) if each port has the same number of pins, or
++// #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array
++// Use #define PIO_PINS_PER_PORT 0 if this isn't needed
++#define PIO_PINS_PER_PORT     0
++
++// Allocator data: define your free memory zones here in two arrays
++// (start address and end address)
++extern void *memory_start_address;
++extern void *memory_end_address;
++#define MEM_LENGTH (1024 * 1024)
++#define MEM_START_ADDRESS     { ( void* )memory_start_address }
++#define MEM_END_ADDRESS       { ( void* )memory_end_address }
++
++#endif // #ifndef __PLATFORM_CONF_H__
+
+Added: tags/pre0.6/src/platform/sim/stacks.h
+===================================================================
+--- tags/pre0.6/src/platform/sim/stacks.h	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/stacks.h	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,9 @@
++// Stack size definitions
++
++#ifndef __STACKS_H__
++#define __STACKS_H__
++
++#define  STACK_SIZE_TOTAL 32768
++
++#endif
++
+
+Added: tags/pre0.6/src/platform/sim/type.h
+===================================================================
+--- tags/pre0.6/src/platform/sim/type.h	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/type.h	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,30 @@
++#ifndef __TYPE_H__
++#define __TYPE_H__
++
++#ifndef NULL
++#define NULL    ((void *)0)
++#endif
++
++#ifndef FALSE
++#define FALSE   (0)
++#endif
++
++#ifndef TRUE
++#define TRUE    (1)
++#endif
++
++typedef unsigned char  BYTE;
++typedef unsigned short WORD;
++typedef unsigned long  DWORD;
++typedef unsigned int   BOOL;
++
++typedef unsigned char u8;
++typedef signed char s8;
++typedef unsigned short u16;
++typedef signed short s16;
++typedef unsigned long u32;
++typedef signed long s32;
++typedef unsigned long long u64;
++typedef signed long long s64;
++
++#endif
+
+Added: tags/pre0.6/src/platform/sim/utils.s
+===================================================================
+--- tags/pre0.6/src/platform/sim/utils.s	2009-07-15 19:01:08 UTC (rev 363)
++++ tags/pre0.6/src/platform/sim/utils.s	2009-07-20 19:39:18 UTC (rev 364)
+@@ -0,0 +1,33 @@
++;
++; boot.s -- Kernel start location. Also defines multiboot header.
++;           Based on Bran's kernel development tutorial file start.asm
++;
++
++[BITS 32]                       ; All instructions should be 32-bit.
++
++[GLOBAL longjmp]                 
++[SECTION .text]
++
++longjmp:
++  push  ebp
++  mov   ebp, esp
++
++  mov   edi, [ebp+8]            ; get jump buffer
++  mov   eax, [ebp+12]           ; store retval in j-&gt;eax
++  mov   [edi], eax
++
++  mov   ebp, [edi+24]
++
++  mov   esp, [edi+28]
++  
++  push dword  [edi+32]
++
++  mov   eax, [edi]
++  mov   ebx, [edi+4]
++  mov   ecx, [edi+8]
++  mov   edx, [edi+12]
++  mov   esi, [edi+16]
++  mov   edi, [edi+20]
++
++  ret
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000319.html">[Elua-svn] r363 - tags/pre0.6/inc
+</A></li>
+	<LI>Next message: <A HREF="000321.html">[Elua-svn] r365 - in trunk: romfs src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#320">[ date ]</a>
+              <a href="thread.html#320">[ thread ]</a>
+              <a href="subject.html#320">[ subject ]</a>
+              <a href="author.html#320">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

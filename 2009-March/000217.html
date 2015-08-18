@@ -1,0 +1,1519 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r261 - in trunk: . inc romfs src src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/stm32	src/platform/stm32/FWLib/library/inc src/platform/str7	src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r261%20-%20in%20trunk%3A%20.%20inc%20romfs%20src%20src/modules%0A%09src/platform/at91sam7x%20src/platform/avr32%20src/platform/i386%0A%09src/platform/lm3s%20src/platform/lpc288x%20src/platform/stm32%0A%09src/platform/stm32/FWLib/library/inc%20src/platform/str7%0A%09src/platform/str9&In-Reply-To=%3C200903211959.n2LJxpi5011500%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000216.html">
+   <LINK REL="Next"  HREF="000218.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r261 - in trunk: . inc romfs src src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/stm32	src/platform/stm32/FWLib/library/inc src/platform/str7	src/platform/str9</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r261%20-%20in%20trunk%3A%20.%20inc%20romfs%20src%20src/modules%0A%09src/platform/at91sam7x%20src/platform/avr32%20src/platform/i386%0A%09src/platform/lm3s%20src/platform/lpc288x%20src/platform/stm32%0A%09src/platform/stm32/FWLib/library/inc%20src/platform/str7%0A%09src/platform/str9&In-Reply-To=%3C200903211959.n2LJxpi5011500%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r261 - in trunk: . inc romfs src src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/stm32	src/platform/stm32/FWLib/library/inc src/platform/str7	src/platform/str9">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Mar 21 20:59:51 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000216.html">[Elua-svn] r260 - in trunk/doc: . en wb
+</A></li>
+        <LI>Next message: <A HREF="000218.html">[Elua-svn] r262 - in trunk: . doc doc/en doc/wb inc src	src/platform/i386
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#217">[ date ]</a>
+              <a href="thread.html#217">[ thread ]</a>
+              <a href="subject.html#217">[ subject ]</a>
+              <a href="author.html#217">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-03-21 20:59:49 +0100 (Sat, 21 Mar 2009)
+New Revision: 261
+
+Added:
+   trunk/romfs/adcpoll.lua
+Modified:
+   trunk/SConstruct
+   trunk/inc/elua_adc.h
+   trunk/inc/platform.h
+   trunk/romfs/adcscope.lua
+   trunk/src/common.c
+   trunk/src/elua_adc.c
+   trunk/src/modules/adc.c
+   trunk/src/platform/at91sam7x/conf.py
+   trunk/src/platform/avr32/conf.py
+   trunk/src/platform/i386/conf.py
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lpc288x/conf.py
+   trunk/src/platform/stm32/FWLib/library/inc/stm32f10x_adc.h
+   trunk/src/platform/stm32/conf.py
+   trunk/src/platform/stm32/platform.c
+   trunk/src/platform/stm32/platform_conf.h
+   trunk/src/platform/stm32/stm32f10x_it.c
+   trunk/src/platform/str7/conf.py
+   trunk/src/platform/str9/conf.py
+Log:
+ADC for STM32 + Misc Fixes &amp; Build Adjustments
+
+- ADC adjusted to work with sequenced acquisition setups.  It should now
+  accomodate both sequenced and non-sequenced approaches on the backend.
+  A few more adjustments should be made to handle multiple sequencers
+  but right now neither LM3S or STM32 platforms use more than one sequencer.
+
+- Added adcpoll.lua to demonstrate a simple approach for using clocked
+  acquisition and displaying results as they become available.
+
+- ADC now works for STM32 (all 16 channels!). This should receive more
+  extensive testing, but everything should be working at this stage.
+
+- the build system now pays attention to changes in header files meaning that
+  if any headers change or if the romfs changes (since it is generated as a
+  header) these changes will get recompiled without having to do a clean.
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/SConstruct	2009-03-21 19:59:49 UTC (rev 261)
+@@ -94,20 +94,21 @@
+           'morse' : [ 'morse.lua' ],
+           'dualpwm' : [ 'dualpwm.lua' ],
+           'adcscope' : [ 'adcscope.lua' ],
++          'adcpoll' : [ 'adcpoll.lua' ],
+           'life' : [ 'life.lua' ]
+         }
+ 
+ # List of board/romfs data combinations
+ file_list = { 'SAM7-EX256' : [ 'bisect', 'hangman' , 'led', 'piano', 'hello', 'info', 'morse' ],
+-              'EK-LM3S8962' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope' ],
+-              'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope' ],
++              'EK-LM3S8962' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope','adcpoll' ],
++              'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope','adcpoll' ],
+               'STR9-COMSTICK' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'PC' : [ 'bisect', 'hello', 'info', 'life' ],
+               'LPC-H2888' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'MOD711' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'dualpwm' ],
+               'STM3210E-EVAL' : [ 'bisect', 'hello', 'info' ],
+               'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+-              'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect' ],
++              'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect','adcscope','adcpoll' ],
+               'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ]              
+             }
+ 
+@@ -208,13 +209,14 @@
+    ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c lrotable.c&quot;&quot;&quot;
+ if target == 'lualong' or target == 'lua':
+   lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
+-  local_include = &quot;-Iinc -Iinc/newlib -Isrc/lua&quot;
++  local_include = ['inc', 'inc/newlib', 'src/lua']
+   if target == 'lualong':
+     cdefs = cdefs + ' -DLUA_NUMBER_INTEGRAL'
+ else:
+   print &quot;Invalid target&quot;, target
+   sys.exit( 1 )
+-local_include = local_include + &quot; -Isrc/modules -Isrc/platform/%s&quot; % platform
++
++local_include += ['src/modules', 'src/platform/%s' % platform]
+ cdefs = cdefs + &quot; -DLUA_OPTIMIZE_MEMORY=%d&quot; % ( optram != 0 and 2 or 0 )
+ 
+ # Additional libraries
+@@ -229,7 +231,7 @@
+ # UIP files
+ uip_files = &quot;uip_arp.c uip.c uiplib.c dhcpc.c psock.c resolv.c&quot;
+ uip_files = &quot; src/elua_uip.c &quot; + &quot; &quot;.join( [ &quot;src/uip/%s&quot; % name for name in uip_files.split() ] )
+-local_include = local_include + &quot; -Isrc/uip&quot;
++local_include += ['src/uip']
+ 
+ # Lua module files
+ module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c&quot;
+@@ -266,10 +268,11 @@
+                     LINKCOM = tools[ platform ][ 'linkcom' ],
+                     OBJSUFFIX = &quot;.o&quot;,
+                     PROGSUFFIX = &quot;.elf&quot;,
++                    CPPPATH = local_include,
+                     ENV = os.environ )
+ # comp.TargetSignatures( 'content' )
+ # comp.SourceSignatures( 'MD5' )
+-Default( comp.Program( output, Split( source_files ) ) )
++Default( comp.Program( target = output, source = Split( source_files ) ) )
+ Decider( 'MD5' )
+ 
+ # Programming target
+
+Modified: trunk/inc/elua_adc.h
+===================================================================
+--- trunk/inc/elua_adc.h	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/inc/elua_adc.h	2009-03-21 19:59:49 UTC (rev 261)
+@@ -2,17 +2,18 @@
+ #define __ELUA_ADC_H__
+ 
+ #include &quot;type.h&quot;
++#include &quot;platform_conf.h&quot;
+ 
++
+ typedef struct 
+ {
+   // Status Bit Flags
+   volatile u8     op_pending: 1, // Is there a pending conversion?
+                   blocking: 1, // Are we in blocking or non-blocking mode? (0 - blocking, 1 - nonblocking)
+                   freerunning: 1, // If true, we don't stop when we've acquired the requested number of samples
+-                  clocked: 1, // Acquiring at fixed rate using a clock
+                   smooth_ready: 1; // Has smoothing filter warmed up (i.e. smoothlen samples collected)
+                     
+-  unsigned        id, timer_id;
++  unsigned        id;
+ 
+   u8              logsmoothlen;
+   volatile u16    smoothidx;
+@@ -20,13 +21,36 @@
+   u16             *smoothbuf;
+ 
+   volatile u16    reqsamples;
+-} elua_adc_state;
++  volatile u16    *value_ptr;
++} elua_adc_ch_state;
+ 
++typedef struct
++{
++  elua_adc_ch_state   *ch_state[ NUM_ADC ];
++  volatile u16        sample_buf[ NUM_ADC ]; 
++  volatile u8         clocked: 1,
++                      force_reseq: 1,
++                      skip_cycle: 1,
++                      running: 1; // Whether or not sequence is running
++  volatile u32        ch_active; // bits represent whether channel should be converted on this device
++  volatile u32        last_ch_active; // keep copy of old configuration
++  unsigned            timer_id, seq_id; // Timer bound to device, sequencer device id
++  volatile u8         seq_ctr, seq_len;
++} elua_adc_dev_state;
+ 
++// Channel Management
++#define ACTIVATE_CHANNEL( d, id ) ( d-&gt;ch_active |= ( ( u32 )1 &lt;&lt; ( id ) ) )
++#define INACTIVATE_CHANNEL( d, id ) ( d-&gt;ch_active &amp;= ~( ( u32 )1 &lt;&lt; ( id ) ) )
++#define INCR_SEQCTR( d ) ( d-&gt;seq_ctr++ )
++
++int adc_setup_channel( unsigned id, u8 logcount );
++void adc_update_dev_sequence( unsigned dev_id );
++void adc_init_dev_state( unsigned dev_id );
++elua_adc_dev_state *adc_get_dev_state( unsigned dev_id );
+ void adc_smooth_data( unsigned id );
+-elua_adc_state *adc_get_ch_state( unsigned id );
++elua_adc_ch_state *adc_get_ch_state( unsigned id );
+ u16 adc_get_processed_sample( unsigned id );
+-void adc_init_state( unsigned id );
++void adc_init_ch_state( unsigned id );
+ int adc_update_smoothing( unsigned id, u8 loglen );
+ void adc_flush_smoothing( unsigned id );
+ u16 adc_samples_requested( unsigned id );
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/inc/platform.h	2009-03-21 19:59:49 UTC (rev 261)
+@@ -193,8 +193,8 @@
+ };
+ 
+ // Functions requiring platform-specific implementation
+-int platform_adc_prepchannel( unsigned id, u8 logcount );
+-int platform_adc_startchannel( unsigned id );
++int platform_adc_update_sequence(  );
++int platform_adc_start_sequence(  );
+ void platform_adc_stop( unsigned id );
+ u32 platform_adc_setclock( unsigned id, u32 frequency);
+ 
+
+Added: trunk/romfs/adcpoll.lua
+===================================================================
+--- trunk/romfs/adcpoll.lua	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/romfs/adcpoll.lua	2009-03-21 19:59:49 UTC (rev 261)
+@@ -0,0 +1,52 @@
++
++if pd.board() == &quot;ET-STM32&quot; then
++  timer = 2
++  adcchannels = {0,1,2,3}
++  adcsmoothing = {4, 16, 32, 64}
++else
++  timer = 0
++  adcchannels = {0,1,2,3}
++  adcsmoothing = {4, 16, 32, 64}
++end
++
++for i, v in ipairs(adcchannels) do
++  adc.setblocking(v,0)
++  adc.setsmoothing(v,adcsmoothing[i])
++  adc.setclock(v, 30 ,timer)
++end
++
++adc.sample(adcchannels,128)
++
++term.clrscr()
++
++term.gotoxy(1,1)
++term.putstr(&quot;ADC Status:&quot;)
++term.gotoxy(1,3)
++term.putstr(&quot; CH   SLEN   RES&quot;)
++term.gotoxy(1,#adcchannels+5)
++term.putstr(&quot;Press ESC to exit.&quot;)
++
++local adcvals = {}
++local ctr = 0
++local key
++local sample = adc.sample
++local getsample = adc.getsample
++local samplesready = adc.samplesready
++local i, v
++local tsample
++
++while true do
++  for i, v in ipairs(adcchannels) do
++    tsample = getsample(v)
++    if not (tsample == nil) then
++    	term.gotoxy(1,i+3)
++    	term.putstr(string.format(&quot;ADC%d (%03d): %04d\n&quot;, v, adcsmoothing[i], tsample))
++    end
++    if adc.isdone(v) == 1 then adc.sample(adcchannels,128) end
++  end
++  key = term.getch( term.NOWAIT )
++  if key == term.KC_ESC then break end
++end
++
++term.clrscr()
++term.gotoxy(1, 1)
+
+
+Property changes on: trunk/romfs/adcpoll.lua
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Modified: trunk/romfs/adcscope.lua
+===================================================================
+--- trunk/romfs/adcscope.lua	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/romfs/adcscope.lua	2009-03-21 19:59:49 UTC (rev 261)
+@@ -1,5 +1,12 @@
+-adcchannels = {0, 1, 2, 3}
+-adcsmoothing = {4, 16, 64, 128}
++if pd.board() == &quot;ET-STM32&quot; then
++  adcchannels = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}
++  adcsmoothing = {4, 4, 4, 4, 16, 16, 16, 16, 32, 32, 32, 32, 64, 128, 64, 128}
++  numiter = 50
++else
++  adcchannels = {0,1,2,3}
++  adcsmoothing = {4, 16, 64, 128}
++  numiter = 200
++end
+ 
+ for i, v in ipairs(adcchannels) do
+   adc.setblocking(v,1)
+@@ -27,28 +34,24 @@
+ tmr.start(0)
+ 
+ while true do
+-  ctr = ctr + 1
+-  
+   stime = tread(0)
+-  sample(adcchannels, 1)
+-  for i, v in ipairs(adcchannels) do
+-    adcvals[i] = getsample(v)
++  for j=1,numiter do 
++    sample(adcchannels, 1)
++    for i, v in ipairs(adcchannels) do
++      adcvals[i] = getsample(v)
++    end
+   end
+   etime = tread(0)
+-  dtime = tmr.diff(0,etime,stime)
++  dtime = tmr.diff(0,etime,stime)/numiter
+   
+-  if ( ctr == 100 ) then
+-    ctr = 0
+-    term.gotoxy(1,4)
+-    for i, v in ipairs(adcchannels) do
+-      term.putstr(string.format(&quot;ADC%d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
+-      term.gotoxy(1,i+4)
+-    end
+-    term.putstr(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
+-    
+-    key = term.getch( term.NOWAIT )
+-    if key == term.KC_ESC then break end
++  term.gotoxy(1,4)
++  for i, v in ipairs(adcchannels) do
++    term.putstr(string.format(&quot;ADC%d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
++    term.gotoxy(1,i+4)
+   end
++  term.putstr(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
++  
++  key = term.getch( term.NOWAIT )
+   if key == term.KC_ESC then break end
+ end
+ 
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/common.c	2009-03-21 19:59:49 UTC (rev 261)
+@@ -272,7 +272,8 @@
+ 
+ u32 platform_adc_op( unsigned id, int op, u32 data )
+ {  
+-  elua_adc_state *s = adc_get_ch_state( id );
++  elua_adc_ch_state *s = adc_get_ch_state( id );
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+   u32 res = 0;
+ 
+   switch( op )
+@@ -294,8 +295,10 @@
+       break;
+     
+     case PLATFORM_ADC_OP_SET_TIMER:
++      if ( d-&gt;timer_id != data )
++        d-&gt;running = 0;
+       platform_adc_stop( id );
+-      s-&gt;timer_id = data;
++      d-&gt;timer_id = data;
+       break;
+     
+     case PLATFORM_ADC_OP_SET_CLOCK:
+
+Modified: trunk/src/elua_adc.c
+===================================================================
+--- trunk/src/elua_adc.c	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/elua_adc.c	2009-03-21 19:59:49 UTC (rev 261)
+@@ -11,48 +11,134 @@
+ #define SMOOTH_REALSIZE( s ) ( ( u16 )1 &lt;&lt; ( s-&gt;logsmoothlen ) )
+ 
+ // Primary set of pointers to channel states
+-elua_adc_state adc_state[ NUM_ADC ];
++elua_adc_ch_state adc_ch_state[ NUM_ADC ];
++elua_adc_dev_state  adc_dev_state;
+ 
+-elua_adc_state *adc_get_ch_state( unsigned id )
++elua_adc_ch_state *adc_get_ch_state( unsigned id )
+ {
+-  return &amp;adc_state[ id ];
++  return &amp;adc_ch_state[ id ];
+ }
+ 
++elua_adc_dev_state *adc_get_dev_state( unsigned dev_id )
++{
++  return &amp;adc_dev_state;
++}
++
++// Rewrite
++void adc_update_dev_sequence( unsigned dev_id  )
++{
++  elua_adc_dev_state *d = adc_get_dev_state( dev_id );
++  elua_adc_ch_state *s;
++  unsigned id;
++  
++  if( d-&gt;ch_active != d-&gt;last_ch_active || d-&gt;force_reseq == 1 )
++  {
++    platform_cpu_disable_interrupts();
++    // Update channel sequence
++    d-&gt;seq_ctr = 0;
++    for( id = 0; id &lt; NUM_ADC; id ++ )
++  	{
++  	  if ( ( d-&gt;ch_active &amp; ( ( u32 )1 &lt;&lt; ( id ) ) ) &gt; 0 )
++  	  {
++  	    s = adc_get_ch_state( id );
++        d-&gt;ch_state[ d-&gt;seq_ctr ] = s;
++        s-&gt;value_ptr = &amp;( d-&gt;sample_buf[ d-&gt;seq_ctr ] );
++        d-&gt;seq_ctr++;
++  	  }
++    }
++    d-&gt;seq_len = d-&gt;seq_ctr;
++
++    // Null out remainder of sequence
++    while( d-&gt;seq_ctr &lt; NUM_ADC )
++      d-&gt;ch_state[ d-&gt;seq_ctr++ ] = NULL;
++
++    d-&gt;seq_ctr = 0;
++
++    // Sync up hardware
++    platform_adc_update_sequence();
++    
++    d-&gt;last_ch_active = d-&gt;ch_active;
++    d-&gt;seq_ctr = 0;
++    d-&gt;force_reseq = 0;
++    platform_cpu_enable_interrupts();
++  }
++}
++
++int adc_setup_channel( unsigned id, u8 logcount )
++{
++  elua_adc_ch_state *s = adc_get_ch_state( id );
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  int res;
++  
++  platform_cpu_disable_interrupts();
++  if( ( (u16) 1 &lt;&lt; logcount ) != buf_get_size( BUF_ID_ADC, id ) )
++  {   
++    res = buf_set( BUF_ID_ADC, id, logcount, BUF_DSIZE_U16 );
++    if ( res != PLATFORM_OK )
++      return res;
++    buf_flush( BUF_ID_ADC, id );
++  }
++  
++  s-&gt;reqsamples = (u16) 1 &lt;&lt; logcount;
++  s-&gt;op_pending = 1;
++  
++  ACTIVATE_CHANNEL( d, id );
++  platform_cpu_enable_interrupts();
++  
++  return PLATFORM_OK;
++}
++
+ // Initialize Configuration and Buffers
+-void adc_init_state( unsigned id )
++void adc_init_ch_state( unsigned id )
+ {
+-  elua_adc_state *s = adc_get_ch_state( id );
++  elua_adc_ch_state *s = adc_get_ch_state( id );
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+   
++  // point to channel on device, mark as not active
++  
++  INACTIVATE_CHANNEL(d, id);
++  
+   // Initialize Configuration
+   s-&gt;op_pending = 0;
+   s-&gt;blocking = 1;
+-  s-&gt;clocked = 0;
+   s-&gt;smooth_ready = 0;
+   s-&gt;reqsamples = 0;
+   s-&gt;freerunning = 0;
+   
+   s-&gt;id = id;
+-  s-&gt;timer_id = 0;
+   s-&gt;logsmoothlen = 0;
+   s-&gt;smoothidx = 0;
+   
+   // Data Configuration
+   s-&gt;smoothsum = 0;
+-  
++
++#if defined( BUF_ENABLE_ADC )  
+   // Buffer initialization
+   buf_set( BUF_ID_ADC, id, ADC_BUF_SIZE, BUF_DSIZE_U16 );
+-  
++#endif
++
+   // Set to run as fast as possible
+   platform_adc_setclock( id, 0 );
+ }
+ 
++void adc_init_dev_state( unsigned dev_id )
++{
++  elua_adc_dev_state *d = adc_get_dev_state( dev_id );
++	d-&gt;seq_id = 0;
++  d-&gt;running = 0;
++  d-&gt;ch_active = 0;
++  d-&gt;last_ch_active = 0;
++  d-&gt;force_reseq = 0;
++  d-&gt;skip_cycle = 0;
++}
++
+ // Update smoothing buffer length
+ // If operations are pending, stop them. If new length differs from 
+ // existing length, attempt to resize. Whether size is new or not, 
+ // re-initialize buffers so that they are ready for new data.
+ int adc_update_smoothing( unsigned id, u8 loglen ) 
+ {
+-  elua_adc_state *s = adc_get_ch_state( id );
++  elua_adc_ch_state *s = adc_get_ch_state( id );
+   
+   // Stop sampling if still running
+   if ( s-&gt;op_pending == 1 )
+@@ -77,7 +163,10 @@
+ 
+   // Even if buffer isn't actually reconfigured, flush contents
+   adc_flush_smoothing( id );
++
++#if defined( BUF_ENABLE_ADC )
+   buf_flush( BUF_ID_ADC, id );
++#endif
+ 
+   return PLATFORM_OK;
+ }
+@@ -87,7 +176,7 @@
+ // sum and add new sample to sum.
+ void adc_smooth_data( unsigned id )
+ {
+-  elua_adc_state *s = adc_get_ch_state( id );
++  elua_adc_ch_state *s = adc_get_ch_state( id );
+   u16 sample;
+   
+   if( s-&gt;smoothidx == SMOOTH_REALSIZE( s ) )
+@@ -100,7 +189,14 @@
+   s-&gt;smoothsum -= s-&gt;smoothbuf[ s-&gt;smoothidx ];
+ 
+   // Replace Oldest Value in Buffer
+-  buf_read( BUF_ID_ADC, id, ( t_buf_data* )&amp;sample );
++#if defined( BUF_ENABLE_ADC )
++  if ( s-&gt;smooth_ready == 1 )
++    buf_read( BUF_ID_ADC, id, ( t_buf_data* )&amp;sample );
++  else
++    sample = *( s-&gt;value_ptr );
++#else
++  sample = *( s-&gt;value_ptr );
++#endif
+   s-&gt;smoothbuf[ s-&gt;smoothidx ] = sample;
+ 
+   // Add New Sample to Sum
+@@ -125,10 +221,10 @@
+ //  return 0
+ u16 adc_get_processed_sample( unsigned id )
+ {
+-  elua_adc_state *s = adc_get_ch_state( id );
++  elua_adc_ch_state *s = adc_get_ch_state( id );
+   u16 sample = 0;
+ 
+-  if ( buf_get_count( BUF_ID_ADC, id ) &gt; 0 )
++  if ( adc_samples_available( id ) &gt; 0 )
+   {
+     if ( ( s-&gt;logsmoothlen &gt; 0)  &amp;&amp; ( s-&gt;smooth_ready == 1 ) )
+     {
+@@ -141,8 +237,11 @@
+     }
+     else if ( s-&gt;logsmoothlen == 0 )
+     {
++#if defined( BUF_ENABLE_ADC )
+       buf_read( BUF_ID_ADC, id, ( t_buf_data* )&amp;sample );
+-
++#else
++      sample = *( s-&gt;value_ptr );
++#endif
+       if ( s-&gt;reqsamples &gt; 0)
+         s-&gt;reqsamples -- ;
+     }
+@@ -153,7 +252,7 @@
+ // Zero out and reset smoothing buffer
+ void adc_flush_smoothing( unsigned id )
+ {
+-  elua_adc_state *s = adc_get_ch_state( id );
++  elua_adc_ch_state *s = adc_get_ch_state( id );
+   u16 i = 0;
+   
+   s-&gt;smoothidx = 0;
+@@ -169,25 +268,29 @@
+ // Number of samples requested that have not yet been removed from the buffer
+ u16 adc_samples_requested( unsigned id )
+ {
+-  elua_adc_state *s = adc_get_ch_state( id );
++  elua_adc_ch_state *s = adc_get_ch_state( id );
+   return s-&gt;reqsamples;
+ }
+ 
+ // Return count of available samples in the buffer
+ u16 adc_samples_available( unsigned id ) 
+ {
++#if defined( BUF_ENABLE_ADC )
+   return ( u16 ) buf_get_count( BUF_ID_ADC, id );
++#else
++  return 1; // FIXME: should keep track of whether single sample is fresh
++#endif
+ }
+ 
+ // If blocking is enabled, wait until we have enough samples or the current
+ //  sampling event has finished
+ void adc_wait_samples( unsigned id, unsigned samples )
+ {
+-  elua_adc_state *s = adc_get_ch_state( id );
++  elua_adc_ch_state *s = adc_get_ch_state( id );
+   
+-  if( buf_get_count( BUF_ID_ADC, id ) &lt; samples &amp;&amp; s-&gt;blocking == 1 )
++  if( adc_samples_available( id ) &lt; samples &amp;&amp; s-&gt;blocking == 1 )
+   {
+-    while( s-&gt;op_pending == 1 &amp;&amp; buf_get_count( BUF_ID_ADC, id ) &lt; samples ) { ; }
++    while( s-&gt;op_pending == 1 &amp;&amp; adc_samples_available( id ) &lt; samples ) { ; }
+   }
+ }
+ 
+
+Modified: trunk/src/modules/adc.c
+===================================================================
+--- trunk/src/modules/adc.c	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/modules/adc.c	2009-03-21 19:59:49 UTC (rev 261)
+@@ -113,24 +113,23 @@
+       id = luaL_checkinteger( L, -1 );
+       MOD_CHECK_ID( adc, id );
+       
+-      res = platform_adc_prepchannel( id, intlog2( count ) );
++      res = adc_setup_channel( id, intlog2( count ) );
+       if ( res != PLATFORM_OK )
+         return luaL_error( L, &quot;sampling setup failed&quot; );
+     }
+     // Initiate sampling
+-    for( i = -1; i &gt;= -nchans; i-- )
+-      platform_adc_startchannel( luaL_checkinteger( L, i ) );
++    platform_adc_start_sequence();
+   }
+   else if ( lua_isnumber( L, 1 ) == 1 )
+   {
+     id = luaL_checkinteger( L, 1 );
+     MOD_CHECK_ID( adc, id );
+     
+-    res = platform_adc_prepchannel( id, intlog2( count ) );
++    res = adc_setup_channel( id, intlog2( count ) );
+     if ( res != PLATFORM_OK )
+       return luaL_error( L, &quot;sampling setup failed&quot; );
+     
+-    platform_adc_startchannel( id );
++    platform_adc_start_sequence();
+   }
+   else
+   {
+
+Modified: trunk/src/platform/at91sam7x/conf.py
+===================================================================
+--- trunk/src/platform/at91sam7x/conf.py	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/at91sam7x/conf.py	2009-03-21 19:59:49 UTC (rev 261)
+@@ -30,9 +30,9 @@
+ 
+ # Toolset data
+ tools[ 'at91sam7x' ] = {}
+-tools[ 'at91sam7x' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, opt, local_include, cdefs )
++tools[ 'at91sam7x' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, opt, cdefs )
+ tools[ 'at91sam7x' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,entry -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
+-tools[ 'at91sam7x' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=arm7tdmi %s %s -D__ASSEMBLY__ -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, modeflag, cdefs )
++tools[ 'at91sam7x' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=arm7tdmi %s %s -D__ASSEMBLY__ -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_at91sam7x( target, source, env ):
+
+Modified: trunk/src/platform/avr32/conf.py
+===================================================================
+--- trunk/src/platform/avr32/conf.py	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/avr32/conf.py	2009-03-21 19:59:49 UTC (rev 261)
+@@ -11,9 +11,9 @@
+ 
+ # Toolset data
+ tools[ 'avr32' ] = {}
+-tools[ 'avr32' ][ 'cccom' ] = &quot;%s -mpart=uc3a0512 %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
++tools[ 'avr32' ][ 'cccom' ] = &quot;%s -mpart=uc3a0512 %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, cdefs )
+ tools[ 'avr32' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,crt0 -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
+-tools[ 'avr32' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mpart=uc3a0512 %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, cdefs )
++tools[ 'avr32' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mpart=uc3a0512 %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], cdefs )
+ 
+ # Programming function
+ def progfunc_avr32( target, source, env ):
+
+Modified: trunk/src/platform/i386/conf.py
+===================================================================
+--- trunk/src/platform/i386/conf.py	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/i386/conf.py	2009-03-21 19:59:49 UTC (rev 261)
+@@ -9,7 +9,7 @@
+ 
+ # Toolset data
+ tools[ 'i386' ] = {}
+-tools[ 'i386' ][ 'cccom' ] = &quot;%s %s %s -march=i386 -mfpmath=387 -m32 -ffunction-sections -fdata-sections -fno-builtin -fno-stack-protector %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
++tools[ 'i386' ][ 'cccom' ] = &quot;%s %s $_CPPINCFLAGS -march=i386 -mfpmath=387 -m32 -ffunction-sections -fdata-sections -fno-builtin -fno-stack-protector %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, cdefs )
+ tools[ 'i386' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -march=i386 -mfpmath=387 -m32 -T %s -Wl,--gc-sections -Wl,-e,start -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
+ tools[ 'i386' ][ 'ascom' ] = &quot;%s -felf $SOURCE&quot; % toolset[ 'asm' ]
+ 
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/lm3s/conf.py	2009-03-21 19:59:49 UTC (rev 261)
+@@ -23,9 +23,9 @@
+ 
+ # Toolset data
+ tools[ 'lm3s' ] = {}
+-tools[ 'lm3s' ][ 'cccom' ] = &quot;%s -mcpu=cortex-m3 -mthumb  %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
++tools[ 'lm3s' ][ 'cccom' ] = &quot;%s -mcpu=cortex-m3 -mthumb %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, cdefs )
+ tools[ 'lm3s' ][ 'linkcom' ] = &quot;%s -mthumb -mcpu=cortex-m3 -nostartfiles -T %s %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lm %s&quot; % ( toolset[ 'compile' ], ldscript, linkopts, local_libs )
+-tools[ 'lm3s' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, cdefs )
++tools[ 'lm3s' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ],  cdefs )
+ 
+ # Programming function
+ def progfunc_lm3s( target, source, env ):
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/lm3s/platform.c	2009-03-21 19:59:49 UTC (rev 261)
+@@ -523,134 +523,159 @@
+ 
+ void platform_adc_stop( unsigned id )
+ {
+-  elua_adc_state *s = adc_get_ch_state( id );
+-  ADCSequenceDisable( ADC_BASE, s-&gt;id );
++  elua_adc_ch_state *s = adc_get_ch_state( id );
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  
+   s-&gt;op_pending = 0;
++  INACTIVATE_CHANNEL(d, id);
++  
++  // If there are no more active channels, stop the sequencer
++  if( d-&gt;ch_active == 0 )
++  {
++    ADCSequenceDisable( ADC_BASE, d-&gt;seq_id );
++    d-&gt;running = 0;
++  }
+ }
+ 
+ // Handle ADC interrupts
+ void ADCIntHandler( void )
+ {
+-  unsigned long rawSample;
+-  unsigned id;
++  u32 tmpbuff[ NUM_ADC ];
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  elua_adc_ch_state *s;
++
++  ADCIntClear( ADC_BASE, d-&gt;seq_id );
++  ADCSequenceDataGet( ADC_BASE, d-&gt;seq_id, tmpbuff );
++  
++  d-&gt;seq_ctr = 0;
++  
++  // Update smoothing and/or write to buffer if needed
++  while( d-&gt;seq_ctr &lt; d-&gt;seq_len )
++  {
++    s = d-&gt;ch_state[ d-&gt;seq_ctr ];
++    d-&gt;sample_buf[ d-&gt;seq_ctr ] = ( u16 )tmpbuff[ d-&gt;seq_ctr ];
+     
+-  // Check each sequence for a pending sample
+-  for( id = 0; id &lt; NUM_ADC; id ++ )
++    // Fill in smoothing buffer until warmed up
++    if ( s-&gt;logsmoothlen &gt; 0 &amp;&amp; s-&gt;smooth_ready == 0)
++      adc_smooth_data( s-&gt;id );
++#if defined( BUF_ENABLE_ADC )
++    else
++      buf_write( BUF_ID_ADC, s-&gt;id, ( t_buf_data* )s-&gt;value_ptr );
++#endif
++
++    // If we have the number of requested samples, stop sampling
++    if ( adc_samples_available( s-&gt;id ) &gt;= s-&gt;reqsamples &amp;&amp; s-&gt;freerunning == 0 )
++      platform_adc_stop( s-&gt;id );
++    
++    d-&gt;seq_ctr++;
++  }
++  d-&gt;seq_ctr = 0;
++  
++  // Only attempt to refresh sequence order if still running
++  // This allows us to &quot;cache&quot; an old sequence if all channels
++  // finish at the same time
++  if ( d-&gt;running == 1 )
++    adc_update_dev_sequence( 0 );
++  
++  if ( d-&gt;clocked == 0 &amp;&amp; d-&gt;running == 1 )
+   {
+-    // Check if current sequence/channel is one that has had an interrupt fire
+-    if( ADCIntStatus(ADC_BASE, id, false) )
+-    { 
+-      elua_adc_state *s = adc_get_ch_state( id );
+-      
+-      // Clear Interrupt &amp; Get Sample
+-      ADCIntClear(ADC_BASE, id);
+-      ADCSequenceDataGet(ADC_BASE, id, &amp;rawSample);
+-      
+-      // Write sample to buffer
+-      buf_write( BUF_ID_ADC, id, ( t_buf_data* )&amp;rawSample);
+-      
+-      // Fill in smoothing buffer until warmed up
+-      if ( s-&gt;logsmoothlen &gt; 0 &amp;&amp; s-&gt;smooth_ready == 0)
+-        adc_smooth_data( id );
+-      
+-      // If we have the number of requested samples, stop sampling
+-      if ( buf_get_count( BUF_ID_ADC, id ) &gt;= s-&gt;reqsamples &amp;&amp; s-&gt;freerunning == 0 )
+-      {
+-        platform_adc_stop( id );
+-      } 
+-      else if ( s-&gt;clocked == 0 )
+-      {
+-        // Need to manually fire off sample request in single sample mode
+-        ADCProcessorTrigger( ADC_BASE, id );
+-      } 
+-    }
++    // Need to manually fire off sample request in single sample mode
++    ADCProcessorTrigger( ADC_BASE, d-&gt;seq_id );
+   }
+ }
+ 
+ static void adcs_init()
+ {
+   unsigned id;
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+   
+ 	SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC);
+-
++	
++	// Try ramping up max sampling rate
++  SysCtlADCSpeedSet(SYSCTL_ADCSPEED_500KSPS);
++  SysCtlADCSpeedSet(SYSCTL_ADCSPEED_1MSPS);
++  
+ 	for( id = 0; id &lt; NUM_ADC; id ++ )
+ 	{
+-    // Init ADC State Struct
+-    adc_init_state( id );
+-	  
+-    ADCIntEnable(ADC_BASE, id);
+-    IntEnable(adc_ints[id]);
++    adc_init_ch_state( id );
+ 	}
++	
++  // Perform sequencer setup
++  platform_adc_setclock( 0, 0 );
++	ADCIntEnable( ADC_BASE, d-&gt;seq_id );
++  IntEnable( adc_ints[ d-&gt;seq_id ] );
+ }
+ 
+-u32 platform_adc_setclock( unsigned id, u32 frequency)
++u32 platform_adc_setclock( unsigned id, u32 frequency )
+ {
+-  elua_adc_state *s = adc_get_ch_state( id );
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+   
+   // Make sure sequencer is disabled before making changes
+-  ADCSequenceDisable( ADC_BASE, id );
++  ADCSequenceDisable( ADC_BASE, d-&gt;seq_id );
+   
+   if ( frequency &gt; 0 )
+   {
++    d-&gt;clocked = 1;
+     // Set sequence id to be triggered repeatedly, with priority id
+-    ADCSequenceConfigure( ADC_BASE, id, ADC_TRIGGER_TIMER, id );
++    ADCSequenceConfigure( ADC_BASE, d-&gt;seq_id, ADC_TRIGGER_TIMER, d-&gt;seq_id );
+ 
+     // Set up timer trigger
+-    TimerLoadSet(timer_base[s-&gt;timer_id], TIMER_A, SysCtlClockGet() / frequency);
+-    s-&gt;clocked = 1;
+-    frequency = SysCtlClockGet() / TimerLoadGet(timer_base[s-&gt;timer_id], TIMER_A);
++    TimerLoadSet( timer_base[ d-&gt;timer_id ], TIMER_A, SysCtlClockGet() / frequency );
++    frequency = SysCtlClockGet() / TimerLoadGet( timer_base[ d-&gt;timer_id ], TIMER_A );
+   }
+   else
+   {
++    d-&gt;clocked = 0;
+     // Conversion will run back-to-back until required samples are acquired
+-    ADCSequenceConfigure( ADC_BASE, id, ADC_TRIGGER_PROCESSOR, id ) ;
+-    s-&gt;clocked = 0;
++    ADCSequenceConfigure( ADC_BASE, d-&gt;seq_id, ADC_TRIGGER_PROCESSOR, d-&gt;seq_id ) ;
+   }
+-  
+-  // Samples go into sequencer of the same number as input channel
+-  ADCSequenceStepConfigure( ADC_BASE, id, 0, ADC_CTL_IE | ADC_CTL_END | adc_ctls[id] );
+-  
++    
+   return frequency;
+ }
+-
+-int platform_adc_prepchannel( unsigned id, u8 logcount )
+-{
+-  elua_adc_state *s = adc_get_ch_state( id );
+-  int res;
++int platform_adc_update_sequence( )
++{  
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+   
+-  ADCSequenceDisable( ADC_BASE, id );
++  ADCSequenceDisable( ADC_BASE, d-&gt;seq_id );
+   
+-  if( ( (u16) 1 &lt;&lt; logcount ) &gt; buf_get_size( BUF_ID_ADC, id ) )
+-  {   
+-    res = buf_set( BUF_ID_ADC, id, logcount, BUF_DSIZE_U16 );
+-    if ( res != PLATFORM_OK )
+-      return res;
+-    buf_flush( BUF_ID_ADC, id );
++  // NOTE: seq ctr should have an incrementer that will wrap appropriately..
++  d-&gt;seq_ctr = 0; 
++  while( d-&gt;seq_ctr &lt; d-&gt;seq_len-1 )
++  {
++    ADCSequenceStepConfigure( ADC_BASE, d-&gt;seq_id, d-&gt;seq_ctr, adc_ctls[ d-&gt;ch_state[ d-&gt;seq_ctr ]-&gt;id ] );
++    d-&gt;seq_ctr++;
+   }
++  ADCSequenceStepConfigure( ADC_BASE, d-&gt;seq_id, d-&gt;seq_ctr, ADC_CTL_IE | ADC_CTL_END | adc_ctls[ d-&gt;ch_state[ d-&gt;seq_ctr ]-&gt;id ] );
++  d-&gt;seq_ctr = 0;
+   
+-  s-&gt;op_pending = 1;
+-  s-&gt;reqsamples = (u16) 1 &lt;&lt; logcount;
+-  
+-  // Enable Sequence
+-  ADCSequenceEnable( ADC_BASE, id );
+-    
++  ADCSequenceEnable( ADC_BASE, d-&gt;seq_id );
++      
+   return PLATFORM_OK;
+ }
+ 
+-int platform_adc_startchannel( unsigned id )
+-{
+-  elua_adc_state *s = adc_get_ch_state( id );
++
++int platform_adc_start_sequence()
++{ 
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
+   
+-  if( s-&gt;clocked == 1 )
++  if( d-&gt;running != 1 )
+   {
+-    TimerControlTrigger(timer_base[s-&gt;timer_id], TIMER_A, true);
+-    TimerEnable(timer_base[s-&gt;timer_id], TIMER_A);
++    adc_update_dev_sequence( 0 );
++
++    ADCSequenceEnable( ADC_BASE, d-&gt;seq_id );
++    d-&gt;running = 1;
++
++    if( d-&gt;clocked == 1 )
++    {
++      TimerControlTrigger(timer_base[d-&gt;timer_id], TIMER_A, true);
++      TimerEnable(timer_base[d-&gt;timer_id], TIMER_A);
++    }
++    else
++    {
++      ADCProcessorTrigger( ADC_BASE, d-&gt;seq_id );
++    }
+   }
+-  else
+-  {
+-    ADCProcessorTrigger( ADC_BASE, id );
+-  }
+-
++  
+   return PLATFORM_OK;
+ }
+ 
+
+Modified: trunk/src/platform/lpc288x/conf.py
+===================================================================
+--- trunk/src/platform/lpc288x/conf.py	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/lpc288x/conf.py	2009-03-21 19:59:49 UTC (rev 261)
+@@ -31,9 +31,9 @@
+ 
+ # Toolset data
+ tools[ 'lpc288x' ] = {}
+-tools[ 'lpc288x' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, modeflag, cdefs )
++tools[ 'lpc288x' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s $_CPPINCFLAGS %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, modeflag, cdefs )
+ tools[ 'lpc288x' ][ 'linkcom' ] = &quot;%s -mcpu=arm7tdmi -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,HardReset -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
+-tools[ 'lpc288x' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, modeflag, cdefs )
++tools[ 'lpc288x' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_lpc288x( target, source, env ):
+
+Modified: trunk/src/platform/stm32/FWLib/library/inc/stm32f10x_adc.h
+===================================================================
+--- trunk/src/platform/stm32/FWLib/library/inc/stm32f10x_adc.h	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/stm32/FWLib/library/inc/stm32f10x_adc.h	2009-03-21 19:59:49 UTC (rev 261)
+@@ -64,7 +64,7 @@
+                            ((MODE) == ADC_Mode_SlowInterl) || \
+                            ((MODE) == ADC_Mode_AlterTrig))
+ 
+-/* ADC extrenal trigger sources for regular channels conversion --------------*/
++/* ADC external trigger sources for regular channels conversion --------------*/
+ /* for ADC1 and ADC2 */
+ #define ADC_ExternalTrigConv_T1_CC1                ((u32)0x00000000)
+ #define ADC_ExternalTrigConv_T1_CC2                ((u32)0x00020000)
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/stm32/conf.py	2009-03-21 19:59:49 UTC (rev 261)
+@@ -3,7 +3,7 @@
+ import glob
+ import os
+ 
+-local_include = local_include + &quot; -Isrc/platform/%s/FWLib/library/inc&quot; % platform
++local_include +=  ['src/platform/%s/FWLib/library/inc' % platform]
+ 
+ fwlib_files = &quot; &quot;.join(glob.glob(&quot;src/platform/%s/FWLib/library/src/*.c&quot; % platform))
+ #print &quot;FWLib: %s &quot; % fwlib_files 
+@@ -23,9 +23,9 @@
+ 
+ # Toolset data
+ tools[ 'stm32' ] = {}
+-tools[ 'stm32' ][ 'cccom' ] = &quot;%s -mcpu=cortex-m3 -mthumb -mlittle-endian %s %s -ffunction-sections -fdata-sections -fno-strict-aliasing %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
++tools[ 'stm32' ][ 'cccom' ] = &quot;%s -mcpu=cortex-m3 -mthumb -mlittle-endian %s $_CPPINCFLAGS -ffunction-sections -fdata-sections -fno-strict-aliasing %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, cdefs )
+ tools[ 'stm32' ][ 'linkcom' ] = &quot;%s -mcpu=cortex-m3 -mthumb -Wl,-T -Xlinker %s -u _start -Wl,-e,Reset_Handler -Wl,-static -Wl,--gc-sections -nostartfiles -nostdlib -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
+-tools[ 'stm32' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, cdefs )
++tools[ 'stm32' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], cdefs )
+ 
+ # Programming function
+ def progfunc_stm32( target, source, env ):
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/stm32/platform.c	2009-03-21 19:59:49 UTC (rev 261)
+@@ -11,9 +11,11 @@
+ #include &lt;stdio.h&gt;
+ #include &quot;uip_arp.h&quot;
+ #include &quot;elua_uip.h&quot;
++#include &quot;elua_adc.h&quot;
+ #include &quot;uip-conf.h&quot;
+ #include &quot;platform_conf.h&quot;
+ #include &quot;common.h&quot;
++#include &quot;buf.h&quot;
+ 
+ // Platform specific includes
+ #include &quot;stm32f10x_lib.h&quot;
+@@ -24,6 +26,7 @@
+ #include &quot;stm32f10x_nvic.h&quot;
+ #include &quot;stm32f10x_dbgmcu.h&quot;
+ #include &quot;stm32f10x_gpio.h&quot;
++#include &quot;stm32f10x_adc.h&quot;
+ #include &quot;stm32f10x_pwr.h&quot;
+ #include &quot;stm32f10x_usart.h&quot;
+ #include &quot;stm32f10x_spi.h&quot;
+@@ -48,6 +51,7 @@
+ static void timers_init();
+ static void uarts_init();
+ static void pios_init();
++static void adcs_init();
+ 
+ int platform_init()
+ {
+@@ -68,6 +72,9 @@
+   
+   // Setup timers
+   timers_init();
++  
++  // Setup ADCs
++  adcs_init();
+ 
+   cmn_platform_init();
+ 
+@@ -150,6 +157,9 @@
+ * Output         : None
+ * Return         : None
+ *******************************************************************************/
++
++NVIC_InitTypeDef nvic_init_structure;
++
+ static void NVIC_Configuration(void)
+ {
+   NVIC_DeInit();
+@@ -167,6 +177,14 @@
+ 
+   /* Configure the SysTick handler priority */
+   NVIC_SystemHandlerPriorityConfig(SystemHandler_SysTick, 0, 0);
++
++#ifdef BUILD_ADC  
++  nvic_init_structure.NVIC_IRQChannel = DMA1_Channel1_IRQChannel; 
++  nvic_init_structure.NVIC_IRQChannelPreemptionPriority = 1; 
++  nvic_init_structure.NVIC_IRQChannelSubPriority = 3; 
++  nvic_init_structure.NVIC_IRQChannelCmd = DISABLE; 
++  NVIC_Init(&amp;nvic_init_structure);
++#endif
+ }
+ 
+ // ****************************************************************************
+@@ -450,9 +468,17 @@
+ 
+ static u32 timer_set_clock( unsigned id, u32 clock )
+ {
++  TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+   TIM_TypeDef *ptimer = timer[ id ];
+   u16 pre;
+   
++  TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
++  TIM_TimeBaseStructure.TIM_Prescaler = TIM_GET_BASE_CLK( id ) / TIM_STARTUP_CLOCK;
++  TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
++  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
++  TIM_TimeBaseStructure.TIM_RepetitionCounter = 0x0000;
++  TIM_TimeBaseInit( timer[ id ], &amp;TIM_TimeBaseStructure );
++  
+   pre = TIM_GET_BASE_CLK( id ) / clock;
+   TIM_PrescalerConfig( ptimer, pre, TIM_PSCReloadMode_Immediate );
+   return TIM_GET_BASE_CLK( id ) / pre;
+@@ -510,15 +536,15 @@
+ 
+ // *****************************************************************************
+ // CPU specific functions
+-
++ 
+ void platform_cpu_enable_interrupts()
+ {
+-  //IntMasterEnable();
++  void NVIC_RESETPRIMASK(void); // enable interrupts
+ }
+ 
+ void platform_cpu_disable_interrupts()
+ {
+-  //IntMasterDisable();
++  void NVIC_SETPRIMASK(void); // disable interrupts
+ }
+ 
+ u32 platform_s_cpu_get_frequency()
+@@ -526,3 +552,254 @@
+   return HCLK;
+ }
+ 
++// *****************************************************************************
++// ADC specific functions and variables
++
++#define ADC1_DR_Address ((u32)ADC1_BASE + 0x4C)
++
++static ADC_TypeDef *const adc[] = { ADC1, ADC2, ADC3 };
++static const u32 adc_timer[] = { ADC_ExternalTrigConv_T1_CC1, ADC_ExternalTrigConv_T2_CC2, ADC_ExternalTrigConv_T3_TRGO, ADC_ExternalTrigConv_T4_CC4 };
++
++ADC_InitTypeDef adc_init_struct;
++DMA_InitTypeDef dma_init_struct;
++
++int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
++{
++  // NOTE: We only allow timer 2 at the moment, for the sake of implementation simplicity
++  return ( timer_id == 2 );
++}
++
++void platform_adc_stop( unsigned id )
++{
++  elua_adc_ch_state *s = adc_get_ch_state( id );
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  
++  s-&gt;op_pending = 0;
++  INACTIVATE_CHANNEL( d, id );
++
++  // If there are no more active channels, stop the sequencer
++  if( d-&gt;ch_active == 0 )
++  {
++    // Ensure that no external triggers are firing
++    ADC_ExternalTrigConvCmd( adc[ d-&gt;seq_id ], DISABLE );
++    
++    // Also ensure that DMA interrupt won't fire ( this shouldn't really be necessary )
++    nvic_init_structure.NVIC_IRQChannelCmd = DISABLE; 
++    NVIC_Init(&amp;nvic_init_structure);
++    
++    d-&gt;running = 0;
++  }
++}
++
++int platform_adc_update_sequence( )
++{  
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  
++  // NOTE: this shutdown/startup stuff may or may not be absolutely necessary
++  //       it is here to deal with the situation that a dma conversion has
++  //       already started and should be reset.
++  ADC_ExternalTrigConvCmd( adc[ d-&gt;seq_id ], DISABLE );
++  
++  // Stop in-progress adc dma transfers
++  // Later de/reinitialization should flush out synchronization problems
++  ADC_DMACmd( adc[ d-&gt;seq_id ], DISABLE );
++  
++  // Bring down adc, update setup, bring back up
++  ADC_Cmd( adc[ d-&gt;seq_id ], DISABLE );
++  ADC_DeInit( adc[ d-&gt;seq_id ] );
++  
++  d-&gt;seq_ctr = 0; 
++  while( d-&gt;seq_ctr &lt; d-&gt;seq_len )
++  {
++    ADC_RegularChannelConfig( adc[ d-&gt;seq_id ], d-&gt;ch_state[ d-&gt;seq_ctr ]-&gt;id, d-&gt;seq_ctr+1, ADC_SampleTime_1Cycles5 );
++    d-&gt;seq_ctr++;
++  }
++  d-&gt;seq_ctr = 0;
++  
++  adc_init_struct.ADC_NbrOfChannel = d-&gt;seq_len;
++  ADC_Init( adc[ d-&gt;seq_id ], &amp;adc_init_struct );
++  ADC_Cmd( adc[ d-&gt;seq_id ], ENABLE );
++  
++  // Bring down adc dma, update setup, bring back up
++  DMA_Cmd( DMA1_Channel1, DISABLE );
++  DMA_DeInit( DMA1_Channel1 );
++  dma_init_struct.DMA_BufferSize = d-&gt;seq_len;
++  dma_init_struct.DMA_MemoryBaseAddr = (u32)d-&gt;sample_buf;
++  DMA_Init( DMA1_Channel1, &amp;dma_init_struct );
++  DMA_Cmd( DMA1_Channel1, ENABLE );
++  
++  ADC_DMACmd( adc[ d-&gt;seq_id ], ENABLE );
++  DMA_ITConfig( DMA1_Channel1, DMA1_IT_TC1 , ENABLE ); 
++  
++  if ( d-&gt;clocked == 1 &amp;&amp; d-&gt;running == 1 )
++    ADC_ExternalTrigConvCmd( adc[ d-&gt;seq_id ], ENABLE );
++  
++  return PLATFORM_OK;
++}
++
++void DMA1_Channel1_IRQHandler(void) 
++{
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  elua_adc_ch_state *s;
++  
++  DMA_ClearITPendingBit( DMA1_IT_TC1 );
++  
++  d-&gt;seq_ctr = 0;
++  while( d-&gt;seq_ctr &lt; d-&gt;seq_len )
++  {
++    s = d-&gt;ch_state[ d-&gt;seq_ctr ];
++    
++    // Fill in smoothing buffer until warmed up
++    if ( s-&gt;logsmoothlen &gt; 0 &amp;&amp; s-&gt;smooth_ready == 0)
++      adc_smooth_data( s-&gt;id );
++#if defined( BUF_ENABLE_ADC )
++    else
++      buf_write( BUF_ID_ADC, s-&gt;id, ( t_buf_data* )s-&gt;value_ptr );
++#endif
++
++    // If we have the number of requested samples, stop sampling
++    if ( adc_samples_available( s-&gt;id ) &gt;= s-&gt;reqsamples &amp;&amp; s-&gt;freerunning == 0 )
++      platform_adc_stop( s-&gt;id );
++
++    d-&gt;seq_ctr++;
++  }
++  d-&gt;seq_ctr = 0;
++
++  if( d-&gt;running == 1 )
++    adc_update_dev_sequence( 0 );
++  
++  if ( d-&gt;clocked == 0 &amp;&amp; d-&gt;running == 1 )
++    ADC_SoftwareStartConvCmd( adc[ d-&gt;seq_id ], ENABLE );
++}
++
++static void adcs_init()
++{
++  unsigned id;
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  
++  for( id = 0; id &lt; NUM_ADC; id ++ )
++    adc_init_ch_state( id );
++	
++  RCC_APB2PeriphClockCmd( RCC_APB2Periph_ADC1, ENABLE );
++  RCC_ADCCLKConfig( RCC_PCLK2_Div8 );
++  
++  ADC_DeInit( adc[ d-&gt;seq_id ] );
++  ADC_StructInit( &amp;adc_init_struct );
++  
++  // Universal Converter Setup
++  adc_init_struct.ADC_Mode = ADC_Mode_Independent;
++  adc_init_struct.ADC_ScanConvMode = ENABLE;
++  adc_init_struct.ADC_ContinuousConvMode = DISABLE;
++  adc_init_struct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
++  adc_init_struct.ADC_DataAlign = ADC_DataAlign_Right;
++  adc_init_struct.ADC_NbrOfChannel = 1;
++  
++  // Apply default config
++  ADC_Init( adc[ d-&gt;seq_id ], &amp;adc_init_struct );
++  ADC_ExternalTrigConvCmd( adc[ d-&gt;seq_id ], DISABLE );
++    
++  // Enable ADC
++  ADC_Cmd( adc[ d-&gt;seq_id ], ENABLE );  
++  
++  // Reset/Perform ADC Calibration
++  ADC_ResetCalibration( adc[ d-&gt;seq_id ] );
++  while( ADC_GetResetCalibrationStatus( adc[ d-&gt;seq_id ] ) );
++  ADC_StartCalibration( adc[ d-&gt;seq_id ] );
++  while( ADC_GetCalibrationStatus( adc[ d-&gt;seq_id ] ) );
++  
++  // Set up DMA to handle samples
++  RCC_AHBPeriphClockCmd( RCC_AHBPeriph_DMA1, ENABLE );
++  
++  DMA_DeInit( DMA1_Channel1 );
++  dma_init_struct.DMA_PeripheralBaseAddr = ADC1_DR_Address;
++  dma_init_struct.DMA_MemoryBaseAddr = (u32)d-&gt;sample_buf;
++  dma_init_struct.DMA_DIR = DMA_DIR_PeripheralSRC;
++  dma_init_struct.DMA_BufferSize = 1;
++  dma_init_struct.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
++  dma_init_struct.DMA_MemoryInc = DMA_MemoryInc_Enable;
++  dma_init_struct.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
++  dma_init_struct.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
++  dma_init_struct.DMA_Mode = DMA_Mode_Circular;
++  dma_init_struct.DMA_Priority = DMA_Priority_Low;
++  dma_init_struct.DMA_M2M = DMA_M2M_Disable;
++  DMA_Init( DMA1_Channel1, &amp;dma_init_struct );
++  
++  ADC_DMACmd(ADC1, ENABLE );
++  
++  DMA_Cmd( DMA1_Channel1, ENABLE );
++  DMA_ITConfig( DMA1_Channel1, DMA1_IT_TC1 , ENABLE ); 
++  
++  platform_adc_setclock( 0, 0 );
++}
++
++u32 platform_adc_setclock( unsigned id, u32 frequency )
++{
++  TIM_TimeBaseInitTypeDef timer_base_struct;
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  
++  unsigned period, prescaler;
++  
++  // Make sure sequencer is disabled before making changes
++  ADC_ExternalTrigConvCmd( adc[ d-&gt;seq_id ], DISABLE );
++  
++  if ( frequency &gt; 0 )
++  {
++    d-&gt;clocked = 1;
++    // Attach timer to converter
++    adc_init_struct.ADC_ExternalTrigConv = adc_timer[ d-&gt;timer_id ];
++    
++    period = TIM_GET_BASE_CLK( id ) / frequency;
++    
++    prescaler = (period / 0x10000) + 1;
++  	period /= prescaler;
++
++  	timer_base_struct.TIM_Period = period - 1;
++  	timer_base_struct.TIM_Prescaler = (2 * prescaler) - 1;
++  	timer_base_struct.TIM_ClockDivision = TIM_CKD_DIV1;
++  	timer_base_struct.TIM_CounterMode = TIM_CounterMode_Down;
++  	TIM_TimeBaseInit( timer[ d-&gt;timer_id ], &amp;timer_base_struct );
++    
++    frequency = 2 * ( TIM_GET_BASE_CLK( id ) / ( TIM_GetPrescaler( timer[ d-&gt;timer_id ] ) + 1 ) ) / period;
++    
++    // Set up output compare for timer
++    TIM_SelectOutputTrigger(timer[ d-&gt;timer_id ], TIM_TRGOSource_Update);
++  }
++  else
++  {
++    d-&gt;clocked = 0;
++    
++    // Switch to Software-only Trigger
++    adc_init_struct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;   
++  }
++  
++  // Apply config
++  ADC_Init( adc[ d-&gt;seq_id ], &amp;adc_init_struct );
++  
++  return frequency;
++}
++
++int platform_adc_start_sequence( )
++{ 
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  
++  // Only force update and initiate if we weren't already running
++  // changes will get picked up during next interrupt cycle
++  if ( d-&gt;running != 1 )
++  {
++    adc_update_dev_sequence( 0 );
++    
++    d-&gt;running = 1;
++    
++    DMA_ClearITPendingBit( DMA1_IT_TC1 );
++
++    nvic_init_structure.NVIC_IRQChannelCmd = ENABLE; 
++    NVIC_Init(&amp;nvic_init_structure);
++
++    if( d-&gt;clocked == 1 )
++      ADC_ExternalTrigConvCmd( adc[ d-&gt;seq_id ], ENABLE );
++    else
++      ADC_SoftwareStartConvCmd( adc[ d-&gt;seq_id ], ENABLE );
++  }
++
++  return PLATFORM_OK;
++}
+\ No newline at end of file
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/stm32/platform_conf.h	2009-03-21 19:59:49 UTC (rev 261)
+@@ -19,6 +19,7 @@
+ //#define BUILD_DHCPC
+ //#define BUILD_DNS
+ #define BUILD_CON_GENERIC
++#define BUILD_ADC
+ //#define BUILD_CON_TCP
+ 
+ // *****************************************************************************
+@@ -51,6 +52,7 @@
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
+   LCDLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 
+@@ -91,8 +93,18 @@
+ #define NUM_UART              5
+ #define NUM_TIMER             6
+ #define NUM_PWM               0
+-#define NUM_ADC               0
++#define NUM_ADC               16
+ 
++// ADC Configuration Params
++#define ADC_BIT_RESOLUTION    12
++#define BUF_ENABLE_ADC
++#define ADC_BUF_SIZE          BUF_SIZE_2
++
++// These should be adjusted to support multiple ADC devices
++#define ADC_TIMER_FIRST_ID    0
++#define ADC_NUM_TIMERS        4
++
++
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ u32 platform_s_cpu_get_frequency();
+ #define CPU_FREQUENCY         platform_s_cpu_get_frequency()
+
+Modified: trunk/src/platform/stm32/stm32f10x_it.c
+===================================================================
+--- trunk/src/platform/stm32/stm32f10x_it.c	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/stm32/stm32f10x_it.c	2009-03-21 19:59:49 UTC (rev 261)
+@@ -288,9 +288,7 @@
+ * Output         : None
+ * Return         : None
+ *******************************************************************************/
+-void DMA1_Channel1_IRQHandler(void)
+-{
+-}
++extern void DMA1_Channel1_IRQHandler(void);
+ 
+ /*******************************************************************************
+ * Function Name  : DMA1_Channel2_IRQHandler
+
+Modified: trunk/src/platform/str7/conf.py
+===================================================================
+--- trunk/src/platform/str7/conf.py	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/str7/conf.py	2009-03-21 19:59:49 UTC (rev 261)
+@@ -24,9 +24,9 @@
+ 
+ # Toolset data
+ tools[ 'str7' ] = {}
+-tools[ 'str7' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, opt, local_include, cdefs )
++tools[ 'str7' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s $_CPPINCFLAGS -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, opt, cdefs )
+ tools[ 'str7' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,entry -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
+-tools[ 'str7' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, modeflag, cdefs )
++tools[ 'str7' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_str7( target, source, env ):
+
+Modified: trunk/src/platform/str9/conf.py
+===================================================================
+--- trunk/src/platform/str9/conf.py	2009-03-19 09:43:35 UTC (rev 260)
++++ trunk/src/platform/str9/conf.py	2009-03-21 19:59:49 UTC (rev 261)
+@@ -26,9 +26,9 @@
+ 
+ # Toolset data
+ tools[ 'str9' ] = {}
+-tools[ 'str9' ][ 'cccom' ] = &quot;%s -mcpu=arm966e-s -mfpu=fpa %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile'], opt, local_include, modeflag, cdefs )
++tools[ 'str9' ][ 'cccom' ] = &quot;%s -mcpu=arm966e-s -mfpu=fpa %s $_CPPINCFLAGS %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile'], opt, modeflag, cdefs )
+ tools[ 'str9' ][ 'linkcom' ] = &quot;%s -mcpu=arm966e-s -mfpu=fpa -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,_startup -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
+-tools[ 'str9' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=arm966e-s -mfpu=fpa %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, modeflag, cdefs )
++tools[ 'str9' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=arm966e-s -mfpu=fpa %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_str9( target, source, env ):
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000216.html">[Elua-svn] r260 - in trunk/doc: . en wb
+</A></li>
+	<LI>Next message: <A HREF="000218.html">[Elua-svn] r262 - in trunk: . doc doc/en doc/wb inc src	src/platform/i386
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#217">[ date ]</a>
+              <a href="thread.html#217">[ thread ]</a>
+              <a href="subject.html#217">[ subject ]</a>
+              <a href="author.html#217">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

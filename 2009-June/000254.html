@@ -1,0 +1,239 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r298 - branches/luarpc/src/lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r298%20-%20branches/luarpc/src/lua&In-Reply-To=%3C200906160223.n5G2NWJH011789%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000253.html">
+   <LINK REL="Next"  HREF="000255.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r298 - branches/luarpc/src/lua</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r298%20-%20branches/luarpc/src/lua&In-Reply-To=%3C200906160223.n5G2NWJH011789%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r298 - branches/luarpc/src/lua">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Jun 16 04:23:32 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000253.html">[Elua-svn] r297 - branches/luarpc/src/lua
+</A></li>
+        <LI>Next message: <A HREF="000255.html">[Elua-svn] r299 - branches/luarpc/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#254">[ date ]</a>
+              <a href="thread.html#254">[ thread ]</a>
+              <a href="subject.html#254">[ subject ]</a>
+              <a href="author.html#254">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-16 04:23:31 +0200 (Tue, 16 Jun 2009)
+New Revision: 298
+
+Modified:
+   branches/luarpc/src/lua/ldump.c
+   branches/luarpc/src/lua/luac.c
+   branches/luarpc/src/lua/lundump.c
+   branches/luarpc/src/lua/lundump.h
+Log:
+Fix for size of character streams.
+
+Modified: branches/luarpc/src/lua/ldump.c
+===================================================================
+--- branches/luarpc/src/lua/ldump.c	2009-06-16 02:23:21 UTC (rev 297)
++++ branches/luarpc/src/lua/ldump.c	2009-06-16 02:23:31 UTC (rev 298)
+@@ -91,24 +91,24 @@
+  DumpIntWithSize(x,D-&gt;target.sizeof_int,D);
+ }
+ 
+-static void DumpSize(size_t x, DumpState* D)
++static void DumpSize(int32_t x, DumpState* D)
+ {
+  /* dump unsigned integer */
+- switch(D-&gt;target.sizeof_size_t) {
++ switch(D-&gt;target.sizeof_strsize_t) {
+   case 1: {
+    if (x&gt;0xFF) D-&gt;status=LUA_ERR_CC_INTOVERFLOW; 
+    DumpChar(x,D);
+   } break;
+   case 2: {
+    if (x&gt;0xFFFF) D-&gt;status=LUA_ERR_CC_INTOVERFLOW;
+-   unsigned short y=x;
++   uint16_t y=(uint16_t)x;
+    MaybeByteSwap((char*)&amp;y,2,D);
+    DumpVar(y,D);
+   } break;
+   case 4: {
+    /* Reduce bounds to avoid messing 32-bit compilers up */
+    if (x&gt;0xFFFFFFFE) D-&gt;status=LUA_ERR_CC_INTOVERFLOW;
+-   unsigned long y=x;
++   uint32_t y=x;
+    MaybeByteSwap((char*)&amp;y,4,D);
+    DumpVar(y,D);
+   } break;
+@@ -170,12 +170,12 @@
+ {
+  if (s==NULL || getstr(s)==NULL)
+  {
+-  size_t size=0;
++  int32_t size=0;
+   DumpSize(size,D);
+  }
+  else
+  {
+-  size_t size=s-&gt;tsv.len+1;		/* include trailing '\0' */
++  int32_t size=s-&gt;tsv.len+1;		/* include trailing '\0' */
+   DumpSize(size,D);
+   DumpBlock(getstr(s),size,D);
+  }
+@@ -264,7 +264,7 @@
+  *h++=(char)LUAC_FORMAT;
+  *h++=(char)D-&gt;target.little_endian;
+  *h++=(char)D-&gt;target.sizeof_int;
+- *h++=(char)D-&gt;target.sizeof_size_t;
++ *h++=(char)D-&gt;target.sizeof_strsize_t;
+  *h++=(char)sizeof(Instruction);
+  *h++=(char)D-&gt;target.sizeof_lua_Number;
+  *h++=(char)D-&gt;target.lua_Number_integral;
+@@ -298,7 +298,7 @@
+  int test=1;
+  target.little_endian=*(char*)&test;
+  target.sizeof_int=sizeof(int);
+- target.sizeof_size_t=sizeof(size_t);
++ target.sizeof_strsize_t=sizeof(strsize_t);
+  target.sizeof_lua_Number=sizeof(lua_Number);
+  target.lua_Number_integral=(((lua_Number)0.5)==0);
+  target.is_arm_fpa=0;
+
+Modified: branches/luarpc/src/lua/luac.c
+===================================================================
+--- branches/luarpc/src/lua/luac.c	2009-06-16 02:23:21 UTC (rev 297)
++++ branches/luarpc/src/lua/luac.c	2009-06-16 02:23:31 UTC (rev 298)
+@@ -104,7 +104,7 @@
+    ++version;
+   else if (IS(&quot;-cci&quot;)) /* target integer size */
+   {
+-   int s = target.sizeof_int = target.sizeof_size_t = atoi(argv[++i])/8;
++   int s = target.sizeof_int = atoi(argv[++i])/8;
+    if (!(s==1 || s==2 || s==4)) fatal(LUA_QL(&quot;-cci&quot;) &quot; must be 8, 16 or 32&quot;);
+   }
+   else if (IS(&quot;-ccn&quot;)) /* target lua_Number type and size */
+@@ -224,7 +224,7 @@
+  int test=1;
+  target.little_endian=*(char*)&test;
+  target.sizeof_int=sizeof(int);
+- target.sizeof_size_t=sizeof(size_t);
++ target.sizeof_strsize_t=sizeof(strsize_t);
+  target.sizeof_lua_Number=sizeof(lua_Number);
+  target.lua_Number_integral=(((lua_Number)0.5)==0);
+  target.is_arm_fpa=0;
+
+Modified: branches/luarpc/src/lua/lundump.c
+===================================================================
+--- branches/luarpc/src/lua/lundump.c	2009-06-16 02:23:21 UTC (rev 297)
++++ branches/luarpc/src/lua/lundump.c	2009-06-16 02:23:31 UTC (rev 298)
+@@ -45,6 +45,12 @@
+ #define LoadVar(S,x)		LoadMem(S,&amp;x,1,sizeof(x))
+ #define LoadVector(S,b,n,size)	LoadMem(S,b,n,size)
+ 
++static void LoadBlock(LoadState* S, void* b, size_t size)
++{
++ size_t r=luaZ_read(S-&gt;Z,b,size);
++ IF (r!=0, &quot;unexpected end&quot;);
++}
++
+ static void LoadMem (LoadState* S, void* b, int n, size_t size)
+ {
+   LoadBlock(S,b,n*size);
+@@ -88,14 +94,6 @@
+   }
+ }
+ 
+-
+-
+-static void LoadBlock(LoadState* S, void* b, size_t size)
+-{
+- size_t r=luaZ_read(S-&gt;Z,b,size);
+- IF (r!=0, &quot;unexpected end&quot;);
+-}
+-
+ static int LoadChar(LoadState* S)
+ {
+  char x;
+@@ -120,7 +118,7 @@
+ 
+ static TString* LoadString(LoadState* S)
+ {
+- size_t size;
++ int32_t size;
+  LoadVar(S,size);
+  if (size==0)
+   return NULL;
+@@ -266,7 +264,7 @@
+  *h++=(char)LUAC_FORMAT;
+  *h++=(char)*(char*)&x;				/* endianness */
+  *h++=(char)sizeof(int);
+- *h++=(char)sizeof(size_t);
++ *h++=(char)sizeof(int32_t);
+  *h++=(char)sizeof(Instruction);
+  *h++=(char)sizeof(lua_Number);
+  *h++=(char)(((lua_Number)0.5)==0);		/* is lua_Number integral? */
+
+Modified: branches/luarpc/src/lua/lundump.h
+===================================================================
+--- branches/luarpc/src/lua/lundump.h	2009-06-16 02:23:21 UTC (rev 297)
++++ branches/luarpc/src/lua/lundump.h	2009-06-16 02:23:31 UTC (rev 298)
+@@ -7,14 +7,18 @@
+ #ifndef lundump_h
+ #define lundump_h
+ 
++#include &lt;stdint.h&gt;
++
+ #include &quot;lobject.h&quot;
+ #include &quot;lzio.h&quot;
+ 
++typedef uint32_t strsize_t;
++
+ /* info about target machine for cross-compilation */
+ typedef struct {
+  int little_endian;
+  int sizeof_int;
+- int sizeof_size_t;
++ int sizeof_strsize_t;
+  int sizeof_lua_Number;
+  int lua_Number_integral;
+  int is_arm_fpa;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000253.html">[Elua-svn] r297 - branches/luarpc/src/lua
+</A></li>
+	<LI>Next message: <A HREF="000255.html">[Elua-svn] r299 - branches/luarpc/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#254">[ date ]</a>
+              <a href="thread.html#254">[ thread ]</a>
+              <a href="subject.html#254">[ subject ]</a>
+              <a href="author.html#254">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

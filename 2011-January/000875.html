@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r922 - in branches/pre0.8/doc: . eluadoc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r922%20-%20in%20branches/pre0.8/doc%3A%20.%20eluadoc&In-Reply-To=%3C20110131183837.086DF48123C%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000874.html">
+   <LINK REL="Next"  HREF="000876.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r922 - in branches/pre0.8/doc: . eluadoc</H1>
+    <B>jbsnyder at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r922%20-%20in%20branches/pre0.8/doc%3A%20.%20eluadoc&In-Reply-To=%3C20110131183837.086DF48123C%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r922 - in branches/pre0.8/doc: . eluadoc">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Jan 31 19:38:36 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000874.html">[Elua-svn] r921 - in branches/pre0.8: . doc doc/en
+</A></li>
+        <LI>Next message: <A HREF="000876.html">[Elua-svn] r923 - branches/pre0.8/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#875">[ date ]</a>
+              <a href="thread.html#875">[ thread ]</a>
+              <a href="subject.html#875">[ subject ]</a>
+              <a href="author.html#875">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2011-01-31 19:38:36 +0100 (Mon, 31 Jan 2011)
+New Revision: 922
+
+Added:
+   branches/pre0.8/doc/eluadoc/arch_platform_can.lua
+Modified:
+   branches/pre0.8/doc/eluadoc.lua
+Log:
+document can platform interface
+
+Added: branches/pre0.8/doc/eluadoc/arch_platform_can.lua
+===================================================================
+--- branches/pre0.8/doc/eluadoc/arch_platform_can.lua	                        (rev 0)
++++ branches/pre0.8/doc/eluadoc/arch_platform_can.lua	2011-01-31 18:38:36 UTC (rev 922)
+@@ -0,0 +1,77 @@
++-- eLua platform interface - CAN
++-- Make a full description for each language
++
++data_en = 
++{
++  -- Menu name
++  menu_name = &quot;CAN&quot;,
++
++  -- Title
++  title = &quot;eLua platform interface - CAN&quot;,
++
++  -- Overview
++  overview = &quot;This part of the platform interface groups functions related to the CAN interface(s) of the MCU..&quot;,
++
++  -- Data structures, constants and types
++  structures = 
++  {
++    { text = [[// eLua CAN ID types
++enum
++{
++  ELUA_CAN_ID_STD = 0,
++  ELUA_CAN_ID_EXT
++};
++]],
++      name = &quot;CAN ID types&quot;,
++      desc = &quot;Constants used to define whether the message ID is standard or extended..&quot;
++    }
++  },
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;int #platform_can_exists#( unsigned id );&quot;,
++      desc = [[Checks if the platform has the hardware CAN specified as argument. Implemented in %src/common.c%, it uses the $NUM_CAN$ macro that must be defined in the
++  platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). For example:&lt;/p&gt;
++  ~#define NUM_CAN   1      $// The platform has one CAN interface$~&lt;p&gt; ]],
++      args = &quot;$id$ - CAN interface ID.&quot;,
++      ret = &quot;1 if the CAN interface exists, 0 otherwise&quot;
++    },
++
++    { sig = &quot;u32 #platform_can_setup#( unsigned id, u23 clock );&quot;,
++      desc = [[This function is used to initialize the CAN hardware and set the bus clock.]],
++      args = 
++      {
++        &quot;$id$ - CAN interface ID.&quot;,
++        &quot;$clock$ - the clock of the CAN bus, maximum speed is generally 1000000 (1 Mbit)&quot;
++      },
++      ret = &quot;the actual speed set for the CAN interface. Depending on the hardware, this may have a different value than the $clock$ argument.&quot;
++    },
++
++    {  sig = &quot;void #platform_can_send#( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data );&quot;,
++       desc = &quot;Send message over the CAN bus.&quot;,
++       args =
++       {
++          &quot;$id$ - CAN interface ID.&quot;,
++          &quot;$canid$ - CAN identifier number.&quot;,
++          &quot;$canidtype$ - identifier type as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">can_id_types at here</A>@&quot;,
++          &quot;$len$ - message length in bytes (8 or fewer)&quot;,
++          &quot;$message$ - pointer to message, 8 or fewer bytes in length&quot;
++       },
++    },
++
++     {  sig = &quot;int #platform_can_recv#( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data );&quot;,
++        desc = &quot;Receive CAN bus message.&quot;,
++        args =
++       {
++          &quot;$id$ - CAN interface ID.&quot;,
++          &quot;$canid$ - pointer where CAN identifier number will be written.&quot;,
++          &quot;$canidtype$ - pointer where identifier type as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">can_id_types at here</A>@ will be written&quot;,
++          &quot;$len$ - pointer where message length in bytes will be written&quot;,
++          &quot;$message$ - pointer to message buffer (8 bytes in lenth)&quot;
++       },
++       ret = &quot;PLATFORM_OK for success, PLATFORM_UNDERFLOW for error. (see @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">arch_platform_ll.html at here</A>@ for details)&quot;
++    },
++  }
++}
++
+
+Modified: branches/pre0.8/doc/eluadoc.lua
+===================================================================
+--- branches/pre0.8/doc/eluadoc.lua	2011-01-31 18:27:36 UTC (rev 921)
++++ branches/pre0.8/doc/eluadoc.lua	2011-01-31 18:38:36 UTC (rev 922)
+@@ -14,7 +14,7 @@
+ -- List here all the components of each section
+ local components = 
+ { 
+-  arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot;, &quot;i2c&quot; },
++  arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot;, &quot;i2c&quot;, &quot;can&quot; },
+   refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot;, &quot;can&quot;, &quot;rpc&quot;, &quot;elua&quot;, &quot;i2c&quot; },
+   refman_ps_lm3s = { &quot;disp&quot; },
+   refman_ps_str9 = { &quot;pio&quot;, &quot;rtc&quot; },
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000874.html">[Elua-svn] r921 - in branches/pre0.8: . doc doc/en
+</A></li>
+	<LI>Next message: <A HREF="000876.html">[Elua-svn] r923 - branches/pre0.8/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#875">[ date ]</a>
+              <a href="thread.html#875">[ thread ]</a>
+              <a href="subject.html#875">[ subject ]</a>
+              <a href="author.html#875">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

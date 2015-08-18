@@ -1,0 +1,258 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r85 - in trunk: . inc romfs src/lua	src/platform/at91sam7x src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r85%20-%20in%20trunk%3A%20.%20inc%20romfs%20src/lua%0A%09src/platform/at91sam7x%20src/platform/i386%20src/platform/lm3s%0A%09src/platform/lpc288x%20src/platform/str9&In-Reply-To=%3C200809101841.m8AIfWML013409%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000040.html">
+   <LINK REL="Next"  HREF="000042.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r85 - in trunk: . inc romfs src/lua	src/platform/at91sam7x src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/str9</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r85%20-%20in%20trunk%3A%20.%20inc%20romfs%20src/lua%0A%09src/platform/at91sam7x%20src/platform/i386%20src/platform/lm3s%0A%09src/platform/lpc288x%20src/platform/str9&In-Reply-To=%3C200809101841.m8AIfWML013409%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r85 - in trunk: . inc romfs src/lua	src/platform/at91sam7x src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Sep 10 20:41:32 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000040.html">[Elua-svn] r84 - trunk/src
+</A></li>
+        <LI>Next message: <A HREF="000042.html">[Elua-svn] r86 - in trunk: . docs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#41">[ date ]</a>
+              <a href="thread.html#41">[ thread ]</a>
+              <a href="subject.html#41">[ subject ]</a>
+              <a href="author.html#41">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-09-10 20:41:31 +0200 (Wed, 10 Sep 2008)
+New Revision: 85
+
+Modified:
+   trunk/SConstruct
+   trunk/inc/version.h
+   trunk/mkfs.py
+   trunk/romfs/pwmled.lua
+   trunk/src/lua/linit.c
+   trunk/src/lua/lmathlib.c
+   trunk/src/platform/at91sam7x/platform_libs.h
+   trunk/src/platform/i386/platform_libs.h
+   trunk/src/platform/lm3s/platform_libs.h
+   trunk/src/platform/lpc288x/platform_libs.h
+   trunk/src/platform/str9/platform_libs.h
+Log:
+- made the math lib configurable with the &quot;platform libs&quot; mechanism. This way one can have a floating point Lua (thus being able to use fundamental floating point operations), but without the
+  mathlib (sin, cos, tan and all the other functions from there).
+- corrected &quot;pwmled.lua&quot; (removed a debug print)
+- bumped version number to minor versn 0.4.1
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/SConstruct	2008-09-10 18:41:31 UTC (rev 85)
+@@ -143,6 +143,7 @@
+   print &quot;Building filesystem...&quot;
+   import mkfs
+   mkfs.mkfs( &quot;romfs&quot;, &quot;romfiles&quot; )
++  print
+   os.system( &quot;mv -f romfiles.h inc/&quot; )
+   os.system( &quot;rm -f src/fs.o&quot; )
+   
+
+Modified: trunk/inc/version.h
+===================================================================
+--- trunk/inc/version.h	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/inc/version.h	2008-09-10 18:41:31 UTC (rev 85)
+@@ -3,7 +3,7 @@
+ #ifndef __VERSION_H__
+ #define __VERSION_H__
+ 
+-#define     ELUA_VERSION          0.4
+-#define     ELUA_STR_VERSION      &quot;0.4&quot;
++#define     ELUA_VERSION          0.4.1
++#define     ELUA_STR_VERSION      &quot;0.4.1&quot;
+ 
+ #endif
+
+Modified: trunk/mkfs.py
+===================================================================
+--- trunk/mkfs.py	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/mkfs.py	2008-09-10 18:41:31 UTC (rev 85)
+@@ -90,6 +90,7 @@
+   _add_data( 0, outfile, False )
+   outfile.write( &quot;};\n\n#endif\n&quot; );
+   outfile.close()
++  print &quot;Done, total size is %d bytes&quot; % _bytecnt
+   return True
+ 
+ if __name__ == &quot;__main__&quot;:
+
+Modified: trunk/romfs/pwmled.lua
+===================================================================
+--- trunk/romfs/pwmled.lua	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/romfs/pwmled.lua	2008-09-10 18:41:31 UTC (rev 85)
+@@ -9,8 +9,6 @@
+   return
+ end
+ 
+-print( tmr.mindelay( tmrid ), tmr.maxdelay( tmrid ), tmr.getclock( tmrid ) )
+-
+ print &quot;Control LED with PWM (fade up/down)&quot;
+ print &quot;Press any key to exit&quot;
+ local crtduty, incr = 10, 5
+
+Modified: trunk/src/lua/linit.c
+===================================================================
+--- trunk/src/lua/linit.c	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/src/lua/linit.c	2008-09-10 18:41:31 UTC (rev 85)
+@@ -22,9 +22,6 @@
+   {LUA_IOLIBNAME, luaopen_io},
+ //  {LUA_OSLIBNAME, luaopen_os},
+   {LUA_STRLIBNAME, luaopen_string},
+-#if !defined LUA_NUMBER_INTEGRAL    
+-  {LUA_MATHLIBNAME, luaopen_math},
+-#endif 
+   {LUA_DBLIBNAME, luaopen_debug},
+ #ifdef LUA_PLATFORM_LIBS  
+   LUA_PLATFORM_LIBS,
+
+Modified: trunk/src/lua/lmathlib.c
+===================================================================
+--- trunk/src/lua/lmathlib.c	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/src/lua/lmathlib.c	2008-09-10 18:41:31 UTC (rev 85)
+@@ -249,17 +249,18 @@
+ ** Open math library
+ */
+ LUALIB_API int luaopen_math (lua_State *L) {
++#if !defined LUA_NUMBER_INTEGRAL
+   luaL_register(L, LUA_MATHLIBNAME, mathlib);
+   lua_pushnumber(L, PI);
+   lua_setfield(L, -2, &quot;pi&quot;);
+-#if !defined LUA_NUMBER_INTEGRAL  
+   lua_pushnumber(L, HUGE_VAL);
+   lua_setfield(L, -2, &quot;huge&quot;);
+-#endif  
+ #if defined(LUA_COMPAT_MOD)
+   lua_getfield(L, -1, &quot;fmod&quot;);
+   lua_setfield(L, -2, &quot;mod&quot;);
+-#endif
+   return 1;
++#endif // #if defined(LUA_COMPAT_MOD)
++#else // #if !defined LUA_NUMBER_INTEGRAL
++  return 0;
++#endif // #if !defined LUA_NUMBER_INTEGRAL
+ }
+-
+
+Modified: trunk/src/platform/at91sam7x/platform_libs.h
+===================================================================
+--- trunk/src/platform/at91sam7x/platform_libs.h	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/src/platform/at91sam7x/platform_libs.h	2008-09-10 18:41:31 UTC (rev 85)
+@@ -12,6 +12,8 @@
+   { AUXLIB_UART, luaopen_uart },\
+   { AUXLIB_TERM, luaopen_term },\
+   { AUXLIB_PWM, luaopen_pwm },\
+-  { AUXLIB_PACK, luaopen_pack }
++  { AUXLIB_PACK, luaopen_pack },\
++  { AUXLIB_BIT, luaopen_bit },\
++  { LUA_MATHLIBNAME, luaopen_math }
+   
+ #endif
+
+Modified: trunk/src/platform/i386/platform_libs.h
+===================================================================
+--- trunk/src/platform/i386/platform_libs.h	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/src/platform/i386/platform_libs.h	2008-09-10 18:41:31 UTC (rev 85)
+@@ -3,6 +3,7 @@
+ #ifndef __PLATFORM_LIBS_H__
+ #define __PLATFORM_LIBS_H__
+ 
+-#include &quot;auxmods.h&quot;
++#define LUA_PLATFORM_LIBS\
++  { LUA_MATHLIBNAME, luaopen_math }
+   
+ #endif
+
+Modified: trunk/src/platform/lm3s/platform_libs.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_libs.h	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/src/platform/lm3s/platform_libs.h	2008-09-10 18:41:31 UTC (rev 85)
+@@ -14,6 +14,7 @@
+   { AUXLIB_TERM, luaopen_term },\
+   { AUXLIB_PWM, luaopen_pwm },\
+   { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit }
++  { AUXLIB_BIT, luaopen_bit },\
++  { LUA_MATHLIBNAME, luaopen_math }
+   
+ #endif
+
+Modified: trunk/src/platform/lpc288x/platform_libs.h
+===================================================================
+--- trunk/src/platform/lpc288x/platform_libs.h	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/src/platform/lpc288x/platform_libs.h	2008-09-10 18:41:31 UTC (rev 85)
+@@ -10,6 +10,9 @@
+   { AUXLIB_TMR, luaopen_tmr },\
+   { AUXLIB_PD, luaopen_pd },\
+   { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term }
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PACK, luaopen_pack },\
++  { AUXLIB_BIT, luaopen_bit },\
++  { LUA_MATHLIBNAME, luaopen_math }
+   
+ #endif
+
+Modified: trunk/src/platform/str9/platform_libs.h
+===================================================================
+--- trunk/src/platform/str9/platform_libs.h	2008-09-10 18:03:08 UTC (rev 84)
++++ trunk/src/platform/str9/platform_libs.h	2008-09-10 18:41:31 UTC (rev 85)
+@@ -10,6 +10,9 @@
+   { AUXLIB_TMR, luaopen_tmr },\
+   { AUXLIB_PD, luaopen_pd },\
+   { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term }
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PACK, luaopen_pack },\
++  { AUXLIB_BIT, luaopen_bit },\
++  { LUA_MATHLIBNAME, luaopen_math }  
+   
+ #endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000040.html">[Elua-svn] r84 - trunk/src
+</A></li>
+	<LI>Next message: <A HREF="000042.html">[Elua-svn] r86 - in trunk: . docs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#41">[ date ]</a>
+              <a href="thread.html#41">[ thread ]</a>
+              <a href="subject.html#41">[ subject ]</a>
+              <a href="author.html#41">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

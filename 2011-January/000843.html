@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r890 - branches/pre0.8/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r890%20-%20branches/pre0.8/doc/en&In-Reply-To=%3C20110119223546.907A8480A9F%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000842.html">
+   <LINK REL="Next"  HREF="000844.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r890 - branches/pre0.8/doc/en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r890%20-%20branches/pre0.8/doc/en&In-Reply-To=%3C20110119223546.907A8480A9F%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r890 - branches/pre0.8/doc/en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Jan 19 23:35:46 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000842.html">[Elua-svn] r889 - in branches/pre0.8: doc/en src	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000844.html">[Elua-svn] r891 - trunk/src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#843">[ date ]</a>
+              <a href="thread.html#843">[ thread ]</a>
+              <a href="subject.html#843">[ subject ]</a>
+              <a href="author.html#843">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-01-19 23:35:46 +0100 (Wed, 19 Jan 2011)
+New Revision: 890
+
+Modified:
+   branches/pre0.8/doc/en/building.txt
+Log:
+added documentation about RFS/sermux configuration data in building.txt
+
+Modified: branches/pre0.8/doc/en/building.txt
+===================================================================
+--- branches/pre0.8/doc/en/building.txt	2011-01-19 22:16:53 UTC (rev 889)
++++ branches/pre0.8/doc/en/building.txt	2011-01-19 22:35:46 UTC (rev 890)
+@@ -144,8 +144,21 @@
+ o|BUILD_LINENOISE        |Enables linenoise support, check link:linenoise.html[here] for details. To enable:
+ 
+   #define BUILD_LINENOISE
++
++xref:static[Static configuration data dependencies]: *LINENOISE_HISTORY_SIZE_LUA, LINENOISE_HISTORY_SIZE_SHELL, LINENOISE_AUTOSAVE_FNAME*
++
++o|BUILD_RFS              |Enables support for the remote file system, check link:arch_rfs.html[here] for details. To enable:
++
++  #define BUILD_RFS
++
++xref:static[Static configuration data dependencies]: *RFS_BUFFER_SIZE, RFS_UART_ID, RFS_UART_SPEED, RFS_TIMER_ID, RFS_FLOW_TYPE, RFS_TIMEOUT*
++
++o|BUILD_SERMUX           |Enables support for the serial multiplexer, check link:sermux.html[here] for details. To enable
++
++  #define BUILD_SERMUX
++
++xref:static[Static configuration data dependencies]: *SERMUX_PHYS_ID, SERMUX_PHYS_SPEED, SERMUX_FLOW_TYPE, SERMUX_NUM_VUART, SERMUX_BUFFER_SIZES*
+   
+-xref:static[Static configuration data dependencies]: *LINENOISE_HISTORY_SIZE_LUA, LINENOISE_HISTORY_SIZE_SHELL, LINENOISE_AUTOSAVE_FNAME*
+ |===================================================================
+ 
+ [[confmodules]]
+@@ -267,6 +280,27 @@
+ 
+ o|LINENOISE_AUTOSAVE_FNAME  |If linenoise support is enabled, the history will automatically be saved everytime the Lua interpreter exits in the filename specified 
+ by this macro. Check link:linenoise.html[here] for details. This macro is optional; if it's not defined, the history will not be saved automatically.
++
++o|RFS_BUFFER_SIZE     |Size of the RFS buffer. Needs to be one of the *BUF_SIZE_xxx* constants defined in _inc/buf.h_
++o|RFS_UART_ID         |The ID of the UART that will be used by RFS. This is the physical connection over which the PC directory will be shared.
++o|RFS_UART_SPEED      |Communication speed of the RFS UART interface. 
++o|RFS_TIMER_ID        |The ID of a timer that will be used by RFS for internal operations
++o|RFS_FLOW_TYPE       |Flow control type on the serial RFS interface, see link:arch_platform_uart.html#flow_control_type[here] for details. 
++If not specified it defaults to \'no flow control'.
++o|RFS_TIMEOUT         |RFS operations timeout (in microseconds). If during a RFS operation no data is received from the PC side for the
++specified timeout, the RFS operation terminates with error.                        
++
++o|BUILD_SERMUX         |Enable serial multiplexer support in eLua. 
++o|SERMUX_PHYS_ID       |The ID of the physical UART interface used by the serial multiplexer.
++o|SERMUX_PHYS_SPEED    |Communication speed of the multiplexer UART interface. 
++o|SERMUX_FLOW_TYPE     |Flow control type on the physical serial multiplexer interface, see link:arch_platform_uart.html#flow_control_type[here] for details. 
++If not specified it defaults to \'no flow control'.
++o|SERMUX_NUM_VUART     |The number of virtual UART interfaces. This number can't be higher than 8. 
++o|SERMUX_BUFFER_SIZES  |An array of *SERMUX_NUM_VUART* integers that specify the buffer sizes for the virtual
++UART interfaces. Note that a virtual UART *MUST* have a buffer associated with it. The sizes are specified as
++*BUF_SIZE_xxx* constants defined in _inc/buf.h_                       
++
++
+ |===================================================================
+ 
+ The rest of the static configuration data parameters are meant to be modified mainly by developers and thus they're not listed here. +
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000842.html">[Elua-svn] r889 - in branches/pre0.8: doc/en src	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000844.html">[Elua-svn] r891 - trunk/src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#843">[ date ]</a>
+              <a href="thread.html#843">[ thread ]</a>
+              <a href="subject.html#843">[ subject ]</a>
+              <a href="author.html#843">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,543 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r165 - in trunk: . romfs src src/modules	src/platform/i386
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r165%20-%20in%20trunk%3A%20.%20romfs%20src%20src/modules%0A%09src/platform/i386&In-Reply-To=%3C200901281753.n0SHrYWR030714%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000120.html">
+   <LINK REL="Next"  HREF="000122.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r165 - in trunk: . romfs src src/modules	src/platform/i386</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r165%20-%20in%20trunk%3A%20.%20romfs%20src%20src/modules%0A%09src/platform/i386&In-Reply-To=%3C200901281753.n0SHrYWR030714%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r165 - in trunk: . romfs src src/modules	src/platform/i386">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Jan 28 18:53:34 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000120.html">[Elua-svn] r164 - in trunk: inc romfs src src/modules	src/platform/lm3s src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000122.html">[Elua-svn] r166 - in trunk: inc src/modules src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#121">[ date ]</a>
+              <a href="thread.html#121">[ thread ]</a>
+              <a href="subject.html#121">[ subject ]</a>
+              <a href="author.html#121">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-01-28 18:53:33 +0100 (Wed, 28 Jan 2009)
+New Revision: 165
+
+Added:
+   trunk/romfs/life.lua
+Modified:
+   trunk/SConstruct
+   trunk/src/common.c
+   trunk/src/modules/adc.c
+   trunk/src/platform/i386/boot.s
+   trunk/src/platform/i386/i386.ld
+   trunk/src/platform/i386/kb.c
+   trunk/src/platform/i386/monitor.c
+Log:
+I was bored during a long training, so I added partial ANSI term support to i386. Now you can life.lua on it :)
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-01-27 20:49:45 UTC (rev 164)
++++ trunk/SConstruct	2009-01-28 17:53:33 UTC (rev 165)
+@@ -18,7 +18,8 @@
+           'info' : [ 'info.lua' ],
+           'morse' : [ 'morse.lua' ],
+           'dualpwm' : [ 'dualpwm.lua' ],
+-          'adcscope' : [ 'adcscope.lua' ]
++          'adcscope' : [ 'adcscope.lua' ],
++          'life' : [ 'life.lua' ]
+         }
+ 
+ # List of platform/CPU combinations
+@@ -49,7 +50,7 @@
+               'EK-LM3S8962' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope' ],
+               'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope' ],
+               'STR9-COMSTICK' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+-              'PC' : [ 'bisect', 'hello', 'info' ],
++              'PC' : [ 'bisect', 'hello', 'info', 'life' ],
+               'LPC-H2888' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'MOD711' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'dualpwm' ],
+               'STM3210E-EVAL' : [ 'bisect', 'hello', 'info' ],
+@@ -154,7 +155,7 @@
+ local_libs = ''
+ 
+ # Application files
+-app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/dlmalloc.c src/common.c src/buf.c &quot;
++app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/dlmalloc.c &quot;
+ 
+ # Newlib related files
+ newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+
+Added: trunk/romfs/life.lua
+===================================================================
+--- trunk/romfs/life.lua	2009-01-27 20:49:45 UTC (rev 164)
++++ trunk/romfs/life.lua	2009-01-28 17:53:33 UTC (rev 165)
+@@ -0,0 +1,108 @@
++-- life.lua
++-- original by Dave Bollinger &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">DBollinger at compuserve.com</A>&gt; posted to lua-l
++-- modified to use ANSI terminal escape sequences
++-- modified to use for instead of while
++
++local write=io.write
++
++ALIVE=&quot;O&quot;	DEAD=&quot;-&quot;
++
++function delay() -- NOTE: SYSTEM-DEPENDENT, adjust as necessary
++end
++
++function ARRAY2D(w,h)
++  local t = {w=w,h=h}
++  for y=1,h do
++    t[y] = {}
++    for x=1,w do
++      t[y][x]=0
++    end
++  end
++  return t
++end
++
++_CELLS = {}
++
++-- give birth to a &quot;shape&quot; within the cell array
++function _CELLS:spawn(shape,left,top)
++  for y=0,shape.h-1 do
++    for x=0,shape.w-1 do
++      self[top+y][left+x] = shape[y*shape.w+x+1]
++    end
++  end
++end
++
++-- run the CA and produce the next generation
++function _CELLS:evolve(next)
++  local ym1,y,yp1,yi=self.h-1,self.h,1,self.h
++  while yi &gt; 0 do
++    local xm1,x,xp1,xi=self.w-1,self.w,1,self.w
++    while xi &gt; 0 do
++      local sum = self[ym1][xm1] + self[ym1][x] + self[ym1][xp1] +
++                  self[y][xm1] + self[y][xp1] +
++                  self[yp1][xm1] + self[yp1][x] + self[yp1][xp1]
++      next[y][x] = ((sum==2) and self[y][x]) or ((sum==3) and 1) or 0
++      xm1,x,xp1,xi = x,xp1,xp1+1,xi-1
++    end
++    ym1,y,yp1,yi = y,yp1,yp1+1,yi-1
++  end
++end
++
++-- output the array to screen
++function _CELLS:draw()
++  local out=&quot;&quot; -- accumulate to reduce flicker
++  for y=1,self.h do
++   for x=1,self.w do
++      out=out..(((self[y][x]&gt;0) and ALIVE) or DEAD)
++    end
++    out=out..&quot;\n&quot;
++  end
++  write(out)
++end
++
++-- constructor
++function CELLS(w,h)
++  local c = ARRAY2D(w,h)
++  c.spawn = _CELLS.spawn
++  c.evolve = _CELLS.evolve
++  c.draw = _CELLS.draw
++  return c
++end
++
++--
++-- shapes suitable for use with spawn() above
++--
++HEART = { 1,0,1,1,0,1,1,1,1; w=3,h=3 }
++GLIDER = { 0,0,1,1,0,1,0,1,1; w=3,h=3 }
++EXPLODE = { 0,1,0,1,1,1,1,0,1,0,1,0; w=3,h=4 }
++FISH = { 0,1,1,1,1,1,0,0,0,1,0,0,0,0,1,1,0,0,1,0; w=5,h=4 }
++BUTTERFLY = { 1,0,0,0,1,0,1,1,1,0,1,0,0,0,1,1,0,1,0,1,1,0,0,0,1; w=5,h=5 }
++
++-- the main routine
++function LIFE(w,h)
++  -- create two arrays
++  local thisgen = CELLS(w,h)
++  local nextgen = CELLS(w,h)
++
++  -- create some life
++  -- about 1000 generations of fun, then a glider steady-state
++  thisgen:spawn(GLIDER,5,4)
++  thisgen:spawn(EXPLODE,25,10)
++  thisgen:spawn(FISH,4,12)
++
++  -- run until break
++  local gen=1
++  write(&quot;\027[2J&quot;)	-- ANSI clear screen
++  while 1 do
++    thisgen:evolve(nextgen)
++    thisgen,nextgen = nextgen,thisgen
++    write(&quot;\027[H&quot;)	-- ANSI home cursor
++    thisgen:draw()
++    write(&quot;Life - generation &quot;,gen,&quot;\n&quot;)
++    gen=gen+1
++    if gen&gt;2000 then break end
++    --delay()		-- no delay
++  end
++end
++
++LIFE(40,20)
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2009-01-27 20:49:45 UTC (rev 164)
++++ trunk/src/common.c	2009-01-28 17:53:33 UTC (rev 165)
+@@ -289,4 +289,5 @@
+     r++;
+   }
+   return r;
+-}
+\ No newline at end of file
++}
++
+
+Modified: trunk/src/modules/adc.c
+===================================================================
+--- trunk/src/modules/adc.c	2009-01-27 20:49:45 UTC (rev 164)
++++ trunk/src/modules/adc.c	2009-01-28 17:53:33 UTC (rev 165)
+@@ -109,4 +109,4 @@
+ LUALIB_API int luaopen_adc( lua_State *L )
+ {
+   LREGISTER( L, AUXLIB_ADC, adc_map );
+-}
+\ No newline at end of file
++}
+
+Modified: trunk/src/platform/i386/boot.s
+===================================================================
+--- trunk/src/platform/i386/boot.s	2009-01-27 20:49:45 UTC (rev 164)
++++ trunk/src/platform/i386/boot.s	2009-01-28 17:53:33 UTC (rev 165)
+@@ -18,6 +18,7 @@
+ [EXTERN code]                   ; Start of the '.text' section.
+ [EXTERN bss]                    ; Start of the .bss section.
+ [EXTERN end]                    ; End of the last loadable section.
++[SECTION .header]
+ 
+ mboot:
+     dd  MBOOT_HEADER_MAGIC      ; GRUB will search for this value on each
+@@ -34,6 +35,7 @@
+ [GLOBAL start]                  ; Kernel entry point.
+ [EXTERN main]                   ; This is the entry point of our C code
+ [EXTERN platform_ll_init]       ; Low level initializatin function
++[SECTION .text]
+     
+ start:
+     cli
+
+Modified: trunk/src/platform/i386/i386.ld
+===================================================================
+--- trunk/src/platform/i386/i386.ld	2009-01-27 20:49:45 UTC (rev 164)
++++ trunk/src/platform/i386/i386.ld	2009-01-28 17:53:33 UTC (rev 165)
+@@ -3,12 +3,12 @@
+ /*            Original file taken from Bran's Kernel Development */
+ /*            tutorials: <A HREF="http://www.osdever.net/bkerndev/index.php.">http://www.osdever.net/bkerndev/index.php.</A> */
+ 
+-ENTRY(start)
+ SECTIONS
+ {
+ 
+     .text 0x100000 :
+     {
++	KEEP(*(.header))
+         code = .; _code = .; __code = .;
+         PROVIDE(stext = .);
+         *(.text .text.*)
+
+Modified: trunk/src/platform/i386/kb.c
+===================================================================
+--- trunk/src/platform/i386/kb.c	2009-01-27 20:49:45 UTC (rev 164)
++++ trunk/src/platform/i386/kb.c	2009-01-28 17:53:33 UTC (rev 165)
+@@ -7,10 +7,12 @@
+ #include &quot;monitor.h&quot;
+ #include &quot;isr.h&quot;
+ #include &quot;type.h&quot;
++#include &quot;utils.h&quot;
+ 
+ #define RSHIFT 0x36
+ #define LSHIFT 0x2A
+-static int shift_pressed;
++#define CTRL   0x1D
++static int shift_pressed, ctrl_pressed;
+ 
+ /* KBDUS means US Keyboard Layout. This is a scancode table
+ *  used to layout a standard US keyboard. I have left some
+@@ -98,7 +100,7 @@
+ };
+ 
+ // Keyboard buffer
+-#define KBUF_SIZE     32
++#define KBUF_SIZE     64
+ static u8 kb_buffer[ KBUF_SIZE ];
+ static u8 r_ptr;
+ static volatile u8 w_ptr;
+@@ -120,6 +122,8 @@
+       scancode &amp;= 0x7F;
+       if( ( scancode == RSHIFT ) || ( scancode == LSHIFT ) )
+         shift_pressed = 0;
++      else if ( scancode == CTRL )
++        ctrl_pressed = 0;
+     }
+     else
+     {
+@@ -137,12 +141,20 @@
+         *  you would add 128 to the scancode when you look for it */
+       if( ( scancode == RSHIFT ) || ( scancode == LSHIFT ) )
+         shift_pressed = 1;
++      else if( scancode == CTRL )
++        ctrl_pressed = 1;
+       else      
+       {
+         if( ( ( w_ptr + 1 ) % KBUF_SIZE ) != r_ptr )
+         {
+-          kb_buffer[ w_ptr ] = shift_pressed ? shift_kbdus[scancode] : kbdus[scancode];
+-          w_ptr = ( w_ptr + 1 ) % KBUF_SIZE;
++          unsigned char thechar = shift_pressed ? shift_kbdus[scancode] : kbdus[scancode];
++	  if( ctrl_pressed ) // Look for CTRL+Z (EOF)
++	    thechar = ( thechar == 'z' || thechar == 'Z' ) ? STD_CTRLZ_CODE : 0;
++	  if( thechar != 0 )
++	  {
++            kb_buffer[ w_ptr ] = thechar;
++            w_ptr = ( w_ptr + 1 ) % KBUF_SIZE;
++	  }
+         }
+       }
+     }
+@@ -164,3 +176,4 @@
+   r_ptr = ( r_ptr + 1 ) % KBUF_SIZE;
+   return c; 
+ }
++
+
+Modified: trunk/src/platform/i386/monitor.c
+===================================================================
+--- trunk/src/platform/i386/monitor.c	2009-01-27 20:49:45 UTC (rev 164)
++++ trunk/src/platform/i386/monitor.c	2009-01-28 17:53:33 UTC (rev 165)
+@@ -3,6 +3,11 @@
+ //             but rewritten for JamesM's kernel tutorials.
+ 
+ #include &quot;monitor.h&quot;
++#include &lt;ctype.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdio.h&gt;
++#include &quot;term.h&quot;
++#include &quot;util.h&quot;
+ 
+ // The VGA framebuffer starts at 0xB8000.
+ u16int *video_memory = (u16int *)0xB8000;
+@@ -13,6 +18,8 @@
+ // Updates the hardware cursor.
+ static void move_cursor()
+ {
++    cursor_y = UMIN( cursor_y, 24 );
++    cursor_x = UMIN( cursor_x, 79 );
+     // The screen is 80 characters wide...
+     u16int cursorLocation = cursor_y * 80 + cursor_x;
+     outb(0x3D4, 14);                  // Tell the VGA board we are setting the high cursor byte.
+@@ -51,6 +58,70 @@
+     }
+ }
+ 
++// ANSI 'state machine'
++static int monitor_reading_ansi;
++static int monitor_ansi_count;
++static char monitor_ansi_inbuf[ TERM_MAX_ANSI_SIZE + 1 ];
++
++// ANSI operations and structure data
++enum
++{
++  ANSI_SEQ_CLRSCR,
++  ANSI_SEQ_CLREOL,
++  ANSI_SEQ_GOTOXY,
++  ANSI_SEQ_UP,
++  ANSI_SEQ_DOWN,
++  ANSI_SEQ_RIGHT,
++  ANSI_SEQ_LEFT
++};
++
++typedef struct
++{
++  int op;
++  int p1, p2; 
++} ansi_op;
++
++// Convert an ASCII escape sequence to an operation we can understand
++static int monitor_cvt_escape( const char* inbuf, ansi_op* res )
++{
++  const char *p = inbuf;
++  char last = inbuf[ strlen( inbuf ) - 1 ];
++
++  if( *p++ != '\x1B' )
++    return 0;
++  if( *p++ != '[' )
++    return 0;
++  res-&gt;op = res-&gt;p1 = res-&gt;p2 = 0;
++  switch( last )
++  {
++    case 'J':	// clrscr
++      if( *p != '2' )
++        return 0;
++      res-&gt;op = ANSI_SEQ_CLRSCR;
++      break;
++
++    case 'K':	// clreol
++      res-&gt;op = ANSI_SEQ_CLREOL;
++      break;
++
++    case 'H':	// gotoxy
++      res-&gt;op = ANSI_SEQ_GOTOXY;
++      if( *p != 'H' )
++        sscanf( p, &quot;%d;%d&quot;, &amp;res-&gt;p1, &amp;res-&gt;p2 );
++      break;
++
++    case 'A':	// up
++    case 'B':	// down
++    case 'C':	// right
++    case 'D':	// left
++      res-&gt;op = last - 'A' + ANSI_SEQ_UP;
++      sscanf( p, &quot;%d&quot;, &amp;res-&gt;p1 );
++      break;
++  }
++  return 1;
++}
++
++void monitor_clear();
+ // Writes a single character out to the screen.
+ void monitor_put(char c)
+ {
+@@ -58,6 +129,15 @@
+     u8int backColour = 0;
+     u8int foreColour = 15;
+ 
++    // Take care of the ANSI state machine
++    if( c == '\x1B' )
++    {
++      monitor_reading_ansi = 1;
++      monitor_ansi_count = 0;
++      monitor_ansi_inbuf[ monitor_ansi_count ++ ] = c; 
++      return;
++    }
++
+     // The attribute byte is made up of two nibbles - the lower being the 
+     // foreground colour, and the upper the background colour.
+     u8int  attributeByte = (backColour &lt;&lt; 4) | (foreColour &amp; 0x0F);
+@@ -65,7 +145,59 @@
+     // VGA board.
+     u16int attribute = attributeByte &lt;&lt; 8;
+     u16int *location;
++    u8int prev;
+ 
++    if( monitor_reading_ansi )
++    {
++      monitor_ansi_inbuf[ monitor_ansi_count ++ ] = c;
++      if( isalpha( c ) )
++      {
++        monitor_ansi_inbuf[ monitor_ansi_count ] = '\0';
++	ansi_op op;
++	if( monitor_cvt_escape( monitor_ansi_inbuf, &amp;op ) )
++	{
++	  // Interpret out sequence
++	  switch( op.op )
++	  {
++	    case ANSI_SEQ_CLRSCR:
++	      monitor_clear();
++	      break;
++
++	    case ANSI_SEQ_CLREOL:
++	      prev = cursor_x;
++	      while( cursor_x++ &lt; 80 )
++	      {
++	        location = video_memory + (cursor_y*80 + cursor_x);      
++		*location = ' ' | attribute;
++	      }
++	      cursor_x = prev;
++	      break;
++
++	    case ANSI_SEQ_GOTOXY:
++	      cursor_y = ( u8int )op.p1;
++	      cursor_x = ( u8int )op.p2;
++	      move_cursor();
++	      break;
++
++	    case ANSI_SEQ_UP:
++	    case ANSI_SEQ_LEFT:
++	    case ANSI_SEQ_RIGHT:
++	    case ANSI_SEQ_DOWN:
++              {
++	        int xm = op.op == ANSI_SEQ_LEFT ? -1 : op.op == ANSI_SEQ_RIGHT ? 1 : 0;
++	        int ym = op.op == ANSI_SEQ_UP ? -1 : op.op == ANSI_SEQ_DOWN ? 1 : 0;
++	        cursor_x += xm * op.p1;
++	        cursor_y += ym * op.p1;
++	        move_cursor();
++	        break;
++              }
++           }
++	}
++	monitor_reading_ansi = 0;
++      }
++      return;
++    }
++
+     // Handle a backspace, by moving the cursor back one space
+     if (c == 0x08 &amp;&amp; cursor_x)
+     {
+@@ -73,10 +205,10 @@
+     }
+ 
+     // Handle a tab by increasing the cursor's X, but only to a point
+-    // where it is divisible by 8.
++    // where it is divisible by 2.
+     else if (c == 0x09)
+     {
+-        cursor_x = (cursor_x+8) &amp; ~(8-1);
++        cursor_x = (cursor_x+2) &amp; ~(2-1);
+     }
+ 
+     // Handle carriage return
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000120.html">[Elua-svn] r164 - in trunk: inc romfs src src/modules	src/platform/lm3s src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000122.html">[Elua-svn] r166 - in trunk: inc src/modules src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#121">[ date ]</a>
+              <a href="thread.html#121">[ thread ]</a>
+              <a href="subject.html#121">[ subject ]</a>
+              <a href="author.html#121">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

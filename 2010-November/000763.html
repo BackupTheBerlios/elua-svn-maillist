@@ -1,0 +1,1246 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r810 - in trunk/doc: . eluadoc en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r810%20-%20in%20trunk/doc%3A%20.%20eluadoc%20en&In-Reply-To=%3C20101106235806.4E6E6480788%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000762.html">
+   <LINK REL="Next"  HREF="000764.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r810 - in trunk/doc: . eluadoc en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r810%20-%20in%20trunk/doc%3A%20.%20eluadoc%20en&In-Reply-To=%3C20101106235806.4E6E6480788%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r810 - in trunk/doc: . eluadoc en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Nov  7 00:58:06 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000762.html">[Elua-svn] r809 - in trunk: inc src src/modules	src/platform/lpc24xx src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000764.html">[Elua-svn] r811 - in trunk/doc: . en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#763">[ date ]</a>
+              <a href="thread.html#763">[ thread ]</a>
+              <a href="subject.html#763">[ subject ]</a>
+              <a href="author.html#763">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-07 00:58:05 +0100 (Sun, 07 Nov 2010)
+New Revision: 810
+
+Added:
+   trunk/doc/en/arch_ints.txt
+   trunk/doc/en/inthandlers.txt
+Removed:
+   trunk/doc/en/inthandlers.html
+Modified:
+   trunk/doc/docdata.lua
+   trunk/doc/eluadoc/arch_platform_cpu.lua
+   trunk/doc/eluadoc/arch_platform_timers.lua
+   trunk/doc/eluadoc/refman_gen_cpu.lua
+   trunk/doc/eluadoc/refman_gen_tmr.lua
+   trunk/doc/en/asciidoc.conf
+   trunk/doc/style1.css
+Log:
+Added documentation on interrupts:
+
+  Generic info/eLua interrupt handlers: using interrupt handlers from Lua and C
+  Platform interface/CPU: updated CPU platform interface
+  Platform interface/Timers: updated timers platform interface
+  Generic modules/cpu: updated CPU module documentation
+  Generic modules/tmr: updated timer module documentation
+  eLua internals/Overview/Implementing interrupts: interrupt handlers implementation guide
+
+Also minor bugfixes in the interrupt implementation.
+
+
+
+Modified: trunk/doc/docdata.lua
+===================================================================
+--- trunk/doc/docdata.lua	2010-11-04 22:40:09 UTC (rev 809)
++++ trunk/doc/docdata.lua	2010-11-06 23:58:05 UTC (rev 810)
+@@ -111,7 +111,12 @@
+           { &quot;R/W FAT FS in SD/MMC Cards&quot;, &quot;fatfs.html&quot; }
+         }
+       },
+-      { &quot;eLua interrupt handlers&quot;, &quot;inthandlers.html&quot; },
++      { &quot;eLua interrupt handlers&quot;, &quot;inthandlers.html&quot;,
++        {
++          { &quot;In Lua&quot;, &quot;inthandlers.html&quot; },
++          { &quot;In C&quot;, &quot;inthandlers.html#cints&quot; },
++        }
++      },
+       { { &quot;Building eLua&quot;, &quot;Build de eLua&quot; }, &quot;building.html&quot;,
+         {
+           { &quot;Building eLua in Linux&quot;, &quot;building_unix.html&quot; },
+@@ -147,6 +152,11 @@
+       { { &quot;Booting eLua&quot;, &quot;O Boot de eLua&quot; }, &quot;arch_overview.html#boot&quot; },
+       { { &quot;Platforms and ports&quot;, &quot;Portabiliza&#231;&#227;o&quot; }, &quot;arch_overview.html#platforms&quot; },
+       { { &quot;Adding a new port&quot;, &quot;Portando eLua&quot; }, &quot;arch_newport.html&quot; },
++      { &quot;Implementing interrupts&quot;, &quot;arch_ints.html&quot;,
++        {
++          { &quot;Interrupt list&quot;, &quot;arch_ints.html#intlist&quot; }
++        }
++      }
+     }
+   },
+ 
+
+Modified: trunk/doc/eluadoc/arch_platform_cpu.lua
+===================================================================
+--- trunk/doc/eluadoc/arch_platform_cpu.lua	2010-11-04 22:40:09 UTC (rev 809)
++++ trunk/doc/eluadoc/arch_platform_cpu.lua	2010-11-06 23:58:05 UTC (rev 810)
+@@ -14,41 +14,65 @@
+   -- Functions
+   funcs = 
+   {
+-    { sig = &quot;void #platform_cpu_enable_interrupts#();&quot;,
+-      desc = &quot;Enable global interrupt on the CPU.&quot;
++    { sig = &quot;int #platform_cpu_set_global_interrupts#( int status );&quot;,
++      desc = &quot;Set or clear the global interrupt flag of the CPU.&quot;,
++      args = &quot;$status$ - $PLATFORM_CPU_ENABLE$ to set the global interrupt flag or $PLATFORM_CPU_DISABLE$ to clear the global interrupt flag.&quot;,
++      ret = &quot;the previous value of the global interrupt flag (1 if set, 0 otherwise).&quot;
+     },
+ 
+-    { sig = &quot;void #platform_cpu_disable_interrupts#();&quot;,
+-      desc = &quot;Disable global interrupts on the CPU.&quot;
++    { sig = &quot;int #platform_cpu_get_global_interrupts#();&quot;,
++      desc = &quot;Get the value of the global interrupt flag of the CPU.&quot;,
++      ret = &quot;the value of the global interrupt flag (1 if set, 0 otherwise).&quot;
+     },
+ 
+-    { sig = &quot;u32 #platform_cpu_get_frequency#();&quot;,
+-      desc = &quot;Get the CPU frequency.&quot;,
+-      ret = &quot;the CPU $core$ frequency (in Hertz).&quot;
++    { sig = &quot;int #platform_cpu_set_interrupt#( elua_int_id id, elua_int_resnum resnum, int status );&quot;,
++      desc = &quot;Enable or disable a specific CPU interrupt for a given resource ID.&quot;,
++      args = 
++      {
++        &quot;$id$ - the interrupt ID, as defined in %platform_conf.h%.&quot;,
++        &quot;$resnum$ - the resource ID.&quot;,
++        &quot;$status$ - $PLATFORM_CPU_ENABLE to enable the interrupt or $PLATFORM_CPU_DISABLE$ to disable the interrupt.&quot;,
++      },
++      ret = 
++      {
++        &quot;$PLATFORM_INT_INVALID$ - invalid interrupt ID&quot;,
++        &quot;$PLATFORM_INT_NOT_HANDLED$ - this interrupt cannot be enabled/disabled&quot;,
++        &quot;$PLATFORM_INT_BAD_RESNUM$ - this resource ID can't be used to enable/disable the interrupt&quot;,
++        &quot;the previous status of the interrupt (1 if enabled, 0 otherwise) if no error occured.&quot;
++      }
+     },
+-  }
+-}
+ 
+-data_pt = 
+-{
+-  -- Title
+-  title = &quot;eLua platform interface - CPU&quot;,
+-
+-  -- Menu name
+-  menu_name = &quot;CPU&quot;,
+-
+-  -- Overview
+-  overview = &quot;This part of the platform interface groups functions related to the CPU and its functional modules (interrupt controller, memory controller and others).&quot;,
+-
+-  -- Functions
+-  funcs = 
+-  {
+-    { sig = &quot;void #platform_cpu_enable_interrupts#();&quot;,
+-      desc = &quot;Enable global interrupt on the CPU.&quot;
++    { sig = &quot;int #platform_cpu_get_interrupt#( elua_int_id id, elua_int_resnum resnum );&quot;,
++      desc = &quot;Get the interrupt enabled status of a specific CPU interrupt for a given resource ID.&quot;,
++      args = 
++      {
++        &quot;$id$ - the interrupt ID, as defined in %platform_conf.h%&quot;,
++        &quot;$resnum$ - the resource ID&quot;
++      },
++      ret =
++      {
++        &quot;$PLATFORM_INT_INVALID$ - invalid interrupt ID&quot;,
++        &quot;$PLATFORM_INT_NOT_HANDLED$ - this interrupt cannot be enabled/disabled&quot;,
++        &quot;$PLATFORM_INT_BAD_RESNUM$ - this resource ID can't be used to enable/disable the interrupt&quot;,
++        &quot;the status of the interrupt (1 if enabled, 0 otherwise) if no error occured.&quot;
++      }
+     },
+ 
+-    { sig = &quot;void #platform_cpu_disable_interrupts#();&quot;,
+-      desc = &quot;Disable global interrupts on the CPU.&quot;
++    { sig = &quot;int #platform_cpu_get_interrupt_flag#( elua_int_id id, elua_int_resnum resnum, int clear );&quot;,
++      desc = &quot;Return the interrupt pending flag of a specific CPU interrupt or a given resource ID and optionally clear it.&quot;,
++      args = 
++      {
++        &quot;$id$ - the interrupt ID, as defined in %platform_conf.h%.&quot;,
++        &quot;$resnum$ - the resource ID.&quot;,
++        &quot;$clear$ - 1 to clear the interrupt pending flag if it is set, 0 otherwise.&quot;
++      },
++      ret = 
++      {
++        &quot;$PLATFORM_INT_INVALID$ - invalid interrupt ID.&quot;,
++        &quot;$PLATFORM_INT_NOT_HANDLED$ - this interrupt's flag cannot be read.&quot;,
++        &quot;$PLATFORM_INT_BAD_RESNUM$ - this resource ID can't be used to read this interrupt's flag.&quot;,
++        &quot;the value of the interrupt pending flag if no error occured.&quot;
++      }
+     },
+ 
+     { sig = &quot;u32 #platform_cpu_get_frequency#();&quot;,
+@@ -57,3 +81,4 @@
+     },
+   }
+ }
++
+
+Modified: trunk/doc/eluadoc/arch_platform_timers.lua
+===================================================================
+--- trunk/doc/eluadoc/arch_platform_timers.lua	2010-11-04 22:40:09 UTC (rev 809)
++++ trunk/doc/eluadoc/arch_platform_timers.lua	2010-11-06 23:58:05 UTC (rev 810)
+@@ -138,191 +138,23 @@
+         &quot;$start$ - the second timer value&quot;,
+       },
+       ret = &quot;the time difference (in microseconds)&quot;
+-    }
+-  },
+-
+-  auxdata = 
+-  {
+-    { title = &quot;Virtual timers&quot;,
+-      desc = 
+-  [[$Virtual timers$ were added to eLua to overcome some limitations:&lt;/p&gt;
+-  &lt;ul&gt;
+-    &lt;li&gt;there are generally few hardware timers available, some of which might be dedicated (thus not usable directly by eLua).&lt;/li&gt;
+-    &lt;li&gt;many times it is difficult to share a hardware timer between different parts of an application because of conflicting requirements. Generally it's not possible to have timers that can
+-        achieve long delays and high accuracy at the same time (this is especially true for systems that have 16 bit or even smaller timers).&lt;/li&gt;
+-  &lt;/ul&gt;
+-  &lt;p&gt;In this respect, $virtual timers$ are a set of timers that share a single hardware timer. It is possible, in this way, to have a hardware timer that can implement 4, 8 or more virtual/software
+-  timers. There are a few drawbacks to this approach:&lt;/p&gt;
+-  &lt;ul&gt;
+-    &lt;li&gt;the hardware timer used to implement the virtual timers must generally be dedicated. In fact it can still be used in &quot;read only mode&quot;, which means that the only operations that can
+-        be executed on it are $PLATFORM_TIMER_OP_READ$, $PLATFORM_TIMER_GET_CLOCK$, $PLATFORM_TIMER_OP_GET_MAX_DELAY$ and $PLATFORM_TIMER_OP_GET_MIN_DELAY$. However,
+-        since the &quot;read only mode&quot; is not enforced by the code, it is advisable to treat this timer as a dedicated resource and thus make it invisible to eLua by not associating it with 
+-        an ID.&lt;/li&gt;
+-    &lt;li&gt;the number of virtual timers and their base frequency are fixed at compile time.&lt;/li&gt;
+-    &lt;li&gt;virtual timers are generally used for large delays with low accuracy, since their base frequency should be fairly low (see below).&lt;/li&gt;
+-  &lt;/ul&gt;
+-  &lt;p&gt;To $enable$ virtual timers:&lt;/p&gt;
+-  &lt;ol&gt;
+-    &lt;li&gt;edit $platform_conf.h$ (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details) and set $VTMR_NUM_TIMERS$ to the number of desired virtual timers and 
+-       $VTMR_FREQ_HZ$ to the base frequency of the virtual timers (in hertz). For example:
+-  ~#define VTMR_NUM_TIMERS       4 // we need 4 virtual timers
+-#define VTMR_FREQ_HZ          4 // the base clock for the virtual timers is 4Hz~&lt;/li&gt;
+-    &lt;li&gt;in your platform port setup a hardware timer to fire an interrupt at $VTMR_FREQ_HZ$ and call the $cmn_virtual_timer_cb$ function (defined in %src/common.c%) in the 
+-       timer interrupt handler. For example, if the the interrupt handler is called $timer_int_handler$, do this:
+-  ~void timer_int_handler( void )
+-{
+-  // add code to clear the timer interrupt flag here if needed
+-  cmn_virtual_timer_cb();
+-}~&lt;/li&gt;
+-  &lt;/ol&gt;
+-  &lt;p&gt;Note that because of step 2 above you are limited by practical constraints on the value of $VTMR_FREQ_HZ$. If set too high, the timer interrupt will fire too often, thus taking too much
+-  CPU time. The maximum value depends largely on the hardware and the desired behaviour of the virtual timers, but in practice values larger than 10 might visibly change the behaviour of your 
+-  system.&lt;/p&gt;
+-  &lt;p&gt;To $use$ a virtual timer, identify it with the constant $VTMR_FIRST_ID$ (defined in %inc/common.h%) plus an offset. For example, $VTMR_FIRST_ID+0$ (or simply
+-  $VTMR_FIRST_ID$) is the ID of the first virtual timer in the system, and $VTMR_FIRST_ID+2$ is the ID of the third virtual timer in the system.
+-  ]]
+-    }
+-  }
+-}
+-
+-data_pt = 
+-{
+-  -- Title
+-  title = &quot;eLua platform interface - timers&quot;,
+-
+-  -- Menu name
+-  menu_name = &quot;Timers&quot;,
+-
+-  -- Overview
+-  overview = [[This part of the platform interface groups functions related to the timers of the MCU. It also makes provisions for using $virtual timers$ on any platform, see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">virtual at this</A> section@
+-  for details. Keep in mind that in the following paragraphs a $timer id$ can reffer to both a hardware timer or a virtual timer.]],
+-
+-  -- Data structures, constants and types
+-  structures = 
+-  {
+-    { text = &quot;typedef u32 timer_data_type;&quot;,
+-      name = &quot;Timer data type&quot;,
+-      desc = &quot;This defines the data type used to specify delays and time intervals (which are always specifide in $microseconds$).&quot;
+     },
+ 
+-    { text = [[// Timer operations
+-enum
+-{
+-  PLATFORM_TIMER_OP_START,
+-  PLATFORM_TIMER_OP_READ,
+-  PLATFORM_TIMER_OP_SET_CLOCK,
+-  PLATFORM_TIMER_OP_GET_CLOCK,
+-  PLATFORM_TIMER_OP_GET_MAX_DELAY,
+-  PLATFORM_TIMER_OP_GET_MIN_DELAY
+-};]], 
+-      name = &quot;Timer operations&quot;,
+-      desc = &quot;This enum lists all the operations that can be executed on a given timer.&quot;
+-    }
+-  },
+-
+-  -- Functions
+-  funcs = 
+-  {
+-    { sig = &quot;int #platform_timer_exists#( unsigned id );&quot;,
+-      desc = [[Checks if the platform has the timer specified as argument. Implemented in %src/common.c%, it uses the $NUM_TIMER$ macro that must be defined in the
+-  platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details) and the virtual timer configuration (@#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">virtual at here</A>@ for details). For example:&lt;/p&gt;
+-  ~#define NUM_TIMER   2      $// The platform has 2 hardware timers$~&lt;p&gt;]],
+-      args = &quot;$id$ - the timer ID&quot;,
+-      ret = &quot;1 if the timer exists, 0 otherwise&quot;
+-    },
+-
+-    { sig = &quot;void #platform_timer_delay#( unsigned id, u32 delay_us );&quot;,
+-      desc = [[Waits on a timer, then returns. This function is &quot;split&quot; in two parts: a platform-independent part implemented in %src/common.c% (that
+-  handles virtual timers) and a platform-dependent part that must be implemented by each platform in a function named @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_s_timer_delay at platform_s_timer_delay</A>@. This function handles both
+-  hardware timer IDs and virtual timer IDs.&lt;br&gt;
+-  &lt;a name=&quot;limitations&quot; /&gt;&lt;span class=&quot;warning&quot;&gt;IMPORTANT NOTE&lt;/span&gt;: the real delay after executing this functions depends on a number of variables, most notably the base clock of the timer 
+-  and the size of the timer counter register (32 bits on some platforms, 16 bits on most platforms, other values are less common). To ensure that the delay you're requesting is achievable, use 
+-  @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_timer_op at platform_timer_op</A>@ with $PLATFORM_TIMER_OP_GET_MAX_DELAY$ and $PLATFORM_TIMER_OP_GET_MIN_DELAY$ to obtain the maximum and the minimum 
+-  achievable wait times on your timer, respectively. Even if your delay is within these limits, the $precision$ of this function still varies a lot, mainly as a function of 
+-  the timer base clock.]],
++    { sig = &quot;int #platform_timer_set_match_int#( unsigned id, u32 period_us, int type );&quot;,
++      desc = &quot;Setup the timer match interrupt. Only available if interrupt support is enabed, check @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">inthandlers.html at here</A>@ for details.&quot;,
+       args = 
+       {
+         &quot;$id$ - the timer ID&quot;,
+-        &quot;$delay_us$ - the delay time (in microseconds)&quot;
+-      }
+-    },
+-
+-    { sig = &quot;void #platform_s_timer_delay#( unsigned id, u32 delay_us );&quot;,
+-      desc = [[This function is identical in functionality to @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_timer_delay at platform_timer_delay</A>@, but this is the function that must actually be implemented by a platform port, 
+-  and it must never handle virtual timer IDs, only hardware timer IDs. It has the same @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">limitations at limitations</A>@ as @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_timer_delay at platform_timer_delay</A>@.]],
+-      args = 
+-      {
+-        &quot;$id$ - the timer ID&quot;,
+-        &quot;$delay_us$ - the delay time (in microseconds)&quot;
+-      }
+-    },
+-
+-    { sig = &quot;u32 #platform_timer_op#( unsigned id, int op, u32 data );&quot;,
+-      desc = [[Executes an operation on a timer. This function is &quot;split&quot; in two parts: a platform-independent part implemented in %src/common.c% (that handles virtual timers) and a 
+-  platform-dependent part that must be implemented by each platform in a function named @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_s_timer_op at platform_s_timer_op</A>@. This function handles both hardware timer IDs and virtual 
+-  timer IDs.]],
+-      args = 
+-      {
+-        &quot;$id$ - the timer ID&quot;,
+-        [[$op$ - the operation. $op$ can take any value from the @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">timer_operations at this</A> enum@, as follows:
+-  &lt;ul&gt;
+-    &lt;li&gt;$PLATFORM_TIMER_OP_START$: start the specified timer by setting its counter register to a predefined value.&lt;/li&gt;
+-    &lt;li&gt;$PLATFORM_TIMER_OP_READ$: get the value of the specified timer's counter register.&lt;/li&gt; 
+-    &lt;li&gt;$PLATFORM_TIMER_SET_CLOCK$: set the clock of the specified timer to $data$ (in hertz). You can never set the clock of a virtual timer, which is set at compile time.&lt;/li&gt;  
+-    &lt;li&gt;$PLATFORM_TIMER_GET_CLOCK$: get the clock of the specified timer.&lt;/li&gt;  
+-    &lt;li&gt;$PLATFORM_TIMER_OP_GET_MAX_DELAY$: get the maximum achievable timeout on the specified timer (in us).&lt;/li&gt;  
+-    &lt;li&gt;$PLATFORM_TIMER_OP_GET_MIN_DELAY$: get the minimum achievable timeout on the specified timer (in us).&lt;/li&gt;
+-  &lt;/ul&gt;]],
+-        &quot;$data$ - used to specify the timer clock value when $op = PLATFORM_TIMER_SET_CLOCK$, ignored otherwise&quot;,
++        &quot;$period_us$ - the period (in microseconds) of the timer interrupt. Setting this to 0 disables the timer match interrupt.&quot;,
++        [[$type$ - $PLATFORM_TIMER_INT_ONESHOT$ for an interrupt that occurs only once after $period_us$ microseconds, or $PLATFORM_TIMER_INT_CYCLIC$ for an interrupt that occurs every
++$period_us$ microseconds]]        
+       },
+       ret = 
+       {
+-        &quot;the predefined value used when starting the clock if $op = PLATFORM_TIMER_OP_START$&quot;,
+-        &quot;the timer's counter register if $op = PLATFORM_TIMER_OP_READ$&quot;,
+-        &quot;the actual clock set on the timer, which might be different than the request clock depending on the hardware if $op = PLATFORM_TIMER_SET_CLOCK$&quot;,
+-        &quot;the timer clock if $op = PLATFORM_TIMER_GET_CLOCK$&quot;, 
+-        &quot;the maximum achievable delay (in microseconds) if $op = PLATFORM_TIMER_OP_GET_MAX_DELAY$&quot;,
+-        &quot;the minimum achievable delay (in microseconds) if $op = PLATFORM_TIMER_OP_GET_MIN_DELAY$&quot;
++        &quot;$PLATFORM_TIMER_INT_OK$ if the operation was successful.&quot;,
++        &quot;$PLATFORM_TIMER_INT_TOO_SHORT$ if the specified period is too short.&quot;,
++        &quot;$PLATFORM_TIMER_INT_INVALID_ID$ if the specified timer cannot handle this operation.&quot;
+       }
+-    }, 
+-
+-    { sig = &quot;u32 #platform_s_timer_op#( unsigned id, int op, u32 data );&quot;,
+-      desc = [[This function is identical in functionality to @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_timer_op at platform_timer_op</A>@, but this is the function that must actually be implemented by a platform port, and it must 
+-  never handle virtual timer IDs, only hardware timer IDs.]],
+-      args = 
+-      {
+-        &quot;$id$ - the timer ID&quot;,
+-        [[$op$ - the operation. $op$ can take any value from the @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">opval at this</A> enum@, as follows:
+-  &lt;ul&gt;
+-    &lt;li&gt;$PLATFORM_TIMER_OP_START$: start the specified timer by setting its counter register to a predefined value.&lt;/li&gt;
+-    &lt;li&gt;$PLATFORM_TIMER_OP_READ$: get the value of the specified timer's counter register.&lt;/li&gt; 
+-    &lt;li&gt;$PLATFORM_TIMER_SET_CLOCK$: set the clock of the specified timer to $data$ (in hertz). You can never set the clock of a virtual timer, which is set at compile time.&lt;/li&gt;  
+-    &lt;li&gt;$PLATFORM_TIMER_GET_CLOCK$: get the clock of the specified timer.&lt;/li&gt;  
+-    &lt;li&gt;$PLATFORM_TIMER_OP_GET_MAX_DELAY$: get the maximum achievable timeout on the specified timer (in us).&lt;/li&gt;  
+-    &lt;li&gt;$PLATFORM_TIMER_OP_GET_MIN_DELAY$: get the minimum achievable timeout on the specified timer (in us).&lt;/li&gt;
+-  &lt;/ul&gt;]],
+-        &quot;$data$ - used to specify the timer clock value when $op = PLATFORM_TIMER_SET_CLOCK$, ignored otherwise&quot;,
+-      },
+-      ret = 
+-      {
+-        &quot;the predefined value used when starting the clock if $op = PLATFORM_TIMER_OP_START$&quot;,
+-        &quot;the timer's counter register if $op = PLATFORM_TIMER_OP_READ$&quot;,
+-        &quot;the actual clock set on the timer, which might be different than the request clock depending on the hardware if $op = PLATFORM_TIMER_SET_CLOCK$&quot;,
+-        &quot;the timer clock if $op = PLATFORM_TIMER_GET_CLOCK$&quot;, 
+-        &quot;the maximum achievable delay (in microseconds) if $op = PLATFORM_TIMER_OP_GET_MAX_DELAY$&quot;,
+-        &quot;the minimum achievable delay (in microseconds) if $op = PLATFORM_TIMER_OP_GET_MIN_DELAY$&quot;
+-      }
+-    }, 
+-
+-    { sig = &quot;u32 #platform_timer_get_diff_us#( unsigned id, timer_data_type end, timer_data_type start );&quot;,
+-      desc = [[Return the time difference (in us) betweeen two timer values. This function is generic for all platforms, thus it is implemented in %src/common.c%.]],
+-      args = 
+-      {
+-        &quot;$id$ - the timer ID&quot;,
+-        &quot;$end$ - the first timer value&quot;,
+-        &quot;$start$ - the second timer value&quot;,
+-      },
+-      ret = &quot;the time difference (in microseconds)&quot;
+     }
+   },
+ 
+@@ -336,10 +168,10 @@
+     &lt;li&gt;many times it is difficult to share a hardware timer between different parts of an application because of conflicting requirements. Generally it's not possible to have timers that can
+         achieve long delays and high accuracy at the same time (this is especially true for systems that have 16 bit or even smaller timers).&lt;/li&gt;
+   &lt;/ul&gt;
+-  &lt;p&gt;In this respect, $virtual timers$ are a set of timers that share a single hardware timer. It is possible, in this way, to have a hardware timer that can implement 4, 8 or more hardware
++  &lt;p&gt;In this respect, $virtual timers$ are a set of timers that share a single hardware timer. It is possible, in this way, to have a hardware timer that can implement 4, 8 or more virtual/software
+   timers. There are a few drawbacks to this approach:&lt;/p&gt;
+   &lt;ul&gt;
+-    &lt;li&gt;the hardware timer used to implement the virtual timers must generally be dedicated. In fact in cat be still used in &quot;read only mode&quot;, which means that the only operations that can
++    &lt;li&gt;the hardware timer used to implement the virtual timers must generally be dedicated. In fact it can still be used in &quot;read only mode&quot;, which means that the only operations that can
+         be executed on it are $PLATFORM_TIMER_OP_READ$, $PLATFORM_TIMER_GET_CLOCK$, $PLATFORM_TIMER_OP_GET_MAX_DELAY$ and $PLATFORM_TIMER_OP_GET_MIN_DELAY$. However,
+         since the &quot;read only mode&quot; is not enforced by the code, it is advisable to treat this timer as a dedicated resource and thus make it invisible to eLua by not associating it with 
+         an ID.&lt;/li&gt;
+@@ -364,9 +196,11 @@
+   CPU time. The maximum value depends largely on the hardware and the desired behaviour of the virtual timers, but in practice values larger than 10 might visibly change the behaviour of your 
+   system.&lt;/p&gt;
+   &lt;p&gt;To $use$ a virtual timer, identify it with the constant $VTMR_FIRST_ID$ (defined in %inc/common.h%) plus an offset. For example, $VTMR_FIRST_ID+0$ (or simply
+-  $VTMR_FIRST_ID$) is the ID of the first virtual timer in the system, and $VTMR_FIRST_ID+2$ is the ID of the third virtual timer in the system.
++  $VTMR_FIRST_ID$) is the ID of the first virtual timer in the system, and $VTMR_FIRST_ID+2$ is the ID of the third virtual timer in the system.&lt;/p&gt;
++  &lt;p&gt;Virtual timers are capable of generating timer match interrupts just like regular timers, check @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_timer_set_match_int at here</A>@ for details.
+   ]]
+     }
+   }
+ }
+ 
++
+
+Modified: trunk/doc/eluadoc/refman_gen_cpu.lua
+===================================================================
+--- trunk/doc/eluadoc/refman_gen_cpu.lua	2010-11-04 22:40:09 UTC (rev 809)
++++ trunk/doc/eluadoc/refman_gen_cpu.lua	2010-11-06 23:58:05 UTC (rev 810)
+@@ -31,7 +31,8 @@
+   _C( INT_GPIOB ),\
+   .................
+   _C( INT_UDMA )~
+-&lt;p&gt;It's worth to note that adding more constants does not increas RAM usage, only Flash usage, so you can expose as much constants as you need without worrying about RAM consumption.]]
++&lt;p&gt;It's worth to note that adding more constants does not increas RAM usage, only Flash usage, so you can expose as much constants as you need without worrying about RAM consumption.&lt;br /&gt;
++This mechanism is also used to expose interrupt IDs to the CPU module, check @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">inthandlers.html at here</A>@ for an overview of eLua interrupt support.]]
+     },
+   },
+ 
+@@ -83,19 +84,70 @@
+       ret = &quot;$data$ - the byte read from memory.&quot;
+     },
+ 
+-    { sig = &quot;#cpu.cli#()&quot;,
+-      desc = &quot;Disable CPU interrupts.&quot;
++    { sig = &quot;#cpu.cli#( [id], [resnum1], [resnum2], ... [resnumn])&quot;,
++      desc = &quot;Disables the global CPU interrupt flag if called without arguments, or a specific interrupt (and the interrupt's capability of triggering Lua interrupt handlers) for a list of resource IDs if called with arguments.&quot;,
++      args =
++      {
++        &quot;$id$ - the interrupt ID. If specified, at least one resource ID must also be specified.&quot;,
++        &quot;$resnum1$ - the first resource ID, required if $id$ is specified.&quot;,
++        &quot;$resnum2 (optional)$ - the second resource ID.&quot;,
++        &quot;$resnumn (optional)$ - the #n#-th resource ID.&quot;
++      }
+     },
+ 
+-    { sig = &quot;#cpu.sei#()&quot;,
+-      desc = &quot;Enable CPU interrupts.&quot;
++    { sig = &quot;#cpu.hw_cli#( [id], [resnum1], [resnum2], ... [resnumn])&quot;,
++      desc = &quot;Disables the global CPU interrupt flag if called without arguments, or a specific interrupt for a list of resource IDs if called with arguments. The interrupt is only disabled at hardware level, this function doesn't affect the interrupt's ability of triggering Lua interrupt handlers.&quot;,
++      args =
++      {
++        &quot;$id$ - the interrupt ID. If specified, at least one resource ID must also be specified.&quot;,
++        &quot;$resnum1$ - the first resource ID, required if $id$ is specified.&quot;,
++        &quot;$resnum2 (optional)$ - the second resource ID.&quot;,
++        &quot;$resnumn (optional)$ - the #n#-th resource ID.&quot;
++      }
+     },
++   
+ 
++    { sig = &quot;#cpu.sei#( [id], [resnum1], [resnum2], ... [resnumn])&quot;,
++      desc = &quot;Enables the global CPU interrupt flag if called without arguments, or a specific interrupt (and the interrupt's capability of triggering Lua interrupt handlers) for a list of resource IDs if called with arguments.&quot;,
++      args =
++      {
++        &quot;$id$ - the interrupt ID. If specified, at least one resource ID must also be specified.&quot;,
++        &quot;$resnum1$ - the first resource ID, required if $id$ is specified.&quot;,
++        &quot;$resnum2 (optional)$ - the second resource ID.&quot;,
++        &quot;$resnumn (optional)$ - the #n#-th resource ID.&quot;
++      }     
++    },
++    
++    { sig = &quot;#cpu.hw_sei#( [id], [resnum1], [resnum2], ... [resnumn])&quot;,
++      desc = &quot;Enables the global CPU interrupt flag if called without arguments, or a specific interrupt for a list of resource IDs if called with arguments. The interrupt is only enabled at hardware level, this function doesn't affect the interrupt's ability of triggering Lua interrupt handlers.&quot;,
++      args =
++      {
++        &quot;$id$ - the interrupt ID. If specified, at least one resource ID must also be specified.&quot;,
++        &quot;$resnum1$ - the first resource ID, required if $id$ is specified.&quot;,
++        &quot;$resnum2 (optional)$ - the second resource ID.&quot;,
++        &quot;$resnumn (optional)$ - the #n#-th resource ID.&quot;
++      }     
++    },
++
+     { sig = &quot;clock = #cpu.clock#()&quot;,
+       desc = &quot;Get the CPU core frequency.&quot;,
+       ret = &quot;$clock$ - the CPU clock (in Hertz).&quot;
++    },
++
++    { sig = &quot;#cpu.set_int_handler#( handler )&quot;,
++      desc = &quot;Sets the Lua interrupt handler to function *handler*. Only available if interrupt support is enabled, check @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">inthandlers.html at here</A>@ for details.&quot;,
++      args = &quot;$handler$ - the Lua interrupt handler function, or *nil* to disable the Lua interrupt handler feature.&quot;
++    },
++
++    { sig = &quot;#cpu.get_int_flag#( id, resnum, [clear] )&quot;,
++      desc = &quot;Get the interrupt pending flag of an interrupt ID/resource ID combination, and optionally clear the pending flag. Only available if interrupt support is enabled, check @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">inthandlers.html at here</A>@ for details.&quot;,
++      args = 
++      {
++        &quot;$id$ - the interrupt ID.&quot;,
++        &quot;$resnum$ - the resource ID.&quot;,
++        &quot;$clear (optional)$ - $true$ to clear the interrupt pending flag or $false$ to leave the interrupt pending flag untouched. Defaults to $true$ if not specified.&quot;
++      }
+     }
+-  },
++  }
+ }
+ 
+-data_pt = data_en
+
+Modified: trunk/doc/eluadoc/refman_gen_tmr.lua
+===================================================================
+--- trunk/doc/eluadoc/refman_gen_tmr.lua	2010-11-04 22:40:09 UTC (rev 809)
++++ trunk/doc/eluadoc/refman_gen_tmr.lua	2010-11-06 23:58:05 UTC (rev 810)
+@@ -85,10 +85,18 @@
+       desc = &quot;Get the timer clock (the clock used to increment the timer counter register).&quot;,
+       args = &quot;$id$ - the timer ID.&quot;,
+       ret = &quot;The timer clock (in Hz).&quot;
++    },
++
++    { sig = &quot;#tmr.set_match_int#( id, period, type )&quot;,
++      desc = &quot;Setup the timer match interrupt. Only available if interrupt support is enabled, check @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">inthandlers.html at here</A>@ for details.&quot;,
++      args = 
++      {
++        &quot;$id$ - the timer ID.&quot;,
++        &quot;$period$ - the interrupt period in microseconds. Setting this to 0 disabled the timer match interrupt.&quot;,
++        &quot;$type$ - $tmr.INT_ONESHOT$ to generate a single interrupt after *period* microseconds, or $tmr.INT_CYCLIC$ to generate interrupts every $period$ microseconds.&quot;
++      }
+     }
+-   
++
+   }
+-
+ }
+ 
+-data_pt = data_en
+
+Added: trunk/doc/en/arch_ints.txt
+===================================================================
+--- trunk/doc/en/arch_ints.txt	                        (rev 0)
++++ trunk/doc/en/arch_ints.txt	2010-11-06 23:58:05 UTC (rev 810)
+@@ -0,0 +1,100 @@
++// $$HEADER$$
++eLua interrupt support implementation
++-------------------------------------
++
++To add interrupt support for an eLua platform follow the steps below:
++
++1. *Define your interrupts*
+++
++Your interrupt sources should be defined in link:arch_platform.html[platform_conf.h] with macros (don't use C enumerations). The first one should have the value *ELUA_INT_FIRST_ID* 
++(defined in _inc/elua_int.h_), the next one *ELUA_INT_FIRST_ID + 1* and so on. Also, there should be a definition for a macro called *INT_ELUA_LAST* that must be equal to the largest 
++interrupt source value. An example is given below:
+++
++------------------------------
++#define INT_GPIO_POSEDGE      ELUA_INT_FIRST_ID
++#define INT_GPIO_NEGEDGE      ( ELUA_INT_FIRST_ID + 1 )
++#define INT_TMR_MATCH         ( ELUA_INT_FIRST_ID + 2 )
++#define INT_ELUA_LAST         INT_TMR_MATCH
++------------------------------
+++
++Note that the interrupt names aren't random, they should follow a well defined pattern. Check &lt;&lt;intlist, here&gt;&gt; for details.
++
++2. *Add them to the list of constants from the CPU module*
+++
++Check the documentation of the _mcpu module for details.
++
++3. *Implement your support functions*
+++
++The actual implementation of the interrupt handlers is of course platform specific, so it can stay in the _platform.c_ file. However, since interrupt handlers might require quite a bit
++of code, it is recommended to implement them in a separate file. The eLua convention is to use the _platform_int.c_ file for this purpose. For each interrupt defined in step 1 above, 3
++functions need to be implemented:
+++
++--
++* A function that enables or disables the interrupt and returns its previous state (enabled or disabled).
++* A function that checks if the interrupt is enabled or disabled.
++* A function that checks the interrupt pending flag and optionally clears it.
++--
+++
++These functions are defined in _inc/elua_int.h_, which also defines an &quot;int descriptor&quot; type:
+++
++------------------------------
++// Interrupt functions and descriptor
++typedef int ( *elua_int_p_set_status )( elua_int_resnum resnum, int state ); 
++typedef int ( *elua_int_p_get_status )( elua_int_resnum resnum );
++typedef int ( *elua_int_p_get_flag )( elua_int_resnum resnum, int clear );
++typedef struct 
++{
++  elua_int_p_set_status int_set_status;
++  elua_int_p_get_status int_get_status;
++  elua_int_p_get_flag int_get_flag;
++} elua_int_descriptor;
++------------------------------
+++
++_platform_int.c_ must have an array of *elua_int_descriptor* types named *elua_int_table* (remember to make it _const_ to save RAM). The elements of this array must be in the same 
++order as the interrupt sources. The interrupt table for the example from step 1 above might look like this:
+++
++------------------------------
++const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
++{
++  { int_gpio_posedge_set_status, int_gpio_posedge_get_status, int_gpio_posedge_get_flag },
++  { int_gpio_negedge_set_status, int_gpio_negedge_get_status, int_gpio_negedge_get_flag },
++  { int_tmr_match_set_status, int_tmr_match_get_status, int_tmr_match_get_flag }
++};
++------------------------------
++
++4. *Implement the init function*
+++
++_platform_int.c_ should implement a function named *platform_int_init* (defined in _inc/platform.h_) that must initialize all the required hardware and the internal data structures of
++the interrupt subsystem. This function should be called from *platform_init*.
++
++That's it. If you followed all these steps correctly, your platform should be fully able to support interrupt handlers (as described link:inthandlers.html[here]). Check the *lpc24xx*
++platform implementation (_src/platform/lpc24xx_) for a full example.
++
++[[intlist]]
++Interrupt list and naming conventions
++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++
++To ensure maximum portability and correct system behaviour, interrupt names (as defined in _platform_conf.h_) *must* follow a well-defined naming pattern. Please note that this isn't
++merely a convention, many times the names must be properly chosen for the system to work properly. For example, the timer interrupt match will never happen on virtual timers if the 
++timer interrupt match name isn't *INT_TMR_MATCH* (see link:arch_platform_timers.html[here] for more details on how to use the timer match interrupt). 
++
++The naming rule is that the interrupt name must have the format *INT_&lt;peripheral&gt;_&lt;type&gt;_*, where:
++
++* *peripheral* is a symbolic name of the peripheral to which the interrupt applies.
++* *type* is a symbolic name of the interrupt type.
++
++This restriction applies only to interrupt *names*. The value associated with the interrupt name (as defined in _platform_conf.h_) can vary from platform to platform, as long as 
++it follows the rules outlined in step 1 above.
++
++The table below lists all the valid interrupt names currently known to eLua. If you add a new interrupt don't forget to update the table below.
++
++[width=&quot;70%&quot;, cols=&quot;&lt;2s,&lt;5&quot;, options=&quot;header&quot;]
++|===================================================================
++^|  Name              ^| Meaning                                    
++| INT_GPIO_POSEDGE    | Interrupt on a positive edge on a GPIO pin 
++| INT_GPIO_NEGEDGE    | Interrupt on a negative edge on a GPIO pin 
++| INT_TMR_MATCH       | Interrupt on timer match                   
++|===================================================================
++
++// $$FOOTER$$
++
+
+Modified: trunk/doc/en/asciidoc.conf
+===================================================================
+--- trunk/doc/en/asciidoc.conf	2010-11-04 22:40:09 UTC (rev 809)
++++ trunk/doc/en/asciidoc.conf	2010-11-06 23:58:05 UTC (rev 810)
+@@ -69,5 +69,8 @@
+ _ET-STM32Stamp=<A HREF="http://www.futurlec.com/ET-STM32_Stamp.shtml[ET-STM32">http://www.futurlec.com/ET-STM32_Stamp.shtml[ET-STM32</A> Stamp]
+ _mbed=<A HREF="http://mbed.org/[mbed">http://mbed.org/[mbed</A>]
+ 
++# Modules
++_mcpu=link:refman_gen_cpu.html[CPU]
++
+ # Miscellaneous
+ _br=&lt;br /&gt;
+
+Deleted: trunk/doc/en/inthandlers.html
+===================================================================
+--- trunk/doc/en/inthandlers.html	2010-11-04 22:40:09 UTC (rev 809)
++++ trunk/doc/en/inthandlers.html	2010-11-06 23:58:05 UTC (rev 810)
+@@ -1,203 +0,0 @@
+-$$HEADER$$
+-&lt;h3&gt;eLua interrupt handlers&lt;/h3&gt;
+-&lt;p&gt;Starting with version 0.8, &lt;b&gt;eLua&lt;/b&gt; supports interrupt handlers written in Lua. Once an interrupt handler is set in the Lua code, it will be called each time a supported 
+-interrupt is generated. A &lt;b&gt;supported interrupt&lt;/b&gt; is any interrupt that is handled by the platform C code (see &lt;a href=&quot;#cints&quot;&gt;here&lt;/a&gt; for more details). &lt;/p&gt;
+-&lt;p&gt;&lt;b&gt;&lt;font color=&quot;red&quot;&gt;IMPORTANT:&lt;/font&gt;&lt;/b&gt; before learning how to use interrupt handlers in Lua, please keep in mind that Lua interrupt handlers don't work the same way as 
+-regular (C) interrupt handlers (although it might appear so). As Lua doesn't have direct suport for interrupts, they have to be emulated. &lt;b&gt;eLua&lt;/b&gt; emulates them using a 
+-queue that is populated with interrupt data by the C support code. As long as the queue is not empty, a Lua hook is set to run every 2 Lua bytecode instructions, 
+-and the hook function is the Lua interrupt handler. After all the interrupts are handled and the queue is emptied, the hook is automatically disabled. Consequently: &lt;/p&gt;
+-&lt;ul&gt;
+-  &lt;li&gt;When the interrupt queue is full (a situation that might appear when interrupts are added to the queue faster than the Lua code can handle them) subsequent interrupts are
+-      ignored (not added to the queue) and an error message is printed on the &lt;b&gt;eLua&lt;/b&gt; console device. The interrupt queue size can be configured at build time, as explained
+-      &lt;a href=&quot;[TODO]&quot;&gt;here&lt;/a&gt;. Even if the interrupt queue is large, one most remember that Lua code is significantly slower than C code, thus not all C interrupts make
+-      suitable candidates for Lua interrupt handlers. For example, a serial interrupt that is generated each time a char is received at 115200baud might be too fast for Lua
+-      (this is largely dependent on the platform). On the other hand, a GPIO interrupt-on-change on a GPIO line connected with a matrix keyboard is a very good candidate for
+-      a Lua handler. Experimenting with different interrupt types is the best way to find the interrupts that work well with Lua.&lt;/li&gt;
+-  &lt;li&gt;A more subtle point is that the Lua virtual machine must &lt;b&gt;run&lt;/b&gt; for the interrupt handlers to work. A simple analogy is that a CPU must have a running clock in order
+-      to function properly (and in order to take care of the hardware interrupts). If the clock is stopped, the CPU doesn't run and the interrupt handlers aren't called anymore,
+-      although the occurence of the interrupt might be recorded inside the CPU. This is the exact same situation with Lua: if the virtual machine doesn't run, the interrupts
+-      are still recorded in the interrupt queue, but the Lua handler won't be called until the virtual machine runs again. In this case though, the &quot;clock&quot; of the Lua VM is a 
+-      C function that is executed for every VM instruction. If this function blocks for some reason, the VM instructions are not executed anymore. It's not hard to make
+-      this function block; for example, it blocks everytime the Lua code waits for some user input at the console, or when a tmr.delay is executed, or when uart.read is called 
+-      with an infinite or very large timeout; in general, any function from a Lua library that doesn't return immediately (or after a short ammount of time) will block the VM. 
+-      Care must be taken to avoid such operations as much as possible, otherwise the interrupt support code won't run properly.&lt;/li&gt;
+-  &lt;li&gt;There is a single interrupt handler in Lua, as opposed to the many hardware interrupt handlers usually found on the &lt;b&gt;eLua&lt;/b&gt; targets. It is however easy to differentiate
+-      between different interrupt sources, as will be explained in the next paragraph.&lt;/li&gt;
+-  &lt;li&gt;Lua interrupt handlers are never reentrant.&lt;/li&gt;
+-&lt;/ul&gt;
+-&lt;p&gt;While this might seem restrictive, Lua interrupt handlers work quite well in practical situations. As an added bonus, since they are implemented by C support code, there's nothing
+-preventing &lt;b&gt;eLua&lt;/b&gt; from implementing &quot;custom interrupts&quot; (software generated interrupts that don't correspond to a hardware interrupt on the CPU), such as serial interrupt on
+-char match (generate an interrupt when a certain char is received on the serial port, for example a newline), timer interrupts for &lt;a href=&quot;[TODO]&quot;&gt;virtual timers&lt;/a&gt;, TCP/UDP data
+-packet received interrupt, and many others.&lt;/p&gt;
+-
+-&lt;h3&gt;Using interrupt handlers in Lua&lt;/h3&gt;
+-&lt;p&gt;Setting up interrupt handlers is a straightforward process, most of the required functionality is provided by the &lt;a href=&quot;refman_gen_cpu.html&quot;&gt;CPU module&lt;/a&gt;:&lt;/p&gt;
+-&lt;ul&gt;
+-&lt;li&gt;use &lt;i&gt;cpu.set_int_handler&lt;/i&gt; to set the interrupt handler function (call with &lt;b&gt;nil&lt;/b&gt; to disable interrupt handling in Lua code.&lt;/li&gt;
+-&lt;li&gt;use &lt;i&gt;cpu.sei( int_id, resnum1, [resnum2], ..., [resnumn])&lt;/i&gt; and &lt;i&gt;cpu.cli( int_id, resnum1, [resnum2], ..., [resnumn])&lt;/i&gt; to enable/disable specific CPU interrupts 
+-    that will trigger the interrupt handler (use &lt;i&gt;cpu.sei()&lt;/i&gt; and &lt;i&gt;cpu.cli&lt;/i&gt; (without parameters) to enable/disable global interrupts on the CPU).&lt;/li&gt;
+-&lt;/ul&gt;
+-&lt;p&gt;The interrupt handler receives two arguments: the interrupt type (all the interrupt types are mapped to constants from the &lt;a href=&quot;refman_gen_cpu.html&quot;&gt;CPU module&lt;/a&gt;) and a
+-resource ID that specifies the target resource for the interrupt. This depends on the interrupt type; it can be a timer ID for a timer overflow interrupt, a GPIO port/pin combination
+-for a GPIO interrupt on pin change, a SPI interface ID for a SPI data available interrupt, and so on.&lt;/p&gt;
+-&lt;p&gt;An example that uses the above concepts and knows how to handle two different interrupt types is presented below:&lt;/p&gt;
+-&lt;pre&gt;&lt;code&gt;local vtmrid = tmr.VIRT0
+-local to = 1500000
+-
+--- This is the interrupt handler
+-&lt;b&gt;local function handler( id, resnum )&lt;/b&gt;
+-  print( string.format( &quot;Got interrupt with id %d and resnum %d&quot;, id, resnum ) )
+-  -- Identify interrupt
+-  if id == cpu.INT_GPIO_POSEDGE or id == cpu.INT_GPIO_NEGEDGE then
+-    local port, pin = pio.decode( resnum )
+-    print( string.format( &quot;Port is %d, pin is %d&quot;, port, pin ) )
+-  elseif id == cpu.INT_TMR_MATCH then
+-    -- Timer interrupt on match is one shot, need to rearm to get a periodic timer interrupt
+-    print &quot;Timer interrupt! Rearming ... &quot;
+-    tmr.setinttimeout( vtmrid, to )
+-  end
+-end
+-
+-&lt;b&gt;cpu.set_int_handler( handler )&lt;/b&gt;                  -- set interrupt handler
+-&lt;b&gt;cpu.sei( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )&lt;/b&gt;       -- enable GPIO interrupt on change (negative edge) for pin 0 of port 0
+-&lt;b&gt;cpu.sei( cpu.INT_TMR_MATCH, vtmrid )&lt;/b&gt;            -- enable timer match interrupt on virtual timer 0
+-tmr.setinttimeout( vtmrid, to )                 -- set interrupt timeout ( for timer match interrupt) on virtual timer 0
+-local tmrid = 0
+-
+--- Enter an infinite loop that prints &quot;Outside interrupt&quot; every second
+--- This output will be interleaved with the interrupt handler timeout:
+---   the timer interrupt message will appear every 1.5 seconds
+---   the GPIO message will appear each time pin 0 of port 0 changes state from 1 to 0
+-while true do
+-  print &quot;Outside interrupt&quot; 
+-  for i = 1, 1000 do tmr.delay( tmrid, 1000 ) end
+-end
+-&lt;/code&gt;&lt;/pre&gt;
+-&lt;br /&gt;
+-
+-&lt;a name=&quot;cints&quot; /&gt;
+-&lt;h3&gt;Support code for Lua interrupt handlers&lt;/h3&gt;
+-&lt;p&gt;&lt;b&gt;&lt;font color=&quot;red&quot;&gt;NOTE:&lt;/font&gt;&lt;/b&gt; this paragraph describes the support code that must be implemented in C to make the existence of Lua interrupt handlers possible. Consequently,
+-it's only relevant for &lt;b&gt;eLua&lt;/b&gt; developers. If you're just using &lt;b&gt;eLua&lt;/b&gt; as is, you can safely skip this paragraph.&lt;/p&gt;
+-&lt;p&gt;Specific C code is required to make Lua interrupt handlers functional. An &lt;b&gt;eLua&lt;/b&gt; platform that needs to implement Lua interrupt handlers must respect these rules:&lt;/p&gt;
+-&lt;ul&gt;
+-  &lt;li&gt;it must have a functional interrupt subsystem (the part of the code that knows how to handle CPU interrupts).&lt;/li&gt;
+-  &lt;li&gt;it must define the interrupts that will be accesible from Lua handlers with symbolic names, see &lt;a href=&quot;refman_gen_cpu.html#structures&quot;&gt;here&lt;/a&gt; for details.&lt;/li&gt;
+-  &lt;li&gt;it must add code to enable and disable specific interrupts (in &lt;i&gt;platform_cpu_set_interrupt&lt;/i&gt;) and also get the state of a specific interrupt (enabled/disabled) (in
+-      &lt;i&gt;platform_cpu_get_interrupt&lt;/i&gt;. See &lt;a href=&quot;arch_platform.cpu.html&quot;&gt;the CPU platform interface documentation&lt;/a&gt; for details.&lt;/li&gt;
+-  &lt;li&gt;it must write the actual CPU interrupt handlers (in C/ASM) and link them to the &lt;b&gt;eLua&lt;/b&gt; interrupt support code. At the very least, the interrupt handler should clear the
+-      interrupt flag and call &lt;i&gt;elua_int_add&lt;/i&gt; with two parameters: the interrupt ID and the resource ID.&lt;/li&gt;
+-&lt;/ul&gt;
+-&lt;p&gt;This is best illustrated with an example. The code below is a fragment from the lpc24xx backend and shows how the GPIO interrupt on change can be made available from Lua. First, the
+-interrupt is declared explicitly in &lt;i&gt;platform_conf.h&lt;/i&gt;:&lt;/p&gt;
+-&lt;pre&gt;&lt;code&gt;// Interrupt list
+-enum
+-{
+-  // Platform interrupts
+-&lt;b&gt;  INT_GPIO_POSEDGE = ELUA_INT_FIRST_ID,
+-  INT_GPIO_NEGEDGE&lt;/b&gt;
+-};
+-
+-#define PLATFORM_CPU_CONSTANTS\
+- _C( IO_PINSEL0 ),\
+- _C( IO_PINSEL1 ),\
+- _C( IO_PINSEL2 ),\
+- _C( IO_PINSEL3 ),\
+- _C( IO_PINSEL4 ),\
+- _C( IO_PINSEL5 ),\
+- _C( IO_PINSEL6 ),\
+- _C( IO_PINSEL7 ),\
+- _C( IO_PINSEL8 ),\
+- _C( IO_PINSEL9 ),\
+- _C( IO_PINSEL10 ),\
+-&lt;b&gt; _C( INT_GPIO_POSEDGE ,\
+- _C( INT_GPIO_NEGEDGE )&lt;/b&gt;
+-&lt;/code&gt;&lt;/pre&gt;
+-&lt;p&gt;Then code is added in &lt;i&gt;platform.c&lt;/i&gt; to enable/disable these interrupts and get their status:&lt;/p&gt;
+-&lt;pre&gt;&lt;code&gt;static PREG const posedge_regs[] = { ( PREG )&amp;IO0_INT_EN_R, NULL, ( PREG )&amp;IO2_INT_EN_R };
+-static PREG const negedge_regs[] = { ( PREG )&amp;IO0_INT_EN_F, NULL, ( PREG )&amp;IO0_INT_EN_F };
+-
+-// Helper: return the status of a specific interrupt (enabled/disabled)
+-static int platform_cpuh_get_int_status( elua_int_id id, elua_int_resnum resnum )
+-{
+-  int port, pin;
+-  
+-  if( id == INT_GPIO_POSEDGE || id == INT_GPIO_NEGEDGE )
+-  {
+-    port = PLATFORM_IO_GET_PORT( resnum ); 
+-    pin = PLATFORM_IO_GET_PIN( resnum ); 
+-    if( id == INT_GPIO_POSEDGE )
+-      return *posedge_regs[ port ] &amp; ( 1 &lt;&lt; pin );
+-    else
+-      return *negedge_regs[ port ] &amp; ( 1 &lt;&lt; pin );        
+-  } 
+-  return 0;
+-}
+-
+-&lt;b&gt;int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status )&lt;/b&gt;
+-{
+-  int crt_status = platform_cpuh_get_int_status( id, resnum );
+-  int port, pin;
+-  
+-  if( id == INT_GPIO_POSEDGE || id == INT_GPIO_NEGEDGE )
+-  {
+-    port = PLATFORM_IO_GET_PORT( resnum ); 
+-    pin = PLATFORM_IO_GET_PIN( resnum ); 
+-    if( id == INT_GPIO_POSEDGE )
+-    {
+-      if( status == PLATFORM_CPU_ENABLE )
+-        *posedge_regs[ port ] |= 1 &lt;&lt; pin;
+-      else
+-        *posedge_regs[ port ] &amp;= ~( 1 &lt;&lt; pin );       
+-    }
+-    else
+-    {
+-      if( status == PLATFORM_CPU_ENABLE )
+-        *negedge_regs[ port ] |= 1 &lt;&lt; pin;
+-      else
+-        *negedge_regs[ port ] &amp;= ~( 1 &lt;&lt; pin );         
+-    }    
+-  }
+-  return crt_status;
+-}
+-
+-&lt;b&gt;int platform_cpu_get_interrupt( elua_int_id id, elua_int_resnum resnum )&lt;/b&gt;
+-{
+-  return platform_cpuh_get_int_status( id, resnum );
+-}
+-
+-&lt;/code&gt;&lt;/pre&gt;
+-&lt;p&gt;An interrupt handler must also be defined for this type of interrupt, and it must call &lt;i&gt;elua_add_int&lt;/i&gt; to enqueue the interrupt:&lt;/p&gt;
+-&lt;pre&gt;&lt;code&gt;static void int_handler_eint3()
+-{
+-  elua_int_id id = ELUA_INT_INVALID_INTERRUPT;
+-  pio_code resnum = 0;
+-  int pidx, pin;
+-  
+-  EXTINT |= 1 &lt;&lt; 3; // clear interrupt
+-  // Look for interrupt source
+-  // In can only be GPIO0/GPIO2, as the EXT interrupts are not (yet) used
+-  pidx = ( IO_INT_STAT &amp; 1 ) ? 0 : 1;
+-  if( *posedge_status[ pidx ] )
+-  {
+-    id = INT_GPIO_POSEDGE;
+-    pin = intlog2( *posedge_status[ pidx ] );
+-  }
+-  else
+-  {
+-    id = INT_GPIO_NEGEDGE;
+-    pin = intlog2( *negedge_status[ pidx ] );
+-  }
+-  &lt;b&gt;// The resource corresponding to the interrupt is computed here, in this case it is a port/pin combination
+-  resnum = PLATFORM_IO_ENCODE( pidx * 2, pin, PLATFORM_IO_ENC_PIN );
+-  // Also, the interrupt source must be cleared in the handler
+-  *intclr_regs[ pidx ] = 1 &lt;&lt; pin;&lt;/b&gt;
+-  
+-  // Queue interrupt
+-  &lt;b&gt;elua_int_add( id, resnum );&lt;/b&gt;
+-  VICVectAddr = 0; // ACK interrupt    
+-}
+-&lt;/code&gt;&lt;/pre&gt;
+-
+-$$FOOTER$$
+-
+
+Added: trunk/doc/en/inthandlers.txt
+===================================================================
+--- trunk/doc/en/inthandlers.txt	                        (rev 0)
++++ trunk/doc/en/inthandlers.txt	2010-11-06 23:58:05 UTC (rev 810)
+@@ -0,0 +1,188 @@
++// $$HEADER$$
++eLua interrupt handlers
++-----------------------
++
++Starting with version link:TODO[0.8], eLua supports interrupt handlers written in Lua. Once an interrupt handler is set in the Lua code, it will be called each time a supported 
++interrupt is generated. A *supported interrupt* is any interrupt that is handled by the platform C code (see link:#cints[here] for more details).
++
++[red]*IMPORTANT*: before learning how to use interrupt handlers in Lua, please keep in mind that Lua interrupt handlers don't work the same way as 
++regular \(C) interrupt handlers. As Lua doesn't have direct suport for interrupts, they have to be emulated. eLua emulates them using a  queue that is populated with 
++interrupt data by the C support code. As long as the queue is not empty, a Lua hook is set to run every 2 Lua bytecode instructions. This hook function is the Lua interrupt 
++handler. After all the interrupts are handled and the queue is emptied, the hook is automatically disabled. Consequently:
++
++* When the interrupt queue is full (a situation that might appear when interrupts are added to the queue faster than the Lua code can handle them) subsequent interrupts are
++    ignored (not added to the queue) and an error message is printed on the eLua console device. The interrupt queue size can be configured at build time, as explained
++    link:TODO[here]. Even if the interrupt queue is large, one most remember that Lua code is significantly slower than C code, thus not all C interrupts make
++    suitable candidates for Lua interrupt handlers. For example, a serial interrupt that is generated each time a char is received at 115200 baud might be too fast for Lua
++    (this is largely dependent on the platform). On the other hand, a GPIO interrupt-on-change on a GPIO line connected with a matrix keyboard is a very good candidate for
++    a Lua handler. Experimenting with different interrupt types is the best way to find the interrupts that work well with Lua.
++
++* A more subtle point is that the Lua virtual machine must *run* for the interrupt handlers to work. A simple analogy is that a CPU must have a running clock in order
++    to function properly (and in order to take care of the hardware interrupts). If the clock is stopped, the CPU doesn't run and the interrupt handlers aren't called anymore,
++    although the occurence of the interrupt might be recorded inside the CPU. This is the exact same situation with Lua: if the virtual machine doesn't run, the interrupts
++    are still recorded in the interrupt queue, but the Lua handler won't be called until the virtual machine runs again. In this case though, the &quot;clock&quot; of the Lua VM is a 
++    C function that is executed for every VM instruction. If this function blocks for some reason, the VM instructions are not executed anymore. It's not hard to make
++    this function block; for example, it blocks everytime the Lua code waits for some user input at the console, or when a TODO tmr.delay is executed, or when TODO uart.read is called 
++    with an infinite or very large timeout; in general, any function from a Lua library that doesn't return immediately (or after a short ammount of time) will block the VM. 
++    Care must be taken to avoid such operations as much as possible, otherwise the interrupt support code won't run properly.
++
++* There is a single interrupt handler in Lua, as opposed to the many hardware interrupt handlers usually found on the eLua targets. It is however easy to differentiate
++    between different interrupt sources, as will be explained in the next paragraph.
++
++* Lua interrupt handlers are never reentrant.
++
++While this might seem restrictive, Lua interrupt handlers work quite well in practical situations. As an added bonus, since they are implemented by C support code, there's nothing
++preventing eLua from implementing &quot;custom interrupts&quot; (software generated interrupts that don't correspond to a hardware interrupt on the CPU), such as serial interrupt on
++char match (generate an interrupt when a certain char is received on the serial port, for example a newline), timer interrupts for link:TODO[virtual timers], TCP/UDP data
++packet received interrupt, and many others.
++
++Using interrupt handlers in Lua
++--------------------------------
++To enable Lua interrupt handler, define *BUILD_LUA_INT_HANDLERS* in _platform_conf.h_. Setting up interrupt handlers is a straightforward process, most of the required 
++functionality is provided by the _mcpu module:
++
++* use _cpu.set_int_handler_ to set the interrupt handler function (call with *nil* to disable interrupt handling in Lua code).
++
++* use _cpu.sei( int_id, resnum1, [resnum2], ..., [resnumn])_ and _cpu.cli( int_id, resnum1, [resnum2], ..., [resnumn])_ to enable/disable specific CPU interrupts 
++    that will trigger the interrupt handler. You can also use _cpu.sei()_ and _cpu.cli_ (without parameters) to enable/disable global interrupts on the CPU, although this
++    is not recommended.
++
++The interrupt handler receives two arguments: the interrupt *type* (all the interrupt types are mapped to constants from the _mcpu module) and a
++*resource ID( that specifies the target resource for the interrupt. This depends on the interrupt type; it can be a timer ID for a timer overflow interrupt, a GPIO port/pin combination
++for a GPIO interrupt on pin change, a SPI interface ID for a SPI data available interrupt, and so on.
++
++An example that uses the above concepts and knows how to handle two different interrupt types is presented below:
++
++[subs=&quot;quotes&quot;]
++-------------------------------
++local vtmrid = tmr.VIRT0
++local to = 1500000
++
++-- This is the interrupt handler
++[bblue]*local function handler( id, resnum )*
++  print( string.format( &quot;Got interrupt with id %d and resnum %d&quot;, id, resnum ) )
++  -- Identify interrupt
++  if id == [bblue]*cpu.INT_GPIO_POSEDGE* or id == [bblue]*cpu.INT_GPIO_NEGEDGE* then
++    local port, pin = pio.decode( resnum )
++    print( string.format( &quot;Port is %d, pin is %d&quot;, port, pin ) )
++  elseif [bblue]*id == cpu.INT_TMR_MATCH* then
++    -- Timer interrupt on match is one shot, need to rearm to get a periodic timer interrupt
++    print &quot;Timer interrupt!&quot;
++  end
++end
++
++[bblue]*cpu.set_int_handler( handler )*                    -- set interrupt handler
++[bblue]*tmr.set_match_int( vtmrid, to, tmr.INT_CYCLIC )*   -- enable periodic timer interrupt for virtual timer 0
++[bblue]*cpu.sei( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )*         -- enable GPIO interrupt on change (negative edge) for pin 0 of port 0
++[bblue]*cpu.sei( cpu.INT_TMR_MATCH, vtmrid )*              -- enable timer match interrupt on virtual timer 0
++
++local tmrid = 0
++-- Enter an infinite loop that prints &quot;Outside interrupt&quot; every second
++-- This output will be interleaved with the interrupt handler timeout:
++--   the timer interrupt message will appear every 1.5 seconds
++--   the GPIO message will appear each time pin 0 of port 0 changes state from 1 to 0
++while true do
++  print &quot;Outside interrupt&quot; 
++  for i = 1, 1000 do tmr.delay( tmrid, 1000 ) end
++end
++-------------------------------
++
++This is the most common use case for Lua interrupts, but it's not the only one. Another way to use interrupts from eLua uses polling instead of interrupt handlers: directly 
++check the interrupt flags and execute a certain action when one of them becomes set. For this, use the _cpu.get_int_flag( id, resnum, [clear] )_ function from the _mcpu module, 
++which returns the specified interrupt's status for resource *resnum*. *clear* is an optional boolean parameter, specifying if the interrupt flag should be cleared if it is set. 
++It defaults to *true*, and in most cases it shouldn't be changed. Using this feature, it becomes easy to wait for one or more interrupt flag(s) to be set. To use interrupt 
++polling:
++
++* Enable/disable interrupts to be polled with _cpu.hw_sei_/_cpu.hw_cli_ instead of _cpu.sei_/_cpu.cli_. These functions enable/disable interrupts only in hardware, 
++  as opposed to _cpu.sei_/_cpu.cli_ that also set/clear an internal flag which makes the interrupt able to trigger a Lua handler. 
++
++* Use _cpu.get_int_flag_ to get the interrupt flag.
++
++The *int_select* function below is a possible implementation of a function that gets an array of interrupts and returns the first one that gets active:
++
++[subs=&quot;quotes&quot;]
++------------------------------
++function int_select( int_table )
++  while true do
++    for i = 1, #int_table do
++      local t = int_table[ i ]
++      if [bblue]*cpu.get_int_flag[ t[ 1 ], t[ 2 ] )* then
++        return t[ 1 ], t[ 2 ]
++      end
++    end
++ end
++end
++
++[bblue]*cpu.hw_sei( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )*
++[bblue]*cpu.hw_sei( cpu.INT_TMR_MATCH, tmr.VIRT0 )*
++local ints = { { cpu.INT_GPIO_NEGEDGE, pio.P0_0 }, { cpu.INT_TMR_MATCH, tmr.VIRT0 } }
++-- int_select will wait for either INT_GPIO_NEGEDGE or INT_TMR_MATCH to become active
++print( int_select( ints ) )
++------------------------------
++
++Note that the two mechanisms (interrupt handlers and polling) can be used in parallel as long as an interrupt is not set with both _cpu.hw_sei_ and _cpu.sei_, in which case the bevahiour
++is unpredictable. This is why it makes sense to write the *int_select* function above in Lua instead of C: it keeps the Lua VM running, so Lua interrupt handlers can be executed.
++
++[[cints]]
++Interrupt handlers in C
++-----------------------
++
++The interrupt subsystem has also a basic C API that can be used to implement portable eLua components and modules. It is enabled by defining *BUILD_C_INT_HANDLERS* in _platform_conf.h_. 
++It is defined in _inc/elua_int.h_ and has 2 functions:
++
++elua_int_c_handler elua_int_set_c_handler( elua_int_id inttype, elua_int_c_handler phandler )::
++  Sets the interrupt handler for interrupt *inttype* to *phandler* and returns the previous interrupt handler for interrupt *inttype*.
++
++elua_int_c_handler elua_int_get_c_handler( elua_int_id inttype )::
++  Returns the interrupt handler for interrupt *inttype*
++
++*elua_int_c_handler* is a function that doesn't return anything and receives a single parameter of type *elua_int_resnum* to differentiate between the sources (GPIO pin, UART id, timer id
++and so on) that can trigger the interrupt *inttype*. Note that the C interrupt model defines an interrupt handler per interrupt type, as opposed to the Lua interrupt model that defines
++a single interrupt handler for all interrupt types. 
++
++To work with interrupts from C code use these functions defined by the link:TODO[CPU platform interface]:
++
++int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status )::
++  Enable (*status* = *PLATFORM_CPU_ENABLE*) or disable (*status* = *PLATFORM_CPU_DISABLE*) interrupt *id* for resource *resnum*. 
++
++int platform_cpu_get_interrupt( elua_int_id id, elua_int_resnum resnum )::
++  Returns 1 if interrupt *id* is enabled for resource *resnum*, 0 otherwise.
++
++int platform_cpu_get_interrupt_flag( elua_int_id id, elua_int_resnum resnum, int clear )::
++  Get interrupt flag for interrupt *id* and resource *resnum*, clear interrupt flag if it is set and *clear* is 1, leave it untouched otherwise.
++
++Since _elua_int_set_c_handler_ returns the previous handler, it is easy to chain the interrupt handlers from different system components. To ensure correct operation, every C module that
++needs access to interrupt handlers should use this sequence:
++
++[subs=&quot;quotes&quot;]
++------------------------------
++#include &quot;elua_int.h&quot;
++
++static elua_int_c_handler prev_handler;
++static void int_handler( elua_int_resnum resnum );
++
++void module_init()
++{
++  int id = SOME_INT_ID;
++  
++  platform_cpu_set_interrupt( id, some_resnum, PLATFORM_CPU_ENABLE );
++  prev_handler = elua_int_set_c_handler( id, int_handler );
++}
++
++static void int_handler( elua_int_resnum resnum )
++{
++  // Note: prev_handler can also be called at the end of int_handler
++  if( prev_handler )
++    prev_handler( resnum );
++
++  // (Optional) Check resnum and return if the interrupt was fired by a different resource
++  if( resnum != some_resnum )
++    return;
++
++  // Actual interrupt handler code comes here
++}
++
++------------------------------
++
++// $$FOOTER$$
++
+
+Modified: trunk/doc/style1.css
+===================================================================
+--- trunk/doc/style1.css	2010-11-04 22:40:09 UTC (rev 809)
++++ trunk/doc/style1.css	2010-11-06 23:58:05 UTC (rev 810)
+@@ -9,7 +9,7 @@
+ 	padding: 0;
+ }
+ 
+-pre {
++div.sectionbody pre {
+ 	border: 1px dashed #fb2;
+ 	background-color: #fda;
+ 	font-family: Monotype.com,&quot;Courier New&quot;,Courier,monospace;
+@@ -39,6 +39,7 @@
+ 	padding: 0;
+ }
+ 
++
+ .logo_elua {
+ 	margin-top: 10px;
+ 	margin-left: 10px;
+@@ -171,9 +172,9 @@
+ 	margin-left: 0;
+ }
+ 
+-.code {
++div.sectionbody pre.code {
+ 	border: 0;
+-	background-color: #FFF;
++	background-color: #FFFFFF;
+ 	font-family: &quot;Courier New&quot;,Courier,monospace;
+ 	font-size: 90%;
+ 	overflow: auto;
+@@ -222,9 +223,10 @@
+   /*color: #083194;*/
+ }
+ 
+-tt {
++/* BogdanM: commented out the color inside &lt;tt&gt; blocks */
++/*tt {
+   color: navy;
+-}
++}*/
+ 
+ /* BogdanM: commented out the next 5 rules */
+ /*h1, h2, h3, h4, h5, h6 {
+@@ -362,11 +364,12 @@
+   padding: 0.5em;
+ }
+ 
+-div.listingblock &gt; div.content {
++/* BogdanM: commented out the next defition */
++/*div.content div.listingblock {
+   border: 1px solid silver;
+   background: #f4f4f4;
+   padding: 0.5em;
+-}
++}*/
+ 
+ div.quoteblock, div.verseblock {
+   padding-left: 1.0em;
+@@ -520,6 +523,7 @@
+   vertical-align: top;
+   font-style: normal;
+   padding-right: 0.8em;
++  margin-left: 1em;
+   color: navy;
+ }
+ td.hdlist2 {
+@@ -604,7 +608,75 @@
+   font-size: 0.9em;
+ }
+ 
++/******************************************************************************/
+ /* BogdanM: new rules for eLua docs */
++
+ span.orange {
+   color: rgb(255, 102, 0);
+-};
++}
++
++span.red {
++  color: rgb(255, 0, 0);
++}
++
++pre.mono, pre.func {
++	border: 1px dashed #fb2;
++	background-color: #fda;
++	font-family: Monotype.com,&quot;Courier New&quot;,Courier,monospace;
++	font-size: 90%;
++	line-height: 125%;
++	margin-left: 1em;
++	overflow: auto;
++	padding: 4px;
++}
++
++pre.mono p, pre.func p {
++  margin: 0;
++  padding: 0;
++}
++
++div.openblock.right {
++  margin-left: 2em;
++}
++
++div.openblock.right p {
++  margin: 0;
++  padding: 0;
++}
++
++div.listingblock div.content pre {
++	/*border: 0;*/
++	/*background-color: #FFFFFF;*/
++  border: 1px solid silver;
++  background: #f4f4f4;
++	font-family: &quot;Courier New&quot;,Courier,monospace;
++	font-size: 90%;
++	overflow: auto;
++	padding: 4px 4px 4px 1em;
++/*  margin: 0;
++  padding: 0;
++  border: 0;
++  background: transparent;
++	font-family: Monotype.com,&quot;Courier New&quot;,Courier,monospace;
++	font-size: 100%;
++	overflow: auto;*/
++}
++
++div.listingblock div.content tt {
++  color: black;
++  font-size: 110%;  
++}
++
++span.bblue {
++  color: rgb(0, 0, 255);
++  font-weight: bold;
++}
++
++.dlist dl {
++  margin-left: 2em;
++}
++
++dd {
++  display: block;
++  margin-left: 20px;
++}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000762.html">[Elua-svn] r809 - in trunk: inc src src/modules	src/platform/lpc24xx src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000764.html">[Elua-svn] r811 - in trunk/doc: . en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#763">[ date ]</a>
+              <a href="thread.html#763">[ thread ]</a>
+              <a href="subject.html#763">[ subject ]</a>
+              <a href="author.html#763">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,347 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r620 - in branches/pre0.7: . src/lua src/modules	src/platform/sim src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r620%20-%20in%20branches/pre0.7%3A%20.%20src/lua%20src/modules%0A%09src/platform/sim%20src/platform/stm32&In-Reply-To=%3C200912272305.nBRN51Nq000572%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000575.html">
+   <LINK REL="Next"  HREF="000577.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r620 - in branches/pre0.7: . src/lua src/modules	src/platform/sim src/platform/stm32</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r620%20-%20in%20branches/pre0.7%3A%20.%20src/lua%20src/modules%0A%09src/platform/sim%20src/platform/stm32&In-Reply-To=%3C200912272305.nBRN51Nq000572%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r620 - in branches/pre0.7: . src/lua src/modules	src/platform/sim src/platform/stm32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Dec 28 00:05:01 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000575.html">[Elua-svn] r619 - in branches/pre0.7/doc: . eluadoc en
+</A></li>
+        <LI>Next message: <A HREF="000577.html">[Elua-svn] r621 - branches/pre0.7/doc/images
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#576">[ date ]</a>
+              <a href="thread.html#576">[ thread ]</a>
+              <a href="subject.html#576">[ subject ]</a>
+              <a href="author.html#576">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-12-28 00:05:00 +0100 (Mon, 28 Dec 2009)
+New Revision: 620
+
+Added:
+   branches/pre0.7/src/lua/legc.c
+   branches/pre0.7/src/lua/legc.h
+   branches/pre0.7/src/modules/elua.c
+Modified:
+   branches/pre0.7/SConstruct
+   branches/pre0.7/src/lua/lauxlib.c
+   branches/pre0.7/src/lua/lrotable.h
+   branches/pre0.7/src/lua/lstate.c
+   branches/pre0.7/src/lua/lstate.h
+   branches/pre0.7/src/modules/auxmods.h
+   branches/pre0.7/src/platform/sim/platform_conf.h
+   branches/pre0.7/src/platform/stm32/platform_conf.h
+Log:
+the previous commit (r619) wasn't complete, this is the rest of it :)
+
+Modified: branches/pre0.7/SConstruct
+===================================================================
+--- branches/pre0.7/SConstruct	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/SConstruct	2009-12-27 23:05:00 UTC (rev 620)
+@@ -278,7 +278,7 @@
+ # Lua source files and include path
+ lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
+    lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
+-   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c lrotable.c&quot;&quot;&quot;
++   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c lrotable.c legc.c&quot;&quot;&quot;
+ if target == 'lualong' or target == 'lua':
+   lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
+   local_include = ['inc', 'inc/newlib', 'src/lua']
+@@ -310,7 +310,7 @@
+ local_include += ['src/fatfs']
+ 
+ # Lua module files
+-module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c can.c luarpc.c bitarray.c&quot;
++module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c can.c luarpc.c bitarray.c elua.c&quot;
+ module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+ 
+ # Optimizer flags (speed or size)
+
+Modified: branches/pre0.7/src/lua/lauxlib.c
+===================================================================
+--- branches/pre0.7/src/lua/lauxlib.c	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/src/lua/lauxlib.c	2009-12-27 23:05:00 UTC (rev 620)
+@@ -29,8 +29,8 @@
+ #include &quot;ldo.h&quot;
+ #include &quot;lobject.h&quot;
+ #include &quot;lstate.h&quot;
++#include &quot;legc.h&quot;
+ 
+-
+ #define FREELIST_REF	0	/* free list of references */
+ 
+ 
+@@ -696,17 +696,21 @@
+ 
+ static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
+   lua_State *L = (lua_State *)ud;
++  int mode = L == NULL ? 0 : G(L)-&gt;egcmode;
+   void *nptr;
++
+   if (nsize == 0) {
+     free(ptr);
+     return NULL;
+   }
++  if (L != NULL &amp;&amp; (mode &amp; EGC_ALWAYS)) /* always collect memory if requested */
++    luaC_fullgc(L);
+   if(nsize &gt; osize &amp;&amp; L != NULL) {
+-    if(G(L)-&gt;memlimit &gt; 0 &amp;&amp; l_check_memlimit(L, nsize - osize))
++    if(G(L)-&gt;memlimit &gt; 0 &amp;&amp; (mode &amp; EGC_ON_MEM_LIMIT) &amp;&amp; l_check_memlimit(L, nsize - osize))
+       return NULL;
+   }
+   nptr = realloc(ptr, nsize);
+-  if (nptr == NULL &amp;&amp; L != NULL) {
++  if (nptr == NULL &amp;&amp; L != NULL &amp;&amp; (mode &amp; EGC_ON_ALLOC_FAILURE)) {
+     luaC_fullgc(L); /* emergency full collection. */
+     nptr = realloc(ptr, nsize); /* try allocation again */
+   }
+
+Added: branches/pre0.7/src/lua/legc.c
+===================================================================
+--- branches/pre0.7/src/lua/legc.c	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/src/lua/legc.c	2009-12-27 23:05:00 UTC (rev 620)
+@@ -0,0 +1,12 @@
++// Lua EGC (Emergeny Garbage Collector) interface
++
++#include &quot;legc.h&quot;
++#include &quot;lstate.h&quot;
++
++void legc_set_mode(lua_State *L, int mode, unsigned limit) {
++   global_State *g = G(L); 
++   
++   g-&gt;egcmode = mode;
++   g-&gt;memlimit = limit;
++}
++
+
+Added: branches/pre0.7/src/lua/legc.h
+===================================================================
+--- branches/pre0.7/src/lua/legc.h	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/src/lua/legc.h	2009-12-27 23:05:00 UTC (rev 620)
+@@ -0,0 +1,17 @@
++// Lua EGC (Emergeny Garbage Collector) interface
++
++#ifndef __LEGC_H__
++#define __LEGC_H__
++
++#include &quot;lstate.h&quot;
++
++// EGC operations modes
++#define EGC_NOT_ACTIVE        0   // EGC disabled
++#define EGC_ON_ALLOC_FAILURE  1   // run EGC on allocation failure
++#define EGC_ON_MEM_LIMIT      2   // run EGC when an upper memory limit is hit
++#define EGC_ALWAYS            4   // always run EGC before an allocation
++
++void legc_set_mode(lua_State *L, int mode, unsigned limit);
++
++#endif
++
+
+Modified: branches/pre0.7/src/lua/lrotable.h
+===================================================================
+--- branches/pre0.7/src/lua/lrotable.h	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/src/lua/lrotable.h	2009-12-27 23:05:00 UTC (rev 620)
+@@ -18,8 +18,8 @@
+ #define LRO_NUMKEY(k)   {LUA_TNUMBER, {.numkey = k}}
+ #define LRO_NILKEY      {LUA_TNIL, {.strkey=NULL}}
+ 
+-/* Maximum length of a rotable name */
+-#define LUA_MAX_ROTABLE_NAME      16
++/* Maximum length of a rotable name and of a string key*/
++#define LUA_MAX_ROTABLE_NAME      32
+ 
+ /* Type of a numeric key in a rotable */
+ typedef int luaR_numkey;
+
+Modified: branches/pre0.7/src/lua/lstate.c
+===================================================================
+--- branches/pre0.7/src/lua/lstate.c	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/src/lua/lstate.c	2009-12-27 23:05:00 UTC (rev 620)
+@@ -22,8 +22,8 @@
+ #include &quot;lstring.h&quot;
+ #include &quot;ltable.h&quot;
+ #include &quot;ltm.h&quot;
++#include &quot;platform_conf.h&quot;
+ 
+-
+ #define state_size(x)	(sizeof(x) + LUAI_EXTRASPACE)
+ #define fromstate(l)	(cast(lu_byte *, (l)) - LUAI_EXTRASPACE)
+ #define tostate(l)   (cast(lua_State *, cast(lu_byte *, l) + LUAI_EXTRASPACE))
+@@ -184,6 +184,16 @@
+   g-&gt;gcpause = LUAI_GCPAUSE;
+   g-&gt;gcstepmul = LUAI_GCMUL;
+   g-&gt;gcdept = 0;
++#ifdef EGC_INITIAL_MODE
++  g-&gt;egcmode = EGC_INITIAL_MODE;
++#else
++  g-&gt;egcmode = 0;
++#endif
++#ifdef EGC_INITIAL_MEMLIMIT
++  g-&gt;memlimit = EGC_INITIAL_MEMLIMIT;
++#else
++  g-&gt;memlimit = 0;
++#endif
+   for (i=0; i&lt;NUM_TAGS; i++) g-&gt;mt[i] = NULL;
+   if (luaD_rawrunprotected(L, f_luaopen, NULL) != 0) {
+     /* memory allocation error: free partial state */
+
+Modified: branches/pre0.7/src/lua/lstate.h
+===================================================================
+--- branches/pre0.7/src/lua/lstate.h	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/src/lua/lstate.h	2009-12-27 23:05:00 UTC (rev 620)
+@@ -87,6 +87,7 @@
+   lu_mem gcdept;  /* how much GC is `behind schedule' */
+   int gcpause;  /* size of pause between successive GCs */
+   int gcstepmul;  /* GC `granularity' */
++  int egcmode;    /* emergency garbage collection operation mode */
+   lua_CFunction panic;  /* to be called in unprotected errors */
+   TValue l_registry;
+   struct lua_State *mainthread;
+
+Modified: branches/pre0.7/src/modules/auxmods.h
+===================================================================
+--- branches/pre0.7/src/modules/auxmods.h	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/src/modules/auxmods.h	2009-12-27 23:05:00 UTC (rev 620)
+@@ -51,8 +51,10 @@
+ #define AUXLIB_BITARRAY &quot;bitarray&quot;
+ LUALIB_API int ( luaopen_bitarray )( lua_State *L );
+ 
++#define AUXLIB_ELUA &quot;elua&quot;
++LUALIB_API int ( luaopen_elua )( lua_State *L );
++
+ // Helper macros
+-
+ #define MOD_CHECK_ID( mod, id )\
+   if( !platform_ ## mod ## _exists( id ) )\
+     return luaL_error( L, #mod&quot; %d does not exist&quot;, ( unsigned )id )
+
+Added: branches/pre0.7/src/modules/elua.c
+===================================================================
+--- branches/pre0.7/src/modules/elua.c	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/src/modules/elua.c	2009-12-27 23:05:00 UTC (rev 620)
+@@ -0,0 +1,51 @@
++// Interface with core services
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;auxmods.h&quot;
++#include &quot;lrotable.h&quot;
++#include &quot;legc.h&quot;
++#include &lt;string.h&gt;
++
++// Lua: elua.egc_setup( mode, [ memlimit ] )
++static int egc_setup( lua_State *L )
++{
++  int mode = luaL_checkinteger( L, 1 );
++  unsigned memlimit = 0;
++
++  if( lua_gettop( L ) &gt;= 2 )
++    memlimit = ( unsigned )luaL_checkinteger( L, 2 );
++  legc_set_mode( L, mode, memlimit );
++  return 0;
++}
++
++// Module function map
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE elua_map[] = 
++{
++  { LSTRKEY( &quot;egc_setup&quot; ), LFUNCVAL( egc_setup ) },
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;EGC_NOT_ACTIVE&quot; ), LNUMVAL( EGC_NOT_ACTIVE ) },
++  { LSTRKEY( &quot;EGC_ON_ALLOC_FAILURE&quot; ), LNUMVAL( EGC_ON_ALLOC_FAILURE ) },
++  { LSTRKEY( &quot;EGC_ON_MEM_LIMIT&quot; ), LNUMVAL( EGC_ON_MEM_LIMIT ) },
++  { LSTRKEY( &quot;EGC_ALWAYS&quot; ), LNUMVAL( EGC_ALWAYS ) },
++#endif
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_elua( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else
++  luaL_register( L, AUXLIB_ELUA, elua_map );
++  MOD_REG_NUMBER( L, &quot;EGC_NOT_ACTIVE&quot;, EGC_NOT_ACTIVE );
++  MOD_REG_NUMBER( L, &quot;EGC_ON_ALLOC_FAILURE&quot;, EGC_ON_ALLOC_FAILURE );
++  MOD_REG_NUMBER( L, &quot;EGC_ON_MEM_LIMIT&quot;, EGC_ON_MEM_LIMIT );
++  MOD_REG_NUMBER( L, &quot;EGC_ALWAYS&quot;, EGC_ALWAYS );
++  return 1;
++#endif
++}
+
+Modified: branches/pre0.7/src/platform/sim/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/sim/platform_conf.h	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/src/platform/sim/platform_conf.h	2009-12-27 23:05:00 UTC (rev 620)
+@@ -24,7 +24,8 @@
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
+-  _ROM( AUXLIB_TERM, luaopen_term, term_map )
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )
+ 
+ // Bogus defines for common.c
+ #define CON_UART_ID           0
+
+Modified: branches/pre0.7/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/stm32/platform_conf.h	2009-12-27 23:01:21 UTC (rev 619)
++++ branches/pre0.7/src/platform/stm32/platform_conf.h	2009-12-27 23:05:00 UTC (rev 620)
+@@ -71,6 +71,7 @@
+   _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
+   RPCLINE\
+   LCDLINE\
++  _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 	
+ // *****************************************************************************
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000575.html">[Elua-svn] r619 - in branches/pre0.7/doc: . eluadoc en
+</A></li>
+	<LI>Next message: <A HREF="000577.html">[Elua-svn] r621 - branches/pre0.7/doc/images
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#576">[ date ]</a>
+              <a href="thread.html#576">[ thread ]</a>
+              <a href="subject.html#576">[ subject ]</a>
+              <a href="author.html#576">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r787 - branches/ints/src/platform/lpc24xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r787%20-%20branches/ints/src/platform/lpc24xx&In-Reply-To=%3C20100911120900.D63ED480F4C%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000739.html">
+   <LINK REL="Next"  HREF="000741.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r787 - branches/ints/src/platform/lpc24xx</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r787%20-%20branches/ints/src/platform/lpc24xx&In-Reply-To=%3C20100911120900.D63ED480F4C%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r787 - branches/ints/src/platform/lpc24xx">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Sep 11 14:09:00 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000739.html">[Elua-svn] r786 - in branches/ints: inc romfs src src/modules	src/platform/lpc24xx
+</A></li>
+        <LI>Next message: <A HREF="000741.html">[Elua-svn] r788 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#740">[ date ]</a>
+              <a href="thread.html#740">[ thread ]</a>
+              <a href="subject.html#740">[ subject ]</a>
+              <a href="author.html#740">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-09-11 14:09:00 +0200 (Sat, 11 Sep 2010)
+New Revision: 787
+
+Modified:
+   branches/ints/src/platform/lpc24xx/platform.c
+   branches/ints/src/platform/lpc24xx/startup.s
+Log:
+even better interrupt handling on LPC24xx, the same model will apply for other ARM platforms
+
+Modified: branches/ints/src/platform/lpc24xx/platform.c
+===================================================================
+--- branches/ints/src/platform/lpc24xx/platform.c	2010-09-09 21:09:19 UTC (rev 786)
++++ branches/ints/src/platform/lpc24xx/platform.c	2010-09-11 12:09:00 UTC (rev 787)
+@@ -28,8 +28,7 @@
+ static PREG const negedge_status[] = { ( PREG )&amp;IO0_INT_STAT_F, ( PREG )&amp;IO2_INT_STAT_F };
+ static PREG const intclr_regs[] = { ( PREG )&amp;IO0_INT_CLR, ( PREG )&amp;IO2_INT_CLR };
+ 
+-extern void irqh_eint3();
+-void c_handler_eint3()
++static void int_handler_eint3()
+ {
+   elua_int_id id = ELUA_INT_INVALID_INTERRUPT;
+   pio_code resnum = 0;
+@@ -92,7 +91,7 @@
+ // Setup all required interrupt handlers
+ static void platform_setup_interrupts()
+ {
+-  install_irq( EINT3_INT, irqh_eint3, HIGHEST_PRIORITY - 1 );   
++  install_irq( EINT3_INT, int_handler_eint3, HIGHEST_PRIORITY - 1 );   
+ }
+ 
+ int platform_init()
+@@ -368,8 +367,7 @@
+ }
+ 
+ #if VTMR_NUM_TIMERS &gt; 0
+-extern void irqh_tmr();
+-void c_handler_tmr()
++static void int_handler_tmr()
+ {
+   T3IR = 1; // clear interrupt
+   cmn_virtual_timer_cb();
+@@ -398,7 +396,7 @@
+   T3IR = 0xFF;
+   // Set interrupt handle and eanble timer interrupt (and global interrupts)
+   T3MCR = 0x03; // interrupt on match with MR0 and clear on match
+-  install_irq( TIMER3_INT, irqh_tmr, HIGHEST_PRIORITY ); 
++  install_irq( TIMER3_INT, int_handler_tmr, HIGHEST_PRIORITY ); 
+   platform_cpu_set_global_interrupts( PLATFORM_CPU_ENABLE );
+   // Start timer
+   T3TCR = TMR_ENABLE;
+
+Modified: branches/ints/src/platform/lpc24xx/startup.s
+===================================================================
+--- branches/ints/src/platform/lpc24xx/startup.s	2010-09-09 21:09:19 UTC (rev 786)
++++ branches/ints/src/platform/lpc24xx/startup.s	2010-09-11 12:09:00 UTC (rev 787)
+@@ -17,6 +17,8 @@
+ #define RAM_Size         0x10000        // [TODO] make this 96k?
+ #define Top_Stack        (RAM_Base + RAM_Size)
+ 
++#define VectorAddress    0xFFFFFF00
++
+ //------------------------------------------------------------------------------
+ //         Startup routine
+ //------------------------------------------------------------------------------
+@@ -41,24 +43,23 @@
+ reservedVector:
+          b       reservedVector          /* Reserved for future use */
+ irqVector:
+-         ldr     pc, [pc, #-0x0120]      /* Vector from VicVectAddr */
++         b       irqHandler              /* Generic IRQ handler */
+ fiqVector:
+-         b       fiqVector               /* Fast interrupt */
++         b       fiqVector               /* Fast interrupt */                
+          
+ //------------------------------------------------------------------------------
+-/// IRQ handler macro
++/// IRQ handler
+ //------------------------------------------------------------------------------                          
+-            .macro    irq_handler label
+ 
+-            .global   irqh_\label
+-            .extern   c_handler_\label
+-irqh_\label:
+-            stmfd     sp!, {r0-r4, r12, lr}
+-            bl        c_handler_\label
+-            ldmfd     sp!, {r0-r4, r12, lr}
+-            subs      pc, lr, #4
+-
+-            .endm
++irqHandler:
++            sub       lr, lr ,#4
++            stmfd     sp!, {r0-r3, r12, lr}
++            ldr       r0, =VectorAddress
++            ldr       r0, [r0] 
++            mov       lr, pc                          
++            bx        r0               
++            ldmfd     sp!, {r0-r3, r12, pc}^
++            
+ //------------------------------------------------------------------------------
+ /// Initializes the chip and branches to the main() function.
+ //------------------------------------------------------------------------------
+@@ -114,11 +115,7 @@
+ 
+ /* Loop indefinitely when program is finished */
+ forever:
+-        b       forever
+-        
+-// IRQ handlers
+-        irq_handler   eint3       
+-        irq_handler   tmr 
++        b       forever      
+ 
+ # enable interrupts
+         .global    enable_ints
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000739.html">[Elua-svn] r786 - in branches/ints: inc romfs src src/modules	src/platform/lpc24xx
+</A></li>
+	<LI>Next message: <A HREF="000741.html">[Elua-svn] r788 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#740">[ date ]</a>
+              <a href="thread.html#740">[ thread ]</a>
+              <a href="subject.html#740">[ subject ]</a>
+              <a href="author.html#740">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

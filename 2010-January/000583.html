@@ -1,0 +1,221 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r627 - in branches/pre0.7/doc: . en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r627%20-%20in%20branches/pre0.7/doc%3A%20.%20en&In-Reply-To=%3C201001112249.o0BMneIM028259%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000582.html">
+   <LINK REL="Next"  HREF="000584.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r627 - in branches/pre0.7/doc: . en</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r627%20-%20in%20branches/pre0.7/doc%3A%20.%20en&In-Reply-To=%3C201001112249.o0BMneIM028259%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r627 - in branches/pre0.7/doc: . en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Jan 11 23:49:40 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000582.html">[Elua-svn] r626 - in branches/remotefs: . rfs_server src/remotefs
+</A></li>
+        <LI>Next message: <A HREF="000584.html">[Elua-svn] r628 - branches/pre0.7/doc/images
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#583">[ date ]</a>
+              <a href="thread.html#583">[ thread ]</a>
+              <a href="subject.html#583">[ subject ]</a>
+              <a href="author.html#583">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-01-11 23:49:39 +0100 (Mon, 11 Jan 2010)
+New Revision: 627
+
+Added:
+   branches/pre0.7/doc/en/fatfs.html
+   branches/pre0.7/doc/en/filesystems.html
+Modified:
+   branches/pre0.7/doc/docdata.lua
+   branches/pre0.7/doc/en/building.html
+   branches/pre0.7/doc/en/building_win.html
+Log:
+added more filesystem documentation under Generic Info\eLua file systems; added (very) basic FAT filesystem documentation at doc/en/fatfs.html
+
+Modified: branches/pre0.7/doc/docdata.lua
+===================================================================
+--- branches/pre0.7/doc/docdata.lua	2010-01-11 00:17:17 UTC (rev 626)
++++ branches/pre0.7/doc/docdata.lua	2010-01-11 22:49:39 UTC (rev 627)
+@@ -61,21 +61,8 @@
+   },
+ 
+  -- &quot;Using eLua&quot; -- Menu Separator
+-  { { &quot;Using eLua&quot;, &quot;Usando eLua&quot;}, nil },
++  { { &quot;Using eLua&quot;, &quot;Usando eLua&quot;}, nil },      
+ 
+---  { { &quot;Overview&quot;, &quot;Vis&#227;o Geral&quot; }, &quot;doc.html&quot; },  ####### Aparently not necessary and taking noble main menu space
+-  { { &quot;Platforms&quot;, &quot;Plataformas&quot; }, &quot;installing.html&quot;, 
+-    {
+-      { &quot;AT91SAM7x&quot;, &quot;installing_at91sam7x.html&quot; },
+-      { &quot;AVR32&quot;, &quot;installing_avr32.html&quot; },
+-      { &quot;i386&quot;, &quot;installing_i386.html&quot; },
+-      { &quot;LM3S&quot;, &quot;installing_lm3s.html&quot; },
+-      { &quot;LPC2888&quot;, &quot;installing_lpc2888.html&quot; },
+-      { &quot;STR7&quot;, &quot;installing_str7.html&quot; },
+-      { &quot;STR9&quot;, &quot;installing_str9.html&quot; },
+-      { &quot;STM32&quot;, &quot;installing_stm32.html&quot; },
+-    },
+-  },
+   { &quot;Downloads&quot;, &quot;downloads.html&quot;,    -- ### How come it opens downloads.html without specifying here ? :) Nice but unclear.
+     {
+       { { &quot;Binaries&quot;, &quot;Bin&#225;rios&quot; }, &quot;downloads.html#binaries&quot; },
+@@ -99,7 +86,7 @@
+       },
+     },
+   },
+-  { { &quot;Help&quot;, &quot;Ajuda&quot; }, &quot;using.html&quot;, 
++  { { &quot;Generic info&quot;, &quot;Ajuda&quot; }, &quot;using.html&quot;, 
+     {
+       { { &quot;Using eLua&quot;, &quot;Usando eLua&quot; }, &quot;using.html&quot;, 
+         {
+@@ -119,7 +106,13 @@
+         },  
+       },
+       { { &quot;Code examples&quot;, &quot;Exemplos de C&#243;digo&quot; }, &quot;examples.html&quot; },
+-      { { &quot;FAQ&quot;, &quot;Perguntas Frequentes (FAQ)&quot; }, &quot;faq.html&quot; },
++      { { &quot;FAQ&quot;, &quot;Perguntas Frequentes (FAQ)&quot; }, &quot;faq.html&quot; },     
++      { &quot;eLua file systems&quot;, &quot;filesystems.html&quot;,
++        {
++          { { &quot;ROM file system&quot;, &quot;O ROM File System&quot; }, &quot;arch_romfs.html&quot; },
++          { &quot;FAT file system&quot;, &quot;fatfs.html&quot; }
++        }
++      },
+       { { &quot;Tutorials&quot;, &quot;Tutoriais&quot; }, &quot;tutorials.html&quot;,
+         {
+           { { &quot;Booting on a PC&quot;, &quot;Bootando num PC&quot; }, &quot;tut_bootpc.html&quot; },
+@@ -136,7 +129,20 @@
+         },
+       },
+     },
+-  },
++  }, 
++  { { &quot;Platform info&quot;, &quot;Plataformas&quot; }, &quot;installing.html&quot;, 
++    {
++      { &quot;AT91SAM7x&quot;, &quot;installing_at91sam7x.html&quot; },
++      { &quot;AVR32&quot;, &quot;installing_avr32.html&quot; },
++      { &quot;i386&quot;, &quot;installing_i386.html&quot; },
++      { &quot;LM3S&quot;, &quot;installing_lm3s.html&quot; },
++      { &quot;LPC2888&quot;, &quot;installing_lpc2888.html&quot; },
++      { &quot;STR7&quot;, &quot;installing_str7.html&quot; },
++      { &quot;STR9&quot;, &quot;installing_str9.html&quot; },
++      { &quot;STM32&quot;, &quot;installing_stm32.html&quot; },
++    },
++  },        
++          
+   
+   -- &quot;eLua internals&quot; (menu separator)
+   { { &quot;eLua internals&quot;, &quot;Arquitetura de eLua&quot; } },
+@@ -158,7 +164,6 @@
+   -- Other WRITE THE arch_platform_other.html file
+   { { &quot;More information&quot;, &quot;Informa&#231;&#245;es Adicionais&quot; }, &quot;#&quot;, 
+     {
+-      { { &quot;ROM file system&quot;, &quot;O ROM File System&quot; }, &quot;arch_romfs.html&quot; },
+       { { &quot;Adding a new port&quot;, &quot;Portando eLua&quot; }, &quot;arch_newport.html&quot; },
+       { { &quot;Modules and LTR&quot;, &quot;Modulos e LTR&quot; }, &quot;arch_ltr.html&quot; },
+       { { &quot;Consoles and terminals&quot;, &quot;Consoles e Terminais&quot; }, &quot;arch_con_term.html&quot; },
+
+Modified: branches/pre0.7/doc/en/building.html
+===================================================================
+--- branches/pre0.7/doc/en/building.html	2010-01-11 00:17:17 UTC (rev 626)
++++ branches/pre0.7/doc/en/building.html	2010-01-11 22:49:39 UTC (rev 627)
+@@ -2,7 +2,7 @@
+ &lt;h3&gt;Building eLua&lt;/h3&gt;
+ &lt;p&gt;If you decide to build your own &lt;b&gt;eLua&lt;/b&gt; binary image (instead of &lt;a href=&quot;downloads.html&quot;&gt;downloading
+ one&lt;/a&gt;) you need to download the source code (see &lt;a href=&quot;downloads.html#source&quot;&gt;here&lt;/a&gt; for details) and follow the 
+-platform specific eLua build instructions (provided for &lt;a href=&quot;build_unix.html&quot;&gt;Linux&lt;/a&gt; and &lt;a href=&quot;build_win.html&quot;&gt;Windows&lt;/a&gt;) to setup your build environment. 
++platform specific eLua build instructions (provided for &lt;a href=&quot;building_unix.html&quot;&gt;Linux&lt;/a&gt; and &lt;a href=&quot;building_win.html&quot;&gt;Windows&lt;/a&gt;) to setup your build environment. 
+ Then follow the instructions below to build your eLua binary image.&lt;/p&gt;
+ &lt;a name=&quot;configuring&quot; /&gt;&lt;h3&gt;Configuring the build image&lt;/h3&gt;
+ &lt;p&gt;&lt;b&gt;eLua&lt;/b&gt; has a very flexible build system that
+
+Modified: branches/pre0.7/doc/en/building_win.html
+===================================================================
+--- branches/pre0.7/doc/en/building_win.html	2010-01-11 00:17:17 UTC (rev 626)
++++ branches/pre0.7/doc/en/building_win.html	2010-01-11 22:49:39 UTC (rev 627)
+@@ -20,7 +20,8 @@
+ Lua itself, it includes a lot of very useful Lua modules, so I highly recommend it. Version 5.1.4.30 of Lua for Windows will be used in this tutorial.&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;svn&lt;/b&gt;: if you need to checkout the &lt;b&gt;eLua&lt;/b&gt; source code from the SVN repository, you need to install SVN for windows. There are a few precompiled SVN packages for
+ Windows available, I'm using the Tigris binaries that can be downloaded from &lt;a href=&quot;<A HREF="http://subversion.tigris.org/servlets/ProjectDocumentList?folderID=8100">http://subversion.tigris.org/servlets/ProjectDocumentList?folderID=8100</A>&quot;&gt;here&lt;/a&gt;. In this
+-tutorial I'll use version 1.6.6.&lt;/li&gt;
++tutorial I'll use version 1.6.6. If you require developer access (svn+ssh), additional steps are needed to make &quot;svn+ssh&quot; work in Windows. A lot of tutorials
++that cover this topic are available, check for example &lt;a href=&quot;<A HREF="http://agateau.wordpress.com/2007/07/03/windows-svnssh-and-the-subversion-command-line-client/">http://agateau.wordpress.com/2007/07/03/windows-svnssh-and-the-subversion-command-line-client/</A>&quot;&gt;this one&lt;/a&gt;.&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;gcc&lt;/b&gt;: if you want to use the ROMFS precompile feature (see &lt;a href=&quot;arch_romfs.html#mode&quot;&gt;here&lt;/a&gt; for details) you need to build an image of the &lt;b&gt;eLua&lt;/b&gt; cross compiler, and you need an i386
+ toolchain for this. I'm using MinGW for this task, it can be downloaded from &lt;a href=&quot;<A HREF="http://www.mingw.org/">http://www.mingw.org/</A>&quot;&gt;here&lt;/a&gt;. This tutorial uses MinGW version 5.1.6. Note that you
+ don't need to install MSYS, MinGW should be enough. Cygwin should work equally well, or even Microsoft's Visual Studio (not tested). To build the cross compiler, run
+
+Added: branches/pre0.7/doc/en/fatfs.html
+===================================================================
+--- branches/pre0.7/doc/en/fatfs.html	2010-01-11 00:17:17 UTC (rev 626)
++++ branches/pre0.7/doc/en/fatfs.html	2010-01-11 22:49:39 UTC (rev 627)
+@@ -0,0 +1,13 @@
++$$HEADER$$
++&lt;h3&gt;The FAT file system&lt;/h3&gt;
++&lt;p&gt;The FAT file system implementation in &lt;b&gt;eLua&lt;/b&gt; uses Elm Chan's excellent FatFS package, available &lt;a href=&quot;<A HREF="http://elm-chan.org/fsw/ff/00index_e.html">http://elm-chan.org/fsw/ff/00index_e.html</A>&quot;&gt;here&lt;/a&gt;. It can handle FAT12, FAT16
++and FAT32 file systems in read/write mode, and it packs a lot of functionality in a low footprint. &lt;b&gt;eLua&lt;/b&gt; adds a platform abstraction layer on top of FatFS which makes it very easy to
++port the FAT file system implementation between different &lt;b&gt;eLua&lt;/b&gt; targets. Since most SD/MMC cards can be accessed using the very common SPI interface, and since &lt;b&gt;eLua&lt;/b&gt; already provides
++a &lt;a href=&quot;arch_platform_spi.html&quot;&gt;SPI platform interface&lt;/a&gt;, porting the FAT file system to an &lt;b&gt;eLua&lt;/b&gt; board is a fairly simple process.&lt;/p&gt;
++&lt;p&gt;To use the FAT file system on your &lt;b&gt;elua&lt;/b&gt; board (that has the proper hardware to access SD/MMC cards), first make sure that there is a working implementation of the 
++&lt;a href=&quot;arch_platform_spi.html&quot;&gt;eLua SPI platform interface&lt;/a&gt; on your platform (as currently &lt;b&gt;eLua&lt;/b&gt; can access SD/MMC cards only via SPI). Then you need to enable the FAT file system module 
++in your &lt;b&gt;eLua&lt;/b&gt; binary image, as decribed in the &lt;a href=&quot;building.html&quot;&gt;building page&lt;/a&gt;. To open a file on the SD/MMC card, all you need to do is to prefix its name with &lt;i&gt;/mmc/&lt;/i&gt;, like this:&lt;/p&gt; 
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;# lua /mmc/info.lua &lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$$FOOTER$$
++
++
+
+Added: branches/pre0.7/doc/en/filesystems.html
+===================================================================
+--- branches/pre0.7/doc/en/filesystems.html	2010-01-11 00:17:17 UTC (rev 626)
++++ branches/pre0.7/doc/en/filesystems.html	2010-01-11 22:49:39 UTC (rev 627)
+@@ -0,0 +1,10 @@
++$$HEADER$$
++&lt;h3&gt;eLua file systems&lt;/h3&gt;
++&lt;p&gt;You can compile and use more than one file system in &lt;b&gt;eLua&lt;/b&gt;, as listed below:&lt;/p&gt;
++&lt;ul&gt;
++  &lt;li&gt;&lt;b&gt;the ROM file system&lt;/b&gt;: a very simple, very low footprint read-only file system that can be included in the &lt;b&gt;eLua&lt;/b&gt; binary image. Check &lt;a href=&quot;arch_romfs.html&quot;&gt;here&lt;/a&gt; for details.&lt;/li&gt;
++  &lt;li&gt;&lt;b&gt;the FAT file system&lt;/b&gt;: a read-write FAT filesystem implementation (platform independent) that can currently be used with SD/MMC memory cards. Check &lt;a href=&quot;fatfs.html&quot;&gt;here&lt;/a&gt; for 
++  details. &lt;b&gt;(new in 0.7)&lt;/b&gt;&lt;/li&gt;
++&lt;/ul&gt;
++$$FOOTER$$
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000582.html">[Elua-svn] r626 - in branches/remotefs: . rfs_server src/remotefs
+</A></li>
+	<LI>Next message: <A HREF="000584.html">[Elua-svn] r628 - branches/pre0.7/doc/images
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#583">[ date ]</a>
+              <a href="thread.html#583">[ thread ]</a>
+              <a href="subject.html#583">[ subject ]</a>
+              <a href="author.html#583">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

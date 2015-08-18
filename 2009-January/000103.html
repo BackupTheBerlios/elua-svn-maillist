@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r147 - trunk/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r147%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200901092218.n09MIO8H002790%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000102.html">
+   <LINK REL="Next"  HREF="000104.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r147 - trunk/src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r147%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200901092218.n09MIO8H002790%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r147 - trunk/src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Jan  9 23:18:24 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000102.html">[Elua-svn] r146 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000104.html">[Elua-svn] r148 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#103">[ date ]</a>
+              <a href="thread.html#103">[ thread ]</a>
+              <a href="subject.html#103">[ subject ]</a>
+              <a href="author.html#103">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-01-09 23:18:23 +0100 (Fri, 09 Jan 2009)
+New Revision: 147
+
+Modified:
+   trunk/src/platform/lm3s/rit128x96x4.c
+Log:
+Fix RIT OLED driver to work on LM3S6965 (Rev C and later boards)
+
+Modified: trunk/src/platform/lm3s/rit128x96x4.c
+===================================================================
+--- trunk/src/platform/lm3s/rit128x96x4.c	2009-01-09 22:12:35 UTC (rev 146)
++++ trunk/src/platform/lm3s/rit128x96x4.c	2009-01-09 22:18:23 UTC (rev 147)
+@@ -49,11 +49,19 @@
+ // panel control signal.
+ //
+ //*****************************************************************************
+-#define SYSCTL_PERIPH_GPIO_OLEDDC   SYSCTL_PERIPH_GPIOA
+-#define GPIO_OLEDDC_BASE            GPIO_PORTA_BASE
+-#define GPIO_OLEDDC_PIN             GPIO_PIN_6
+-#define GPIO_OLEDEN_PIN             GPIO_PIN_7
+ 
++#ifdef FORLM3S6965
++  #define SYSCTL_PERIPH_GPIO_OLEDDC   SYSCTL_PERIPH_GPIOC
++  #define GPIO_OLEDDC_BASE            GPIO_PORTC_BASE
++  #define GPIO_OLEDDC_PIN             GPIO_PIN_7
++  #define GPIO_OLEDEN_PIN             GPIO_PIN_6
++#else
++  #define SYSCTL_PERIPH_GPIO_OLEDDC   SYSCTL_PERIPH_GPIOA
++  #define GPIO_OLEDDC_BASE            GPIO_PORTA_BASE
++  #define GPIO_OLEDDC_PIN             GPIO_PIN_6
++  #define GPIO_OLEDEN_PIN             GPIO_PIN_7
++#endif
++
+ //*****************************************************************************
+ //
+ // Flag to indicate if SSI port is enabled for display usage.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000102.html">[Elua-svn] r146 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000104.html">[Elua-svn] r148 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#103">[ date ]</a>
+              <a href="thread.html#103">[ thread ]</a>
+              <a href="subject.html#103">[ subject ]</a>
+              <a href="author.html#103">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

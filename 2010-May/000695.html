@@ -1,0 +1,894 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r742 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-May/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r742%20-%20in%20trunk%3A%20.%20src/platform/at91sam7x%0A%09src/platform/avr32%20src/platform/i386%20src/platform/lm3s%0A%09src/platform/lpc17xx%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/sim%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9&In-Reply-To=%3C201005060109.o4619gSO004392%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000694.html">
+   <LINK REL="Next"  HREF="000696.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r742 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r742%20-%20in%20trunk%3A%20.%20src/platform/at91sam7x%0A%09src/platform/avr32%20src/platform/i386%20src/platform/lm3s%0A%09src/platform/lpc17xx%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/sim%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9&In-Reply-To=%3C201005060109.o4619gSO004392%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r742 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu May  6 03:09:42 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000694.html">[Elua-svn] r741 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000696.html">[Elua-svn] r743 - in trunk/src/platform: at91sam7x str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#695">[ date ]</a>
+              <a href="thread.html#695">[ thread ]</a>
+              <a href="subject.html#695">[ subject ]</a>
+              <a href="author.html#695">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-05-06 03:09:40 +0200 (Thu, 06 May 2010)
+New Revision: 742
+
+Modified:
+   trunk/SConstruct
+   trunk/src/platform/at91sam7x/conf.py
+   trunk/src/platform/avr32/conf.py
+   trunk/src/platform/i386/conf.py
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lpc17xx/conf.py
+   trunk/src/platform/lpc24xx/conf.py
+   trunk/src/platform/lpc288x/conf.py
+   trunk/src/platform/sim/conf.py
+   trunk/src/platform/stm32/conf.py
+   trunk/src/platform/str7/conf.py
+   trunk/src/platform/str9/conf.py
+Log:
+Initial work towards making the SCons build more parameterized.
+- automatically searches for compatible toolchain (and checks that it at least runs)
+- running &quot;scons -h&quot; now shows descriptions of command line options and enumerates valid values
+- caches last specifically requested configuration
+
+More to come...
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/SConstruct	2010-05-06 01:09:40 UTC (rev 742)
+@@ -1,50 +1,6 @@
+-import os, sys, shutil
++import os, sys, shutil, string
+ 
+-vars = Variables('build-setup.conf')
+ 
+-AddOption( &quot;cpu&quot;,
+-           dest=&quot;cputype&quot;,
+-           type=&quot;string&quot;,
+-           nargs=1,
+-           action=&quot;store&quot;,
+-           help=&quot;build for the specified CPU. A board name will be assigned by the build system automatically.&quot;)
+-
+-AddOption( &quot;target&quot;,
+-           dest=&quot;target&quot;,
+-           type=&quot;string&quot;,
+-           nargs=1,
+-           action=&quot;store&quot;,
+-           default=&quot;lua&quot;,
+-           help=&quot;lua | lualong: specify if you want to build 'regular' Lua (with floating point support) or integer only Lua (lualong). The default is 'lua'.&quot;)
+-
+-AddOption( &quot;cpumode&quot;,
+-           dest=&quot;cpumode&quot;
+-           type=&quot;string&quot;,
+-           nargs=1,
+-           action=&quot;store&quot;,
+-           default=&quot;thumb&quot;,
+-           help=&quot;arm | thumb: for ARM targets (not Cortex) this specifies the compilation mode.&quot;)
+-           
+-AddOption( &quot;allocator&quot;,
+-           dest=&quot;allocator&quot;,
+-           type=&quot;string&quot;,
+-           nargs=1,
+-           action=&quot;store&quot;,
+-           default=&quot;newlib&quot;,
+-           help=&quot;newlib | multiple | simple: choose between the default newlib allocator (newlib) which is an older version of dlmalloc, the multiple memory spaces allocator (multiple) which is a newer version of dlmalloc that can handle multiple memory spaces, and a very simple memory allocator (simple) that is slow and doesn't handle fragmentation very well, but it requires very few resources (Flash/RAM).&quot;)
+-           
+-
+-
+-
+-#target = ARGUMENTS.get( 'target', 'lua' ).lower()
+-cputype = ARGUMENTS.get( 'cpu', '' ).upper()
+-#allocator = ARGUMENTS.get( 'allocator', '' ).lower()
+-boardname = ARGUMENTS.get( 'board' , '').upper()
+-toolchain = ARGUMENTS.get( 'toolchain', '')
+-optram = int( ARGUMENTS.get( 'optram', '1' ) )
+-boot = ARGUMENTS.get( 'boot', '').lower()
+-romfsmode = ARGUMENTS.get( 'romfs', 'verbatim' ).lower()
+-
+ # Helper: &quot;normalize&quot; a name to make it a suitable C macro name
+ def cnorm( name ):
+   name = name.replace( '-', '' )
+@@ -144,6 +100,9 @@
+                'MBED' : ['LPC1768']
+             }
+ 
++cpu_list = sum([board_list[i] for i in board_list],[])
++
++
+ # ROMFS file list &quot;groups&quot;
+ # To include a file in a ROMFS build, include it in a group here (or create one
+ # if you need) and make sure the group is included on your platform's file_list
+@@ -190,235 +149,318 @@
+ 
+ comp = Environment( OBJSUFFIX = &quot;.o&quot;, PROGSUFFIX = &quot;.elf&quot;, ENV = os.environ )
+ 
+-conf = Configure(comp)
++# Replacement for standard EnumVariable functionality to derive case from original list
++class InsensitiveString(object):
++  def __init__(self, s):
++    self.s = s
++  def __cmp__(self, other):
++    return cmp(self.s.lower(), other.lower())
+ 
+-# Variants: board = &lt;boardname&gt;
+-#           cpu = &lt;cpuname&gt;
+-#           board = &lt;boardname&gt; cpu=&lt;cpuname&gt;
+-if boardname == '' and cputype == '':
+-  print &quot;Must specifiy board, cpu, or both&quot;
+-  Exit( -1 )
+-elif boardname != '' and cputype != '':
+-  # board = &lt;boardname&gt; cpu=&lt;cpuname&gt;
+-  # Check if the board, cpu pair is correct
+-  if not board_list.has_key( boardname ):
+-    print &quot;Unknown board&quot;, boardname
++def _validator(key, val, env, vals): 
++  if not val in vals: 
++    raise SCons.Errors.UserError( 
++      'Invalid value for option %s: %s' % (key, val)) 
++
++def MatchEnumVariable(key, help, default, allowed_values, map={}):
++  help = '%s (%s)' % (help, string.join(allowed_values, '|'))
++  
++  validator = lambda key, val, env, vals=allowed_values: \
++              _validator(key, InsensitiveString(val), env, vals)
++
++  converter = lambda val, map=map: \
++              map.get(val, allowed_values[allowed_values.index(InsensitiveString(val))])
++  
++  return (key, help, default, validator, converter) 
++
++
++# Add Configurable Variables
++vars = Variables('build-setup.conf')
++
++vars.Add(MatchEnumVariable('target',
++                           'build &quot;regular&quot; float lua or integer-only &quot;lualong&quot;', 
++                           'lua',
++                           allowed_values = ['lua','lualong']))
++          
++vars.Add(MatchEnumVariable('cpu',
++                           'build for the specified CPU (board will be inferred, if possible)',
++                           'auto',
++                           allowed_values = cpu_list + ['auto']))
++          
++vars.Add(MatchEnumVariable('allocator',
++                           'select memory allocator',
++                           'auto',
++                           allowed_values=['newlib','multiple','simple','auto']))
++
++vars.Add(MatchEnumVariable('board',
++                           'selects board for target (cpu will be inferred)',
++                           'auto',
++                           allowed_values=board_list.keys() + ['auto']))
++         
++vars.Add(MatchEnumVariable('toolchain',
++                           'specifies toolchain to use (if unset, will scan for working, compatible toolchain',
++                           'auto',
++                           allowed_values=toolchain_list.keys() + ['auto']))
++          
++vars.Add(BoolVariable('optram',
++                      'enables Lua Tiny RAM enhancements',
++                      True))
++
++vars.Add(MatchEnumVariable('boot',
++                           'boot mode, standard will boot to shell, luarpc boots to an rpc server',
++                           'standard',
++                           allowed_values=['standard','luarpc']))
++         
++vars.Add(MatchEnumVariable('romfs',
++                           'ROMFS compilation mode',
++                           'verbatim',
++                           allowed_values=['verbatim', 'compress', 'compiled']))
++
++
++vars.Update(comp)
++Help(vars.GenerateHelpText(comp))
++vars.Save('build-setup.conf', comp)
++
++# target = ARGUMENTS.get( 'target', 'lua' ).lower()
++# cputype = ARGUMENTS.get( 'cpu', '' ).upper()
++# allocator = ARGUMENTS.get( 'allocator', '' ).lower()
++# board = ARGUMENTS.get( 'board' , '').upper()
++# toolchain = ARGUMENTS.get( 'toolchain', '')
++# optram = int( ARGUMENTS.get( 'optram', '1' ) )
++# boot = ARGUMENTS.get( 'boot', '').lower()
++# romfsmode = ARGUMENTS.get( 'romfs', 'verbatim' ).lower()
++
++if not GetOption( 'help' ):
++
++  conf = Configure(comp)
++
++  # Variants: board = &lt;board&gt;
++  #           cpu = &lt;cpuname&gt;
++  #           board = &lt;board&gt; cpu=&lt;cpuname&gt;
++  if comp['board'] == 'auto' and comp['cpu'] == 'auto':
++    print &quot;Must specifiy board, cpu, or both&quot;
+     Exit( -1 )
+-  if not cputype in board_list[ boardname ]:
+-    print &quot;Invalid CPU %s for board %s&quot; % ( cputype, boardname )
+-    Exit( -1 )
+-elif boardname != '':
+-  # board = &lt;boardname&gt;
+-  # Find CPU
+-  if not board_list.has_key( boardname ):
+-    print &quot;Unknown board&quot;, boardname
+-    Exit( -1 )
+-  cputype = board_list[ boardname ][ 0 ]
+-else:
+-  # cpu = &lt;cputype&gt;
+-  # Find board name
+-  for b, v in board_list.items():
+-    if cputype in v:
+-      boardname = b
+-      break
++  elif comp['board'] != 'auto' and comp['cpu'] != 'auto':
++    # board = &lt;board&gt; cpu=&lt;cpuname&gt;
++    # Check if the board, cpu pair is correct
++    if not board_list.has_key( comp['board'] ):
++      print &quot;Unknown board&quot;, comp['board']
++      Exit( -1 )
++    if not comp['cpu'] in board_list[ comp['board'] ]:
++      print &quot;Invalid CPU %s for board %s&quot; % ( comp['cpu'], comp['board'] )
++      Exit( -1 )
++  elif comp['board'] != 'auto':
++    # board = &lt;board&gt;
++    # Find CPU
++    if not board_list.has_key( comp['board'] ):
++      print &quot;Unknown board&quot;, comp['board']
++      Exit( -1 )
++    comp['cpu'] = board_list[ comp['board'] ][ 0 ]
+   else:
+-    print &quot;CPU %s not found&quot; % cputype
+-    sys.exit( -1 )
++    # cpu = &lt;cputype&gt;
++    # Find board name
++    for b, v in board_list.items():
++      if comp['cpu'] in v:
++        comp['board'] = b
++        break
++    else:
++      print &quot;CPU %s not found&quot; % comp['cpu']
++      Exit( -1 )
+ 
+-# Look for the given CPU in the list of platforms
+-platform = None
+-for p, v in platform_list.items():
+-  if cputype in v[ 'cpus' ]:
+-    platform = p
+-    break
+-else:
+-  print &quot;Unknown CPU %s&quot; % cputype
+-  print &quot;List of accepted CPUs: &quot;
++  # Look for the given CPU in the list of platforms
++  platform = None
+   for p, v in platform_list.items():
+-    print &quot; &quot;, p, &quot;--&gt;&quot;,
+-    for cpu in v[ 'cpus' ]:
+-      print cpu,
+-    print
+-  sys.exit( -1 )
+-
+-# Check the toolchain
+-if toolchain != '':
+-  if not toolchain in platform_list[ platform ][ 'toolchains' ]:
+-    print &quot;Invalid toolchain '%s' for CPU '%s'&quot; % ( toolchain, cputype )
++    if comp['cpu'] in v[ 'cpus' ]:
++      platform = p
++      break
++  else:
++    print &quot;Unknown CPU %s&quot; % comp['cpu']
++    print &quot;List of accepted CPUs: &quot;
++    for p, v in platform_list.items():
++      print &quot; &quot;, p, &quot;--&gt;&quot;,
++      for cpu in v[ 'cpus' ]:
++        print cpu,
++      print
+     sys.exit( -1 )
+-else:
+-  toolchain = platform_list[ platform ][ 'toolchains' ][ 0 ]
+-toolset = toolchain_list[ toolchain ]
+ 
+-# CPU/allocator mapping (if allocator not specified)
+-if allocator == '':
+-  if boardname in ['LPC-H2888', 'ATEVK1100', 'MBED']:
+-    allocator = 'multiple'
++  # Check the toolchain
++  if comp['toolchain'] != 'auto':
++    if not comp['toolchain'] in platform_list[ platform ][ 'toolchains' ]:
++      print &quot;Invalid toolchain '%s' for CPU '%s'&quot; % ( comp['toolchain'], comp['cpu'] )
++      Exit( -1 )
++    toolset = toolchain_list[ comp['toolchain'] ]
+   else:
+-    allocator = 'newlib'
+-elif allocator not in [ 'newlib', 'multiple', 'simple' ]:
+-  print &quot;Unknown allocator&quot;, allocator
+-  print &quot;Allocator can be either 'newlib', 'multiple' or 'simple'&quot;
+-  sys.exit( -1 )
++    for toolchain in platform_list[ platform ]['toolchains']:
++      comp['CC'] = toolchain_list[ toolchain ][ 'compile' ]
++      if conf.CheckCC():
++        comp['toolchain'] = toolchain
++        toolset = toolchain_list[ comp['toolchain'] ]
++        break
+ 
+-# Check boot mode selection
+-if boot == '':
+-  boot = 'standard'
+-elif boot not in ['standard', 'luarpc']:
+-  print &quot;Unknown boot mode: &quot;, boot
+-  print &quot;Boot mode can be either 'standard' or 'luarpc'&quot;
+-  sys.exit( -1 );
++    if comp['toolchain'] == 'auto':
++      print &quot;No available, compatible toolchain found&quot;
++      Exit( -1 )
+ 
+-# Check romfs mode
+-if romfsmode not in ['verbatim', 'compile', 'compress']:
+-  print &quot;Unknown romfs mode: &quot;, romfsmode
+-  print &quot;romfs mode can be either 'verbatim', 'compile' or 'compress'&quot;
+-  sys.exit( -1 )
+ 
+-# Build the compilation command now
+-compcmd = ''
+-if romfsmode == 'compile':
+-  # First check for luac.cross in the current directory
+-  if not os.path.isfile( &quot;luac.cross&quot; ):
+-    print &quot;The eLua cross compiler was not found.&quot;
+-    print &quot;Build it by running 'scons -f cross-lua.py'&quot;
+-    sys.exit( -1 )
+-  compcmd = os.path.join( os.getcwd(), 'luac.cross -ccn %s -cce %s -o %%s -s %%s' % ( toolset[ 'cross_%s' % target ], toolset[ 'cross_cpumode' ] ) )
+-elif romfsmode == 'compress':
+-  compcmd = 'lua luasrcdiet.lua --quiet --maximum --opt-comments --opt-whitespace --opt-emptylines --opt-eols --opt-strings --opt-numbers --opt-locals -o %s %s'
++  # CPU/allocator mapping (if allocator not specified)
++  if comp['allocator'] == 'auto':
++    if comp['board'] in ['LPC-H2888', 'ATEVK1100', 'MBED']:
++      comp['allocator'] = 'multiple'
++    else:
++      comp['allocator'] = 'newlib'
++  elif comp['allocator'] not in [ 'newlib', 'multiple', 'simple' ]:
++    print &quot;Unknown allocator&quot;, comp['allocator']
++    print &quot;Allocator can be either 'newlib', 'multiple' or 'simple'&quot;
++    Exit( -1 )
+ 
+-# User report
+-if not GetOption( 'clean' ):
+-  print
+-  print &quot;*********************************&quot;
+-  print &quot;Compiling eLua ...&quot;
+-  print &quot;CPU:            &quot;, cputype
+-  print &quot;Board:          &quot;, boardname
+-  print &quot;Platform:       &quot;, platform
+-  print &quot;Allocator:      &quot;, allocator
+-  print &quot;Boot Mode:      &quot;, boot
+-  print &quot;Target:         &quot;, target == 'lua' and 'fplua' or 'target'
+-  print &quot;Toolchain:      &quot;, toolchain
+-  print &quot;ROMFS mode:     &quot;, romfsmode
+-  print &quot;*********************************&quot;
+-  print
++  # Check boot mode selection
++  ## if comp['boot'] not in ['standard', 'luarpc']:
++  ##   print &quot;Unknown boot mode: &quot;, comp['boot']
++  ##   print &quot;Boot mode can be either 'standard' or 'luarpc'&quot;
++  ##   Exit( -1 );
+ 
+-output = 'elua_' + target + '_' + cputype.lower()
+-cdefs = '-DELUA_CPU=%s -DELUA_BOARD=%s -DELUA_PLATFORM=%s -D__BUFSIZ__=128' % ( cputype, boardname, platform.upper() )
+-# Also make the above into direct defines (to use in conditional C code)
+-cdefs = cdefs + &quot; -DELUA_CPU_%s -DELUA_BOARD_%s -DELUA_PLATFORM_%s&quot; % ( cnorm( cputype ), cnorm( boardname ), cnorm( platform ) )
+-if allocator == 'multiple':
+-  cdefs = cdefs + &quot; -DUSE_MULTIPLE_ALLOCATOR&quot;
+-elif allocator == 'simple':
+-  cdefs = cdefs + &quot; -DUSE_SIMPLE_ALLOCATOR&quot;
++  # Check romfs mode
++  if comp['romfs'] not in ['verbatim', 'compile', 'compress']:
++    print &quot;Unknown romfs mode: &quot;, comp['romfs']
++    print &quot;romfs mode can be either 'verbatim', 'compile' or 'compress'&quot;
++    Exit( -1 )
+ 
+-if boot == 'luarpc':
+-  cdefs += &quot; -DELUA_BOOT_RPC&quot;
++  # Build the compilation command now
++  compcmd = ''
++  if comp['romfs'] == 'compile':
++    # First check for luac.cross in the current directory
++    if not os.path.isfile( &quot;luac.cross&quot; ):
++      print &quot;The eLua cross compiler was not found.&quot;
++      print &quot;Build it by running 'scons -f cross-lua.py'&quot;
++      Exit( -1 )
++    compcmd = os.path.join( os.getcwd(), 'luac.cross -ccn %s -cce %s -o %%s -s %%s' % ( toolset[ 'cross_%s' % target ], toolset[ 'cross_cpumode' ] ) )
++  elif comp['romfs'] == 'compress':
++    compcmd = 'lua luasrcdiet.lua --quiet --maximum --opt-comments --opt-whitespace --opt-emptylines --opt-eols --opt-strings --opt-numbers --opt-locals -o %s %s'
+ 
+-# Special macro definitions for the SYM target
+-if platform == 'sim':
+-  cdefs = cdefs + &quot; -DELUA_SIMULATOR -DELUA_SIM_%s&quot; % cputype
++  # User report
++  if not GetOption( 'clean' ):
++    print
++    print &quot;*********************************&quot;
++    print &quot;Compiling eLua ...&quot;
++    print &quot;CPU:            &quot;, comp['cpu']
++    print &quot;Board:          &quot;, comp['board']
++    print &quot;Platform:       &quot;, platform
++    print &quot;Allocator:      &quot;, comp['allocator']
++    print &quot;Boot Mode:      &quot;, comp['boot']
++    print &quot;Target:         &quot;, comp['target']
++    print &quot;Toolchain:      &quot;, comp['toolchain']
++    print &quot;ROMFS mode:     &quot;, comp['romfs']
++    print &quot;*********************************&quot;
++    print
+ 
+-# Lua source files and include path
+-lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
+-   lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
+-   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c lrotable.c legc.c&quot;&quot;&quot;
+-if target == 'lualong' or target == 'lua':
+-  lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
+-  local_include = ['inc', 'inc/newlib',  'inc/remotefs', 'src/lua']
+-  if target == 'lualong':
+-    cdefs = cdefs + ' -DLUA_NUMBER_INTEGRAL'
+-else:
+-  print &quot;Invalid target&quot;, target
+-  sys.exit( 1 )
++  output = 'elua_' + comp['target'] + '_' + comp['cpu'].lower()
++  cdefs = '-DELUA_CPU=%s -DELUA_BOARD=%s -DELUA_PLATFORM=%s -D__BUFSIZ__=128' % ( comp['cpu'], comp['board'], platform.upper() )
++  # Also make the above into direct defines (to use in conditional C code)
++  cdefs = cdefs + &quot; -DELUA_CPU_%s -DELUA_BOARD_%s -DELUA_PLATFORM_%s&quot; % ( cnorm( comp['cpu'] ), cnorm( comp['board'] ), cnorm( platform ) )
++  if comp['allocator'] == 'multiple':
++    cdefs = cdefs + &quot; -DUSE_MULTIPLE_ALLOCATOR&quot;
++  elif comp['allocator'] == 'simple':
++    cdefs = cdefs + &quot; -DUSE_SIMPLE_ALLOCATOR&quot;
+ 
+-local_include += ['src/modules', 'src/platform/%s' % platform]
+-cdefs = cdefs + &quot; -DLUA_OPTIMIZE_MEMORY=%d&quot; % ( optram != 0 and 2 or 0 )
++  if comp['boot'] == 'luarpc':
++    cdefs += &quot; -DELUA_BOOT_RPC&quot;
+ 
+-# Additional libraries
+-local_libs = ''
++  # Special macro definitions for the SYM target
++  if platform == 'sim':
++    cdefs = cdefs + &quot; -DELUA_SIMULATOR -DELUA_SIM_%s&quot; % comp['cpu']
+ 
+-# Application files
+-app_files = &quot; src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua_uart.c &quot;
++  # Lua source files and include path
++  lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
++    lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
++    ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c lrotable.c legc.c&quot;&quot;&quot;
++  if comp['target'] == 'lualong' or comp['target'] == 'lua':
++    lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
++    local_include = ['inc', 'inc/newlib',  'inc/remotefs', 'src/lua']
++    if comp['target'] == 'lualong':
++      cdefs = cdefs + ' -DLUA_NUMBER_INTEGRAL'
++  else:
++    print &quot;Invalid target&quot;, comp['target']
++    Exit( 1 )
+ 
+-# Newlib related files
+-newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
++  local_include += ['src/modules', 'src/platform/%s' % platform]
++  cdefs = cdefs + &quot; -DLUA_OPTIMIZE_MEMORY=%d&quot; % ( comp['optram'] != 0 and 2 or 0 )
+ 
+-# UIP files
+-uip_files = &quot;uip_arp.c uip.c uiplib.c dhcpc.c psock.c resolv.c&quot;
+-uip_files = &quot; src/elua_uip.c &quot; + &quot; &quot;.join( [ &quot;src/uip/%s&quot; % name for name in uip_files.split() ] )
+-local_include += ['src/uip']
++  # Additional libraries
++  local_libs = ''
+ 
+-# FatFs files
+-app_files = app_files + &quot;src/elua_mmc.c src/mmcfs.c src/fatfs/ff.c src/fatfs/ccsbcs.c &quot;
+-local_include += ['src/fatfs']
++  # Application files
++  app_files = &quot; src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua_uart.c &quot;
+ 
+-# Lua module files
+-module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c can.c luarpc.c bitarray.c elua.c&quot;
+-module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
++  # Newlib related files
++  newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+ 
+-# Remote file system files
+-rfs_names = &quot;remotefs.c client.c elua_os_io.c elua_rfs.c&quot;
+-rfs_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/remotefs/%s&quot; % name for name in rfs_names.split() ] )
++  # UIP files
++  uip_files = &quot;uip_arp.c uip.c uiplib.c dhcpc.c psock.c resolv.c&quot;
++  uip_files = &quot; src/elua_uip.c &quot; + &quot; &quot;.join( [ &quot;src/uip/%s&quot; % name for name in uip_files.split() ] )
++  local_include += ['src/uip']
+ 
+-# Optimizer flags (speed or size)
+-#opt = &quot;-O3&quot;
+-opt = &quot;-Os -fomit-frame-pointer&quot;
+-#opt += &quot; -ffreestanding&quot;
+-#opt += &quot; -fconserve-stack&quot; # conserve stack at potential speed cost, &gt;=GCC4.4
++  # FatFs files
++  app_files = app_files + &quot;src/elua_mmc.c src/mmcfs.c src/fatfs/ff.c src/fatfs/ccsbcs.c &quot;
++  local_include += ['src/fatfs']
+ 
+-# Toolset data (filled by each platform in part)
+-tools = {}
++  # Lua module files
++  module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c can.c luarpc.c bitarray.c elua.c&quot;
++  module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+ 
+-# We get platform-specific data by executing the platform script
+-execfile( &quot;src/platform/%s/conf.py&quot; % platform )
++  # Remote file system files
++  rfs_names = &quot;remotefs.c client.c elua_os_io.c elua_rfs.c&quot;
++  rfs_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/remotefs/%s&quot; % name for name in rfs_names.split() ] )
+ 
+-# Complete file list
+-source_files = app_files + specific_files + newlib_files + uip_files + lua_full_files + module_files + rfs_files
++  # Optimizer flags (speed or size)
++  #opt = &quot;-O3&quot;
++  opt = &quot;-Os -fomit-frame-pointer&quot;
++  #opt += &quot; -ffreestanding&quot;
++  #opt += &quot; -fconserve-stack&quot; # conserve stack at potential speed cost, &gt;=GCC4.4
+ 
++  # Toolset data (filled by each platform in part)
++  tools = {}
+ 
++  # We get platform-specific data by executing the platform script
++  execfile( &quot;src/platform/%s/conf.py&quot; % platform )
+ 
+-# Env for building the program
+-comp['CCCOM'] = tools[ platform ][ 'cccom' ]
+-comp['ASCOM'] = tools[ platform ][ 'ascom' ]
+-comp['LINKCOM'] = tools[ platform ][ 'linkcom' ]
+-comp['CPPPATH'] = local_include
++  # Complete file list
++  source_files = app_files + specific_files + newlib_files + uip_files + lua_full_files + module_files + rfs_files
+ 
+-# Check our configuration further.
+-if not conf.CheckCC():
+-  print('Not able to find your compiler, please check that it is in your path.')
+-  Exit(0)
++  # Env for building the program
++  comp['CCCOM'] = tools[ platform ][ 'cccom' ]
++  comp['ASCOM'] = tools[ platform ][ 'ascom' ]
++  comp['LINKCOM'] = tools[ platform ][ 'linkcom' ]
++  comp['CPPPATH'] = local_include
+   
+-comp = conf.Finish()
++  comp = conf.Finish()
+ 
+-# Make ROM File System first
+-if not GetOption( 'clean' ):
+-  print &quot;Building ROM File System...&quot;
+-  romdir = &quot;romfs&quot;
+-  flist = []
+-  for sample in file_list[ boardname ]:
+-    flist += romfs[ sample ]
+-  # Automatically includes the autorun.lua file in the ROMFS
+-  if os.path.isfile( os.path.join( romdir, 'autorun.lua' ) ):
+-    flist += [ 'autorun.lua' ]
+-  # Automatically includes platform specific Lua module 
+-  if os.path.isfile( os.path.join( romdir, boardname + '.lua' ) ):
+-    flist += [boardname + '.lua']
+-  import mkfs
+-  mkfs.mkfs( romdir, &quot;romfiles&quot;, flist, romfsmode, compcmd )
+-  print
+-  if os.path.exists( &quot;inc/romfiles.h&quot; ): 
+-    os.remove( &quot;inc/romfiles.h&quot; )
+-  shutil.move( &quot;romfiles.h&quot;, &quot;inc/&quot; )
+-  if os.path.exists( &quot;src/fs.o&quot; ): 
+-    os.remove( &quot;src/fs.o&quot; )
++  # Make ROM File System first
++  if not GetOption( 'clean' ):
++    print &quot;Building ROM File System...&quot;
++    romdir = &quot;romfs&quot;
++    flist = []
++    for sample in file_list[ comp['board'] ]:
++      flist += romfs[ sample ]
++    # Automatically includes the autorun.lua file in the ROMFS
++    if os.path.isfile( os.path.join( romdir, 'autorun.lua' ) ):
++      flist += [ 'autorun.lua' ]
++    # Automatically includes platform specific Lua module 
++    if os.path.isfile( os.path.join( romdir, comp['board'] + '.lua' ) ):
++      flist += [comp['board'] + '.lua']
++    import mkfs
++    mkfs.mkfs( romdir, &quot;romfiles&quot;, flist, comp['romfs'], compcmd )
++    print
++    if os.path.exists( &quot;inc/romfiles.h&quot; ): 
++      os.remove( &quot;inc/romfiles.h&quot; )
++    shutil.move( &quot;romfiles.h&quot;, &quot;inc/&quot; )
++    if os.path.exists( &quot;src/fs.o&quot; ): 
++      os.remove( &quot;src/fs.o&quot; )
+ 
+-# comp.TargetSignatures( 'content' )
+-# comp.SourceSignatures( 'MD5' )
+-comp[ 'INCPREFIX' ] = &quot;-I&quot;
+-Default( comp.Program( target = output, source = Split( source_files ) ) )
+-Decider( 'MD5-timestamp' )
++  # comp.TargetSignatures( 'content' )
++  # comp.SourceSignatures( 'MD5' )
++  comp[ 'INCPREFIX' ] = &quot;-I&quot;
++  Default( comp.Program( target = output, source = Split( source_files ) ) )
++  Decider( 'MD5-timestamp' )
+ 
+-# Programming target
+-prog = Environment( BUILDERS = { 'program' : Builder( action = Action ( tools[ platform ][ 'progfunc' ] ) ) }, ENV = os.environ )
+-prog.program( &quot;prog&quot;, output + &quot;.elf&quot; )
++  # Programming target
++  prog = Environment( BUILDERS = { 'program' : Builder( action = Action ( tools[ platform ][ 'progfunc' ] ) ) }, ENV = os.environ )
++  prog.program( &quot;prog&quot;, output + &quot;.elf&quot; )
+
+Modified: trunk/src/platform/at91sam7x/conf.py
+===================================================================
+--- trunk/src/platform/at91sam7x/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/at91sam7x/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -3,14 +3,14 @@
+ cpumode = ARGUMENTS.get( 'cpumode', 'thumb' ).lower()
+ 
+ specific_files = &quot;board_cstartup.s board_lowlevel.c board_memories.c usart.c pmc.c pio.c platform.c tc.c pwmc.c aic.c&quot;
+-if cputype == 'AT91SAM7X256':
++if comp[ 'cpu' ] == 'AT91SAM7X256':
+   ldscript = &quot;flash256.lds&quot;
+   cdefs = cdefs + &quot; -Dat91sam7x256&quot;
+-elif cputype == 'AT91SAM7X512':
++elif comp[ 'cpu' ] == 'AT91SAM7X512':
+   ldscript = &quot;flash512.lds&quot;
+   cdefs = cdefs + &quot; -Dat91sam7x512&quot;
+ else:
+-  print &quot;Invalid AT91SAM7X CPU %s&quot; % cputype
++  print &quot;Invalid AT91SAM7X CPU %s&quot; % comp[ 'cpu' ]
+   sys.exit( -1 )  
+   
+ # Check CPU mode
+@@ -35,7 +35,7 @@
+ tools[ 'at91sam7x' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=arm7tdmi %s %s -D__ASSEMBLY__ -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+-def progfunc_at91sam7x( target, source, env ):
++def progfunc_at91sam7x( comp[ 'target' ], source, env ):
+   outname = output + &quot;.elf&quot;
+   os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+
+Modified: trunk/src/platform/avr32/conf.py
+===================================================================
+--- trunk/src/platform/avr32/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/avr32/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -16,7 +16,7 @@
+ tools[ 'avr32' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mpart=uc3a0512 %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], cdefs )
+ 
+ # Programming function
+-def progfunc_avr32( target, source, env ):
++def progfunc_avr32( comp[ 'target' ], source, env ):
+   outname = output + &quot;.elf&quot;
+   os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+
+Modified: trunk/src/platform/i386/conf.py
+===================================================================
+--- trunk/src/platform/i386/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/i386/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -14,7 +14,7 @@
+ tools[ 'i386' ][ 'ascom' ] = &quot;%s -felf $SOURCE&quot; % toolset[ 'asm' ]
+ 
+ # Programming function for i386 (not needed, empty function)
+-def progfunc_i386( target, source, env ):
++def progfunc_i386( comp[ 'target' ], source, env ):
+   outname = output + &quot;.elf&quot;
+   os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Visit <A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A> for instructions on how to use your eLua ELF file&quot;
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/lm3s/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -1,18 +1,18 @@
+ # Configuration file for the LM3S microcontroller
+ specific_files = &quot;startup_gcc.c platform.c uart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c&quot;
+ 
+-if boardname == 'EK-LM3S6965' or boardname == 'EK-LM3S8962':
++if comp[ 'board' ] == 'EK-LM3S6965' or comp[ 'board' ] == 'EK-LM3S8962':
+   specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
+   cdefs = cdefs + &quot; -DENABLE_DISP&quot;
+ 
+ # The default for the Eagle 100 board is to start the image at 0x2000,
+ # so that the built in Ethernet boot loader can be used to upload it
+-if boardname == 'EAGLE-100':
++if comp[ 'board' ] == 'EAGLE-100':
+   linkopts = &quot;-Wl,-Ttext,0x2000&quot;
+ else:
+   linkopts = &quot;&quot;
+ 
+-if boardname == 'EK-LM3S9B92':
++if comp[ 'board' ] == 'EK-LM3S9B92':
+   ldscript = &quot;lm3s-9b92.ld&quot;
+ else:
+   ldscript = &quot;lm3s.ld&quot;
+@@ -21,7 +21,7 @@
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+-cdefs = cdefs + &quot; -DFOR&quot; + cputype + &quot; -Dgcc&quot;
++cdefs = cdefs + &quot; -DFOR&quot; + comp[ 'cpu' ] + &quot; -Dgcc&quot;
+ 
+ # Toolset data
+ tools[ 'lm3s' ] = {}
+
+Modified: trunk/src/platform/lpc17xx/conf.py
+===================================================================
+--- trunk/src/platform/lpc17xx/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/lpc17xx/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -10,19 +10,17 @@
+ specific_files = &quot;startup_LPC17xx.c system_LPC17xx.c core_cm3.c platform.c mbed_pio.c&quot;
+ 
+ # Check CPU
+-if cputype == 'LPC1768':
++if comp[ 'cpu' ] == 'LPC1768':
+   ldscript = &quot;LPC17xx.ld&quot;
+ else:
+-  print &quot;Invalid LPC17xx CPU %s&quot;, cputype
+-  sys.exit( -1 )  
++  print &quot;Invalid LPC17xx CPU %s&quot;, comp[ 'cpu' ]
++  Exit( -1 )  
+   
+-
+-  
+ # Prepend with path
+ specific_files = fwlib_files + &quot; &quot; + &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+-cdefs = cdefs + &quot; -DFOR&quot; + cputype + &quot; -Dgcc&quot;
++cdefs = cdefs + &quot; -DFOR&quot; + comp[ 'cpu' ] + &quot; -Dgcc&quot;
+ 
+ # Toolset data
+ tools[ 'lpc17xx' ] = {}
+
+Modified: trunk/src/platform/lpc24xx/conf.py
+===================================================================
+--- trunk/src/platform/lpc24xx/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/lpc24xx/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -3,11 +3,11 @@
+ cpumode = ARGUMENTS.get( 'cpumode', 'arm' ).lower()
+ 
+ specific_files = &quot;startup.s irq.c target.c platform.c&quot;
+-if cputype == 'LPC2468':
++if comp[ 'cpu' ] == 'LPC2468':
+   ldscript = &quot;lpc2468.lds&quot;
+ else:
+-  print &quot;Invalid CPU %s&quot; % cputype
+-  sys.exit( -1 )  
++  print &quot;Invalid CPU %s&quot; % comp[ 'cpu' ]
++  Exit( -1 )  
+   
+ # Check CPU mode
+ if cpumode == 'arm':
+
+Modified: trunk/src/platform/lpc288x/conf.py
+===================================================================
+--- trunk/src/platform/lpc288x/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/lpc288x/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -5,10 +5,10 @@
+ specific_files = &quot;lpc28xx.s platform.c target.c uart.c&quot;
+ 
+ # Check CPU
+-if cputype == 'LPC2888':
++if comp[ 'cpu' ] == 'LPC2888':
+   ldscript = &quot;lpc2888.lds&quot;
+ else:
+-  print &quot;Invalid LPC288x CPU %s&quot;, cputype
++  print &quot;Invalid LPC288x CPU %s&quot;, comp[ 'cpu' ]
+   sys.exit( -1 )  
+   
+ # Check CPU mode
+
+Modified: trunk/src/platform/sim/conf.py
+===================================================================
+--- trunk/src/platform/sim/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/sim/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -1,6 +1,6 @@
+ # Configuration file for the linux backend
+ 
+-specific_files = &quot;boot.s utils.s hostif_%s.c platform.c host.c&quot; % cputype.lower()
++specific_files = &quot;boot.s utils.s hostif_%s.c platform.c host.c&quot; % comp[ 'cpu' ].lower()
+ ldscript = &quot;i386.ld&quot;
+   
+ # override default optimize settings (-Os is broken right now)
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/stm32/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -16,7 +16,7 @@
+ specific_files = fwlib_files + &quot; &quot; + &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+-if boardname == 'STM3210E-EVAL':
++if comp[ 'board' ] == 'STM3210E-EVAL':
+   cdefs = cdefs + &quot; -DFORSTM3210E_EVAL&quot;
+ 
+ cdefs = cdefs + &quot; -Dgcc&quot;
+
+Modified: trunk/src/platform/str7/conf.py
+===================================================================
+--- trunk/src/platform/str7/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/str7/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -3,10 +3,10 @@
+ cpumode = ARGUMENTS.get( 'cpumode', 'thumb' ).lower()
+ 
+ specific_files = &quot;platform.c crt0.s 71x_rccu.c 71x_uart.c 71x_apb.c 71x_gpio.c 71x_tim.c&quot;
+-if cputype == 'STR711FR2':
++if comp[ 'cpu' ] == 'STR711FR2':
+   ldscript = &quot;str711fr2.lds&quot;
+ else:
+-  print &quot;Invalid STR7 CPU %s&quot; % cputype
++  print &quot;Invalid STR7 CPU %s&quot; % comp[ 'cpu' ]
+   sys.exit( -1 )  
+   
+ # Check CPU mode
+
+Modified: trunk/src/platform/str9/conf.py
+===================================================================
+--- trunk/src/platform/str9/conf.py	2010-05-06 01:09:21 UTC (rev 741)
++++ trunk/src/platform/str9/conf.py	2010-05-06 01:09:40 UTC (rev 742)
+@@ -5,10 +5,10 @@
+ specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c 91x_vic.c interrupt.c str9_pio.c&quot;
+ 
+ # Check CPU
+-if cputype == 'STR912FAW44':
++if comp[ 'cpu' ] == 'STR912FAW44':
+   ldscript = &quot;str912fw44.lds&quot;
+ else:
+-  print &quot;Invalid STR9 CPU %s&quot; % cputype
++  print &quot;Invalid STR9 CPU %s&quot; % comp[ 'cpu' ]
+   sys.exit( -1 )  
+   
+ # Check CPU mode
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000694.html">[Elua-svn] r741 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000696.html">[Elua-svn] r743 - in trunk/src/platform: at91sam7x str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#695">[ date ]</a>
+              <a href="thread.html#695">[ thread ]</a>
+              <a href="subject.html#695">[ subject ]</a>
+              <a href="author.html#695">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

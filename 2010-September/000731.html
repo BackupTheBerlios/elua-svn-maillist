@@ -1,0 +1,684 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r778 - trunk/src/platform/lpc24xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r778%20-%20trunk/src/platform/lpc24xx&In-Reply-To=%3C20100902151241.B420F480A33%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000732.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r778 - trunk/src/platform/lpc24xx</H1>
+    <B>jbsnyder at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r778%20-%20trunk/src/platform/lpc24xx&In-Reply-To=%3C20100902151241.B420F480A33%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r778 - trunk/src/platform/lpc24xx">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Sep  2 17:12:41 CEST 2010</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000732.html">[Elua-svn] r779 - in trunk: . romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#731">[ date ]</a>
+              <a href="thread.html#731">[ thread ]</a>
+              <a href="subject.html#731">[ subject ]</a>
+              <a href="author.html#731">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-09-02 17:12:41 +0200 (Thu, 02 Sep 2010)
+New Revision: 778
+
+Modified:
+   trunk/src/platform/lpc24xx/irq.c
+   trunk/src/platform/lpc24xx/irq.h
+   trunk/src/platform/lpc24xx/platform.c
+   trunk/src/platform/lpc24xx/platform_conf.h
+   trunk/src/platform/lpc24xx/startup.s
+   trunk/src/platform/lpc24xx/target.c
+Log:
+ADC Support for LPC24xx &amp; Other Fixes
+
+- ADC support should now work similarly to lpc17xx on lpc24xx
+- uart setup updated to enable use of fractional adjustments to better match desired baud
+
+Modified: trunk/src/platform/lpc24xx/irq.c
+===================================================================
+--- trunk/src/platform/lpc24xx/irq.c	2010-08-29 20:20:05 UTC (rev 777)
++++ trunk/src/platform/lpc24xx/irq.c	2010-09-02 15:12:41 UTC (rev 778)
+@@ -53,23 +53,23 @@
+ ******************************************************************************/
+ void init_VIC(void) 
+ {
+-    DWORD i = 0;
+-    DWORD *vect_addr, *vect_prio;
+-   	
+-    /* initialize VIC*/
+-    VICIntEnClr = 0xffffffff;
+-    VICVectAddr = 0;
+-    VICIntSelect = 0;
+-
+-    /* set all the vector and vector control register to 0 */
+-    for ( i = 0; i &lt; VIC_SIZE; i++ )
+-    {
+-		vect_addr = (DWORD *)(VIC_BASE_ADDR + VECT_ADDR_INDEX + i*4);
+-		vect_prio = (DWORD *)(VIC_BASE_ADDR + VECT_PRIO_INDEX + i*4);
+-		*vect_addr = 0x0;	
+-		*vect_prio = 0xF;
+-    }
+-    return;
++  DWORD i = 0;
++  DWORD *vect_addr, *vect_prio;
++  
++  /* initialize VIC*/
++  VICIntEnClr = 0xffffffff;
++  VICVectAddr = 0;
++  VICIntSelect = 0;
++  
++  /* set all the vector and vector control register to 0 */
++  for ( i = 0; i &lt; VIC_SIZE; i++ )
++  {
++    vect_addr = (DWORD *)(VIC_BASE_ADDR + VECT_ADDR_INDEX + i*4);
++    vect_prio = (DWORD *)(VIC_BASE_ADDR + VECT_PRIO_INDEX + i*4);
++    *vect_addr = 0x0;	
++    *vect_prio = 0xF;
++  }
++  return;
+ }
+ 
+ /******************************************************************************
+@@ -83,24 +83,24 @@
+ ******************************************************************************/
+ DWORD install_irq( DWORD IntNumber, void *HandlerAddr, DWORD Priority )
+ {
+-    DWORD *vect_addr;
+-    DWORD *vect_prio;
++  DWORD *vect_addr;
++  DWORD *vect_prio;
+       
+-    VICIntEnClr = 1 &lt;&lt; IntNumber;	/* Disable Interrupt */
+-    if ( IntNumber &gt;= VIC_SIZE )
+-    {
+-		return ( FALSE );
+-    }
+-    else
+-    {
+-		/* find first un-assigned VIC address for the handler */
+-		vect_addr = (DWORD *)(VIC_BASE_ADDR + VECT_ADDR_INDEX + IntNumber*4);
+-		vect_prio = (DWORD *)(VIC_BASE_ADDR + VECT_PRIO_INDEX + IntNumber*4);
+-		*vect_addr = (DWORD)HandlerAddr;	/* set interrupt vector */
+-		*vect_prio = Priority;
+-		VICIntEnable = 1 &lt;&lt; IntNumber;	/* Enable Interrupt */
+-		return( TRUE );
+-    }
++  VICIntEnClr = 1 &lt;&lt; IntNumber;	/* Disable Interrupt */
++  if ( IntNumber &gt;= VIC_SIZE )
++  {
++    return ( FALSE );
++  }
++  else
++  {
++    /* find first un-assigned VIC address for the handler */
++    vect_addr = (DWORD *)(VIC_BASE_ADDR + VECT_ADDR_INDEX + IntNumber*4);
++    vect_prio = (DWORD *)(VIC_BASE_ADDR + VECT_PRIO_INDEX + IntNumber*4);
++    *vect_addr = (DWORD)HandlerAddr;	/* set interrupt vector */
++    *vect_prio = Priority;
++    VICIntEnable |= 1 &lt;&lt; IntNumber;	/* Enable Interrupt */
++    return( TRUE );
++  }
+ }
+ 
+ /******************************************************************************
+
+Modified: trunk/src/platform/lpc24xx/irq.h
+===================================================================
+--- trunk/src/platform/lpc24xx/irq.h	2010-08-29 20:20:05 UTC (rev 777)
++++ trunk/src/platform/lpc24xx/irq.h	2010-09-02 15:12:41 UTC (rev 778)
+@@ -27,8 +27,8 @@
+ 
+ #define	WDT_INT			0
+ #define SWI_INT			1
+-#define ARM_CORE0_INT	2
+-#define	ARM_CORE1_INT	3
++#define ARM_CORE0_INT           2
++#define	ARM_CORE1_INT	        3
+ #define	TIMER0_INT		4
+ #define TIMER1_INT		5
+ #define UART0_INT		6
+
+Modified: trunk/src/platform/lpc24xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc24xx/platform.c	2010-08-29 20:20:05 UTC (rev 777)
++++ trunk/src/platform/lpc24xx/platform.c	2010-09-02 15:12:41 UTC (rev 778)
+@@ -12,7 +12,9 @@
+ #include &lt;stdio.h&gt;
+ #include &quot;utils.h&quot;
+ #include &quot;common.h&quot;
++#include &quot;elua_adc.h&quot;
+ #include &quot;platform_conf.h&quot;
++#include &quot;buf.h&quot;
+ 
+ // Platform includes
+ #include &quot;LPC23xx.h&quot;                        /* LPC23xx/24xx definitions */
+@@ -28,6 +30,7 @@
+ 
+ static void platform_setup_timers();
+ static void platform_setup_pwm();
++static void platform_setup_adcs();
+ 
+ // Power management definitions
+ enum
+@@ -35,9 +38,11 @@
+   PCUART2 = 1ULL &lt;&lt; 24,
+   PCUART3 = 1ULL &lt;&lt; 25,
+   PCTIM2 = 1ULL &lt;&lt; 22,
+-  PCTIM3 = 1ULL &lt;&lt; 23
++  PCTIM3 = 1ULL &lt;&lt; 23,
++  PCADC = 1ULL &lt;&lt; 12
+ };
+ 
++
+ // CPU initialization
+ static void platform_setup_cpu()
+ {
+@@ -134,6 +139,11 @@
+ 
+   // Initialize console UART
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
++  
++#ifdef BUILD_ADC
++  // Setup ADCs
++  platform_setup_adcs();
++#endif
+ 
+   // Common platform initialization code
+   cmn_platform_init();
+@@ -216,15 +226,24 @@
+ static const u32 uart_thr[ NUM_UART ] = { ( u32 )&amp;U0THR, ( u32 )&amp;U1THR, ( u32 )&amp;U2THR, ( u32 )&amp;U3THR };
+ static const u32 uart_lsr[ NUM_UART ] = { ( u32 )&amp;U0LSR, ( u32 )&amp;U1LSR, ( u32 )&amp;U2LSR, ( u32 )&amp;U3LSR };
+ static const u32 uart_rbr[ NUM_UART ] = { ( u32 )&amp;U0RBR, ( u32 )&amp;U1RBR, ( u32 )&amp;U2RBR, ( u32 )&amp;U3RBR };
++static const u32 uart_fdr[ NUM_UART ] = { ( u32 )&amp;U0FDR, ( u32 )&amp;U1FDR, ( u32 )&amp;U2FDR, ( u32 )&amp;U3FDR };
+ 
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+ {
+-  u32 temp;
++  u32 temp, uclk, mul_frac_div, div_add_frac_div;
++  u32 diviser = 0;
++  u32 mul_frac_div_opt = 0;
++  u32 div_add_opt = 0;
++  u32 div_opt = 0;
++  u32 calc_baud = 0;
++  u32 rel_err = 0;
++  u32 rel_err_opt = 100000;
+ 
+   PREG UxLCR = ( PREG )uart_lcr[ id ];
+   PREG UxDLM = ( PREG )uart_dlm[ id ];
+   PREG UxDLL = ( PREG )uart_dll[ id ];
+-  PREG UxFCR = ( PREG )uart_fcr[ id ];  
++  PREG UxFCR = ( PREG )uart_fcr[ id ];
++  PREG UxFDR = ( PREG )uart_fdr[ id ];
+ 
+   // Set data bits, parity, stop bit
+   temp = 0;
+@@ -261,12 +280,45 @@
+   *UxLCR = temp;
+ 
+   // Divisor computation
+-  temp = ( Fpclk_UART &gt;&gt; 4 ) / baud;
++  //temp = ( Fpclk_UART &gt;&gt; 4 ) / baud;
++  uclk = Fpclk_UART &gt;&gt; 4;
++
++  for( mul_frac_div = 1; mul_frac_div &lt;= 15; mul_frac_div++ )
++  {
++    for( div_add_frac_div = 1; div_add_frac_div &lt;= 15; div_add_frac_div++ )
++    {
++      temp = ( mul_frac_div * uclk ) / ( ( mul_frac_div + div_add_frac_div ) );
++
++      diviser = temp / baud;
++
++      if ( ( temp % baud ) &gt; ( baud / 2 ) )
++        diviser++;
++
++      if ( diviser &gt; 2 &amp;&amp; diviser &lt; 65536 )
++      {
++        calc_baud = temp / diviser;
++       
++        if (calc_baud &lt;= baud)
++          rel_err = baud - calc_baud;
++
++        if ((rel_err &lt; rel_err_opt))
++        {
++          mul_frac_div_opt = mul_frac_div ;
++          div_add_opt = div_add_frac_div;
++          div_opt = diviser;
++          rel_err_opt = rel_err;
++          if (rel_err == 0)
++            break;
++        }
++      }
++    }
++  }
+   // Set baud and divisors
+   *UxLCR |= UART_DLAB_ENABLE;
+-  *UxDLM = temp &gt;&gt; 8;
+-  *UxDLL = temp &amp; 0xFF;
++  *UxDLM = div_opt &gt;&gt; 8;
++  *UxDLL = div_opt &amp; 0xFF;
+   *UxLCR &amp;= ~UART_DLAB_ENABLE;
++  *UxFDR = ( ( mul_frac_div_opt &lt;&lt; 4 ) &amp; 0xF0 ) | ( div_add_opt &amp; 0x0F );
+ 
+   // Enable and reset Tx and Rx FIFOs
+   *UxFCR = UART_FIFO_ENABLE | UART_RXFIFO_RESET | UART_TXFIFO_RESET;
+@@ -302,7 +354,8 @@
+     else
+       return -1;
+   }
+-  while( ( *UxLSR &amp; LSR_RDR ) == 0 );
++  else
++    while( ( *UxLSR &amp; LSR_RDR ) == 0 );
+   return *UxRBR;
+ }
+ 
+@@ -313,6 +366,9 @@
+ static const u32 tmr_tc[] = { ( u32 )&amp;T0TC, ( u32 )&amp;T1TC, ( u32 )&amp;T2TC, ( u32 )&amp;T3TC };
+ static const u32 tmr_pr[] = { ( u32 )&amp;T0PR, ( u32 )&amp;T1PR, ( u32 )&amp;T2PR, ( u32 )&amp;T3PR };
+ static const u32 tmr_pc[] = { ( u32 )&amp;T0PC, ( u32 )&amp;T1PC, ( u32 )&amp;T2PC, ( u32 )&amp;T3PC };
++static const u32 tmr_mr1[] = { ( u32 )&amp;T0MR1, ( u32 )&amp;T1MR1, ( u32 )&amp;T2MR1, ( u32 )&amp;T3MR1 };
++static const u32 tmr_mcr[] = { ( u32 )&amp;T0MCR, ( u32 )&amp;T1MCR, ( u32 )&amp;T2MCR, ( u32 )&amp;T3MCR };
++static const u32 tmr_emr[] = { ( u32 )&amp;T0EMR, ( u32 )&amp;T1EMR, ( u32 )&amp;T2EMR, ( u32 )&amp;T3EMR };
+ 
+ // Timer register definitions
+ enum
+@@ -443,6 +499,234 @@
+   disable_ints();
+ }
+ 
++// *****************************************************************************
++// ADC specific functions and variables
++
++#ifdef BUILD_ADC
++
++static const u32 adc_trig[] = { 6, 7, 0, 0 };
++
++static const u32 adc_dr[] = { ( u32 )&amp;AD0DR0, ( u32 )&amp;AD0DR1, ( u32 )&amp;AD0DR2, ( u32 )&amp;AD0DR3,
++                              ( u32 )&amp;AD0DR4, ( u32 )&amp;AD0DR5, ( u32 )&amp;AD0DR6, ( u32 )&amp;AD0DR7 };
++
++static const u8 pclk_div[] = { 4, 1, 2, 8};
++
++int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
++{
++  return ( ( timer_id == 1 ) );
++}
++
++void platform_adc_stop( unsigned id )
++{  
++  elua_adc_ch_state *s = adc_get_ch_state( id );
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++    
++  s-&gt;op_pending = 0;
++  INACTIVATE_CHANNEL( d, id );
++  
++  // If there are no more active channels, stop the sequencer
++  if( d-&gt;ch_active == 0 &amp;&amp; d-&gt;running == 1 )
++  {
++    d-&gt;running = 0;
++    AD0CR &amp;= 0xF8FFFF00; // stop ADC, disable channels
++  }
++}
++
++
++
++static void __attribute__((optimize(2))) __attribute__((interrupt (&quot;IRQ&quot;))) adc_int_handler() 
++{
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  elua_adc_ch_state *s = d-&gt;ch_state[ d-&gt;seq_ctr ];
++  u32 tmp, dreg_t;
++
++  tmp = AD0STAT; // Clear interrupt flag
++  //AD0INTEN = 0; // Disable generating interrupts
++
++  dreg_t =  *( PREG )adc_dr[ s-&gt;id ];
++  if ( dreg_t &amp; ( 1UL &lt;&lt; 31 ) )
++  { 
++    d-&gt;sample_buf[ d-&gt;seq_ctr ] = ( u16 )( ( dreg_t &gt;&gt; 6 ) &amp; 0x3FF );
++    AD0CR &amp;= 0xF8FFFF00;	// stop ADC, disable channels
++    s-&gt;value_fresh = 1;
++            
++    if ( s-&gt;logsmoothlen &gt; 0 &amp;&amp; s-&gt;smooth_ready == 0)
++      adc_smooth_data( s-&gt;id );
++#if defined( BUF_ENABLE_ADC )
++    else if ( s-&gt;reqsamples &gt; 1 )
++    {
++      buf_write( BUF_ID_ADC, s-&gt;id, ( t_buf_data* )s-&gt;value_ptr );
++      s-&gt;value_fresh = 0;
++    }
++#endif
++    
++    if ( adc_samples_available( s-&gt;id ) &gt;= s-&gt;reqsamples &amp;&amp; s-&gt;freerunning == 0 )
++    {
++      platform_adc_stop( s-&gt;id );      
++    }
++  }
++
++  // Set up for next channel acquisition if we're still running
++  if( d-&gt;running == 1 )
++  {
++    // Prep next channel in sequence, if applicable
++    if( d-&gt;seq_ctr &lt; ( d-&gt;seq_len - 1 ) )
++      d-&gt;seq_ctr++;
++    else if( d-&gt;seq_ctr == ( d-&gt;seq_len - 1 ) )
++    { 
++      adc_update_dev_sequence( 0 );
++      d-&gt;seq_ctr = 0; // reset sequence counter if on last sequence entry
++    }
++
++    AD0CR |= ( 1ULL &lt;&lt; d-&gt;ch_state[ d-&gt;seq_ctr ]-&gt;id );
++    //AD0INTEN |= ( 1ULL &lt;&lt; d-&gt;ch_state[ d-&gt;seq_ctr ]-&gt;id );
++         
++    if( d-&gt;clocked == 1  &amp;&amp; d-&gt;seq_ctr == 0 ) // always use clock for first in clocked sequence
++    {
++      AD0CR |= ( adc_trig[ d-&gt;timer_id ] &lt;&lt; 24 );
++    }
++
++    // Start next conversion if unclocked or if clocked and sequence index &gt; 0
++    if( ( d-&gt;clocked == 1 &amp;&amp; d-&gt;seq_ctr &gt; 0 ) || d-&gt;clocked == 0 )
++    {
++      AD0CR |= ( 1ULL &lt;&lt; 24 ); // Start conversion now
++    }
++  }
++  VICVectAddr = 0; // ACK interrupt
++}
++
++static void platform_setup_adcs()
++{
++  unsigned id;
++  
++  for( id = 0; id &lt; NUM_ADC; id ++ )
++    adc_init_ch_state( id );
++
++  PCONP |= PCADC;
++
++  AD0CR = ( ( Fpclk / 4500000 - 1 ) &lt;&lt; 8 ) |  /* CLKDIV = Fpclk / 1000000 - 1 */   
++          ( 0 &lt;&lt; 16 ) |     /* BURST = 0, no BURST, software controlled */   
++          ( 0 &lt;&lt; 17 ) |     /* CLKS = 0, 11 clocks/10 bits */   
++          ( 1 &lt;&lt; 21 ) |     /* PDN = 1, normal operation */   
++          ( 0 &lt;&lt; 22 ) |     /* TEST1:0 = 00 */   
++          ( 0 &lt;&lt; 24 ) |     /* START = 0 A/D conversion stops */   
++          ( 0 &lt;&lt; 27 );      /* EDGE = 0 (CAP/MAT singal falling,trigger A/D conversion) */ 
++  
++  // Default enables ADC interrupt only on global, switch to per-channel
++  //AD0INTEN &amp;= ~( 1ULL &lt;&lt; 8 );
++   
++  install_irq( ADC0_INT, adc_int_handler, HIGHEST_PRIORITY );
++}
++
++
++// NOTE: On this platform, there is only one ADC, clock settings apply to the whole device
++u32 platform_adc_setclock( unsigned id, u32 frequency )
++{
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++
++  if ( frequency &gt; 0 )
++  {
++    d-&gt;clocked = 1;
++    
++    // Max Sampling Rate on LPC2468 is 200 kS/s
++    if ( frequency &gt; 200000 )
++      frequency = 200000;
++        
++    // Set clock to 1 MHz
++    platform_timer_set_clock( d-&gt;timer_id, 1000000ULL );
++    
++    // Set match to period in uS
++    *( PREG )tmr_mr1[ d-&gt;timer_id ] = ( u32 )( ( 1000000ULL / ( frequency * 2 ) ) - 1 );
++    
++    // Reset on match
++    *( PREG )tmr_mcr[ d-&gt;timer_id ] |= ( 1ULL &lt;&lt; 4 );
++    
++    // Don't stop on match
++    *( PREG )tmr_mcr[ d-&gt;timer_id ] &amp;= ~( 1ULL &lt;&lt; 5 );
++    
++    // Set match channel to 1
++    *( PREG )tmr_emr[ d-&gt;timer_id ] |= ( 1ULL &lt;&lt; 1 );
++    
++    // Toggle output on match
++    *( PREG )tmr_emr[ d-&gt;timer_id ] |= ( 3ULL &lt;&lt; 6 );
++        
++    frequency = 1000000ULL / (*( PREG )tmr_mr1[ d-&gt;timer_id ] + 1);
++  }
++  else
++    d-&gt;clocked = 0;
++    
++  return frequency;
++}
++
++static const u8 adc_ports[] = {  0, 0,   0,  0,  1,  1,  0,  0 };
++static const u8 adc_pins[] =  { 23, 24, 25, 26, 30, 31, 12, 13 };
++static const u8 adc_funcs[] = {  1,  1,  1,  1,  3,  3,  3,  3 };
++
++static const u32 pinsel_reg[] = { ( u32 )&amp;PINSEL0, ( u32 )&amp;PINSEL1, ( u32 )&amp;PINSEL2,
++                                  ( u32 )&amp;PINSEL3, ( u32 )&amp;PINSEL4, ( u32 )&amp;PINSEL5,
++                                  ( u32 )&amp;PINSEL6, ( u32 )&amp;PINSEL7, ( u32 )&amp;PINSEL8,
++                                  ( u32 )&amp;PINSEL9, ( u32 )&amp;PINSEL10 };
++
++// Prepare Hardware Channel
++int platform_adc_update_sequence( )
++{ 
++  elua_adc_dev_state *d = adc_get_dev_state( 0 ); 
++  u8 seq_tmp;
++  unsigned id;
++  u32 pinnum, pinreg_idx;
++
++  for( seq_tmp = 0; seq_tmp &lt; d-&gt;seq_len; seq_tmp++ )
++  {
++    id = d-&gt;ch_state[ seq_tmp ]-&gt;id;
++    pinnum = adc_pins[ id ];
++    pinreg_idx = 2 * adc_ports[ id ];
++
++    if ( pinnum &gt;= 16 )
++    {
++        pinnum -= 16;
++        pinreg_idx++;
++    }
++    
++    *( PREG )pinsel_reg[ pinreg_idx ] &amp;= ~( 0x03UL &lt;&lt; pinnum * 2 );
++    *( PREG )pinsel_reg[ pinreg_idx ] |= ( ( u32 )adc_funcs[ id ] &lt;&lt; pinnum * 2 );
++  }
++  
++  return PLATFORM_OK;
++}
++
++
++int platform_adc_start_sequence()
++{ 
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  
++  if( d-&gt;running != 1 )
++  {
++    adc_update_dev_sequence( 0 );
++    
++    // Start sampling on first channel
++    d-&gt;seq_ctr = 0;
++
++    // Enable channel &amp; interrupt on channel conversion
++    AD0CR |= ( 1ULL &lt;&lt; d-&gt;ch_state[ d-&gt;seq_ctr ]-&gt;id );
++    //AD0INTEN |= ( 1ULL &lt;&lt; d-&gt;ch_state[ d-&gt;seq_ctr ]-&gt;id );
++
++    d-&gt;running = 1;
++
++    if( d-&gt;clocked == 1 )
++    {
++      AD0CR |= ( adc_trig[ d-&gt;timer_id ] &lt;&lt; 24 );
++      platform_s_timer_op( d-&gt;timer_id,  PLATFORM_TIMER_OP_START, 0);
++    }
++    else
++      AD0CR |= ( 1ULL &lt;&lt; 24 );
++  }
++  
++  return PLATFORM_OK;
++}
++
++#endif // ifdef BUILD_ADC
++
++
+ // ****************************************************************************
+ // PWM functions
+ 
+
+Modified: trunk/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc24xx/platform_conf.h	2010-08-29 20:20:05 UTC (rev 777)
++++ trunk/src/platform/lpc24xx/platform_conf.h	2010-09-02 15:12:41 UTC (rev 778)
+@@ -15,6 +15,7 @@
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+ #define BUILD_CON_GENERIC
++#define BUILD_ADC
+ #define BUILD_RPC
+ 
+ // *****************************************************************************
+@@ -29,6 +30,12 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++#ifdef BUILD_ADC
++#define ADCLINE _ROM( AUXLIB_ADC, luaopen_adc, adc_map )
++#else
++#define ADCLINE
++#endif
++
+ #if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+ #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #else
+@@ -41,6 +48,7 @@
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  ADCLINE\
+   _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+@@ -65,7 +73,7 @@
+ #define NUM_SPI               0
+ #define NUM_UART              4
+ #define NUM_PWM               12
+-#define NUM_ADC               0
++#define NUM_ADC               8
+ #define NUM_CAN               0
+ // If virtual timers are enabled, the last timer will be used only for them
+ #if VTMR_NUM_TIMERS == 0
+@@ -79,6 +87,15 @@
+ //#define BUF_ENABLE_UART
+ //#define CON_BUF_SIZE          BUF_SIZE_128
+ 
++// ADC Configuration Params
++#define ADC_BIT_RESOLUTION    10
++#define BUF_ENABLE_ADC
++#define ADC_BUF_SIZE          BUF_SIZE_2
++
++// These should be adjusted to support multiple ADC devices
++#define ADC_TIMER_FIRST_ID    0
++#define ADC_NUM_TIMERS        4
++
+ // RPC boot options
+ #define RPC_UART_ID           CON_UART_ID
+ #define RPC_TIMER_ID          CON_TIMER_ID
+
+Modified: trunk/src/platform/lpc24xx/startup.s
+===================================================================
+--- trunk/src/platform/lpc24xx/startup.s	2010-08-29 20:20:05 UTC (rev 777)
++++ trunk/src/platform/lpc24xx/startup.s	2010-09-02 15:12:41 UTC (rev 778)
+@@ -4,11 +4,16 @@
+ //         Definitions
+ //------------------------------------------------------------------------------
+ 
+-#define ARM_MODE_ABT     0x17
++
++#define ARM_MODE_USR     0x10
+ #define ARM_MODE_FIQ     0x11
+ #define ARM_MODE_IRQ     0x12
+ #define ARM_MODE_SVC     0x13
++#define ARM_MODE_ABT     0x17
++#define ARM_MODE_UND     0x1B
++#define ARM_MODE_SYS     0x1F
+ 
++
+ #define I_BIT            0x80
+ #define F_BIT            0x40
+ 
+@@ -60,13 +65,15 @@
+ /* Setup stacks for each mode */
+         ldr     r0, =Top_Stack
+ 
++        /* Set IRQ Mode Stack &amp; Pointer */
+         msr     CPSR_c, #ARM_MODE_IRQ|I_BIT|F_BIT
+         mov     r13, r0
+         sub     r0, r0, #STACK_SIZE_IRQ                  
+ 
+-        # Set up Supervisor Mode and set Supervisor Mode Stack (leave interrupts enabled)
++        /* Set SVC Mode Stack &amp; Pointer - leave interrupts enabled */
+         msr     CPSR_c, #ARM_MODE_SVC|F_BIT
+         mov     r13, r0
++        sub     r0, r0, #STACK_SIZE_USR
+ 
+ 
+ /* Perform low-level initialization of the chip using LowLevelInit() */
+
+Modified: trunk/src/platform/lpc24xx/target.c
+===================================================================
+--- trunk/src/platform/lpc24xx/target.c	2010-08-29 20:20:05 UTC (rev 777)
++++ trunk/src/platform/lpc24xx/target.c	2010-09-02 15:12:41 UTC (rev 778)
+@@ -93,9 +93,9 @@
+ 
+   if ( PLLSTAT &amp; (1 &lt;&lt; 25) )
+   {
+-	PLLCON = 1;			/* Enable PLL, disconnected */
+-	PLLFEED = 0xaa;
+-	PLLFEED = 0x55;
++    PLLCON = 1;			/* Enable PLL, disconnected */
++    PLLFEED = 0xaa;
++    PLLFEED = 0x55;
+   }
+ 
+   PLLCON = 0;				/* Disable PLL, disconnected */
+@@ -175,6 +175,7 @@
+ 
+   /* Set memory accelerater module*/
+   MAMCR = 0;
++
+ #if Fcclk &lt; 20000000
+   MAMTIM = 1;
+ #else
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000732.html">[Elua-svn] r779 - in trunk: . romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#731">[ date ]</a>
+              <a href="thread.html#731">[ thread ]</a>
+              <a href="subject.html#731">[ subject ]</a>
+              <a href="author.html#731">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

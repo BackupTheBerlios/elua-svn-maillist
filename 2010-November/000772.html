@@ -1,0 +1,292 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r819 - in trunk: inc src src/lua src/modules	src/platform/lpc24xx src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r819%20-%20in%20trunk%3A%20inc%20src%20src/lua%20src/modules%0A%09src/platform/lpc24xx%20src/platform/str9&In-Reply-To=%3C20101113223609.A2D8E480F56%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000771.html">
+   <LINK REL="Next"  HREF="000773.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r819 - in trunk: inc src src/lua src/modules	src/platform/lpc24xx src/platform/str9</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r819%20-%20in%20trunk%3A%20inc%20src%20src/lua%20src/modules%0A%09src/platform/lpc24xx%20src/platform/str9&In-Reply-To=%3C20101113223609.A2D8E480F56%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r819 - in trunk: inc src src/lua src/modules	src/platform/lpc24xx src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Nov 13 23:36:09 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000771.html">[Elua-svn] r818 - in branches/remotefs_int: . inc inc/remotefs mux	rfs_server src src/modules src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000773.html">[Elua-svn] r820 - in trunk/src/platform: i386 sim
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#772">[ date ]</a>
+              <a href="thread.html#772">[ thread ]</a>
+              <a href="subject.html#772">[ subject ]</a>
+              <a href="author.html#772">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-13 23:36:09 +0100 (Sat, 13 Nov 2010)
+New Revision: 819
+
+Modified:
+   trunk/inc/platform.h
+   trunk/src/common.c
+   trunk/src/common_tmr.c
+   trunk/src/lua/lrodefs.h
+   trunk/src/lua/lrotable.h
+   trunk/src/modules/cpu.c
+   trunk/src/platform/lpc24xx/platform_int.c
+   trunk/src/platform/str9/platform_int.c
+Log:
+added const to elua_int_table; added hw_cli/hw_sei in cpu module; various other fixes
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2010-11-13 21:02:36 UTC (rev 818)
++++ trunk/inc/platform.h	2010-11-13 22:36:09 UTC (rev 819)
+@@ -160,7 +160,6 @@
+ #define PLATFORM_TIMER_INT_OK                 0
+ #define PLATFORM_TIMER_INT_TOO_SHORT          1
+ #define PLATFORM_TIMER_INT_INVALID_ID         2  
+-#define PLATFORM_TIMER_INT_GENERIC_ERR        3         
+ 
+ // Timer operations
+ enum
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2010-11-13 21:02:36 UTC (rev 818)
++++ trunk/src/common.c	2010-11-13 22:36:09 UTC (rev 819)
+@@ -22,7 +22,7 @@
+ #define INT_TMR_MATCH         ELUA_INT_INVALID_INTERRUPT
+ #endif
+ 
+-extern elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
++extern const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
+ 
+ #endif // #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
+ 
+@@ -140,7 +140,7 @@
+ 
+ void cmn_platform_init()
+ {
+-#ifdef BUILD_LUA_INT_HANDLERS
++#ifdef BUILD_INT_HANDLERS
+   platform_int_init();
+ #endif
+ 
+
+Modified: trunk/src/common_tmr.c
+===================================================================
+--- trunk/src/common_tmr.c	2010-11-13 21:02:36 UTC (rev 818)
++++ trunk/src/common_tmr.c	2010-11-13 22:36:09 UTC (rev 819)
+@@ -17,7 +17,7 @@
+ #define INT_TMR_MATCH         ELUA_INT_INVALID_INTERRUPT
+ #endif
+ 
+-extern elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
++extern const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
+ 
+ #endif // #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
+ 
+@@ -111,12 +111,12 @@
+   if( ( final = ( ( u64 )period_us * VTMR_FREQ_HZ ) / 1000000 ) == 0 )
+     return PLATFORM_TIMER_INT_TOO_SHORT;
+   vtmr_period_limit[ id ] = final;
+-  vtmr_reset_timer( vid ); 
+   if( type == PLATFORM_TIMER_INT_ONESHOT )
+     vtmr_int_periodic_flag[ id &gt;&gt; 3 ] &amp;= ( u8 )~msk;
+   else
+     vtmr_int_periodic_flag[ id &gt;&gt; 3 ] |= msk;
+   vtmr_int_flag[ id &gt;&gt; 3 ] &amp;= ( u8 )~msk;
++  vtmr_reset_timer( vid ); 
+   vtmr_int_enabled[ id &gt;&gt; 3 ] |= msk;
+   return PLATFORM_TIMER_INT_OK;
+ }
+
+Modified: trunk/src/lua/lrodefs.h
+===================================================================
+--- trunk/src/lua/lrodefs.h	2010-11-13 21:02:36 UTC (rev 818)
++++ trunk/src/lua/lrodefs.h	2010-11-13 22:36:09 UTC (rev 819)
+@@ -17,7 +17,6 @@
+ #define LNILKEY                     LRO_NILKEY
+ #define LFUNCVAL                    LRO_FUNCVAL
+ #define LNUMVAL                     LRO_NUMVAL
+-#define LBOOLVAL                    LRO_BOOLVAL
+ #define LROVAL                      LRO_ROVAL
+ #define LNILVAL                     LRO_NILVAL
+ #define LREGISTER(L, name, table)\
+
+Modified: trunk/src/lua/lrotable.h
+===================================================================
+--- trunk/src/lua/lrotable.h	2010-11-13 21:02:36 UTC (rev 818)
++++ trunk/src/lua/lrotable.h	2010-11-13 22:36:09 UTC (rev 819)
+@@ -11,7 +11,6 @@
+ /* Macros one can use to define rotable entries */
+ #define LRO_FUNCVAL(v)  {{.p = v}, LUA_TLIGHTFUNCTION}
+ #define LRO_NUMVAL(v)   {{.n = v}, LUA_TNUMBER}
+-#define LRO_BOOLVAL(v)  {{.n = v}, LUA_TBOOLEAN}
+ #define LRO_ROVAL(v)    {{.p = ( void* )v}, LUA_TROTABLE}
+ #define LRO_NILVAL      {{.p = NULL}, LUA_TNIL}
+ 
+
+Modified: trunk/src/modules/cpu.c
+===================================================================
+--- trunk/src/modules/cpu.c	2010-11-13 21:02:36 UTC (rev 818)
++++ trunk/src/modules/cpu.c	2010-11-13 22:36:09 UTC (rev 819)
+@@ -81,10 +81,10 @@
+   return 1;
+ }
+ 
+-// Lua: cli()
+-// Lua: cli() - to disable all interrupts
+-// or cli( id1, resnum1, [resnum2], ..., [resnumn] ) - to disable a specific id/resnum(s)
+-static int cpu_cli( lua_State *L )
++// cli helper, does either hw_cli (clear interrupt only in hardware) or full cli (also clear the Lua interrupt flag)
++// Lua: [hw_]cli() - to disable all interrupts
++// or [hw_]cli( id1, resnum1, [resnum2], ..., [resnumn] ) - to disable a specific id/resnum(s)
++static int cpuh_cli( lua_State *L, int hwmode )
+ {
+ #ifdef BUILD_LUA_INT_HANDLERS
+   unsigned i;
+@@ -106,7 +106,8 @@
+       else if( res == PLATFORM_INT_BAD_RESNUM )
+         return luaL_error( L, &quot;resource %d not valid for interrupt %d&quot;, ( int )resnum, ( int )id );
+     }
+-    elua_int_disable( id );
++    if( !hwmode )
++      elua_int_disable( id );
+   }
+   else
+ #else // #ifdef BUILD_LUA_INT_HANDLERS
+@@ -118,9 +119,10 @@
+ }
+ 
+ 
+-// Lua: sei() - to enable all interrupts
+-// or sei( id1, resnum1, [resnum2], ..., [resnumn] ) - to enable a specific id/resnum(s)
+-static int cpu_sei( lua_State *L )
++// sei helper, does either hw_sei (set interrupt only in hardware) or full sei (also set the Lua interrupt flag)
++// Lua: [hw_]sei() - to enable all interrupts
++// or [hw_]sei( id1, resnum1, [resnum2], ..., [resnumn] ) - to enable a specific id/resnum(s)
++static int cpuh_sei( lua_State *L, int hwmode )
+ {
+ #ifdef BUILD_LUA_INT_HANDLERS  
+   unsigned i;
+@@ -142,7 +144,8 @@
+       else if( res == PLATFORM_INT_BAD_RESNUM )
+         return luaL_error( L, &quot;resource %d not valid for interrupt %d&quot;, ( int )resnum, ( int )id );
+     }
+-    elua_int_enable( id );
++    if( !hwmode )
++      elua_int_enable( id );
+   }
+   else
+ #else // #ifdef BUILD_LUA_INT_HANDLERS
+@@ -153,6 +156,26 @@
+   return 0;
+ }
+ 
++static int cpu_cli( lua_State *L )
++{
++  return cpuh_cli( L, 0 );
++}
++
++static int cpu_hw_cli( lua_State *L )
++{
++  return cpuh_cli( L, 1 );
++}
++
++static int cpu_sei( lua_State *L )
++{
++  return cpuh_sei( L, 0 );
++}
++
++static int cpu_hw_sei( lua_State *L )
++{
++  return cpuh_sei( L, 1 );
++}
++
+ // Lua: frequency = clock()
+ static int cpu_clock( lua_State *L )
+ {
+@@ -258,13 +281,13 @@
+   { LSTRKEY( &quot;w8&quot; ), LFUNCVAL( cpu_w8 ) },
+   { LSTRKEY( &quot;r8&quot; ), LFUNCVAL( cpu_r8 ) },
+   { LSTRKEY( &quot;cli&quot; ), LFUNCVAL( cpu_cli ) },
++  { LSTRKEY( &quot;hw_cli&quot; ), LFUNCVAL( cpu_hw_cli ) },
+   { LSTRKEY( &quot;sei&quot; ), LFUNCVAL( cpu_sei ) },
++  { LSTRKEY( &quot;hw_sei&quot; ), LFUNCVAL( cpu_hw_sei ) },
+   { LSTRKEY( &quot;clock&quot; ), LFUNCVAL( cpu_clock ) },
+ #ifdef BUILD_LUA_INT_HANDLERS
+   { LSTRKEY( &quot;set_int_handler&quot; ), LFUNCVAL( cpu_set_int_handler ) },
+   { LSTRKEY( &quot;get_int_flag&quot; ), LFUNCVAL( cpu_get_int_flag) },
+-  { LSTRKEY( &quot;INT_FLAG_CLEAR&quot; ), LBOOLVAL( 1 ) },
+-  { LSTRKEY( &quot;INT_FLAG_KEEP&quot; ), LBOOLVAL( 0 ) },
+ #endif
+ #if defined( PLATFORM_CPU_CONSTANTS ) &amp;&amp; LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;__metatable&quot; ), LROVAL( cpu_map ) },
+
+Modified: trunk/src/platform/lpc24xx/platform_int.c
+===================================================================
+--- trunk/src/platform/lpc24xx/platform_int.c	2010-11-13 21:02:36 UTC (rev 818)
++++ trunk/src/platform/lpc24xx/platform_int.c	2010-11-13 22:36:09 UTC (rev 819)
+@@ -176,7 +176,7 @@
+ // Interrupt table
+ // Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
+ 
+-elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
++const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
+ {
+   { int_gpio_posedge_set_status, int_gpio_posedge_get_status, int_gpio_posedge_get_flag },
+   { int_gpio_negedge_set_status, int_gpio_negedge_get_status, int_gpio_negedge_get_flag },
+
+Modified: trunk/src/platform/str9/platform_int.c
+===================================================================
+--- trunk/src/platform/str9/platform_int.c	2010-11-13 21:02:36 UTC (rev 818)
++++ trunk/src/platform/str9/platform_int.c	2010-11-13 22:36:09 UTC (rev 819)
+@@ -236,7 +236,7 @@
+ // Interrupt table
+ // Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
+ 
+-elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
++const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
+ {
+   { int_gpio_posedge_set_status, int_gpio_posedge_get_status, int_gpio_posedge_get_flag },
+   { int_gpio_negedge_set_status, int_gpio_negedge_get_status, int_gpio_negedge_get_flag }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000771.html">[Elua-svn] r818 - in branches/remotefs_int: . inc inc/remotefs mux	rfs_server src src/modules src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000773.html">[Elua-svn] r820 - in trunk/src/platform: i386 sim
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#772">[ date ]</a>
+              <a href="thread.html#772">[ thread ]</a>
+              <a href="subject.html#772">[ subject ]</a>
+              <a href="author.html#772">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

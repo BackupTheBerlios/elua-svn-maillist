@@ -1,0 +1,327 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r528 - in branches/eagle_mmc/src: . platform/lm3s	platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r528%20-%20in%20branches/eagle_mmc/src%3A%20.%20platform/lm3s%0A%09platform/stm32&In-Reply-To=%3C200911060210.nA62A7wL030259%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000482.html">
+   <LINK REL="Next"  HREF="000484.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r528 - in branches/eagle_mmc/src: . platform/lm3s	platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r528%20-%20in%20branches/eagle_mmc/src%3A%20.%20platform/lm3s%0A%09platform/stm32&In-Reply-To=%3C200911060210.nA62A7wL030259%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r528 - in branches/eagle_mmc/src: . platform/lm3s	platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Nov  6 03:10:07 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000482.html">[Elua-svn] r527 - in branches/eagle_mmc: . romfs
+</A></li>
+        <LI>Next message: <A HREF="000484.html">[Elua-svn] r529 - in branches/eagle_mmc: doc doc/eluadoc doc/luadoc	doc/wb src/lua src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#483">[ date ]</a>
+              <a href="thread.html#483">[ thread ]</a>
+              <a href="subject.html#483">[ subject ]</a>
+              <a href="author.html#483">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-11-06 03:10:06 +0100 (Fri, 06 Nov 2009)
+New Revision: 528
+
+Modified:
+   branches/eagle_mmc/src/elua_mmc.c
+   branches/eagle_mmc/src/platform/lm3s/platform_conf.h
+   branches/eagle_mmc/src/platform/stm32/platform.c
+   branches/eagle_mmc/src/platform/stm32/platform_conf.h
+   branches/eagle_mmc/src/platform/stm32/stm32f10x_it.c
+Log:
+Working on SD/MMC on STM32.
+
+Modified: branches/eagle_mmc/src/elua_mmc.c
+===================================================================
+--- branches/eagle_mmc/src/elua_mmc.c	2009-11-06 02:09:52 UTC (rev 527)
++++ branches/eagle_mmc/src/elua_mmc.c	2009-11-06 02:10:06 UTC (rev 528)
+@@ -153,7 +153,7 @@
+     
+     // Setup CS pin &amp; deselect
+     platform_pio_op( SDC_CS_PORT, ( ( u32 ) 1 &lt;&lt; SDC_CS_PIN ), PLATFORM_IO_PIN_DIR_OUTPUT );
+-    platform_pio_op( SDC_CS_PORT, ( ( u32 ) 1 &lt;&lt; SDC_CS_PIN ), PLATFORM_IO_PIN_PULLUP );
++    //platform_pio_op( SDC_CS_PORT, ( ( u32 ) 1 &lt;&lt; SDC_CS_PIN ), PLATFORM_IO_PIN_PULLUP );
+     DESELECT();
+     
+     // Setup SPI
+
+Modified: branches/eagle_mmc/src/platform/lm3s/platform_conf.h
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/platform_conf.h	2009-11-06 02:09:52 UTC (rev 527)
++++ branches/eagle_mmc/src/platform/lm3s/platform_conf.h	2009-11-06 02:10:06 UTC (rev 528)
+@@ -156,8 +156,6 @@
+   #define SDC_CS_PORT                3
+   #define SDC_CS_PIN                 0
+   #define SDC_SPI_NUM                0
+-  #define SDC_SPI_PORT               0
+-  #define SDC_TX_PIN                 5
+ #endif
+ 
+ #ifdef FORLM3S8962
+@@ -165,8 +163,6 @@
+   #define SDC_CS_PORT                6
+   #define SDC_CS_PIN                 0
+   #define SDC_SPI_NUM                0
+-  #define SDC_SPI_PORT               0
+-  #define SDC_TX_PIN                 5
+ #endif
+ 
+ #ifdef FORLM3S6918
+@@ -174,8 +170,6 @@
+   #define SDC_CS_PORT                6
+   #define SDC_CS_PIN                 1
+   #define SDC_SPI_NUM                0
+-  #define SDC_SPI_PORT               0
+-  #define SDC_TX_PIN                 5
+ #endif
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+
+Modified: branches/eagle_mmc/src/platform/stm32/platform.c
+===================================================================
+--- branches/eagle_mmc/src/platform/stm32/platform.c	2009-11-06 02:09:52 UTC (rev 527)
++++ branches/eagle_mmc/src/platform/stm32/platform.c	2009-11-06 02:10:06 UTC (rev 528)
+@@ -27,6 +27,13 @@
+ #define PCLK1_DIV   2
+ #define PCLK2_DIV   1
+ 
++// SysTick Config Data
++// NOTE: when using virtual timers, SYSTICKHZ and VTMR_FREQ_HZ should have the
++// same value, as they're served by the same timer (the systick)
++// Max SysTick preload value is 16777215, for STM32F103RET6 @ 72 MHz, lowest acceptable rate would be about 5 Hz
++#define SYSTICKHZ               10  
++#define SYSTICKMS               (1000 / SYSTICKHZ)
++
+ // ****************************************************************************
+ // Platform initialization
+ 
+@@ -50,9 +57,6 @@
+   // Setup IRQ's
+   NVIC_Configuration();
+ 
+-  // Enable SysTick timer.
+-  SysTick_Config(720000);
+-
+   // Setup PIO
+   pios_init();
+ 
+@@ -73,6 +77,13 @@
+   
+   // Setup CANs
+   cans_init();
++  
++  // Enable SysTick
++  if ( SysTick_Config( HCLK / SYSTICKHZ ) )
++  { 
++    /* Capture error */ 
++    while (1);
++  }
+ 
+   cmn_platform_init();
+ 
+@@ -486,7 +497,7 @@
+   SPI_InitStructure.SPI_Mode = mode ? SPI_Mode_Master : SPI_Mode_Slave;
+   SPI_InitStructure.SPI_DataSize = ( databits == 16 ) ? SPI_DataSize_16b : SPI_DataSize_8b; // not ideal, but defaults to sane 8-bits
+   SPI_InitStructure.SPI_CPOL = cpol ? SPI_CPOL_High : SPI_CPOL_Low;
+-  SPI_InitStructure.SPI_CPHA = cpha ? SPI_CPHA_1Edge : SPI_CPHA_2Edge;
++  SPI_InitStructure.SPI_CPHA = cpha ? SPI_CPHA_2Edge : SPI_CPHA_1Edge;
+   SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
+   SPI_InitStructure.SPI_BaudRatePrescaler = spi_prescaler[ prescaler_idx ];
+   SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+@@ -500,6 +511,9 @@
+ spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
+ {
+   SPI_I2S_SendData( spi[ id ], data );
++  
++  while ( SPI_I2S_GetFlagStatus( spi[ id ], SPI_I2S_FLAG_RXNE ) == RESET );
++  
+   return SPI_I2S_ReceiveData( spi[ id ] );
+ }
+ 
+@@ -679,9 +693,20 @@
+ #define TIM_GET_BASE_CLK( id ) ( ( id ) == 0 || ( id ) == 5 ? ( HCLK / PCLK2_DIV ) : ( HCLK / PCLK1_DIV ) )
+ #define TIM_STARTUP_CLOCK       50000
+ 
++static u32 timer_set_clock( unsigned id, u32 clock );
++
++void SysTick_Handler( void )
++{
++  // Handle virtual timers
++  cmn_virtual_timer_cb();
++
++#ifdef BUILD_MMCFS
++  disk_timerproc();
++#endif
++}
++
+ static void timers_init()
+ {
+-  TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+   unsigned i;
+ 
+   // Enable clocks.
+@@ -691,16 +716,10 @@
+   RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM4, ENABLE );
+   RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM5, ENABLE );
+ 
+-
+   // Configure timers
+   for( i = 0; i &lt; NUM_TIMER; i ++ )
+   {
+-    TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
+-    TIM_TimeBaseStructure.TIM_Prescaler = TIM_GET_BASE_CLK( i ) / TIM_STARTUP_CLOCK;
+-    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+-    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+-    TIM_TimeBaseStructure.TIM_RepetitionCounter = 0x0000;
+-    TIM_TimeBaseInit( timer[ i ], &amp;TIM_TimeBaseStructure );
++    timer_set_clock( i, TIM_STARTUP_CLOCK );
+   }
+ }
+ 
+@@ -715,17 +734,16 @@
+ {
+   TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+   TIM_TypeDef *ptimer = timer[ id ];
+-  u16 pre;
++  u16 pre = TIM_GET_BASE_CLK( id ) / clock;
+   
+   TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
+-  TIM_TimeBaseStructure.TIM_Prescaler = TIM_GET_BASE_CLK( id ) / TIM_STARTUP_CLOCK;
++  TIM_TimeBaseStructure.TIM_Prescaler = pre;
+   TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+   TIM_TimeBaseStructure.TIM_RepetitionCounter = 0x0000;
+   TIM_TimeBaseInit( timer[ id ], &amp;TIM_TimeBaseStructure );
+   TIM_Cmd( ptimer, ENABLE );
+   
+-  pre = TIM_GET_BASE_CLK( id ) / clock;
+   TIM_PrescalerConfig( ptimer, pre, TIM_PSCReloadMode_Immediate );
+   return TIM_GET_BASE_CLK( id ) / pre;
+ }
+
+Modified: branches/eagle_mmc/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/eagle_mmc/src/platform/stm32/platform_conf.h	2009-11-06 02:09:52 UTC (rev 527)
++++ branches/eagle_mmc/src/platform/stm32/platform_conf.h	2009-11-06 02:10:06 UTC (rev 528)
+@@ -14,6 +14,7 @@
+ #define BUILD_XMODEM
+ #define BUILD_SHELL
+ #define BUILD_ROMFS
++#define BUILD_MMCFS
+ #define BUILD_TERM
+ //#define BUILD_UIP
+ //#define BUILD_DHCPC
+@@ -88,8 +89,8 @@
+ // Configuration data
+ 
+ // Virtual timers (0 if not used)
+-#define VTMR_NUM_TIMERS       0
+-#define VTMR_FREQ_HZ          4
++#define VTMR_NUM_TIMERS       4
++#define VTMR_FREQ_HZ          10
+ 
+ // Number of resources (0 if not available/not implemented)
+ #define NUM_PIO               7
+@@ -113,7 +114,15 @@
+ #define ADC_TIMER_FIRST_ID    0
+ #define ADC_NUM_TIMERS        4
+ 
++#define MMCFS_TICK_HZ     10
++#define MMCFS_TICK_MS     ( 1000 / MMCFS_TICK_HZ )
+ 
++// MMCFS Support (FatFs on SD/MMC)
++// For STM32F103RET6 - PA5 = CLK, PA6 = MISO, PA7 = MOSI, PA8 = CS
++#define SDC_CS_PORT                0
++#define SDC_CS_PIN                 8
++#define SDC_SPI_NUM                0
++
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ u32 platform_s_cpu_get_frequency();
+ #define CPU_FREQUENCY         platform_s_cpu_get_frequency()
+
+Modified: branches/eagle_mmc/src/platform/stm32/stm32f10x_it.c
+===================================================================
+--- branches/eagle_mmc/src/platform/stm32/stm32f10x_it.c	2009-11-06 02:09:52 UTC (rev 527)
++++ branches/eagle_mmc/src/platform/stm32/stm32f10x_it.c	2009-11-06 02:10:06 UTC (rev 528)
+@@ -142,17 +142,8 @@
+ {
+ }
+ 
+-/**
+-  * @brief  This function handles SysTick Handler.
+-  * @param  None
+-  * @retval None
+-  */
+-void SysTick_Handler(void)
+-{
+-	/* Decrement the TimingDelay variable */
+-	Decrement_TimingDelay();
+-}
+ 
++
+ /******************************************************************************/
+ /*                 STM32F10x Peripherals Interrupt Handlers                   */
+ /*  Add here the Interrupt Handler for the used peripheral(s) (PPP), for the  */
+@@ -160,19 +151,8 @@
+ /*  file (startup_stm32f10x_xx.s).                                            */
+ /******************************************************************************/
+ 
+-/**
+-  * @brief  This function handles PPP interrupt request.
+-  * @param  None
+-  * @retval None
+-  */
+-/*void PPP_IRQHandler(void)
+-{
+-}*/
+-
+-/**
+-  * @}
+-  */ 
+ extern void DMA1_Channel1_IRQHandler(void);
+ extern void USART1_IRQHandler(void);
++extern void SysTick_Handler(void);
+ 
+ /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000482.html">[Elua-svn] r527 - in branches/eagle_mmc: . romfs
+</A></li>
+	<LI>Next message: <A HREF="000484.html">[Elua-svn] r529 - in branches/eagle_mmc: doc doc/eluadoc doc/luadoc	doc/wb src/lua src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#483">[ date ]</a>
+              <a href="thread.html#483">[ thread ]</a>
+              <a href="subject.html#483">[ subject ]</a>
+              <a href="author.html#483">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

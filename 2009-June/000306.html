@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r350 - trunk/src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r350%20-%20trunk/src/platform/stm32&In-Reply-To=%3C200906291929.n5TJTG0S016454%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000305.html">
+   <LINK REL="Next"  HREF="000307.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r350 - trunk/src/platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r350%20-%20trunk/src/platform/stm32&In-Reply-To=%3C200906291929.n5TJTG0S016454%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r350 - trunk/src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Jun 29 21:29:16 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000305.html">[Elua-svn] r349 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000307.html">[Elua-svn] r351 - tags/pre0.6/doc/wb_img
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#306">[ date ]</a>
+              <a href="thread.html#306">[ thread ]</a>
+              <a href="subject.html#306">[ subject ]</a>
+              <a href="author.html#306">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-29 21:29:16 +0200 (Mon, 29 Jun 2009)
+New Revision: 350
+
+Modified:
+   trunk/src/platform/stm32/platform.c
+Log:
+CAN baud rate selection for STM32.
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2009-06-29 17:02:31 UTC (rev 349)
++++ trunk/src/platform/stm32/platform.c	2009-06-29 19:29:16 UTC (rev 350)
+@@ -316,11 +316,26 @@
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN, ENABLE);
+ }
+ 
++/*       BS1 BS2 SJW Pre
++1M:      5   3   1   4
++500k:    7   4   1   6
++250k:    9   8   1   8
++125k:    9   8   1   16
++100k:    9   8   1   20 */
++
++#define CAN_BAUD_COUNT 5
++static const u8 can_baud_bs1[]    = { CAN_BS1_9tq, CAN_BS1_9tq, CAN_BS1_9tq, CAN_BS1_7tq, CAN_BS1_5tq };
++static const u8 can_baud_bs2[]    = { CAN_BS1_8tq, CAN_BS1_8tq, CAN_BS1_8tq, CAN_BS1_4tq, CAN_BS1_3tq };
++static const u8 can_baud_sjw[]    = { CAN_SJW_1tq, CAN_SJW_1tq, CAN_SJW_1tq, CAN_SJW_1tq, CAN_SJW_1tq };
++static const u8 can_baud_pre[]    = { 20, 16, 8, 6, 4 };
++static const u32 can_baud_rate[]  = { 100000, 125000, 250000, 500000, 1000000 };
++
+ u32 platform_can_setup( unsigned id, u32 clock )
+ {
+   CAN_InitTypeDef        CAN_InitStructure;
+   CAN_FilterInitTypeDef  CAN_FilterInitStructure;
+   GPIO_InitTypeDef GPIO_InitStructure;
++  int cbaudidx = -1;
+ 
+   // Configure IO Pins -- This is for STM32F103RE
+   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
+@@ -334,6 +349,17 @@
+   
+   GPIO_PinRemapConfig( GPIO_Remap1_CAN, ENABLE );
+ 
++  // Select baud rate up to requested rate, except for below min, where min is selected
++  if ( clock &gt;= can_baud_rate[ CAN_BAUD_COUNT - 1 ] ) // round down to peak rate if &gt;= peak rate
++    cbaudidx = CAN_BAUD_COUNT - 1;
++  else
++  {
++    for( cbaudidx = 0; cbaudidx &lt; CAN_BAUD_COUNT - 1; cbaudidx ++ )
++    {
++      if( clock &lt; can_baud_rate[ cbaudidx + 1 ] ) // take current idx if next is too large
++        break;
++    }
++  }
+ 
+   /* Deinitialize CAN Peripheral */
+   CAN_DeInit();
+@@ -347,11 +373,11 @@
+   CAN_InitStructure.CAN_RFLM=DISABLE;
+   CAN_InitStructure.CAN_TXFP=DISABLE;
+   CAN_InitStructure.CAN_Mode=CAN_Mode_Normal;
+-  CAN_InitStructure.CAN_SJW=CAN_SJW_1tq;
+-  CAN_InitStructure.CAN_BS1=CAN_BS1_3tq;
+-  CAN_InitStructure.CAN_BS2=CAN_BS2_5tq;
+-  CAN_InitStructure.CAN_Prescaler=4; // @@@ This should actually be configured!
+-  CAN_Init(&amp;CAN_InitStructure);
++  CAN_InitStructure.CAN_SJW=can_baud_sjw[ cbaudidx ];
++  CAN_InitStructure.CAN_BS1=can_baud_bs1[ cbaudidx ];
++  CAN_InitStructure.CAN_BS2=can_baud_bs2[ cbaudidx ];
++  CAN_InitStructure.CAN_Prescaler=can_baud_pre[ cbaudidx ];
++  CAN_Init( &amp;CAN_InitStructure );
+ 
+   /* CAN filter init */
+   CAN_FilterInitStructure.CAN_FilterNumber=0;
+@@ -365,7 +391,7 @@
+   CAN_FilterInitStructure.CAN_FilterActivation=ENABLE;
+   CAN_FilterInit(&amp;CAN_FilterInitStructure);
+   
+-  return clock;
++  return can_baud_rate[ cbaudidx ];
+ }
+ /*
+ u32 platform_can_op( unsigned id, int op, u32 data )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000305.html">[Elua-svn] r349 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000307.html">[Elua-svn] r351 - tags/pre0.6/doc/wb_img
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#306">[ date ]</a>
+              <a href="thread.html#306">[ thread ]</a>
+              <a href="subject.html#306">[ subject ]</a>
+              <a href="author.html#306">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

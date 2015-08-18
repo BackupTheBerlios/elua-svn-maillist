@@ -1,0 +1,334 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r624 - in branches/remotefs: inc src src/newlib	src/platform/stm32 src/remotefs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r624%20-%20in%20branches/remotefs%3A%20inc%20src%20src/newlib%0A%09src/platform/stm32%20src/remotefs&In-Reply-To=%3C201001052149.o05Lnn0X000682%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000579.html">
+   <LINK REL="Next"  HREF="000581.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r624 - in branches/remotefs: inc src src/newlib	src/platform/stm32 src/remotefs</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r624%20-%20in%20branches/remotefs%3A%20inc%20src%20src/newlib%0A%09src/platform/stm32%20src/remotefs&In-Reply-To=%3C201001052149.o05Lnn0X000682%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r624 - in branches/remotefs: inc src src/newlib	src/platform/stm32 src/remotefs">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Jan  5 22:49:49 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000579.html">[Elua-svn] r623 - in trunk: . src/platform src/platform/lpc17xx	src/platform/lpc17xx/drivers src/platform/lpc17xx/drivers/inc	src/platform/lpc17xx/drivers/src
+</A></li>
+        <LI>Next message: <A HREF="000581.html">[Elua-svn] r625 - trunk/src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#580">[ date ]</a>
+              <a href="thread.html#580">[ thread ]</a>
+              <a href="subject.html#580">[ subject ]</a>
+              <a href="author.html#580">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-01-05 22:49:48 +0100 (Tue, 05 Jan 2010)
+New Revision: 624
+
+Added:
+   branches/remotefs/inc/elua_rfs.h
+Modified:
+   branches/remotefs/src/main.c
+   branches/remotefs/src/newlib/devman.c
+   branches/remotefs/src/platform/stm32/platform.c
+   branches/remotefs/src/platform/stm32/platform_conf.h
+   branches/remotefs/src/platform/stm32/stm32f10x_it.c
+   branches/remotefs/src/remotefs/elua_rfs.c
+Log:
+first successful attempts to use the remote file system
+
+Added: branches/remotefs/inc/elua_rfs.h
+===================================================================
+--- branches/remotefs/inc/elua_rfs.h	2010-01-05 03:40:12 UTC (rev 623)
++++ branches/remotefs/inc/elua_rfs.h	2010-01-05 21:49:48 UTC (rev 624)
+@@ -0,0 +1,11 @@
++// eLua remote file system 
++
++#ifndef __ELUA_RFS_H__
++#define __ELUA_RFS_H__
++
++#include &quot;devman.h&quot;
++
++DM_DEVICE* remotefs_init();
++
++#endif
++
+
+Modified: branches/remotefs/src/main.c
+===================================================================
+--- branches/remotefs/src/main.c	2010-01-05 03:40:12 UTC (rev 623)
++++ branches/remotefs/src/main.c	2010-01-05 21:49:48 UTC (rev 624)
+@@ -13,6 +13,7 @@
+ #include &quot;lualib.h&quot;
+ #include &quot;term.h&quot;
+ #include &quot;platform_conf.h&quot;
++#include &quot;elua_rfs.h&quot;
+ #ifdef ELUA_SIMULATOR
+ #include &quot;hostif.h&quot;
+ #endif
+@@ -61,6 +62,9 @@
+   // Register the ROM filesystem
+   dm_register( romfs_init() );  
+ 
++  // Register the remote filesystem
++  dm_register( remotefs_init() );
++
+   // Autorun: if &quot;autorun.lua&quot; is found in the ROM file system, run it first
+   if( ( fp = fopen( &quot;/rom/autorun.lua&quot;, &quot;r&quot; ) ) != NULL )
+   {
+
+Modified: branches/remotefs/src/newlib/devman.c
+===================================================================
+--- branches/remotefs/src/newlib/devman.c	2010-01-05 03:40:12 UTC (rev 623)
++++ branches/remotefs/src/newlib/devman.c	2010-01-05 21:49:48 UTC (rev 624)
+@@ -17,7 +17,7 @@
+   int i;
+   
+   // First char of the name must be '/'
+-  if( pdev == NULL || pdev-&gt;name == NULL || *pdev-&gt;name == '\0' || *pdev-&gt;name != '/' || strlen( pdev-&gt;name ) &gt; DM_MAX_DEV_NAME )
++  if( pdev == NULL || pdev-&gt;name == NULL || *pdev-&gt;name != '/' || strlen( pdev-&gt;name ) &gt; DM_MAX_DEV_NAME )
+     return DM_ERR_INVALID_NAME;
+   
+   // Check if the device is not already registered
+
+Modified: branches/remotefs/src/platform/stm32/platform.c
+===================================================================
+--- branches/remotefs/src/platform/stm32/platform.c	2010-01-05 03:40:12 UTC (rev 623)
++++ branches/remotefs/src/platform/stm32/platform.c	2010-01-05 21:49:48 UTC (rev 624)
+@@ -149,6 +149,11 @@
+ 
+ #if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+   /* Enable the USART1 Interrupt */
++  // [TODO]: this is hardcoded, and it shouldn't be
++  nvic_init_structure.NVIC_IRQChannel = USART3_IRQn;
++  nvic_init_structure.NVIC_IRQChannelSubPriority = 0;
++  nvic_init_structure.NVIC_IRQChannelCmd = ENABLE;
++  NVIC_Init(&amp;nvic_init_structure);
+   nvic_init_structure.NVIC_IRQChannel = USART1_IRQn;
+   nvic_init_structure.NVIC_IRQChannelSubPriority = 0;
+   nvic_init_structure.NVIC_IRQChannelCmd = ENABLE;
+@@ -534,21 +539,34 @@
+ static const u16 usart_gpio_tx_pin[] = { GPIO_Pin_9, GPIO_Pin_2, GPIO_Pin_10, GPIO_Pin_10, GPIO_Pin_12 };
+ 
+ #ifdef BUF_ENABLE_UART
+-void USART1_IRQHandler(void)
++static void all_usart_irqhandler( int usart_id )
+ {
+   int c;
+ 
+-  if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
++  if( USART_GetITStatus( usart[ usart_id ], USART_IT_RXNE ) != RESET )
+   {
+     /* Read one byte from the receive data register */
+-    c = USART_ReceiveData(USART1);
+-    buf_write( BUF_ID_UART, CON_UART_ID, ( t_buf_data* )&amp;c );
++    c = USART_ReceiveData( usart[ usart_id ] );
++    buf_write( BUF_ID_UART, usart_id, ( t_buf_data* )&amp;c );
+   }
+ }
+-#endif
+ 
++void USART1_IRQHandler( void )
++{
++  all_usart_irqhandler( 0 );
++}
+ 
++void USART2_IRQHandler(void)
++{
++  all_usart_irqhandler( 1 );
++}
+ 
++void USART3_IRQHandler(void)
++{
++  all_usart_irqhandler( 2 );
++}
++#endif
++
+ static void usart_init(u32 id, USART_InitTypeDef * initVals)
+ {
+   /* Configure USART IO */
+@@ -587,6 +605,7 @@
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4, ENABLE);
++  RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART5, ENABLE);
+ 
+   // Configure the U(S)ART
+   USART_InitStructure.USART_BaudRate = CON_UART_SPEED;
+@@ -1190,4 +1209,4 @@
+   }
+ 
+   return PLATFORM_OK;
+-}
+\ No newline at end of file
++}
+
+Modified: branches/remotefs/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/remotefs/src/platform/stm32/platform_conf.h	2010-01-05 03:40:12 UTC (rev 623)
++++ branches/remotefs/src/platform/stm32/platform_conf.h	2010-01-05 21:49:48 UTC (rev 624)
+@@ -27,8 +27,8 @@
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+ 
+-#define CON_UART_ID           0
+-#define CON_UART_SPEED        115200
++#define CON_UART_ID           2
++#define CON_UART_SPEED        19200
+ #define CON_TIMER_ID          0
+ #define TERM_LINES            25
+ #define TERM_COLS             80
+@@ -131,10 +131,11 @@
+ #define PIO_PINS_PER_PORT     16
+ 
+ // Remote file system data
+-#define RFS_BUFFER_SIZE       128
++#define RFS_BUFFER_SIZE       BUF_SIZE_512
+ #define RFS_UART_ID           0
+ #define RFS_TIMER_ID          0
+ #define RFS_TIMEOUT           100000
++#define RFS_UART_SPEED        115200
+ 
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+
+Modified: branches/remotefs/src/platform/stm32/stm32f10x_it.c
+===================================================================
+--- branches/remotefs/src/platform/stm32/stm32f10x_it.c	2010-01-05 03:40:12 UTC (rev 623)
++++ branches/remotefs/src/platform/stm32/stm32f10x_it.c	2010-01-05 21:49:48 UTC (rev 624)
+@@ -48,12 +48,6 @@
+ {
+ }
+ 
+-int fputc(int ch, FILE *f)
+-{
+-   platform_uart_send(0, ch);
+-   return ch;
+-}
+-
+ void hard_fault_handler_c(unsigned int * hardfault_args)
+ {
+   unsigned int stacked_r0;
+@@ -197,5 +191,7 @@
+ 
+ extern void DMA1_Channel1_IRQHandler(void);
+ extern void USART1_IRQHandler(void);
++extern void USART2_IRQHandler(void);
++extern void USART3_IRQHandler(void);
+ extern void SysTick_Handler(void);
+ /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/
+
+Modified: branches/remotefs/src/remotefs/elua_rfs.c
+===================================================================
+--- branches/remotefs/src/remotefs/elua_rfs.c	2010-01-05 03:40:12 UTC (rev 623)
++++ branches/remotefs/src/remotefs/elua_rfs.c	2010-01-05 21:49:48 UTC (rev 624)
+@@ -6,12 +6,17 @@
+ #include &quot;platform.h&quot;
+ #include &quot;remotefs.h&quot;
+ #include &quot;client.h&quot;
++#include &quot;buf.h&quot;
++#include &lt;stdio.h&gt;
+ 
+ #ifdef BUILD_RFS
+ 
+ // Our RFS buffer
+-// (computed to be large enough for a WRITE request of RFS_BUFFER_SIZE bytes)
+-static u8 rfs_buffer[ RFS_BUFFER_SIZE + RFS_WRITE_REQUEST_EXTRA ];
++// Compute the usable buffer size starting from RFS_BUFFER_SIZE (which is the
++// size of the serial buffer). A complete packet must fit in RFS_BUFFER_SIZE
++// bytes. Computed this to be large enough for a WRITE request.
++#define RFS_REAL_BUFFER_SIZE      ( ( 1 &lt;&lt; RFS_BUFFER_SIZE ) - RFS_WRITE_REQUEST_EXTRA )
++static u8 rfs_buffer[ 1 &lt;&lt; RFS_BUFFER_SIZE ];
+ 
+ static int rfs_open_r( struct _reent *r, const char *path, int flags, int mode )
+ {
+@@ -29,17 +34,17 @@
+   u32 towrite;
+   const u8 *p = ( const u8* )ptr;
+ 
+-  // Write in RFS_BUFFER_SIZE increments
++  // Write in RFS_REAL_BUFFER_SIZE increments
+   while( len )
+   {
+-    towrite = len &gt; RFS_BUFFER_SIZE ? RFS_BUFFER_SIZE : len;
++    towrite = len &gt; RFS_REAL_BUFFER_SIZE ? RFS_REAL_BUFFER_SIZE : len;
+     if( ( res = rfsc_write( fd, p, towrite ) ) == -1 )
+       break;
++    total += res;
+     if( res &lt; towrite )
+       break;
+     len -= towrite;
+     p += towrite; 
+-    total += towrite;
+   }
+   return ( _ssize_t )total;
+ }
+@@ -50,17 +55,17 @@
+   u32 toread;
+   u8 *p = ( u8* )ptr;
+ 
+-  // Read in RFS_BUFFER_SIZE increments
++  // Read in RFS_REAL_BUFFER_SIZE increments
+   while( len )
+   {
+-    toread = len &gt; RFS_BUFFER_SIZE ? RFS_BUFFER_SIZE : len;
++    toread = len &gt; RFS_REAL_BUFFER_SIZE ? RFS_REAL_BUFFER_SIZE : len;
+     if( ( res = rfsc_read( fd, p, toread ) ) == -1 )
+       break;
++    total += res; 
+     if( res &lt; toread )
+       break;
+     len -= toread;
+     p += toread;
+-    total += toread;
+   }
+   return ( _ssize_t )total;
+ }
+@@ -116,6 +121,8 @@
+ #ifdef RFS_UART_SPEED
+   // Initialize RFS UART
+   platform_uart_setup( RFS_UART_ID, RFS_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
++  // [TODO] this isn't exactly right
++  buf_set( BUF_ID_UART, RFS_UART_ID, RFS_BUFFER_SIZE, BUF_DSIZE_U8 ); 
+ #endif
+   rfsc_setup( rfs_buffer, rfs_send, rfs_recv, RFS_TIMEOUT );
+   return &amp;rfs_device;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000579.html">[Elua-svn] r623 - in trunk: . src/platform src/platform/lpc17xx	src/platform/lpc17xx/drivers src/platform/lpc17xx/drivers/inc	src/platform/lpc17xx/drivers/src
+</A></li>
+	<LI>Next message: <A HREF="000581.html">[Elua-svn] r625 - trunk/src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#580">[ date ]</a>
+              <a href="thread.html#580">[ thread ]</a>
+              <a href="subject.html#580">[ subject ]</a>
+              <a href="author.html#580">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,249 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r718 - in trunk: . romfs src/platform/lpc17xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r718%20-%20in%20trunk%3A%20.%20romfs%20src/platform/lpc17xx&In-Reply-To=%3C201002200027.o1K0RmLU005257%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000670.html">
+   <LINK REL="Next"  HREF="000672.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r718 - in trunk: . romfs src/platform/lpc17xx</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r718%20-%20in%20trunk%3A%20.%20romfs%20src/platform/lpc17xx&In-Reply-To=%3C201002200027.o1K0RmLU005257%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r718 - in trunk: . romfs src/platform/lpc17xx">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Feb 20 01:27:48 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000670.html">[Elua-svn] r717 - trunk/src/platform/lpc17xx
+</A></li>
+        <LI>Next message: <A HREF="000672.html">[Elua-svn] r719 - in trunk: . romfs src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#671">[ date ]</a>
+              <a href="thread.html#671">[ thread ]</a>
+              <a href="subject.html#671">[ subject ]</a>
+              <a href="author.html#671">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-02-20 01:27:33 +0100 (Sat, 20 Feb 2010)
+New Revision: 718
+
+Modified:
+   trunk/SConstruct
+   trunk/romfs/MBED.lua
+   trunk/romfs/dualpwm.lua
+   trunk/romfs/led.lua
+   trunk/romfs/pwmled.lua
+   trunk/src/platform/lpc17xx/mbed_pio.c
+   trunk/src/platform/lpc17xx/platform.c
+Log:
+Enable PWM support for lpc17xx/mbed.
+
+Note: pin functions need to be configured on this platform for output to go to
+a given pin.
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-02-20 00:27:13 UTC (rev 717)
++++ trunk/SConstruct	2010-02-20 00:27:33 UTC (rev 718)
+@@ -148,7 +148,7 @@
+               'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect','adcscope','adcpoll', 'dualpwm', 'pwmled' ],
+               'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ],
+               'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'pwmled' ],
+-              'MBED' : [ 'bisect', 'hello', 'info' ],
++              'MBED' : [ 'bisect', 'hello', 'info', 'led', 'pwmled', 'dualpwm' ],
+ }
+ 
+ # Variants: board = &lt;boardname&gt;
+
+Modified: trunk/romfs/MBED.lua
+===================================================================
+--- trunk/romfs/MBED.lua	2010-02-20 00:27:13 UTC (rev 717)
++++ trunk/romfs/MBED.lua	2010-02-20 00:27:33 UTC (rev 718)
+@@ -12,12 +12,12 @@
+   
+ module(...)
+ 
+-LED_1 = pio.P1_0
+-LED_2 = pio.P1_1
+-LED_3 = pio.P1_2
+-LED_4 = pio.P1_3
++LED_1 = mbed.pio.LED1
++LED_2 = mbed.pio.LED2
++LED_3 = mbed.pio.LED3
++LED_4 = mbed.pio.LED4
+ 
+ pio.pin.setdir( pio.OUTPUT, LED_1 )
+ pio.pin.setdir( pio.OUTPUT, LED_2 )
+ pio.pin.setdir( pio.OUTPUT, LED_3 )
+-pio.pin.setdir( pio.OUTPUT, LED_4 )
+\ No newline at end of file
++pio.pin.setdir( pio.OUTPUT, LED_4 )
+
+Modified: trunk/romfs/dualpwm.lua
+===================================================================
+--- trunk/romfs/dualpwm.lua	2010-02-20 00:27:13 UTC (rev 717)
++++ trunk/romfs/dualpwm.lua	2010-02-20 00:27:33 UTC (rev 718)
+@@ -4,6 +4,10 @@
+ 
+ if pd.board() == 'MOD711' or pd.board() == 'ET-STM32' then
+   pwmid1, pwmid2, tmrid = 0, 1, 3
++elseif pd.board() == 'MBED' then
++  pwmid1, pwmid2, tmrid = 1, 2, 0
++  mbed.pio.configpin(mbed.pio.LED1, 2, 0, 0)
++  mbed.pio.configpin(mbed.pio.LED2, 2, 0, 0)
+ else
+   print( pd.board() .. &quot; not supported by this example&quot; )
+   return
+
+Modified: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2010-02-20 00:27:13 UTC (rev 717)
++++ trunk/romfs/led.lua	2010-02-20 00:27:33 UTC (rev 718)
+@@ -21,6 +21,8 @@
+   ledpin = pio.P6_4
+ elseif pd.board() == &quot;ELUA-PUC&quot; then
+   ledpin = pio.P1_20
++elseif pd.board() == &quot;MBED&quot; then
++  ledpin = mbed.pio.LED1
+ else
+   print( &quot;\nError: Unknown board &quot; .. pd.board() .. &quot; !&quot; )
+   return
+
+Modified: trunk/romfs/pwmled.lua
+===================================================================
+--- trunk/romfs/pwmled.lua	2010-02-20 00:27:13 UTC (rev 717)
++++ trunk/romfs/pwmled.lua	2010-02-20 00:27:33 UTC (rev 718)
+@@ -9,6 +9,9 @@
+   local psel = cpu.r32( cpu.IO_PINSEL3 )
+   psel = bit.bor( bit.band( psel, 0xFFFFFCFF ), 0x00000200 )
+   cpu.w32( cpu.IO_PINSEL3, psel )
++elseif pd.board() == 'MBED' then
++  pwmid, tmrid = 1, 0
++  mbed.pio.configpin(mbed.pio.LED1, 2, 0, 0)
+ else
+   print( pd.board() .. &quot; not supported by this example&quot; )
+   return
+
+Modified: trunk/src/platform/lpc17xx/mbed_pio.c
+===================================================================
+--- trunk/src/platform/lpc17xx/mbed_pio.c	2010-02-20 00:27:13 UTC (rev 717)
++++ trunk/src/platform/lpc17xx/mbed_pio.c	2010-02-20 00:27:33 UTC (rev 718)
+@@ -7,12 +7,38 @@
+ #include &quot;lrotable.h&quot;
+ #include &quot;platform_conf.h&quot;
+ #include &quot;auxmods.h&quot;
++#include &quot;lpc17xx_pinsel.h&quot;
+ 
++static int configpin( lua_State* L )
++{
++  pio_type v = ( pio_type )luaL_checkinteger( L, 1 );
++  int funcnum = luaL_checkinteger( L, 2 );
++  int opendrain = luaL_checkinteger( L, 3 );
++  int pinmode = luaL_checkinteger( L, 4 );
++  PINSEL_CFG_Type PinCfg;
++  int port, pin;
++
++  port = PLATFORM_IO_GET_PORT( v );
++  pin = PLATFORM_IO_GET_PIN( v );
++  if( PLATFORM_IO_IS_PORT( v ) || !platform_pio_has_port( port ) || !platform_pio_has_pin( port, pin ) )
++    return luaL_error( L, &quot;invalid pin&quot; );
++  
++  PinCfg.Funcnum = funcnum;
++	PinCfg.OpenDrain = opendrain;
++	PinCfg.Pinmode = pinmode;
++	PinCfg.Portnum = port;
++	PinCfg.Pinnum = pin;
++	PINSEL_ConfigPin(&amp;PinCfg);
++	
++  return 0;
++}
++
++
+ // mbed pin map from DIP pins to lpc17xx ports/pins
+-u32 pin_ports[] = {0,0,0,0,0,0,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,2,2,2,2,2,2,0 ,0 ,0,0, // mbed p5 - p30 -- mapped to P0_
+-                 1 ,1 ,1 ,1 ,0,0}; // mbed LED1-4, USBTX, USBRX -- mapped to P1_
+-u32 pin_nums[]  = {9,8,7,6,0,1,18,17,15,16,23,24,25,26,30,31,5,4,3,2,1,0,11,10,5,4,
+-                 18,20,21,23,2,3};
++u32 pin_ports[] = { 0,0,0,0,0,0,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,2,2,2,2,2,2,0 ,0 ,0,0, // mbed p5 - p30 -- mapped to P0_
++                 1 ,1 ,1 ,1 ,0,0 }; // mbed LED1-4, USBTX, USBRX -- mapped to P1_
++u32 pin_nums[]  = { 9,8,7,6,0,1,18,17,15,16,23,24,25,26,30,31,5,4,3,2,1,0,11,10,5,4,
++                 18,20,21,23,2,3 };
+ 
+ static int mbed_pio_mt_index( lua_State* L ) 
+ {
+@@ -63,6 +89,7 @@
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;__metatable&quot; ), LROVAL( mbed_pio_map ) },
+ #endif
++  { LSTRKEY( &quot;configpin&quot; ),  LFUNCVAL( configpin ) },
+   { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( mbed_pio_mt_index ) },
+   { LNILKEY, LNILVAL }
+ };
+
+Modified: trunk/src/platform/lpc17xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc17xx/platform.c	2010-02-20 00:27:13 UTC (rev 717)
++++ trunk/src/platform/lpc17xx/platform.c	2010-02-20 00:27:33 UTC (rev 718)
+@@ -354,7 +354,6 @@
+ // Setup all PWM channels
+ static void platform_setup_pwm()
+ {
+-  PWM_TIMERCFG_Type PWMCfgDat;
+   PWM_MATCHCFG_Type PWMMatchCfgDat;
+   
+   // Keep clock in reset, set PWM code
+@@ -374,7 +373,6 @@
+ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
+ {
+   PWM_MATCHCFG_Type PWMMatchCfgDat;
+-  PINSEL_CFG_Type PinCfg;
+   u32 divisor = platform_pwm_get_clock( id ) / frequency - 1;
+     
+   PWM_MatchUpdate(PWM1, 0, divisor, PWM_MATCH_UPDATE_NOW); // PWM1 cycle rate
+@@ -389,6 +387,9 @@
+ 	PWMMatchCfgDat.StopOnMatch = DISABLE;
+ 	PWM_ConfigMatch(PWM1, &amp;PWMMatchCfgDat);
+ 	
++	PWM_ResetCounter(PWM1);
++	PWM_CounterCmd(PWM1, ENABLE);
++	
+ 	PWM_ChannelCmd(PWM1, id, ENABLE);
+ 
+   return platform_pwm_get_clock( id ) / divisor;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000670.html">[Elua-svn] r717 - trunk/src/platform/lpc17xx
+</A></li>
+	<LI>Next message: <A HREF="000672.html">[Elua-svn] r719 - in trunk: . romfs src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#671">[ date ]</a>
+              <a href="thread.html#671">[ thread ]</a>
+              <a href="subject.html#671">[ subject ]</a>
+              <a href="author.html#671">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

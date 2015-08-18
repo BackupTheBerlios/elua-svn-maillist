@@ -1,0 +1,471 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r730 - in trunk: . inc romfs src src/platform/lpc17xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r730%20-%20in%20trunk%3A%20.%20inc%20romfs%20src%20src/platform/lpc17xx&In-Reply-To=%3C201003082008.o28K88wi031575%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000682.html">
+   <LINK REL="Next"  HREF="000684.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r730 - in trunk: . inc romfs src src/platform/lpc17xx</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r730%20-%20in%20trunk%3A%20.%20inc%20romfs%20src%20src/platform/lpc17xx&In-Reply-To=%3C201003082008.o28K88wi031575%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r730 - in trunk: . inc romfs src src/platform/lpc17xx">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Mar  8 21:08:08 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000682.html">[Elua-svn] r729 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000684.html">[Elua-svn] r731 - trunk/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#683">[ date ]</a>
+              <a href="thread.html#683">[ thread ]</a>
+              <a href="subject.html#683">[ subject ]</a>
+              <a href="author.html#683">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-03-08 21:08:07 +0100 (Mon, 08 Mar 2010)
+New Revision: 730
+
+Added:
+   trunk/inc/semifs.h
+   trunk/inc/swi.h
+   trunk/src/semifs.c
+Modified:
+   trunk/SConstruct
+   trunk/romfs/led.lua
+   trunk/src/main.c
+   trunk/src/platform/lpc17xx/platform_conf.h
+Log:
+Add support for Semihosting filesystem operations
+
+- enable file creation, reading, writing on mbed for the built-in filesystem
+- implementation currently lacks support for directory listings, this will be
+  added when mbed implementation details are available.
+
+Note: this should work with other ARM arm ports that are connected to a JTAG
+debugger that implements semihosting, though I have not tested it.
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-03-02 04:51:54 UTC (rev 729)
++++ trunk/SConstruct	2010-03-08 20:08:07 UTC (rev 730)
+@@ -298,7 +298,7 @@
+ local_libs = ''
+ 
+ # Application files
+-app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua_uart.c &quot;
++app_files = &quot; src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua_uart.c &quot;
+ 
+ # Newlib related files
+ newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+
+Added: trunk/inc/semifs.h
+===================================================================
+--- trunk/inc/semifs.h	2010-03-02 04:51:54 UTC (rev 729)
++++ trunk/inc/semifs.h	2010-03-08 20:08:07 UTC (rev 730)
+@@ -0,0 +1,22 @@
++// Semihosting filesystem
++
++#ifndef __SEMIFS_H__
++#define __SEMIFS_H__
++
++#include &quot;type.h&quot;
++#include &quot;devman.h&quot;
++
++// ARM Semihosting Commands
++#define SYS_OPEN   (0x1)
++#define SYS_CLOSE  (0x2)
++#define SYS_WRITE  (0x5)
++#define SYS_READ   (0x6)
++#define SYS_ISTTY  (0x9)
++#define SYS_SEEK   (0xa)
++#define SYS_ENSURE (0xb)
++#define SYS_FLEN   (0xc)
++
++// FS functions
++const DM_DEVICE* semifs_init();
++
++#endif
+
+Added: trunk/inc/swi.h
+===================================================================
+--- trunk/inc/swi.h	2010-03-02 04:51:54 UTC (rev 729)
++++ trunk/inc/swi.h	2010-03-08 20:08:07 UTC (rev 730)
+@@ -0,0 +1,68 @@
++/* SWI numbers for RDP (Demon) monitor.  */
++#define SWI_WriteC                 0x0
++#define SWI_Write0                 0x2
++#define SWI_ReadC                  0x4
++#define SWI_CLI                    0x5
++#define SWI_GetEnv                 0x10
++#define SWI_Exit                   0x11
++#define SWI_EnterOS                0x16
++
++#define SWI_GetErrno               0x60
++#define SWI_Clock                  0x61
++#define SWI_Time                   0x63
++#define SWI_Remove                 0x64
++#define SWI_Rename                 0x65
++#define SWI_Open                   0x66
++
++#define SWI_Close                  0x68
++#define SWI_Write                  0x69
++#define SWI_Read                   0x6a
++#define SWI_Seek                   0x6b
++#define SWI_Flen                   0x6c
++
++#define SWI_IsTTY                  0x6e
++#define SWI_TmpNam                 0x6f
++#define SWI_InstallHandler         0x70
++#define SWI_GenerateError          0x71
++
++
++/* Now the SWI numbers and reason codes for RDI (Angel) monitors.  */
++#define AngelSWI_ARM 			0x123456
++#ifdef __thumb__
++#define AngelSWI 			0xAB
++#else
++#define AngelSWI 			AngelSWI_ARM
++#endif
++/* For Thumb-2 code use the BKPT instruction instead of SWI.  */
++#ifdef __thumb2__
++#define AngelSWIInsn			&quot;bkpt&quot;
++#define AngelSWIAsm			bkpt
++#else
++#define AngelSWIInsn			&quot;swi&quot;
++#define AngelSWIAsm			swi
++#endif
++
++/* The reason codes:  */
++#define AngelSWI_Reason_Open		0x01
++#define AngelSWI_Reason_Close		0x02
++#define AngelSWI_Reason_WriteC		0x03
++#define AngelSWI_Reason_Write0		0x04
++#define AngelSWI_Reason_Write		0x05
++#define AngelSWI_Reason_Read		0x06
++#define AngelSWI_Reason_ReadC		0x07
++#define AngelSWI_Reason_IsTTY		0x09
++#define AngelSWI_Reason_Seek		0x0A
++#define AngelSWI_Reason_FLen		0x0C
++#define AngelSWI_Reason_TmpNam		0x0D
++#define AngelSWI_Reason_Remove		0x0E
++#define AngelSWI_Reason_Rename		0x0F
++#define AngelSWI_Reason_Clock		0x10
++#define AngelSWI_Reason_Time		0x11
++#define AngelSWI_Reason_System		0x12
++#define AngelSWI_Reason_Errno		0x13
++#define AngelSWI_Reason_GetCmdLine 	0x15
++#define AngelSWI_Reason_HeapInfo 	0x16
++#define AngelSWI_Reason_EnterSVC 	0x17
++#define AngelSWI_Reason_ReportException 0x18
++#define ADP_Stopped_ApplicationExit 	((2 &lt;&lt; 16) + 38)
++#define ADP_Stopped_RunTimeError 	((2 &lt;&lt; 16) + 35)
+
+Modified: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2010-03-02 04:51:54 UTC (rev 729)
++++ trunk/romfs/led.lua	2010-03-08 20:08:07 UTC (rev 730)
+@@ -23,6 +23,7 @@
+   ledpin = pio.P1_20
+ elseif pd.board() == &quot;MBED&quot; then
+   ledpin = mbed.pio.LED1
++  mbed.pio.configpin( ledpin, 0, 0, 0 )
+ else
+   print( &quot;\nError: Unknown board &quot; .. pd.board() .. &quot; !&quot; )
+   return
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2010-03-02 04:51:54 UTC (rev 729)
++++ trunk/src/main.c	2010-03-08 20:08:07 UTC (rev 730)
+@@ -87,6 +87,9 @@
+   // Register the MMC filesystem
+   dm_register( mmcfs_init() );
+ 
++  // Register the Semihosting filesystem
++  dm_register( semifs_init() );
++
+   // Register the remote filesystem
+   dm_register( remotefs_init() );
+ 
+
+Modified: trunk/src/platform/lpc17xx/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc17xx/platform_conf.h	2010-03-02 04:51:54 UTC (rev 729)
++++ trunk/src/platform/lpc17xx/platform_conf.h	2010-03-08 20:08:07 UTC (rev 730)
+@@ -14,6 +14,7 @@
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+ #define BUILD_CON_GENERIC
++#define BUILD_SEMIFS
+ //#define BUILD_LUARPC
+ 
+ // *****************************************************************************
+
+Added: trunk/src/semifs.c
+===================================================================
+--- trunk/src/semifs.c	2010-03-02 04:51:54 UTC (rev 729)
++++ trunk/src/semifs.c	2010-03-08 20:08:07 UTC (rev 730)
+@@ -0,0 +1,224 @@
++// Filesystem implementation
++#include &quot;swi.h&quot;
++#include &quot;type.h&quot;
++#include &lt;string.h&gt;
++#include &lt;errno.h&gt;
++#include &quot;devman.h&quot;
++#include &lt;stdio.h&gt;
++#include &quot;ioctl.h&quot;
++#include &quot;semifs.h&quot;
++#include &lt;stdint.h&gt;
++#include &lt;fcntl.h&gt;
++
++#include &quot;platform_conf.h&quot;
++#ifdef BUILD_SEMIFS
++
++#define SEMIFS_MAX_FDS   4
++
++
++typedef struct
++{
++  int handle;
++  int pos;
++} poslog;
++
++static poslog semifs_fd_table[ SEMIFS_MAX_FDS ];
++static int semifs_num_fd;
++
++static inline int
++__semihost(int reason, void * arg)
++{
++  int value;
++  asm volatile (&quot;mov r0, %1; mov r1, %2; &quot; AngelSWIInsn &quot; %a3; mov %0, r0&quot;
++       : &quot;=r&quot; (value) /* Outputs */
++       : &quot;r&quot; (reason), &quot;r&quot; (arg), &quot;i&quot; (AngelSWI) /* Inputs */
++       : &quot;r0&quot;, &quot;r1&quot;, &quot;r2&quot;, &quot;r3&quot;, &quot;ip&quot;, &quot;lr&quot;, &quot;memory&quot;, &quot;cc&quot;
++		/* Clobbers r0 and r1, and lr if in supervisor mode */);
++                /* Accordingly to page 13-77 of ARM DUI 0040D other registers
++                   can also be clobbered.  Some memory positions may also be
++                   changed by a system call, so they should not be kept in
++                   registers. Note: we are assuming the manual is right and
++                   Angel is respecting the APCS.  */
++  return value;
++}
++
++static int semifs_find_empty_fd()
++{
++  int i;
++
++  for (i = 0; i &lt; SEMIFS_MAX_FDS; i ++)
++    if (semifs_fd_table[ i ].handle == -1)
++      return i;
++  return -1;
++}
++
++static int semifs_open_r( struct _reent *r, const char *path, int flags, int mode )
++{
++  int aflags = 0, fd, fh;
++  uint32_t args[3];
++
++  if (semifs_num_fd == SEMIFS_MAX_FDS)
++  {
++    r-&gt;_errno = ENFILE;
++    return -1;
++  }
++
++  if (flags &amp; O_RDWR)
++    aflags |= 2;
++
++  if (flags &amp; O_CREAT)
++    aflags |= 4;
++
++  if (flags &amp; O_TRUNC)
++    aflags |= 4;
++
++  if (flags &amp; O_APPEND)
++  {
++    aflags &amp;= ~4;     /* Can't ask for w AND a; means just 'a'.  */
++    aflags |= 8;
++  }
++
++  fd = semifs_find_empty_fd();
++  semifs_num_fd ++;
++
++  args[0] = ( uint32_t )path;
++  args[1] = ( uint32_t )aflags;
++  args[2] = ( uint32_t )strlen( path );
++  fh =  __semihost(SYS_OPEN, args);
++  
++  if (fh &gt;= 0)
++  {
++    semifs_fd_table[ fd ].handle = fh;
++    semifs_fd_table[ fd ].pos = 0;
++  }
++
++  return fd;
++}
++
++static int semifs_close_r( struct _reent *r, int fd )
++{
++  int fh = semifs_fd_table[ fd ].handle;
++   
++  if( fd != SEMIFS_MAX_FDS )
++    semifs_fd_table[ fd ].handle = -1;
++
++  return __semihost(SYS_CLOSE, &amp;fh);
++}
++
++static _ssize_t semifs_write_r( struct _reent *r, int fd, const void* ptr, size_t len )
++{
++  int fh = semifs_fd_table[ fd ].handle, x;
++  uint32_t args[3];
++  
++  args[0] = (uint32_t)fh;
++  args[1] = (uint32_t)ptr;
++  args[2] = (uint32_t)len; 
++  x = __semihost(SYS_WRITE, args);
++  
++  if (x == -1 || x == len)
++  {
++    r-&gt;_errno = EIO;
++    return -1;
++  }
++  
++  if ( fd != SEMIFS_MAX_FDS )
++    semifs_fd_table[ fd ].pos += len - x;
++
++  return len - x;
++}
++
++static _ssize_t semifs_read_r( struct _reent *r, int fd, void* ptr, size_t len )
++{
++  int fh = semifs_fd_table[ fd ].handle, x;
++  uint32_t args[3];
++  
++  args[0] = (uint32_t)fh;
++  args[1] = (uint32_t)ptr;
++  args[2] = (uint32_t)len; 
++  x = __semihost(SYS_READ, args);
++
++  if (x &lt; 0)
++  {
++    r-&gt;_errno = EIO;
++    return -1;
++  }
++
++  if (fd != SEMIFS_MAX_FDS)
++    semifs_fd_table[ fd ].pos += len - x;
++  
++  return len - x;
++}
++
++static off_t semifs_lseek_r( struct _reent *r, int fd, off_t off, int whence )
++{
++  int fh = semifs_fd_table[ fd ].handle, res;  
++  uint32_t args[2];
++  u32 newpos = 0;
++
++  switch( whence )
++  {
++    case SEEK_CUR:
++      // seek from current position
++      if (fd == SEMIFS_MAX_FDS)
++	return -1;
++      off  += semifs_fd_table[ fd ].pos;
++      whence = SEEK_SET;
++      break;
++
++    case SEEK_END:
++      // seek from end of file
++      args[ 0 ] = fh;
++      off += __semihost(SYS_FLEN, &amp;args);
++      break;
++
++    case SEEK_SET:
++      break;
++
++    default:
++      return -1;
++  }
++  // Do absolute seek
++  args[ 0 ] = (uint32_t)fh;
++  args[ 1 ] = (uint32_t)off;
++  res = __semihost(SYS_SEEK, args);
++
++  if (fd != SEMIFS_MAX_FDS &amp;&amp; res == 0)
++    semifs_fd_table[ fd ].pos = off;
++
++  /* This is expected to return the position in the file.  */
++  return res == 0 ? off : -1;
++}
++
++// Semihosting device descriptor structure
++static DM_DEVICE semifs_device =
++{
++  &quot;/semi&quot;,
++  semifs_open_r,         // open
++  semifs_close_r,        // close
++  semifs_write_r,        // write
++  semifs_read_r,         // read
++  semifs_lseek_r,        // lseek
++  NULL,      // opendir
++  NULL,      // readdir
++  NULL       // closedir
++};
++
++const DM_DEVICE* semifs_init()
++{
++  int i;
++
++  for (i = 0; i &lt; SEMIFS_MAX_FDS; i ++)
++    semifs_fd_table[i].handle = -1;
++
++  return &amp;semifs_device;
++}
++
++#else // #ifdef BUILD_SEMIFS
++
++const DM_DEVICE* semifs_init()
++{
++  return NULL;
++}
++
++#endif // #ifdef BUILD_SEMIFS
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000682.html">[Elua-svn] r729 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000684.html">[Elua-svn] r731 - trunk/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#683">[ date ]</a>
+              <a href="thread.html#683">[ thread ]</a>
+              <a href="subject.html#683">[ subject ]</a>
+              <a href="author.html#683">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

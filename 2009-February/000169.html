@@ -1,0 +1,1652 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r213 - in trunk: . src src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/stm32 src/platform/str7	src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r213%20-%20in%20trunk%3A%20.%20src%20src/platform/at91sam7x%0A%09src/platform/avr32%20src/platform/i386%20src/platform/lm3s%0A%09src/platform/lpc288x%20src/platform/stm32%20src/platform/str7%0A%09src/platform/str9&In-Reply-To=%3C200902231356.n1NDuP5T000186%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000168.html">
+   <LINK REL="Next"  HREF="000170.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r213 - in trunk: . src src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/stm32 src/platform/str7	src/platform/str9</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r213%20-%20in%20trunk%3A%20.%20src%20src/platform/at91sam7x%0A%09src/platform/avr32%20src/platform/i386%20src/platform/lm3s%0A%09src/platform/lpc288x%20src/platform/stm32%20src/platform/str7%0A%09src/platform/str9&In-Reply-To=%3C200902231356.n1NDuP5T000186%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r213 - in trunk: . src src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/stm32 src/platform/str7	src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Feb 23 14:56:25 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000168.html">[Elua-svn] r212 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000170.html">[Elua-svn] r214 - in trunk: . romfs src/lua src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#169">[ date ]</a>
+              <a href="thread.html#169">[ thread ]</a>
+              <a href="subject.html#169">[ subject ]</a>
+              <a href="author.html#169">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-02-23 14:56:21 +0100 (Mon, 23 Feb 2009)
+New Revision: 213
+
+Added:
+   trunk/src/platform/stm32/stacks.h
+Modified:
+   trunk/SConstruct
+   trunk/src/platform/at91sam7x/conf.py
+   trunk/src/platform/at91sam7x/flash256.lds
+   trunk/src/platform/at91sam7x/flash512.lds
+   trunk/src/platform/at91sam7x/platform.c
+   trunk/src/platform/avr32/conf.py
+   trunk/src/platform/i386/conf.py
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lpc288x/conf.py
+   trunk/src/platform/lpc288x/lpc2888.lds
+   trunk/src/platform/stm32/conf.py
+   trunk/src/platform/stm32/platform_conf.h
+   trunk/src/platform/stm32/stm32.ld
+   trunk/src/platform/stm32/stm32f10x_vector.c
+   trunk/src/platform/stm32/systick.c
+   trunk/src/platform/str7/conf.py
+   trunk/src/platform/str7/str711fr2.lds
+   trunk/src/platform/str9/conf.py
+   trunk/src/platform/str9/str912fw44.lds
+   trunk/src/shell.c
+Log:
+Thanks to the <A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">people at elua-dev</A> list, I finally understood what's ARM EABI, so I thought I make good use of it :), so I enabled it for ALL ARM and Cortex targets alike. Now you can specify the toolchain to use like this:
+
+$ scons board=... toolchain=arm-gcc|arm-gcc-eabi
+(the default is still arm-gcc, but this can be changed by editing SConstruct).
+
+This is a Very Good thing for us, because users won't need to build their own toolchains anymore, they can just download the one from CS and use it. Thanks again for this.
+Actually, the whole build system was changed to support arbitrary toolchains (although there's much work to be done in this area).
+Also, changed a few things in the STM32 port (the linker script file, the stack definitions).
+And other (very minor) changes (mostly to fix some compiler warnings).
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/SConstruct	2009-02-23 13:56:21 UTC (rev 213)
+@@ -3,20 +3,55 @@
+ cputype = ARGUMENTS.get( 'cpu', '' ).upper()
+ allocator = ARGUMENTS.get( 'allocator', '' ).lower()
+ boardname = ARGUMENTS.get( 'board' , '').upper()
+-cprefix = ARGUMENTS.get( 'cprefix', '')
++toolchain = ARGUMENTS.get( 'toolchain', '')
+ optram = int( ARGUMENTS.get( 'optram', '1' ) )
+ 
+-# List of platform/CPU combinations
+-cpu_list = { 'at91sam7x' : [ 'AT91SAM7X256', 'AT91SAM7X512' ],
+-              'lm3s' : [ 'LM3S8962', 'LM3S6965' ],
+-              'str9' : [ 'STR912FW44' ],
+-              'i386' : [ 'I386' ],
+-              'lpc288x' : [ 'LPC2888' ],
+-              'str7' : [ 'STR711FR2' ],
+-              'stm32' : [ 'STM32F103ZE' ],
+-              'avr32' : [ 'AT32UC3A0512' ]
+-            }
++# List of toolchains
++toolchain_list = {
++  'arm-gcc' : { 
++    'compile' : 'arm-elf-gcc', 
++    'link' : 'arm-elf-ld', 
++    'asm' : 'arm-elf-as', 
++    'bin' : 'arm-elf-objcopy', 
++    'size' : 'arm-elf-size' 
++  },
++  'arm-gcc-eabi' : { 
++    'compile' : 'arm-none-eabi-gcc', 
++    'link' : 'arm-none-eabi-ld', 
++    'asm' : 'arm-none-eabi-as', 
++    'bin' : 'arm-none-eabi-objcopy', 
++    'size' : 'arm-none-eabi-size' 
++  },
++  'avr32-gcc' : { 
++    'compile' : 'avr32-gcc', 
++    'link' : 'avr32-ld', 
++    'asm' : 'avr32-as', 
++    'bin' : 'avr32-objcopy', 
++    'size' : 'avr32-size' 
++  },
++  'i686-gcc' : { 
++    'compile' : 'i686-elf-gcc', 
++    'link' : 'i686-elf-ld', 
++    'asm' : 'nasm', 
++    'bin' : 'i686-elf-objcopy', 
++    'size' : 'i686-elf-size' 
++  }
++}
+ 
++# List of platform/CPU/toolchains combinations
++# The first toolchain in the toolchains list is the default one
++# (the one that will be used if none is specified)
++platform_list = {  
++  'at91sam7x' : { 'cpus' : [ 'AT91SAM7X256', 'AT91SAM7X512' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
++  'lm3s' : { 'cpus' : [ 'LM3S8962', 'LM3S6965' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
++  'str9' : { 'cpus' : [ 'STR912FW44' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
++  'i386' : { 'cpus' : [ 'I386' ], 'toolchains' : [ 'i686-gcc' ] },
++  'lpc288x' : { 'cpus' : [ 'LPC2888' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
++  'str7' : { 'cpus' : [ 'STR711FR2' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
++  'stm32' : { 'cpus' : [ 'STM32F103ZE', 'STM32F103RE' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
++  'avr32' : { 'cpus' : [ 'AT32UC3A0512' ], 'toolchains' : [ 'avr32-gcc' ] }
++}
++
+ # List of board/CPU combinations
+ board_list = { 'SAM7-EX256' : [ 'AT91SAM7X256', 'AT91SAM7X512' ],
+                'EK-LM3S8962' : [ 'LM3S8962' ],
+@@ -26,7 +61,8 @@
+                'LPC-H2888' : [ 'LPC2888' ],
+                'MOD711' : [ 'STR711FR2' ],
+                'STM3210E-EVAL' : [ 'STM32F103ZE' ],
+-               'ATEVK1100' : [ 'AT32UC3A0512' ]
++               'ATEVK1100' : [ 'AT32UC3A0512' ],
++               'ET-STM32' : [ 'STM32F103RE' ]
+             }
+ 
+ # ROMFS file list &quot;groups&quot;
+@@ -57,7 +93,8 @@
+               'LPC-H2888' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'MOD711' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'dualpwm' ],
+               'STM3210E-EVAL' : [ 'bisect', 'hello', 'info' ],
+-              'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ]
++              'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
++              'ET-STM32' : [ 'hello', 'info', 'bisect' ]
+             }
+ 
+ # Variants: board = &lt;boardname&gt;
+@@ -93,22 +130,31 @@
+     print &quot;CPU %s not found&quot; % cputype
+     sys.exit( -1 )
+ 
++# Look for the given CPU in the list of platforms
+ platform = None
+-# Look for the given CPU in the list of platforms
+-for p, v in cpu_list.items():
+-  if cputype in v:
++for p, v in platform_list.items():
++  if cputype in v[ 'cpus' ]:
+     platform = p
+     break
+ else:
+   print &quot;Unknown CPU %s&quot; % cputype
+   print &quot;List of accepted CPUs: &quot;
+-  for p, v in cpu_list.items():
++  for p, v in platform_list.items():
+     print &quot; &quot;, p, &quot;--&gt;&quot;,
+-    for cpu in v:
++    for cpu in v[ 'cpus' ]:
+       print cpu,
+     print
+   sys.exit( -1 )
+ 
++# Check the toolchain
++if toolchain != '':
++  if not toolchain in platform_list[ platform ][ 'toolchains' ]:
++    print &quot;Invalid toolchain '%s' for CPU '%s'&quot; % ( toolchain, cputype )
++    sys.exit( -1 )
++else:
++  toolchain = platform_list[ platform ][ 'toolchains' ][ 0 ]
++toolset = toolchain_list[ toolchain ]
++
+ # CPU/allocator mapping (if allocator not specified)
+ if allocator == '':
+   if boardname == 'LPC-H2888' or boardname == 'ATEVK1100':
+@@ -130,7 +176,8 @@
+   print &quot;Board:       &quot;, boardname
+   print &quot;Platform:    &quot;, platform
+   print &quot;Allocator:   &quot;, allocator
+-  print &quot;Target:      &quot;, target
++  print &quot;Target:      &quot;, target == 'lua' and 'fplua' or 'target'
++  print &quot;Toolchain:   &quot;, toolchain
+   print &quot;*********************************&quot;
+   print
+ 
+
+Modified: trunk/src/platform/at91sam7x/conf.py
+===================================================================
+--- trunk/src/platform/at91sam7x/conf.py	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/at91sam7x/conf.py	2009-02-23 13:56:21 UTC (rev 213)
+@@ -30,15 +30,16 @@
+ 
+ # Toolset data
+ tools[ 'at91sam7x' ] = {}
+-tools[ 'at91sam7x' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=arm7tdmi %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( modeflag, opt, local_include, cdefs )
+-tools[ 'at91sam7x' ][ 'linkcom' ] = &quot;arm-elf-gcc -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,entry -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( modeflag, ldscript, local_libs )
+-tools[ 'at91sam7x' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=arm7tdmi %s %s -D__ASSEMBLY__ -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, modeflag, cdefs )
++tools[ 'at91sam7x' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, opt, local_include, cdefs )
++tools[ 'at91sam7x' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,entry -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
++tools[ 'at91sam7x' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=arm7tdmi %s %s -D__ASSEMBLY__ -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_at91sam7x( target, source, env ):
+   outname = output + &quot;.elf&quot;
+-  os.system( &quot;arm-elf-size %s&quot; % outname )
++  os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+-  os.system( &quot;arm-elf-objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
++  os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
+   
+ tools[ 'at91sam7x' ][ 'progfunc' ] = progfunc_at91sam7x
++
+
+Modified: trunk/src/platform/at91sam7x/flash256.lds
+===================================================================
+--- trunk/src/platform/at91sam7x/flash256.lds	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/at91sam7x/flash256.lds	2009-02-23 13:56:21 UTC (rev 213)
+@@ -63,7 +63,9 @@
+         *(.gnu.linkonce.r.*)
+         . = ALIGN(4);
+         _efixed = .;
+-        PROVIDE(etext = .);        
++        PROVIDE(etext = .);
++        _fini = .;
++        *(.fini)
+     } &gt;flash
+ 
+     .relocate : AT (_efixed)
+@@ -77,6 +79,18 @@
+         _erelocate = .;
+     } &gt;sram
+ 
++    .ARM.extab :
++    {
++        *(.ARM.extab*)
++    } &gt;sram
++
++    __exidx_start = .;
++    .ARM.exidx :
++    {
++        *(.ARM.exidx*)
++    } &gt;sram
++     __exidx_end = .;
++
+     .bss (NOLOAD) : {
+         _szero = .;
+         *(.bss .bss.*)
+@@ -84,7 +98,7 @@
+         *(COMMON)
+         _ezero = .;
+     } &gt;sram
+-    
++
+     end = .;
+     _sstack = 0x210000;
+ }
+
+Modified: trunk/src/platform/at91sam7x/flash512.lds
+===================================================================
+--- trunk/src/platform/at91sam7x/flash512.lds	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/at91sam7x/flash512.lds	2009-02-23 13:56:21 UTC (rev 213)
+@@ -64,6 +64,8 @@
+         . = ALIGN(4);
+         _efixed = .;
+         PROVIDE(etext = .);
++         _fini = .;
++        *(.fini)
+     } &gt;flash
+ 
+     .relocate : AT (_efixed)
+@@ -77,6 +79,18 @@
+         _erelocate = .;
+     } &gt;sram
+ 
++     .ARM.extab :
++    {
++        *(.ARM.extab*)
++    } &gt;sram
++
++    __exidx_start = .;
++    .ARM.exidx :
++    {
++        *(.ARM.exidx*)
++    } &gt;sram
++     __exidx_end = .;
++   
+     .bss (NOLOAD) : {
+         _szero = .;
+         *(.bss .bss.*)
+
+Modified: trunk/src/platform/at91sam7x/platform.c
+===================================================================
+--- trunk/src/platform/at91sam7x/platform.c	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/at91sam7x/platform.c	2009-02-23 13:56:21 UTC (rev 213)
+@@ -168,7 +168,7 @@
+             
+     case PLATFORM_IO_PORT_GET_VALUE:
+       pin-&gt;mask = 0x7FFFFFFF;
+-      pin-&gt;type = pinmask == PLATFORM_IO_READ_IN_MASK ? : PIO_INPUT : PIO_OUTPUT_0;
++      pin-&gt;type = pinmask == PLATFORM_IO_READ_IN_MASK ? PIO_INPUT : PIO_OUTPUT_0;
+       retval = PIO_Get( pin );
+       break;
+       
+
+Modified: trunk/src/platform/avr32/conf.py
+===================================================================
+--- trunk/src/platform/avr32/conf.py	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/avr32/conf.py	2009-02-23 13:56:21 UTC (rev 213)
+@@ -11,16 +11,17 @@
+ 
+ # Toolset data
+ tools[ 'avr32' ] = {}
+-tools[ 'avr32' ][ 'cccom' ] = &quot;avr32-gcc -mpart=uc3a0512 %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
+-tools[ 'avr32' ][ 'linkcom' ] = &quot;avr32-gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,crt0 -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
+-tools[ 'avr32' ][ 'ascom' ] = &quot;avr32-gcc -x assembler-with-cpp %s -mpart=uc3a0512 %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++tools[ 'avr32' ][ 'cccom' ] = &quot;%s -mpart=uc3a0512 %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
++tools[ 'avr32' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,crt0 -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
++tools[ 'avr32' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mpart=uc3a0512 %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, cdefs )
+ 
+ # Programming function
+ def progfunc_avr32( target, source, env ):
+   outname = output + &quot;.elf&quot;
+-  os.system( &quot;avr32-size %s&quot; % outname )
++  os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+-  os.system( &quot;avr32-objcopy -O ihex %s %s.hex&quot; % ( outname, output ) )
++  os.system( &quot;%s -O ihex %s %s.hex&quot; % ( toolset[ 'bin' ], outname, output ) )
++
+ #  print &quot;Programming...&quot;
+ #  os.system( &quot;batchisp3.sh -hardware usb -device at32uc3a0512 -operation erase f memory flash blankcheck loadbuffer %s program verify start reset 0&quot; % ( output + &quot;.hex&quot; ) )
+ 
+
+Modified: trunk/src/platform/i386/conf.py
+===================================================================
+--- trunk/src/platform/i386/conf.py	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/i386/conf.py	2009-02-23 13:56:21 UTC (rev 213)
+@@ -9,14 +9,14 @@
+ 
+ # Toolset data
+ tools[ 'i386' ] = {}
+-tools[ 'i386' ][ 'cccom' ] = &quot;i686-elf-gcc %s %s -march=i386 -mfpmath=387 -m32 -ffunction-sections -fdata-sections -fno-builtin -fno-stack-protector %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
+-tools[ 'i386' ][ 'linkcom' ] = &quot;i686-elf-gcc -nostartfiles -nostdlib -march=i386 -mfpmath=387 -m32 -T %s -Wl,--gc-sections -Wl,-e,start -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
+-tools[ 'i386' ][ 'ascom' ] = &quot;nasm -felf $SOURCE&quot;
++tools[ 'i386' ][ 'cccom' ] = &quot;%s %s %s -march=i386 -mfpmath=387 -m32 -ffunction-sections -fdata-sections -fno-builtin -fno-stack-protector %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
++tools[ 'i386' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -march=i386 -mfpmath=387 -m32 -T %s -Wl,--gc-sections -Wl,-e,start -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
++tools[ 'i386' ][ 'ascom' ] = &quot;%s -felf $SOURCE&quot; % toolset[ 'asm' ]
+ 
+ # Programming function for i386 (not needed, empty function)
+ def progfunc_i386( target, source, env ):
+   outname = output + &quot;.elf&quot;
+-  os.system( &quot;i686-elf-size %s&quot; % outname )
++  os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Visit <A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A> for instructions on how to use your eLua ELF file&quot;
+   
+ tools[ 'i386' ][ 'progfunc' ] = progfunc_i386
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/lm3s/conf.py	2009-02-23 13:56:21 UTC (rev 213)
+@@ -7,12 +7,6 @@
+ 
+ ldscript = &quot;lm3s.ld&quot;
+ 
+-# Use default toolchain prefix if one isn't provided
+-if cprefix == '':
+-  cprefix= &quot;arm-elf-&quot;
+-else:
+-  cprefix = cprefix + '-'
+-
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+@@ -21,20 +15,15 @@
+ 
+ # Toolset data
+ tools[ 'lm3s' ] = {}
+-tools[ 'lm3s' ][ 'cccom' ] = cprefix + &quot;gcc -mcpu=cortex-m3 -mthumb  %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
++tools[ 'lm3s' ][ 'cccom' ] = &quot;%s -mcpu=cortex-m3 -mthumb  %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
++tools[ 'lm3s' ][ 'linkcom' ] = &quot;%s -mthumb -mcpu=cortex-m3 -nostartfiles -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
++tools[ 'lm3s' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, cdefs )
+ 
+-if cprefix == 'arm-elf-':
+-  tools[ 'lm3s' ][ 'linkcom' ] = cprefix + &quot;gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
+-else:
+-  tools[ 'lm3s' ][ 'linkcom' ] = cprefix + &quot;gcc -mthumb -mcpu=cortex-m3 -nostartfiles -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lm %s&quot; % ( ldscript, local_libs )
+-
+-tools[ 'lm3s' ][ 'ascom' ] = cprefix + &quot;gcc -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+-
+ # Programming function
+ def progfunc_lm3s( target, source, env ):
+   outname = output + &quot;.elf&quot;
+-  os.system( cprefix + &quot;size %s&quot; % outname )
++  os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+-  os.system( cprefix + &quot;objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
++  os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
+ 
+ tools[ 'lm3s' ][ 'progfunc' ] = progfunc_lm3s
+
+Modified: trunk/src/platform/lpc288x/conf.py
+===================================================================
+--- trunk/src/platform/lpc288x/conf.py	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/lpc288x/conf.py	2009-02-23 13:56:21 UTC (rev 213)
+@@ -31,15 +31,15 @@
+ 
+ # Toolset data
+ tools[ 'lpc288x' ] = {}
+-tools[ 'lpc288x' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=arm7tdmi %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, modeflag, cdefs )
+-tools[ 'lpc288x' ][ 'linkcom' ] = &quot;arm-elf-gcc -mcpu=arm7tdmi -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,HardReset -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( modeflag, ldscript, local_libs )
+-tools[ 'lpc288x' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, modeflag, cdefs )
++tools[ 'lpc288x' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, modeflag, cdefs )
++tools[ 'lpc288x' ][ 'linkcom' ] = &quot;%s -mcpu=arm7tdmi -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,HardReset -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
++tools[ 'lpc288x' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_lpc288x( target, source, env ):
+   outname = output + &quot;.elf&quot;
+-  os.system( &quot;arm-elf-size %s&quot; % outname )
++  os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+-  os.system( &quot;arm-elf-objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
++  os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
+   
+ tools[ 'lpc288x' ][ 'progfunc' ] = progfunc_lpc288x
+
+Modified: trunk/src/platform/lpc288x/lpc2888.lds
+===================================================================
+--- trunk/src/platform/lpc288x/lpc2888.lds	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/lpc288x/lpc2888.lds	2009-02-23 13:56:21 UTC (rev 213)
+@@ -25,6 +25,8 @@
+         . = ALIGN(4);
+         _efixed = .;
+         PROVIDE(etext = .);        
++         _fini = .;
++        *(.fini)
+     } &gt;flash
+ 
+     .relocate : AT (_efixed)
+@@ -37,6 +39,18 @@
+         _erelocate = .;
+     } &gt;sram
+ 
++     .ARM.extab :
++    {
++        *(.ARM.extab*)
++    } &gt;sram
++
++    __exidx_start = .;
++    .ARM.exidx :
++    {
++        *(.ARM.exidx*)
++    } &gt;sram
++     __exidx_end = .;
++
+     .bss (NOLOAD) : {
+         _szero = .;
+         *(.bss .bss.*)
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/stm32/conf.py	2009-02-23 13:56:21 UTC (rev 213)
+@@ -23,17 +23,17 @@
+ 
+ # Toolset data
+ tools[ 'stm32' ] = {}
+-tools[ 'stm32' ][ 'cccom' ] = &quot;arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mlittle-endian %s %s -ffunction-sections -fdata-sections -fno-strict-aliasing %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
+-#tools[ 'stm32' ][ 'linkcom' ] = &quot;arm-none-eabi-gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
+-tools[ 'stm32' ][ 'linkcom' ] = &quot;arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -Wl,-T -Xlinker %s -u _start -Wl,-e,Reset_Handler -Wl,-static -Wl,--gc-sections -nostartfiles -nostdlib -Wl,-Map -Xlinker project.map -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
+-tools[ 'stm32' ][ 'ascom' ] = &quot;arm-none-eabi-gcc -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++tools[ 'stm32' ][ 'cccom' ] = &quot;%s -mcpu=cortex-m3 -mthumb -mlittle-endian %s %s -ffunction-sections -fdata-sections -fno-strict-aliasing %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
++tools[ 'stm32' ][ 'linkcom' ] = &quot;%s -mcpu=cortex-m3 -mthumb -Wl,-T -Xlinker %s -u _start -Wl,-e,Reset_Handler -Wl,-static -Wl,--gc-sections -nostartfiles -nostdlib -Wl,-Map -Xlinker project.map -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
++tools[ 'stm32' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, cdefs )
+ 
+ # Programming function
+ def progfunc_stm32( target, source, env ):
+   outname = output + &quot;.elf&quot;
+-  os.system( &quot;arm-none-eabi-size %s&quot; % outname )
++  os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+-  os.system( &quot;arm-none-eabi-objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
+-  os.system( &quot;arm-none-eabi-objcopy -O ihex %s %s.hex&quot; % ( outname, output ) )
++  os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
++  os.system( &quot;%s -O ihex %s %s.hex&quot; % ( toolset[ 'bin' ], outname, output ) )
+   
+ tools[ 'stm32' ][ 'progfunc' ] = progfunc_stm32
++
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/stm32/platform_conf.h	2009-02-23 13:56:21 UTC (rev 213)
+@@ -5,6 +5,7 @@
+ 
+ #include &quot;auxmods.h&quot;
+ #include &quot;type.h&quot;
++#include &quot;stacks.h&quot;
+ 
+ // *****************************************************************************
+ // Define here what components you want for this platform
+@@ -18,7 +19,6 @@
+ //#define BUILD_DNS
+ #define BUILD_CON_GENERIC
+ //#define BUILD_CON_TCP
+-#define EXTENDED_PLATFORM_DATA
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -34,24 +34,14 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++#ifdef FORSTM3210E_EVAL
+ #define AUXLIB_LCD      &quot;stm3210lcd&quot;
+ LUALIB_API int ( luaopen_lcd )( lua_State* L );
+-
+-#if 0
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_SPI, luaopen_spi },\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PWM, luaopen_pwm },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { AUXLIB_NET, luaopen_net },\
+-  { AUXLIB_CPU, luaopen_cpu },\
+-  { LUA_MATHLIBNAME, luaopen_math }
++#define LCDLINE  _ROM( AUXLIB_LCD, luaopen_lcd, lcd_map )
+ #else
++#define LCDLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+@@ -60,9 +50,8 @@
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+-  _ROM( AUXLIB_LCD, luaopen_lcd, lcd_map )\
++  LCDLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+-#endif
+ 
+ // *****************************************************************************
+ // Configuration data
+@@ -117,10 +106,9 @@
+ 
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+-#define STACK_SIZE            256
+ #define SRAM_SIZE             ( 64 * 1024 )
+ #define MEM_START_ADDRESS     { ( void* )end }
+-#define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + SRAM_SIZE - STACK_SIZE - 1 ) }
++#define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ) }
+ 
+ // *****************************************************************************
+ // CPU constants that should be exposed to the eLua &quot;cpu&quot; module
+
+Added: trunk/src/platform/stm32/stacks.h
+===================================================================
+--- trunk/src/platform/stm32/stacks.h	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/stm32/stacks.h	2009-02-23 13:56:21 UTC (rev 213)
+@@ -0,0 +1,9 @@
++// Stack size definitions
++
++#ifndef __STACKS_H__
++#define __STACKS_H__
++
++#define  STACK_SIZE       2048
++#define  STACK_SIZE_TOTAL ( STACK_SIZE )
++
++#endif
+
+Modified: trunk/src/platform/stm32/stm32.ld
+===================================================================
+--- trunk/src/platform/stm32/stm32.ld	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/stm32/stm32.ld	2009-02-23 13:56:21 UTC (rev 213)
+@@ -1,244 +1,66 @@
+-/*
+-Default linker script for STM32F10x_512K_64K
+-Copyright RAISONANCE S.A.S. 2008
+-*/
+-
+-/* include the common STM32F10x sub-script */
+-
+-/* Common part of the linker scripts for STM32 devices*/
+-
+-
+-/* default stack sizes. 
+-
+-These are used by the startup in order to allocate stacks for the different modes.
+-*/
+-
+-__Stack_Size = 2048 ;
+-
+-PROVIDE ( _Stack_Size = __Stack_Size ) ;
+-
+-__Stack_Init = _estack  - __Stack_Size ;
+-
+-/*&quot;PROVIDE&quot; allows to easily override these values from an object file or the commmand line.*/
+-PROVIDE ( _Stack_Init = __Stack_Init ) ;
+-
+-/*
+-There will be a link error if there is not this amount of RAM free at the end.
+-*/
+-_Minimum_Stack_Size = 0x100 ;
+-
+-
+-/* include the memory spaces definitions sub-script */
+-/*
+-Linker subscript for STM32F10x definitions with 512K Flash and 64K RAM */
+-
+-/* Memory Spaces Definitions */
+-
+-MEMORY
+-{
+-  RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 64K
+-  EXTSRAM (xrw) : ORIGIN = 0x68000000, LENGTH = 8192K
+-  FLASH (rx) : ORIGIN = 0x8000000, LENGTH = 512K
+-  FLASHB1 (rx) : ORIGIN = 0x00000000, LENGTH = 0
+-  EXTMEMB0 (rx) : ORIGIN = 0x00000000, LENGTH = 0
+-  EXTMEMB1 (rx) : ORIGIN = 0x00000000, LENGTH = 0
+-  EXTMEMB2 (rx) : ORIGIN = 0x00000000, LENGTH = 0
+-  EXTMEMB3 (rx) : ORIGIN = 0x00000000, LENGTH = 0
+-}
+-
+-/* higher address of the user mode stack */
+-_estack = 0x20010000;
+-
+-
+-
+-/* include the sections management sub-script for FLASH mode */
+-
+-/* Sections Definitions */
+-
+-SECTIONS
+-{
+-    /* for Cortex devices, the beginning of the startup code is stored in the .isr_vector section, which goes to FLASH */
+-    .isr_vector :
+-    {
+-	. = ALIGN(4);
+-        KEEP(*(.isr_vector))            /* Startup code */
+-	. = ALIGN(4);
+-    } &gt;FLASH
+- 
+-    /* for some STRx devices, the beginning of the startup code is stored in the .flashtext section, which goes to FLASH */
+-    .flashtext :
+-    {
+-	. = ALIGN(4);
+-        *(.flashtext)            /* Startup code */
+-	. = ALIGN(4);
+-    } &gt;FLASH
+- 
+-    /* the program code is stored in the .text section, which goes to Flash */
+-    .text :
+-    {
+-	    . = ALIGN(4);
+-        PROVIDE(stext = .);	    
+-        *(.text)                   /* remaining code */
+-        *(.text.*)                   /* remaining code */
+-        *(.rodata)                 /* read-only data (constants) */
+-        *(.rodata*)
+-        *(.glue_7)
+-        *(.glue_7t)
+-
+-	    . = ALIGN(4);
+-   	  _etext = .;
+-     PROVIDE(etext = .);
+-	    /* This is used by the startup in order to initialize the .data secion */
+-   	 _sidata = _etext;
+-    } &gt;FLASH
+-    
+- 
+-
+-    /* This is the initialized data section
+-    The program executes knowing that the data is in the RAM
+-    but the loader puts the initial values in the FLASH (inidata).
+-    It is one task of the startup to copy the initial values from FLASH to RAM. */
+-    .data  : AT ( _sidata )
+-    {
+-	    . = ALIGN(4);
+-        /* This is used by the startup in order to initialize the .data secion */
+-        _sdata = . ;
+-        
+-        *(.data)
+-        *(.data.*)
+-
+-	    . = ALIGN(4);
+-	    /* This is used by the startup in order to initialize the .data secion */
+-   	 _edata = . ;
+-    } &gt;RAM
+-    
+-    
+-
+-    /* This is the uninitialized data section */
+-    .bss :
+-    {
+-	    . = ALIGN(4);
+-        /* This is used by the startup in order to initialize the .bss secion */
+-        _sbss = .;
+-        
+-        *(.bss)
+-        *(.bss.*)
+-        *(COMMON)
+-        
+-	    . = ALIGN(4);
+-	    /* This is used by the startup in order to initialize the .bss secion */
+-   	 _ebss = . ;
+-    } &gt;RAM
+-    
+-    PROVIDE ( end = _ebss );
+-    PROVIDE ( _end = _ebss );
+-    
+-    /* This is the user stack section 
+-    This is just to check that there is enough RAM left for the User mode stack
+-    It should generate an error if it's full.
+-     */
+-    ._usrstack :
+-    {
+-	    . = ALIGN(4);
+-        _susrstack = . ;
+-        
+-        . = . + _Minimum_Stack_Size ;
+-        
+-	    . = ALIGN(4);
+-        _eusrstack = . ;
+-    } &gt;RAM
+-    
+-
+-   
+-    /* this is the FLASH Bank1 */
+-    /* the C or assembly source must explicitly place the code or data there
+-    using the &quot;section&quot; attribute */
+-    .b1text :
+-    {
+-        *(.b1text)                   /* remaining code */
+-        *(.b1rodata)                 /* read-only data (constants) */
+-        *(.b1rodata*)
+-    } &gt;FLASHB1
+-    
+-    /* this is the EXTMEM */
+-    /* the C or assembly source must explicitly place the code or data there
+-    using the &quot;section&quot; attribute */
+-    
+-    /* EXTMEM Bank0 */
+-    .eb0text :
+-    {
+-        *(.eb0text)                   /* remaining code */
+-        *(.eb0rodata)                 /* read-only data (constants) */
+-        *(.eb0rodata*)
+-    } &gt;EXTMEMB0
+-    
+-    /* EXTMEM Bank1 */
+-    .eb1text :
+-    {
+-        *(.eb1text)                   /* remaining code */
+-        *(.eb1rodata)                 /* read-only data (constants) */
+-        *(.eb1rodata*)
+-    } &gt;EXTMEMB1
+-    
+-    /* EXTMEM Bank2 */
+-    .eb2text :
+-    {
+-        *(.eb2text)                   /* remaining code */
+-        *(.eb2rodata)                 /* read-only data (constants) */
+-        *(.eb2rodata*)
+-    } &gt;EXTMEMB2
+-    
+-    /* EXTMEM Bank0 */
+-    .eb3text :
+-    {
+-        *(.eb3text)                   /* remaining code */
+-        *(.eb3rodata)                 /* read-only data (constants) */
+-        *(.eb3rodata*)
+-    } &gt;EXTMEMB3
+-    
+-    
+-    
+-    /* after that it's only debugging information. */
+-    
+-    /* remove the debugging information from the standard libraries */
+-    DISCARD :
+-    {
+-     libc.a ( * )
+-     libm.a ( * )
+-     libgcc.a ( * )
+-     }
+-
+-    /* Stabs debugging sections.  */
+-    .stab          0 : { *(.stab) }
+-    .stabstr       0 : { *(.stabstr) }
+-    .stab.excl     0 : { *(.stab.excl) }
+-    .stab.exclstr  0 : { *(.stab.exclstr) }
+-    .stab.index    0 : { *(.stab.index) }
+-    .stab.indexstr 0 : { *(.stab.indexstr) }
+-    .comment       0 : { *(.comment) }
+-    /* DWARF debug sections.
+-       Symbols in the DWARF debugging sections are relative to the beginning
+-       of the section so we begin them at 0.  */
+-    /* DWARF 1 */
+-    .debug          0 : { *(.debug) }
+-    .line           0 : { *(.line) }
+-    /* GNU DWARF 1 extensions */
+-    .debug_srcinfo  0 : { *(.debug_srcinfo) }
+-    .debug_sfnames  0 : { *(.debug_sfnames) }
+-    /* DWARF 1.1 and DWARF 2 */
+-    .debug_aranges  0 : { *(.debug_aranges) }
+-    .debug_pubnames 0 : { *(.debug_pubnames) }
+-    /* DWARF 2 */
+-    .debug_info     0 : { *(.debug_info .gnu.linkonce.wi.*) }
+-    .debug_abbrev   0 : { *(.debug_abbrev) }
+-    .debug_line     0 : { *(.debug_line) }
+-    .debug_frame    0 : { *(.debug_frame) }
+-    .debug_str      0 : { *(.debug_str) }
+-    .debug_loc      0 : { *(.debug_loc) }
+-    .debug_macinfo  0 : { *(.debug_macinfo) }
+-    /* SGI/MIPS DWARF 2 extensions */
+-    .debug_weaknames 0 : { *(.debug_weaknames) }
+-    .debug_funcnames 0 : { *(.debug_funcnames) }
+-    .debug_typenames 0 : { *(.debug_typenames) }
+-    .debug_varnames  0 : { *(.debug_varnames) }
+-}
++MEMORY
++{
++    sram (W!RX) : ORIGIN = 0x20000000, LENGTH = 64k
++    flash (RX) : ORIGIN = 0x08000000, LENGTH = 512k
++}
++
++SECTIONS
++{  
++    .text :
++    {
++        . = ALIGN(4);
++        _text = .;
++        PROVIDE(stext = .);
++        KEEP(*(.isr_vector))
++        KEEP(*(.init))
++        *(.text .text.*)        
++        *(.rodata .rodata.*)        
++        *(.gnu.linkonce.t.*)
++        *(.glue_7)
++        *(.glue_7t)
++        *(.gcc_except_table)
++        *(.gnu.linkonce.r.*)
++        . = ALIGN(4);
++        _etext = .;
++        PROVIDE(etext = .);   
++     		_fini = . ;
++				*(.fini)
++
++    } &gt;flash
++
++    .data : AT (_etext)
++    {
++        . = ALIGN(4);
++        _data = .;
++        *(.ramfunc .ramfunc.* .fastrun .fastrun.*)
++        *(.data .data.*)
++        *(.gnu.linkonce.d.*)
++        . = ALIGN(4);
++        _edata = .;
++    } &gt;sram
++		
++		.ARM.extab :
++		{
++		    *(.ARM.extab*)
++		} &gt;sram
++		
++		__exidx_start = .;
++		.ARM.exidx :
++		{
++		    *(.ARM.exidx*)
++		} &gt;sram
++		__exidx_end = .;
++		
++    .bss (NOLOAD) : {
++        _bss = .;
++        *(.bss .bss.*)
++        *(.gnu.linkonce.b.*)
++        *(COMMON)
++        . = ALIGN(4);        
++        _ebss = .;
++    } &gt;sram
++    
++    end = .;
++    PROVIDE( _estack = 0x20010000 );
++}
++
+
+Modified: trunk/src/platform/stm32/stm32f10x_vector.c
+===================================================================
+--- trunk/src/platform/stm32/stm32f10x_vector.c	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/stm32/stm32f10x_vector.c	2009-02-23 13:56:21 UTC (rev 213)
+@@ -1,215 +1,214 @@
+-/******************** (C) COPYRIGHT 2008 STMicroelectronics ********************
+-* File Name          : stm32f10x_vector.c
+-* Author             : MCD Application Team
+-* Version            : V2.0.3
+-* Date               : 09/22/2008
+-* Description        : STM32F10x vector table for RIDE7 toolchain.
+-*                      This module performs:
+-*                      - Set the initial SP
+-*                      - Set the initial PC == Reset_Handler,
+-*                      - Set the vector table entries with the exceptions ISR address,
+-*                      - Configure external SRAM mounted on STM3210E-EVAL board
+-*                       to be used as data memory (optional, to be enabled by user)
+-*                      - Branches to main in the C library (which eventually
+-*                        calls main()).
+-*                      After Reset the Cortex-M3 processor is in Thread mode,
+-*                      priority is Privileged, and the Stack is set to Main.
+-********************************************************************************
+-* THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
+-* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
+-* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
+-* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
+-* CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
+-* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
+-*******************************************************************************/
+-/* Includes ------------------------------------------------------------------*/
+-#include &quot;stm32f10x_lib.h&quot;
+-#include &quot;stm32f10x_it.h&quot;
+-
+-/* Private typedef -----------------------------------------------------------*/
+-typedef void( *intfunc )( void );
+-typedef union { intfunc __fun; void * __ptr; } intvec_elem;
+-
+-/* Private define ------------------------------------------------------------*/
+-/* Uncomment the following line if you need to use external SRAM mounted on
+-   STM3210E-EVAL board as data memory */
+-   
+-/* #define DATA_IN_ExtSRAM */ 
+-
+-/* Private macro -------------------------------------------------------------*/
+-extern unsigned long _etext;
+-/* start address for the initialization values of the .data section. 
+-defined in linker script */
+-extern unsigned long _sidata;
+-
+-/* start address for the .data section. defined in linker script */		
+-extern unsigned long _sdata;
+-
+-/* end address for the .data section. defined in linker script */		
+-extern unsigned long _edata;
+-		
+-/* start address for the .bss section. defined in linker script */
+-extern unsigned long _sbss;
+-
+-/* end address for the .bss section. defined in linker script */			
+-extern unsigned long _ebss;	
+-		
+-/* init value for the stack pointer. defined in linker script */
+-extern void _estack;	
+-	
+-/* Private variables ---------------------------------------------------------*/
+-/* Private function prototypes -----------------------------------------------*/
+-void Reset_Handler(void) __attribute__((__interrupt__));
+-extern int main(void);
+-/* Private functions ---------------------------------------------------------*/
+-
+-__attribute__ ((section(&quot;.isr_vector&quot;)))
+-void (* const g_pfnVectors[])(void) =
+-{
+-  &amp;_estack,            /* The initial stack pointer*/
+-  Reset_Handler,             /* The reset handler*/
+-  NMIException,
+-  HardFaultException,
+-  MemManageException,
+-  BusFaultException,
+-  UsageFaultException,
+-  0, 0, 0, 0,            /* Reserved */ 
+-  SVCHandler,
+-  DebugMonitor,
+-  0,                      /* Reserved */
+-  PendSVC,
+-  SysTickHandler,
+-  WWDG_IRQHandler,
+-  PVD_IRQHandler,
+-  TAMPER_IRQHandler,
+-  RTC_IRQHandler,
+-  FLASH_IRQHandler,
+-  RCC_IRQHandler,
+-  EXTI0_IRQHandler,
+-  EXTI1_IRQHandler,
+-  EXTI2_IRQHandler,
+-  EXTI3_IRQHandler,
+-  EXTI4_IRQHandler,
+-  DMA1_Channel1_IRQHandler,
+-  DMA1_Channel2_IRQHandler,
+-  DMA1_Channel3_IRQHandler,
+-  DMA1_Channel4_IRQHandler,
+-  DMA1_Channel5_IRQHandler,
+-  DMA1_Channel6_IRQHandler,
+-  DMA1_Channel7_IRQHandler,
+-  ADC1_2_IRQHandler,
+-  USB_HP_CAN_TX_IRQHandler,
+-  USB_LP_CAN_RX0_IRQHandler,
+-  CAN_RX1_IRQHandler,
+-  CAN_SCE_IRQHandler,
+-  EXTI9_5_IRQHandler,
+-  TIM1_BRK_IRQHandler,
+-  TIM1_UP_IRQHandler,
+-  TIM1_TRG_COM_IRQHandler,
+-  TIM1_CC_IRQHandler,
+-  TIM2_IRQHandler,
+-  TIM3_IRQHandler,
+-  TIM4_IRQHandler,
+-  I2C1_EV_IRQHandler,
+-  I2C1_ER_IRQHandler,
+-  I2C2_EV_IRQHandler,
+-  I2C2_ER_IRQHandler,
+-  SPI1_IRQHandler,
+-  SPI2_IRQHandler,
+-  USART1_IRQHandler,
+-  USART2_IRQHandler,
+-  USART3_IRQHandler,
+-  EXTI15_10_IRQHandler,
+-  RTCAlarm_IRQHandler,
+-  USBWakeUp_IRQHandler,
+-  TIM8_BRK_IRQHandler,
+-  TIM8_UP_IRQHandler,
+-  TIM8_TRG_COM_IRQHandler,
+-  TIM8_CC_IRQHandler,
+-  ADC3_IRQHandler,
+-  FSMC_IRQHandler,
+-  SDIO_IRQHandler,
+-  TIM5_IRQHandler,
+-  SPI3_IRQHandler,
+-  UART4_IRQHandler,
+-  UART5_IRQHandler,
+-  TIM6_IRQHandler,
+-  TIM7_IRQHandler,
+-  DMA2_Channel1_IRQHandler,
+-  DMA2_Channel2_IRQHandler,
+-  DMA2_Channel3_IRQHandler,
+-  DMA2_Channel4_5_IRQHandler,  
+-};
+-
+-/*******************************************************************************
+-* Function Name  : Reset_Handler
+-* Description    : This is the code that gets called when the processor first
+-*                  starts execution following a reset event. Only the absolutely
+-*                  necessary set is performed, after which the application
+-*                  supplied main() routine is called. 
+-* Input          :
+-* Output         :
+-* Return         :
+-*******************************************************************************/
+-void Reset_Handler(void)
+-{
+-unsigned long *pulSrc, *pulDest;
+-
+-#ifdef DATA_IN_ExtSRAM
+-
+-/* FSMC Bank1 NOR/SRAM3 is used for the STM3210E-EVAL, if another Bank is 
+-  required, then adjust the Register Addresses*/
+-
+-  /* Enable FSMC clock */
+-  *(vu32 *)0x40021014 = 0x00000114;
+-  
+-  /* Enable GPIOD, GPIOE, GPIOF and GPIOG clocks */  
+-  *(vu32 *)0x40021018 = 0x000001E0;
+-  
+-/* ---------------  SRAM Data lines, NOE and NWE configuration ---------------*/
+-/*----------------  SRAM Address lines configuration -------------------------*/
+-/*----------------  NOE and NWE configuration --------------------------------*/  
+-/*----------------  NE3 configuration ----------------------------------------*/
+-/*----------------  NBL0, NBL1 configuration ---------------------------------*/
+-  
+-  *(vu32 *)0x40011400 = 0x44BB44BB;
+-  *(vu32 *)0x40011404 = 0xBBBBBBBB;
+-  
+-  *(vu32 *)0x40011800 = 0xB44444BB;
+-  *(vu32 *)0x40011804 = 0xBBBBBBBB;
+-   
+-  *(vu32 *)0x40011C00 = 0x44BBBBBB;
+-  *(vu32 *)0x40011C04 = 0xBBBB4444;  
+-
+-  *(vu32 *)0x40012000 = 0x44BBBBBB;
+-  *(vu32 *)0x40012004 = 0x44444B44;
+-  
+-/*----------------  FSMC Configuration ---------------------------------------*/  
+-/*----------------  Enable FSMC Bank1_SRAM Bank ------------------------------*/
+-  
+-  *(vu32 *)0xA0000010 = 0x00001011;
+-  *(vu32 *)0xA0000014 = 0x00000200;
+-    
+-#endif /*DATA_IN_ExtSRAM*/
+-
+-
+-/* Copy the data segment initializers from flash to SRAM */
+-    pulSrc = &amp;_sidata;
+-    for(pulDest = &amp;_sdata; pulDest &lt; &amp;_edata; )
+-    {
+-        *(pulDest++) = *(pulSrc++);
+-    }
+-/* Zero fill the bss segment.  */
+-    for(pulDest = &amp;_sbss; pulDest &lt; &amp;_ebss; )
+-    {
+-        *(pulDest++) = 0;
+-    }
+-
+-/* Call the application's entry point.*/
+-    main();
+-}
+-
+-
+-/******************* (C) COPYRIGHT 2008 STMicroelectronics *****END OF FILE****/
+-
+-
++/******************** (C) COPYRIGHT 2008 STMicroelectronics ********************
++* File Name          : stm32f10x_vector.c
++* Author             : MCD Application Team
++* Version            : V2.0.3
++* Date               : 09/22/2008
++* Description        : STM32F10x vector table for RIDE7 toolchain.
++*                      This module performs:
++*                      - Set the initial SP
++*                      - Set the initial PC == Reset_Handler,
++*                      - Set the vector table entries with the exceptions ISR address,
++*                      - Configure external SRAM mounted on STM3210E-EVAL board
++*                       to be used as data memory (optional, to be enabled by user)
++*                      - Branches to main in the C library (which eventually
++*                        calls main()).
++*                      After Reset the Cortex-M3 processor is in Thread mode,
++*                      priority is Privileged, and the Stack is set to Main.
++********************************************************************************
++* THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++/* Includes ------------------------------------------------------------------*/
++#include &quot;stm32f10x_lib.h&quot;
++#include &quot;stm32f10x_it.h&quot;
++
++/* Private typedef -----------------------------------------------------------*/
++typedef void( *intfunc )( void );
++typedef union { intfunc __fun; void * __ptr; } intvec_elem;
++
++/* Private define ------------------------------------------------------------*/
++/* Uncomment the following line if you need to use external SRAM mounted on
++   STM3210E-EVAL board as data memory */
++   
++/* #define DATA_IN_ExtSRAM */ 
++
++/* Private macro -------------------------------------------------------------*/
++extern unsigned long _etext;
++/* start address for the initialization values of the .data section. 
++defined in linker script */
++
++/* start address for the .data section. defined in linker script */		
++extern unsigned long _data;
++
++/* end address for the .data section. defined in linker script */		
++extern unsigned long _edata;
++		
++/* start address for the .bss section. defined in linker script */
++extern unsigned long _bss;
++
++/* end address for the .bss section. defined in linker script */			
++extern unsigned long _ebss;	
++		
++/* init value for the stack pointer. defined in linker script */
++extern void _estack;	
++	
++/* Private variables ---------------------------------------------------------*/
++/* Private function prototypes -----------------------------------------------*/
++void Reset_Handler(void) __attribute__((__interrupt__));
++extern int main(void);
++/* Private functions ---------------------------------------------------------*/
++
++__attribute__ ((section(&quot;.isr_vector&quot;)))
++void (* const g_pfnVectors[])(void) =
++{
++  &amp;_estack,            /* The initial stack pointer*/
++  Reset_Handler,             /* The reset handler*/
++  NMIException,
++  HardFaultException,
++  MemManageException,
++  BusFaultException,
++  UsageFaultException,
++  0, 0, 0, 0,            /* Reserved */ 
++  SVCHandler,
++  DebugMonitor,
++  0,                      /* Reserved */
++  PendSVC,
++  SysTickHandler,
++  WWDG_IRQHandler,
++  PVD_IRQHandler,
++  TAMPER_IRQHandler,
++  RTC_IRQHandler,
++  FLASH_IRQHandler,
++  RCC_IRQHandler,
++  EXTI0_IRQHandler,
++  EXTI1_IRQHandler,
++  EXTI2_IRQHandler,
++  EXTI3_IRQHandler,
++  EXTI4_IRQHandler,
++  DMA1_Channel1_IRQHandler,
++  DMA1_Channel2_IRQHandler,
++  DMA1_Channel3_IRQHandler,
++  DMA1_Channel4_IRQHandler,
++  DMA1_Channel5_IRQHandler,
++  DMA1_Channel6_IRQHandler,
++  DMA1_Channel7_IRQHandler,
++  ADC1_2_IRQHandler,
++  USB_HP_CAN_TX_IRQHandler,
++  USB_LP_CAN_RX0_IRQHandler,
++  CAN_RX1_IRQHandler,
++  CAN_SCE_IRQHandler,
++  EXTI9_5_IRQHandler,
++  TIM1_BRK_IRQHandler,
++  TIM1_UP_IRQHandler,
++  TIM1_TRG_COM_IRQHandler,
++  TIM1_CC_IRQHandler,
++  TIM2_IRQHandler,
++  TIM3_IRQHandler,
++  TIM4_IRQHandler,
++  I2C1_EV_IRQHandler,
++  I2C1_ER_IRQHandler,
++  I2C2_EV_IRQHandler,
++  I2C2_ER_IRQHandler,
++  SPI1_IRQHandler,
++  SPI2_IRQHandler,
++  USART1_IRQHandler,
++  USART2_IRQHandler,
++  USART3_IRQHandler,
++  EXTI15_10_IRQHandler,
++  RTCAlarm_IRQHandler,
++  USBWakeUp_IRQHandler,
++  TIM8_BRK_IRQHandler,
++  TIM8_UP_IRQHandler,
++  TIM8_TRG_COM_IRQHandler,
++  TIM8_CC_IRQHandler,
++  ADC3_IRQHandler,
++  FSMC_IRQHandler,
++  SDIO_IRQHandler,
++  TIM5_IRQHandler,
++  SPI3_IRQHandler,
++  UART4_IRQHandler,
++  UART5_IRQHandler,
++  TIM6_IRQHandler,
++  TIM7_IRQHandler,
++  DMA2_Channel1_IRQHandler,
++  DMA2_Channel2_IRQHandler,
++  DMA2_Channel3_IRQHandler,
++  DMA2_Channel4_5_IRQHandler,  
++};
++
++/*******************************************************************************
++* Function Name  : Reset_Handler
++* Description    : This is the code that gets called when the processor first
++*                  starts execution following a reset event. Only the absolutely
++*                  necessary set is performed, after which the application
++*                  supplied main() routine is called. 
++* Input          :
++* Output         :
++* Return         :
++*******************************************************************************/
++void Reset_Handler(void)
++{
++unsigned long *pulSrc, *pulDest;
++
++#ifdef DATA_IN_ExtSRAM
++
++/* FSMC Bank1 NOR/SRAM3 is used for the STM3210E-EVAL, if another Bank is 
++  required, then adjust the Register Addresses*/
++
++  /* Enable FSMC clock */
++  *(vu32 *)0x40021014 = 0x00000114;
++  
++  /* Enable GPIOD, GPIOE, GPIOF and GPIOG clocks */  
++  *(vu32 *)0x40021018 = 0x000001E0;
++  
++/* ---------------  SRAM Data lines, NOE and NWE configuration ---------------*/
++/*----------------  SRAM Address lines configuration -------------------------*/
++/*----------------  NOE and NWE configuration --------------------------------*/  
++/*----------------  NE3 configuration ----------------------------------------*/
++/*----------------  NBL0, NBL1 configuration ---------------------------------*/
++  
++  *(vu32 *)0x40011400 = 0x44BB44BB;
++  *(vu32 *)0x40011404 = 0xBBBBBBBB;
++  
++  *(vu32 *)0x40011800 = 0xB44444BB;
++  *(vu32 *)0x40011804 = 0xBBBBBBBB;
++   
++  *(vu32 *)0x40011C00 = 0x44BBBBBB;
++  *(vu32 *)0x40011C04 = 0xBBBB4444;  
++
++  *(vu32 *)0x40012000 = 0x44BBBBBB;
++  *(vu32 *)0x40012004 = 0x44444B44;
++  
++/*----------------  FSMC Configuration ---------------------------------------*/  
++/*----------------  Enable FSMC Bank1_SRAM Bank ------------------------------*/
++  
++  *(vu32 *)0xA0000010 = 0x00001011;
++  *(vu32 *)0xA0000014 = 0x00000200;
++    
++#endif /*DATA_IN_ExtSRAM*/
++
++
++/* Copy the data segment initializers from flash to SRAM */
++    pulSrc = &amp;_etext;
++    for(pulDest = &amp;_data; pulDest &lt; &amp;_edata; )
++    {
++        *(pulDest++) = *(pulSrc++);
++    }
++/* Zero fill the bss segment.  */
++    for(pulDest = &amp;_bss; pulDest &lt; &amp;_ebss; )
++    {
++        *(pulDest++) = 0;
++    }
++
++/* Call the application's entry point.*/
++    main();
++}
++
++
++/******************* (C) COPYRIGHT 2008 STMicroelectronics *****END OF FILE****/
++
++
+
+Modified: trunk/src/platform/stm32/systick.c
+===================================================================
+--- trunk/src/platform/stm32/systick.c	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/stm32/systick.c	2009-02-23 13:56:21 UTC (rev 213)
+@@ -1,66 +1,66 @@
+-#include &lt;stdio.h&gt;
+-
+-#include &quot;stm32f10x_lib.h&quot;
+-#include &quot;stm32f10x_systick.h&quot;
+-
+-static vu32 TimingDelay = 0;
+-
+-/*******************************************************************************
+-* Function Name  : SysTick_Config
+-* Description    : Configure a SysTick Base time to 10 ms.
+-* Input          : None
+-* Output         : None
+-* Return         : None
+-*******************************************************************************/
+-void SysTick_Config(void)
+-{
+-  /* Configure HCLK clock as SysTick clock source */
+-  SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK);
+- 
+-  /* SysTick interrupt each 100 Hz with HCLK equal to 72MHz */
+-  SysTick_SetReload(720000);
+-
+-  /* Enable the SysTick Interrupt */
+-  SysTick_ITConfig(ENABLE);
+-}
+-
+-/*******************************************************************************
+-* Function Name  : Delay
+-* Description    : Inserts a delay time.
+-* Input          : nCount: specifies the delay time length (time base 10 ms).
+-* Output         : None
+-* Return         : None
+-*******************************************************************************/
+-void Delay(u32 nCount)
+-{
+-  printf(&quot;Delay(%d)\n&quot;, nCount);
+-  TimingDelay = nCount;
+-
+-  /* Enable the SysTick Counter */
+-  SysTick_CounterCmd(SysTick_Counter_Enable);
+-  
+-  while(TimingDelay != 0)
+-  {
+-  }
+-
+-  /* Disable the SysTick Counter */
+-  SysTick_CounterCmd(SysTick_Counter_Disable);
+-
+-  /* Clear the SysTick Counter */
+-  SysTick_CounterCmd(SysTick_Counter_Clear);
+-}
+-
+-/*******************************************************************************
+-* Function Name  : Decrement_TimingDelay
+-* Description    : Decrements the TimingDelay variable.
+-* Input          : None
+-* Output         : TimingDelay
+-* Return         : None
+-*******************************************************************************/
+-void Decrement_TimingDelay(void)
+-{
+-  if (TimingDelay != 0x00)
+-  {
+-    TimingDelay--;
+-  }
+-}
++#include &lt;stdio.h&gt;
++
++#include &quot;stm32f10x_lib.h&quot;
++#include &quot;stm32f10x_systick.h&quot;
++
++static vu32 TimingDelay = 0;
++
++/*******************************************************************************
++* Function Name  : SysTick_Config
++* Description    : Configure a SysTick Base time to 10 ms.
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void SysTick_Config(void)
++{
++  /* Configure HCLK clock as SysTick clock source */
++  SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK);
++ 
++  /* SysTick interrupt each 100 Hz with HCLK equal to 72MHz */
++  SysTick_SetReload(720000);
++
++  /* Enable the SysTick Interrupt */
++  SysTick_ITConfig(ENABLE);
++}
++
++/*******************************************************************************
++* Function Name  : Delay
++* Description    : Inserts a delay time.
++* Input          : nCount: specifies the delay time length (time base 10 ms).
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void Delay(u32 nCount)
++{
++  printf(&quot;Delay(%u)\n&quot;, (unsigned)nCount);
++  TimingDelay = nCount;
++
++  /* Enable the SysTick Counter */
++  SysTick_CounterCmd(SysTick_Counter_Enable);
++  
++  while(TimingDelay != 0)
++  {
++  }
++
++  /* Disable the SysTick Counter */
++  SysTick_CounterCmd(SysTick_Counter_Disable);
++
++  /* Clear the SysTick Counter */
++  SysTick_CounterCmd(SysTick_Counter_Clear);
++}
++
++/*******************************************************************************
++* Function Name  : Decrement_TimingDelay
++* Description    : Decrements the TimingDelay variable.
++* Input          : None
++* Output         : TimingDelay
++* Return         : None
++*******************************************************************************/
++void Decrement_TimingDelay(void)
++{
++  if (TimingDelay != 0x00)
++  {
++    TimingDelay--;
++  }
++}
+
+Modified: trunk/src/platform/str7/conf.py
+===================================================================
+--- trunk/src/platform/str7/conf.py	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/str7/conf.py	2009-02-23 13:56:21 UTC (rev 213)
+@@ -24,15 +24,15 @@
+ 
+ # Toolset data
+ tools[ 'str7' ] = {}
+-tools[ 'str7' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=arm7tdmi %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( modeflag, opt, local_include, cdefs )
+-tools[ 'str7' ][ 'linkcom' ] = &quot;arm-elf-gcc -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,entry -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( modeflag, ldscript, local_libs )
+-tools[ 'str7' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, modeflag, cdefs )
++tools[ 'str7' ][ 'cccom' ] = &quot;%s -mcpu=arm7tdmi %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, opt, local_include, cdefs )
++tools[ 'str7' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,entry -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
++tools[ 'str7' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_str7( target, source, env ):
+   outname = output + &quot;.elf&quot;
+-  os.system( &quot;arm-elf-size %s&quot; % outname )
++  os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+-  os.system( &quot;arm-elf-objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
++  os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
+   
+ tools[ 'str7' ][ 'progfunc' ] = progfunc_str7
+
+Modified: trunk/src/platform/str7/str711fr2.lds
+===================================================================
+--- trunk/src/platform/str7/str711fr2.lds	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/str7/str711fr2.lds	2009-02-23 13:56:21 UTC (rev 213)
+@@ -27,6 +27,8 @@
+         . = ALIGN(4);
+         _efixed = .;
+         PROVIDE(etext = .);        
++         _fini = .;
++        *(.fini)
+     } &gt;flash
+ 
+     .relocate : AT (_efixed)
+@@ -40,6 +42,18 @@
+         _erelocate = .;
+     } &gt;sram
+ 
++     .ARM.extab :
++    {
++        *(.ARM.extab*)
++    } &gt;sram
++
++    __exidx_start = .;
++    .ARM.exidx :
++    {
++        *(.ARM.exidx*)
++    } &gt;sram
++     __exidx_end = .;
++
+     .bss (NOLOAD) : {
+         _szero = .;
+         *(.bss .bss.*)
+
+Modified: trunk/src/platform/str9/conf.py
+===================================================================
+--- trunk/src/platform/str9/conf.py	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/str9/conf.py	2009-02-23 13:56:21 UTC (rev 213)
+@@ -26,15 +26,15 @@
+ 
+ # Toolset data
+ tools[ 'str9' ] = {}
+-tools[ 'str9' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=arm966e-s -mfpu=fpa %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, modeflag, cdefs )
+-tools[ 'str9' ][ 'linkcom' ] = &quot;arm-elf-gcc -mcpu=arm966e-s -mfpu=fpa -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,_startup -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( modeflag, ldscript, local_libs )
+-tools[ 'str9' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=arm966e-s -mfpu=fpa %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, modeflag, cdefs )
++tools[ 'str9' ][ 'cccom' ] = &quot;%s -mcpu=arm966e-s -mfpu=fpa %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile'], opt, local_include, modeflag, cdefs )
++tools[ 'str9' ][ 'linkcom' ] = &quot;%s -mcpu=arm966e-s -mfpu=fpa -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,_startup -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
++tools[ 'str9' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=arm966e-s -mfpu=fpa %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_str9( target, source, env ):
+   outname = output + &quot;.elf&quot;
+-  os.system( &quot;arm-elf-size %s&quot; % outname )
++  os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+-  os.system( &quot;arm-elf-objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
++  os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
+   
+ tools[ 'str9' ][ 'progfunc' ] = progfunc_str9
+
+Modified: trunk/src/platform/str9/str912fw44.lds
+===================================================================
+--- trunk/src/platform/str9/str912fw44.lds	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/platform/str9/str912fw44.lds	2009-02-23 13:56:21 UTC (rev 213)
+@@ -25,6 +25,8 @@
+         . = ALIGN(4);
+         _efixed = .;
+         PROVIDE(etext = .);        
++        _fini = .;
++        *(.fini)
+     } &gt;flash
+ 
+     .relocate : AT (_efixed)
+@@ -37,6 +39,18 @@
+         _erelocate = .;
+     } &gt;sram
+ 
++    .ARM.extab :
++    {
++        *(.ARM.extab*)
++    } &gt;sram
++
++    __exidx_start = .;
++    .ARM.exidx :
++    {
++        *(.ARM.exidx*)
++    } &gt;sram
++     __exidx_end = .;
++
+     .bss (NOLOAD) : {
+         _szero = .;
+         *(.bss .bss.*)
+
+Modified: trunk/src/shell.c
+===================================================================
+--- trunk/src/shell.c	2009-02-23 08:29:21 UTC (rev 212)
++++ trunk/src/shell.c	2009-02-23 13:56:21 UTC (rev 213)
+@@ -136,7 +136,7 @@
+   while( *p == '\x1A' )
+     p --;
+   p ++;
+-  printf( &quot;done, got %ld bytes\n&quot;, p - shell_prog );          
++  printf( &quot;done, got %u bytes\n&quot;, ( unsigned )( p - shell_prog ) );          
+   
+   // Execute
+   if( ( L = lua_open() ) == NULL )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000168.html">[Elua-svn] r212 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000170.html">[Elua-svn] r214 - in trunk: . romfs src/lua src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#169">[ date ]</a>
+              <a href="thread.html#169">[ thread ]</a>
+              <a href="subject.html#169">[ subject ]</a>
+              <a href="author.html#169">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

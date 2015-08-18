@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r447 - trunk/src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r447%20-%20trunk/src/modules&In-Reply-To=%3C200909151745.n8FHjXc2015008%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000402.html">
+   <LINK REL="Next"  HREF="000404.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r447 - trunk/src/modules</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r447%20-%20trunk/src/modules&In-Reply-To=%3C200909151745.n8FHjXc2015008%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r447 - trunk/src/modules">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Sep 15 19:45:33 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000402.html">[Elua-svn] r446 - in trunk: inc src/modules
+</A></li>
+        <LI>Next message: <A HREF="000404.html">[Elua-svn] r448 - trunk/src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#403">[ date ]</a>
+              <a href="thread.html#403">[ thread ]</a>
+              <a href="subject.html#403">[ subject ]</a>
+              <a href="author.html#403">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-09-15 19:45:22 +0200 (Tue, 15 Sep 2009)
+New Revision: 447
+
+Modified:
+   trunk/src/modules/luarpc.c
+Log:
+Tidy up/simplify exception handling.
+
+Modified: trunk/src/modules/luarpc.c
+===================================================================
+--- trunk/src/modules/luarpc.c	2009-09-15 17:44:48 UTC (rev 446)
++++ trunk/src/modules/luarpc.c	2009-09-15 17:45:22 UTC (rev 447)
+@@ -815,21 +815,15 @@
+   {
+     switch( e.type )
+     {
+-      case fatal:
+-        if ( e.errnum == ERR_CLOSED )
+-          my_lua_error( L, errorString( e.errnum ) );
+-        deal_with_error( L, helper-&gt;handle, errorString( e.errnum ) );
+-        transport_close( tpt );
+-        break;
++      deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
+       case nonfatal:
+-        deal_with_error( L, helper-&gt;handle, errorString( e.errnum ) );
+         lua_pushnil( L );
+         return 1;
+         break;
+-      default:
+-        deal_with_error( L, helper-&gt;handle, errorString( e.errnum ) );
++      case fatal:
+         transport_close( tpt );
+         break;
++      default: lua_assert( 0 );
+     }
+   }
+   return freturn;
+@@ -942,21 +936,15 @@
+     {
+       switch( e.type )
+       {
+-        case fatal:
+-          if ( e.errnum == ERR_CLOSED )
+-            my_lua_error( L, &quot;handle is closed&quot; );
+-          deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
+-          transport_close( tpt );
+-          break;
++        deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
+         case nonfatal:
+-          deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
+           lua_pushnil( L );
+           return 1;
+           break;
+-        default:
+-          deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
++        case fatal:
+           transport_close( tpt );
+           break;
++        default: lua_assert( 0 );
+       }
+     }
+   }
+@@ -1005,21 +993,15 @@
+   {
+     switch( e.type )
+     {
+-      case fatal:
+-        if ( e.errnum == ERR_CLOSED )
+-          my_lua_error( L, &quot;handle is closed&quot; );
+-        deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
+-        transport_close( tpt );
+-        break;
++      deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
+       case nonfatal:
+-        deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
+         lua_pushnil( L );
+         return 1;
+         break;
+-      default:
+-        deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
++      case fatal:
+         transport_close( tpt );
+         break;
++      default: lua_assert( 0 );
+     }
+   }
+   return freturn;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000402.html">[Elua-svn] r446 - in trunk: inc src/modules
+</A></li>
+	<LI>Next message: <A HREF="000404.html">[Elua-svn] r448 - trunk/src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#403">[ date ]</a>
+              <a href="thread.html#403">[ thread ]</a>
+              <a href="subject.html#403">[ subject ]</a>
+              <a href="author.html#403">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

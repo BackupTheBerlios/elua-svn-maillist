@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r892 - branches/pre0.8/src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r892%20-%20branches/pre0.8/src/platform/stm32&In-Reply-To=%3C20110124130831.D0164481290%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000844.html">
+   <LINK REL="Next"  HREF="000846.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r892 - branches/pre0.8/src/platform/stm32</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r892%20-%20branches/pre0.8/src/platform/stm32&In-Reply-To=%3C20110124130831.D0164481290%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r892 - branches/pre0.8/src/platform/stm32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Jan 24 14:08:31 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000844.html">[Elua-svn] r891 - trunk/src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000846.html">[Elua-svn] r893 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#845">[ date ]</a>
+              <a href="thread.html#845">[ thread ]</a>
+              <a href="subject.html#845">[ subject ]</a>
+              <a href="author.html#845">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-01-24 14:08:31 +0100 (Mon, 24 Jan 2011)
+New Revision: 892
+
+Modified:
+   branches/pre0.8/src/platform/stm32/platform.c
+Log:
+added proper UART hardware flow control support for STM32
+
+Modified: branches/pre0.8/src/platform/stm32/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/stm32/platform.c	2011-01-20 00:31:11 UTC (rev 891)
++++ branches/pre0.8/src/platform/stm32/platform.c	2011-01-24 13:08:31 UTC (rev 892)
+@@ -533,6 +533,9 @@
+ static GPIO_TypeDef *const usart_gpio_tx_port[] = { GPIOA, GPIOA, GPIOB, GPIOC, GPIOC };
+ static const u16 usart_gpio_rx_pin[] = { GPIO_Pin_10, GPIO_Pin_3, GPIO_Pin_11, GPIO_Pin_11, GPIO_Pin_2 };
+ static const u16 usart_gpio_tx_pin[] = { GPIO_Pin_9, GPIO_Pin_2, GPIO_Pin_10, GPIO_Pin_10, GPIO_Pin_12 };
++static GPIO_TypeDef *const usart_gpio_hwflow_port[] = { GPIOA, GPIOA, GPIOB };
++static const u16 usart_gpio_cts_pin[] = { GPIO_Pin_11, GPIO_Pin_0, GPIO_Pin_13 };
++static const u16 usart_gpio_rts_pin[] = { GPIO_Pin_12, GPIO_Pin_1, GPIO_Pin_14 };
+ 
+ static void usart_init(u32 id, USART_InitTypeDef * initVals)
+ {
+@@ -649,22 +652,37 @@
+ {
+   USART_TypeDef *usart = stm32_usart[ id ]; 
+   int temp = 0;
++  GPIO_InitTypeDef GPIO_InitStructure;
+ 
++  if( id &gt;= 3 ) // on STM32 only USART1 through USART3 have hardware flow control ([TODO] but only on high density devices?)
++    return PLATFORM_ERR;  
++  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
++  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;  
+   if( type == PLATFORM_UART_FLOW_NONE )
+   {
+     usart-&gt;CR3 &amp;= ~USART_HardwareFlowControl_RTS_CTS;
++    GPIO_InitStructure.GPIO_Pin = usart_gpio_rts_pin[ id ] | usart_gpio_cts_pin[ id ];
++    GPIO_Init( usart_gpio_hwflow_port[ id ], &amp;GPIO_InitStructure );      
+     return PLATFORM_OK;
+   }
+-  if( id &gt;= 3 ) // on STM32 only USART1 through USART3 have hardware flow control ([TODO] but only on high density devices?)
+-    return PLATFORM_ERR;
+   if( type &amp; PLATFORM_UART_FLOW_RTS )
++  {
+     temp |= USART_HardwareFlowControl_RTS;
++    GPIO_InitStructure.GPIO_Speed = usart_gpio_rts_pin[ id ];
++    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
++    GPIO_Init( usart_gpio_hwflow_port[ id ], &amp;GPIO_InitStructure );
++  }
+   if( type &amp; PLATFORM_UART_FLOW_CTS )
++  {
+     temp |= USART_HardwareFlowControl_CTS;
++    GPIO_InitStructure.GPIO_Speed = usart_gpio_cts_pin[ id ];
++    GPIO_Init( usart_gpio_hwflow_port[ id ], &amp;GPIO_InitStructure );
++  }
+   usart-&gt;CR3 |= temp;
+   return PLATFORM_OK;
+ }
+ 
++
+ // ****************************************************************************
+ // Timers
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000844.html">[Elua-svn] r891 - trunk/src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000846.html">[Elua-svn] r893 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#845">[ date ]</a>
+              <a href="thread.html#845">[ thread ]</a>
+              <a href="subject.html#845">[ subject ]</a>
+              <a href="author.html#845">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

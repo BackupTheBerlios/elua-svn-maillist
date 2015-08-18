@@ -1,0 +1,304 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r867 - in branches/remotefs_int: inc mux src src/modules	src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r867%20-%20in%20branches/remotefs_int%3A%20inc%20mux%20src%20src/modules%0A%09src/platform/stm32&In-Reply-To=%3C20101219161256.50D82481467%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000819.html">
+   <LINK REL="Next"  HREF="000821.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r867 - in branches/remotefs_int: inc mux src src/modules	src/platform/stm32</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r867%20-%20in%20branches/remotefs_int%3A%20inc%20mux%20src%20src/modules%0A%09src/platform/stm32&In-Reply-To=%3C20101219161256.50D82481467%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r867 - in branches/remotefs_int: inc mux src src/modules	src/platform/stm32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Dec 19 17:12:56 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000819.html">[Elua-svn] r866 - in trunk/src: . platform/avr32/EVK1100	platform/avr32/EVK1101 platform/avr32/MIZAR32
+</A></li>
+        <LI>Next message: <A HREF="000821.html">[Elua-svn] r868 - branches/remotefs_int/doc/eluadoc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#820">[ date ]</a>
+              <a href="thread.html#820">[ thread ]</a>
+              <a href="subject.html#820">[ subject ]</a>
+              <a href="author.html#820">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-12-19 17:12:55 +0100 (Sun, 19 Dec 2010)
+New Revision: 867
+
+Modified:
+   branches/remotefs_int/inc/platform.h
+   branches/remotefs_int/mux/main.c
+   branches/remotefs_int/src/common.c
+   branches/remotefs_int/src/common_uart.c
+   branches/remotefs_int/src/modules/uart.c
+   branches/remotefs_int/src/platform/stm32/platform.c
+   branches/remotefs_int/src/platform/stm32/platform_conf.h
+Log:
+added preliminary support for UART flow control
+
+Modified: branches/remotefs_int/inc/platform.h
+===================================================================
+--- branches/remotefs_int/inc/platform.h	2010-12-18 17:54:24 UTC (rev 866)
++++ branches/remotefs_int/inc/platform.h	2010-12-19 16:12:55 UTC (rev 867)
+@@ -136,6 +136,11 @@
+ // &quot;Infinite timeout&quot; constant for recv
+ #define PLATFORM_UART_INFINITE_TIMEOUT        (-1)
+ 
++// Flow control types (this is a bit mask, one can specify PLATFORM_UART_FLOW_RTS | PLATFORM_UART_FLOW_CTS )
++#define PLATFORM_UART_FLOW_NONE               0
++#define PLATFORM_UART_FLOW_RTS                1
++#define PLATFORM_UART_FLOW_CTS                2
++
+ // The platform UART functions
+ int platform_uart_exists( unsigned id );
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits );
+@@ -144,6 +149,8 @@
+ void platform_s_uart_send( unsigned id, u8 data );
+ int platform_uart_recv( unsigned id, unsigned timer_id, s32 timeout );
+ int platform_s_uart_recv( unsigned id, s32 timeout );
++int platform_uart_set_flow_control( unsigned id, int type );
++int platform_s_uart_set_flow_control( unsigned id, int type );
+ 
+ // *****************************************************************************
+ // Timer subsection
+
+Modified: branches/remotefs_int/mux/main.c
+===================================================================
+--- branches/remotefs_int/mux/main.c	2010-12-18 17:54:24 UTC (rev 866)
++++ branches/remotefs_int/mux/main.c	2010-12-19 16:12:55 UTC (rev 867)
+@@ -6,6 +6,7 @@
+ #include &lt;string.h&gt;
+ #include &lt;errno.h&gt;
+ #include &lt;limits.h&gt;
++#include &lt;ctype.h&gt;
+ #include &quot;config.h&quot;
+ #include &quot;log.h&quot;
+ #include &quot;type.h&quot;
+@@ -297,7 +298,7 @@
+           if( service_id_in == -1 )
+           {
+             transport_send_byte( SERMUX_FORCE_SID_CHAR );
+-            log_msg( &quot;Requested resend of service ID.\n&quot; );
++            log_msg( &quot;Requested resend of service ID for byte %3d ('%c').\n&quot;, c, isprint( c ) ? c : ' ' );
+           }
+           else
+           {
+@@ -332,7 +333,7 @@
+       // Send the service ID first if needed
+       if( temp != service_id_out )
+       {
+-        log_msg( &quot;Changed service_id_out to %d(%X).\n&quot;, temp, temp );
++        log_msg( &quot;Changed service_id_out from %d(%X) to %d(%X).\n&quot;, service_id_out, service_id_out, temp, temp );
+         transport_send_byte( temp );
+       }
+       // Then send the actual data byte, escaping it if needed
+
+Modified: branches/remotefs_int/src/common.c
+===================================================================
+--- branches/remotefs_int/src/common.c	2010-12-18 17:54:24 UTC (rev 866)
++++ branches/remotefs_int/src/common.c	2010-12-19 16:12:55 UTC (rev 867)
+@@ -38,6 +38,16 @@
+ #define CON_BUF_SIZE          0
+ #endif // #ifndef CON_BUF_SIZE
+ 
++// [TODO] the new builder should automatically do this
++#ifndef SERMUX_FLOW_TYPE
++#define SERMUX_FLOW_TYPE      PLATFORM_UART_FLOW_NONE
++#endif
++
++// [TODO] the new builder should automatically do this
++#ifndef CON_FLOW_TYPE
++#define CON_FLOW_TYPE        PLATFORM_UART_FLOW_NONE
++#endif
++
+ // ****************************************************************************
+ // XMODEM support code
+ 
+@@ -158,16 +168,18 @@
+ 
+   // Setup the serial multiplexer
+   platform_uart_setup( SERMUX_PHYS_ID, SERMUX_PHYS_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
++  platform_uart_set_flow_control( SERMUX_PHYS_ID, SERMUX_FLOW_TYPE );
+   cmn_uart_setup_sermux();
+ 
+   // Set buffers for all virtual UARTs 
+   for( i = 0; i &lt; sizeof( bufsizes ) / sizeof( unsigned ); i ++ )
+     platform_uart_set_buffer( i + SERMUX_SERVICE_ID_FIRST, bufsizes[ i ] );
+-#endif
++#endif // #ifdef BUILD_SERMUX
+ 
+ #if defined( CON_UART_ID ) &amp;&amp; CON_UART_ID &lt; SERMUX_SERVICE_ID_FIRST
+   // Setup console UART
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );  
++  platform_uart_set_flow_control( CON_UART_ID, CON_FLOW_TYPE );
+   platform_uart_set_buffer( CON_UART_ID, CON_BUF_SIZE );
+ #endif // #if defined( CON_UART_ID ) &amp;&amp; CON_UART_ID &lt; SERMUX_SERVICE_ID_FIRST
+ 
+
+Modified: branches/remotefs_int/src/common_uart.c
+===================================================================
+--- branches/remotefs_int/src/common_uart.c	2010-12-18 17:54:24 UTC (rev 866)
++++ branches/remotefs_int/src/common_uart.c	2010-12-19 16:12:55 UTC (rev 867)
+@@ -95,6 +95,7 @@
+         if( uart_last_sent &amp; SERMUX_ESC_MASK )
+           platform_s_uart_send( SERMUX_PHYS_ID, SERMUX_ESCAPE_CHAR );
+         platform_s_uart_send( SERMUX_PHYS_ID, uart_last_sent &amp; 0xFF );
++        uart_last_sent = -1;
+       }
+       else
+       {
+@@ -204,3 +205,14 @@
+ }
+ #endif // #ifdef BUILD_SERMUX
+ 
++int platform_uart_set_flow_control( unsigned id, int type )
++{ 
++#ifndef PLATFORM_UART_SET_FLOW_CONTROL // the backend does not implement flow control
++  return PLATFORM_ERR;
++#else // #ifndef PLATFORM_UART_SET_FLOW_CONTROL
++  if( id &gt;= SERMUX_SERVICE_ID_FIRST )
++    return PLATFORM_ERR;
++  return platform_s_uart_set_flow_control( id, type );
++#endif // #ifndef PLATFORM_UART_SET_FLOW_CONTROL
++}
++
+
+Modified: branches/remotefs_int/src/modules/uart.c
+===================================================================
+--- branches/remotefs_int/src/modules/uart.c	2010-12-18 17:54:24 UTC (rev 866)
++++ branches/remotefs_int/src/modules/uart.c	2010-12-19 16:12:55 UTC (rev 867)
+@@ -194,6 +194,18 @@
+   return 0;
+ }
+ 
++// Lua: uart.set_flow_control( id, type )
++static int uart_set_flow_control( lua_State *L )
++{
++  int id = luaL_checkinteger( L, 1 );
++  int type = luaL_checkinteger( L, 2 );
++
++  MOD_CHECK_ID( uart, id );
++  if( platform_uart_set_flow_control( id, type ) != PLATFORM_OK )
++    return luaL_error( L, &quot;unable to set the flow control on interface %d&quot;, id );
++  return 0;
++}
++
+ #ifdef BUILD_SERMUX
+ 
+ #define MAX_VUART_NAME_LEN    6
+@@ -231,6 +243,7 @@
+   { LSTRKEY( &quot;read&quot; ), LFUNCVAL( uart_read ) },
+   { LSTRKEY( &quot;getchar&quot; ), LFUNCVAL( uart_getchar ) },
+   { LSTRKEY( &quot;set_buffer&quot; ), LFUNCVAL( uart_set_buffer ) },
++  { LSTRKEY( &quot;set_flow_control&quot; ), LFUNCVAL( uart_set_flow_control ) },
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;PAR_EVEN&quot; ), LNUMVAL( PLATFORM_UART_PARITY_EVEN ) },
+   { LSTRKEY( &quot;PAR_ODD&quot; ), LNUMVAL( PLATFORM_UART_PARITY_ODD ) },
+@@ -240,6 +253,9 @@
+   { LSTRKEY( &quot;STOP_2&quot; ), LNUMVAL( PLATFORM_UART_STOPBITS_2 ) },
+   { LSTRKEY( &quot;NO_TIMEOUT&quot; ), LNUMVAL( 0 ) },
+   { LSTRKEY( &quot;INF_TIMEOUT&quot; ), LNUMVAL( PLATFORM_UART_INFINITE_TIMEOUT ) },
++  { LSTRKEY( &quot;FLOW_NONE&quot; ), LNUMVAL( PLATFORM_UART_FLOW_NONE ) },
++  { LSTRKEY( &quot;FLOW_RTS&quot; ), LNUMVAL( PLATFORM_UART_FLOW_RTS ) },
++  { LSTRKEY( &quot;FLOW_CTS&quot; ), LNUMVAL( PLATFORM_UART_FLOW_CTS ) },
+ #endif
+ #if LUA_OPTIMIZE_MEMORY &gt; 0 &amp;&amp; defined( BUILD_SERMUX )
+   { LSTRKEY( &quot;__metatable&quot; ), LROVAL( uart_map ) },
+@@ -266,7 +282,12 @@
+   // Add the &quot;none&quot; and &quot;infinite&quot; constant used in recv()
+   MOD_REG_NUMBER( L, &quot;NO_TIMEOUT&quot;, 0 );
+   MOD_REG_NUMBER( L, &quot;INF_TIMEOUT&quot;, PLATFORM_UART_INFINITE_TIMEOUT );
++
++  // Add the UART flow constants
++  MOD_REG_NUMBER( L, &quot;FLOW_RTS&quot;, PLATFORM_UART_FLOW_RTS );
++  MOD_REG_NUMBER( L, &quot;FLOW_CTS&quot;, PLATFORM_UART_FLOW_CTS );
+   
+   return 1;
+ #endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
+ }
++
+
+Modified: branches/remotefs_int/src/platform/stm32/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform.c	2010-12-18 17:54:24 UTC (rev 866)
++++ branches/remotefs_int/src/platform/stm32/platform.c	2010-12-19 16:12:55 UTC (rev 867)
+@@ -648,6 +648,26 @@
+   return USART_ReceiveData(stm32_usart[id]);
+ }
+ 
++int platform_s_uart_set_flow_control( unsigned id, int type )
++{
++  USART_TypeDef *usart = stm32_usart[ id ]; 
++  int temp = 0;
++
++  if( type == PLATFORM_UART_FLOW_NONE )
++  {
++    usart-&gt;CR3 &amp;= ~USART_HardwareFlowControl_RTS_CTS;
++    return PLATFORM_OK;
++  }
++  if( id &gt;= 3 ) // on STM32 only USART1 through USART3 have hardware flow control ([TODO] but only on high density devices?)
++    return PLATFORM_ERR;
++  if( type &amp; PLATFORM_UART_FLOW_RTS )
++    temp |= USART_HardwareFlowControl_RTS;
++  if( type &amp; PLATFORM_UART_FLOW_CTS )
++    temp |= USART_HardwareFlowControl_CTS;
++  usart-&gt;CR3 |= temp;
++  return PLATFORM_OK;
++}
++
+ // ****************************************************************************
+ // Timers
+ 
+
+Modified: branches/remotefs_int/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform_conf.h	2010-12-18 17:54:24 UTC (rev 866)
++++ branches/remotefs_int/src/platform/stm32/platform_conf.h	2010-12-19 16:12:55 UTC (rev 867)
+@@ -30,6 +30,8 @@
+ #define BUILD_LUA_INT_HANDLERS
+ #define BUILD_SERMUX
+ 
++#define PLATFORM_UART_SET_FLOW_CONTROL
++
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000819.html">[Elua-svn] r866 - in trunk/src: . platform/avr32/EVK1100	platform/avr32/EVK1101 platform/avr32/MIZAR32
+</A></li>
+	<LI>Next message: <A HREF="000821.html">[Elua-svn] r868 - branches/remotefs_int/doc/eluadoc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#820">[ date ]</a>
+              <a href="thread.html#820">[ thread ]</a>
+              <a href="subject.html#820">[ subject ]</a>
+              <a href="author.html#820">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

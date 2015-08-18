@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r699 - trunk/rfs_server
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r699%20-%20trunk/rfs_server&In-Reply-To=%3C201002021456.o12EuedF001207%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000651.html">
+   <LINK REL="Next"  HREF="000653.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r699 - trunk/rfs_server</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r699%20-%20trunk/rfs_server&In-Reply-To=%3C201002021456.o12EuedF001207%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r699 - trunk/rfs_server">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Feb  2 15:56:40 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000651.html">[Elua-svn] r698 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000653.html">[Elua-svn] r700 - in trunk: . romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#652">[ date ]</a>
+              <a href="thread.html#652">[ thread ]</a>
+              <a href="subject.html#652">[ subject ]</a>
+              <a href="author.html#652">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-02-02 15:56:40 +0100 (Tue, 02 Feb 2010)
+New Revision: 699
+
+Modified:
+   trunk/rfs_server/os_io_win32.c
+Log:
+complete RFS server implementation under Win32 (not tested yet)
+
+Modified: trunk/rfs_server/os_io_win32.c
+===================================================================
+--- trunk/rfs_server/os_io_win32.c	2010-02-01 23:25:02 UTC (rev 698)
++++ trunk/rfs_server/os_io_win32.c	2010-02-02 14:56:40 UTC (rev 699)
+@@ -104,3 +104,45 @@
+   else 
+     return attrs &amp; FILE_ATTRIBUTE_DIRECTORY;
+ }
++
++static WIN32_FIND_DATA win32_dir_data;
++static HANDLE win32_dir_hnd;
++static int found_last_file;
++u32 os_opendir( const char* name )
++{  
++  if( name || strlen( name ) == 0 || ( strlen( name ) == 1 &amp;&amp; !strcmp( name, &quot;/&quot; ) ) ) {
++    win32_dir_hnd = FindFirstFile( name, &amp;win32_dir_data );
++    found_last_file = 0;
++    return win32_dir_hnd == INVALID_HANDLE_VALUE ? 0 : ( u32 )win32_dir_hnd;  
++  }
++  return 0;
++}
++
++void os_readdir( u32 d, const char **pname )
++{
++  static char realname[ RFS_MAX_FNAME_SIZE + 1 ]; 
++
++  *pname = NULL;
++  if( found_last_file )
++    return;  
++  while( 1 )
++  {
++    if( ( win32_dir_data.dwFileAttributes &amp; FILE_ATTRIBUTE_DIRECTORY ) == 0 )
++    {
++      if( win32_dir_data.cFileName[ 0 ] )
++        strncpy( realname, win32_dir_data.cAlternateFileName, RFS_MAX_FNAME_SIZE );
++      else
++        strncpy( realname, win32_dir_data.cFileName, RFS_MAX_FNAME_SIZE );
++      *pname = realname;
++    }    
++    if( FindNextFile( win32_dir_hnd, &amp;win32_dir_data ) == 0 )
++      found_last_file = 1;  
++    if( *pname || found_last_file )
++      break;
++  }
++}
++
++int os_closedir( u32 d )
++{
++  return FindClose( win32_dir_hnd ) == 0 ? -1 : 0;
++}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000651.html">[Elua-svn] r698 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000653.html">[Elua-svn] r700 - in trunk: . romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#652">[ date ]</a>
+              <a href="thread.html#652">[ thread ]</a>
+              <a href="subject.html#652">[ subject ]</a>
+              <a href="author.html#652">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

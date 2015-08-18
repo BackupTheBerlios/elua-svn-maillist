@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r70 - in trunk/src: . platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r70%20-%20in%20trunk/src%3A%20.%20platform/lm3s&In-Reply-To=%3C200808281944.m7SJiGtH007585%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000024.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r70 - in trunk/src: . platform/lm3s</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r70%20-%20in%20trunk/src%3A%20.%20platform/lm3s&In-Reply-To=%3C200808281944.m7SJiGtH007585%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r70 - in trunk/src: . platform/lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Aug 28 21:44:16 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000024.html">[Elua-svn] r69 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc288x platform/str9
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#25">[ date ]</a>
+              <a href="thread.html#25">[ thread ]</a>
+              <a href="subject.html#25">[ subject ]</a>
+              <a href="author.html#25">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-08-28 21:44:16 +0200 (Thu, 28 Aug 2008)
+New Revision: 70
+
+Modified:
+   trunk/src/main.c
+   trunk/src/platform/lm3s/conf.py
+Log:
+reverted some changes
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2008-08-28 19:41:58 UTC (rev 69)
++++ trunk/src/main.c	2008-08-28 19:44:16 UTC (rev 70)
+@@ -19,7 +19,7 @@
+ 
+ // Maximum file size that can be received via XMODEM
+ // Should be a multiple of 128
+-#define XMODEM_MAX_FILE_SIZE    1024
++#define XMODEM_MAX_FILE_SIZE    3072
+ 
+ #ifdef BUILD_XMODEM
+ 
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2008-08-28 19:41:58 UTC (rev 69)
++++ trunk/src/platform/lm3s/conf.py	2008-08-28 19:44:16 UTC (rev 70)
+@@ -11,9 +11,9 @@
+ 
+ # Toolset data
+ tools[ 'lm3s' ] = {}
+-tools[ 'lm3s' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=cortex-m3 -mthumb -msoft-float -mfpu=vfp %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
+-tools[ 'lm3s' ][ 'linkcom' ] = &quot;arm-elf-gcc -nostartfiles -nostdlib -msoft-float -mfpu=vfp -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
+-tools[ 'lm3s' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb -msoft-float -mfpu=vfp %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++tools[ 'lm3s' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=cortex-m3 -mthumb  %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
++tools[ 'lm3s' ][ 'linkcom' ] = &quot;arm-elf-gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
++tools[ 'lm3s' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+ 
+ # Programming function
+ def progfunc_lm3s( target, source, env ):
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000024.html">[Elua-svn] r69 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc288x platform/str9
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#25">[ date ]</a>
+              <a href="thread.html#25">[ thread ]</a>
+              <a href="subject.html#25">[ subject ]</a>
+              <a href="author.html#25">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

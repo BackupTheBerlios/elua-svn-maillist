@@ -1,0 +1,297 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r834 - in branches/remotefs_int: doc/eluadoc doc/en	src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r834%20-%20in%20branches/remotefs_int%3A%20doc/eluadoc%20doc/en%0A%09src/modules&In-Reply-To=%3C20101122194743.5D1A9481039%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000786.html">
+   <LINK REL="Next"  HREF="000788.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r834 - in branches/remotefs_int: doc/eluadoc doc/en	src/modules</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r834%20-%20in%20branches/remotefs_int%3A%20doc/eluadoc%20doc/en%0A%09src/modules&In-Reply-To=%3C20101122194743.5D1A9481039%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r834 - in branches/remotefs_int: doc/eluadoc doc/en	src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Nov 22 20:47:43 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000786.html">[Elua-svn] r833 - branches/remotefs_int/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000788.html">[Elua-svn] r835 - in trunk/doc: eluadoc en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#787">[ date ]</a>
+              <a href="thread.html#787">[ thread ]</a>
+              <a href="subject.html#787">[ subject ]</a>
+              <a href="author.html#787">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-22 20:47:42 +0100 (Mon, 22 Nov 2010)
+New Revision: 834
+
+Modified:
+   branches/remotefs_int/doc/eluadoc/arch_platform_uart.lua
+   branches/remotefs_int/doc/eluadoc/refman_gen_uart.lua
+   branches/remotefs_int/doc/en/sermux.txt
+   branches/remotefs_int/src/modules/uart.c
+Log:
+added documentation for the new uart.set_buffer function, updated UART platform documentation, small corrections in the serial multiplexer documentation
+
+Modified: branches/remotefs_int/doc/eluadoc/arch_platform_uart.lua
+===================================================================
+--- branches/remotefs_int/doc/eluadoc/arch_platform_uart.lua	2010-11-22 16:25:07 UTC (rev 833)
++++ branches/remotefs_int/doc/eluadoc/arch_platform_uart.lua	2010-11-22 19:47:42 UTC (rev 834)
+@@ -40,7 +40,16 @@
+ #define PLATFORM_UART_INFINITE_TIMEOUT        (-1)]],
+       name = &quot;UART timeout&quot;,
+       desc = &quot;This constant is used as a special timeout value (infinite timeout) in the UART functions that expect a timeout as argument.&quot;,
+-    }
++    },
++
++     { text = [[// Virtual UART IDs
++#define SERMUX_SERVICE_ID_FIRST  0xD0
++#define SERMUX_SERVICE_ID_LAST   0xD7
++]],
++      name = &quot;Virtual UART IDs&quot;,
++      desc = &quot;If @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">sermux.html at virtual</A> UART@ support is enabled these constants define the IDs of the virtual UARTs in the system (defined in %inc/sermux.h%).&quot;,
++    },
++   
+   },
+ 
+   -- Functions
+@@ -69,7 +78,9 @@
+     },
+ 
+     { sig = &quot;void #platform_uart_send#( unsigned id, u8 data );&quot;,
+-      desc = &quot;Send data to an UART interface.&quot;,
++      desc = [[Send data to an UART interface. This is a blocking operation (it doesn't return until the data was sent).&lt;br&gt;
++      This function is &quot;split&quot; in two parts: a platform-independent part that is implemented in %src/common.c% and a platform-dependent part that must be implemented
++      by each platform in a function named @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_s_uart_send at platform_s_uart_send</A>@.]],
+       args = 
+       {
+         &quot;$id$ - UART interface ID.&quot;,
+@@ -77,10 +88,20 @@
+       },
+     },
+ 
++    { sig = &quot;void #platform_s_uart_send#( unsigned id, u8 data );&quot;,
++      desc = [[This is the platform-dependent part of @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_uart_send at platform_uart_send</A>@. It doesn't need to take care of @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">sermux.html at virtual</A> UARTs@ or other system
++      configuration parameters, it just needs to instruct the CPU to send the data on the specified ID. This function will always be called with a physical uart ID.]],
++      args = 
++      {
++        &quot;$id$ - UART interface ID.&quot;,
++        &quot;$data$ - data to be sent.&quot;,
++      },
++    },
++
+     { sig = &quot;int #platform_uart_recv#( unsigned id, unsigned timer_id, s32 timeout );&quot;,
+       link = &quot;platform_uart_recv&quot;,
+       desc = [[Receive data from the UART interface (blocking/non blocking with timeout/immediate).&lt;br&gt;
+-  This function is &quot;split&quot; in two parts: a platform-independent part that is implemented in %src/common.c%, and a platform-dependent part that must be implemented by each
++  This function is &quot;split&quot; in two parts: a platform-independent part that is implemented in %src/common.c% and a platform-dependent part that must be implemented by each
+   platform in a function named @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_s_uart_recv at platform_s_uart_recv</A>@.]],
+       args = 
+       {
+@@ -120,7 +141,18 @@
+         &quot;if $timeout = 0$ and data from the UART is available when the function is called it is returned, otherwise -1 is returned&quot;,
+         &quot;if $timeout$ = @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_timeout at PLATFORM_UART_INIFINITE_TIMEOUT</A>@ it returns the data read from the UART after it becomes available&quot;
+       }
+-    }
++    },
++
++    { sig = &quot;int #platform_uart_set_buffer#( unsigned id, unsigned log2size );&quot;,
++      desc = &quot;Sets the buffer for the specified UART. This function is fully implemented in %src/common.c%.&quot;,
++      args = 
++      {
++        &quot;$id$ - UART interface ID.&quot;,
++        &quot;$data$ - the base 2 logarithm of the buffer size or 0 to disable buffering on the UART. Note that disabling buffering on a virtual UART is an invalid operation.&quot;
++      },
++      ret = &quot;$PLATFORM_OK$ if the operation succeeded, $PLATFORM_ERR$ otherwise.&quot;
++    },
++   
+   }
+ }
+ 
+
+Modified: branches/remotefs_int/doc/eluadoc/refman_gen_uart.lua
+===================================================================
+--- branches/remotefs_int/doc/eluadoc/refman_gen_uart.lua	2010-11-22 16:25:07 UTC (rev 833)
++++ branches/remotefs_int/doc/eluadoc/refman_gen_uart.lua	2010-11-22 19:47:42 UTC (rev 834)
+@@ -12,11 +12,24 @@
+   -- Overview
+   overview = [[This module contains functions for accessing the serial ports (UARTs) of the eLua CPU.]],
+ 
++   -- Data structures, constants and types
++  structures = 
++  {
++    { text = [[uart.VUART0
++uart.VUART1
++.............
++uart.VUART7]],
++      name = &quot;UART constants&quot;,
++      desc = [[If @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">sermux.html at virtual</A> UART@ support is enabled in eLua these constants are automatically defined
++to the IDs of the virtual UARTs in the system.]]       
++    }
++  }, 
++
+   -- Functions
+   funcs = 
+   {
+     { sig = &quot;baud = #uart.setup#( id, baud, databits, parity, stopbits )&quot;,
+-      desc = &quot;Setup the serial port&quot;,
++      desc = &quot;Setup the serial port. Note that you can't call this function for a @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">sermux.html at virtual</A> <A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">UART at .</A>&quot;,
+       args = 
+       {
+         &quot;$id$ - the ID of the serial port&quot;,
+@@ -72,7 +85,16 @@
+ $timeout$ is neither $uart.NO_TIMEOUT$, nor $uart.INF_TIMEOUT$).]]
+       },
+       ret = [[The data read from the serial port as a string (or as a number if $format$ is $'*n'$). If a timeout occures, only the data read before the timeout is returned. If the function times out while trying to read the first character, the empty string is returned]]
+-    }
++    },
++
++    { sig = &quot;#uart.set_buffer#( id, bufsize )&quot;,
++      desc = &quot;Sets the size of the UART buffer. Note that calling this function with bufsize = 0 for a @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">sermux.html at virtual</A> UART@ is not allowed.&quot;,
++      args =
++      {
++        &quot;$id$ - the ID of the serial port&quot;,
++        &quot;$bufsize$ - the size of the buffer (must be a power of 2) or 0 to disable buffering on the specified UART.&quot;
++      },
++    },
+    
+   },
+ 
+
+Modified: branches/remotefs_int/doc/en/sermux.txt
+===================================================================
+--- branches/remotefs_int/doc/en/sermux.txt	2010-11-22 16:25:07 UTC (rev 833)
++++ branches/remotefs_int/doc/en/sermux.txt	2010-11-22 19:47:42 UTC (rev 834)
+@@ -116,6 +116,11 @@
+ #define SERMUX_BUFFER_SIZES { RFS_BUFFER_SIZE, CON_BUF_SIZE }   [bblue]**// buffer sizes for the virtual UARTs**
+ ------------------------------------
+ 
++This sequence of macro definitions will enable serial multiplexer support in eLua and will allow the
++code to use two *virtual UARTs*. The virtual UART IDs start at *SERMUX_SERVICE_ID_FIRST*. A maximum
++of 8 virtual UARTs are supported by the system. In this particular example the first virtual UART
++is assigned to RFS and the second one to the system console.
++
+ IMPORTANT: when using the RFS in a virtual UART configuration, remember that *RFS_UART_ID must be the
+ first virtual UART ID in the system (SERMUX_SERVICE_ID_FIRST)*. Otherwise, the serial multiplexer will 
+ NOT work properly in *rfsmux* mode. Check xref:rfsmux[here] for details, and link:arch_rfs.html[here] 
+@@ -131,7 +136,7 @@
+ - a build environment. This means gcc under Linux (see for example link:tc_arm.html[here] for instruction on how to install a toolchain in 
+   Ubuntu Linux) and a gcc-based development environment under Windows. How to install a gcc-based development environment under Windows is
+   beyond the scope of this tutorial, but check <A HREF="http://www.mingw.org/[here">http://www.mingw.org/[here</A>] and <A HREF="http://tdm-gcc.tdragon.net/[here">http://tdm-gcc.tdragon.net/[here</A>] for possible solution
+-  (mux server was compiled and tested under Win32 using the second soluation, the tdm gcc compiler).
++  (the mux server was compiled and tested under Win32 using the second soluation, the tdm gcc compiler).
+ - scons. See link:building_win.html[here] for details on how to install scons on Windows, or link:building_unix.html[here] for details on how
+   to install scons on Linux.
+ 
+@@ -197,7 +202,8 @@
+ Reset your eLua board, and you're ready to go! *mux* will send all the RFS requests
+ to */dev/ptyp0* (or COM10) which in turn gets automatically redirected to */dev/ttyp0*
+ (or COM11) and will redirect all console I/O to */dev/ptyp1* (or COM20)
+-which in turn gets automatically redirected to */dev/ptyp1* (or COM21). +
++which in turn gets automatically redirected to */dev/ptyp1* (or COM21).
++
+ Although this works, there is a simpler, more convenient way to do it if RFS 
+ support is needed: use the *rfsmux* mode instead.
+ 
+@@ -211,7 +217,7 @@
+ A strict requirement for this mode is that *eLua must be configured to assign the first
+ virtual UART ID (SERMUX_SERVICE_ID_FIRST) to the RFS server (RFS_UART_ID)*. If this
+ doesn't happen, *rfsmux* mode will not work anymore (but note that you still can use the
+-*mux* mode as described above). 
++*mux* mode described above with this setup). 
+ 
+ This is best understood by an example. We'll ask *mux* to share a directory and
+ to multiplex one single serial port for us (we'll use it for the console), this
+
+Modified: branches/remotefs_int/src/modules/uart.c
+===================================================================
+--- branches/remotefs_int/src/modules/uart.c	2010-11-22 16:25:07 UTC (rev 833)
++++ branches/remotefs_int/src/modules/uart.c	2010-11-22 19:47:42 UTC (rev 834)
+@@ -7,6 +7,7 @@
+ #include &quot;auxmods.h&quot;
+ #include &quot;lrotable.h&quot;
+ #include &quot;common.h&quot;
++#include &quot;sermux.h&quot;
+ #include &lt;string.h&gt;
+ #include &lt;ctype.h&gt;
+ #include &lt;stdlib.h&gt;
+@@ -29,6 +30,8 @@
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( uart, id );
++  if( id &gt;= SERMUX_SERVICE_ID_FIRST )
++    return luaL_error( L, &quot;uart.setup can't be called on virtual UARTs&quot; );
+   baud = luaL_checkinteger( L, 2 );
+   databits = luaL_checkinteger( L, 3 );
+   parity = luaL_checkinteger( L, 4 );
+@@ -67,6 +70,7 @@
+   }
+   return 0;
+ }
++
+ static int uart_read( lua_State* L )
+ {
+   int id, res, mode, issign;
+@@ -178,11 +182,13 @@
+ static int uart_set_buffer( lua_State *L )
+ {
+   int id = luaL_checkinteger( L, 1 );
+-  u32 size = luaL_checkinteger( L, 2 );
++  u32 size = ( u32 )luaL_checkinteger( L, 2 );
+   
+   MOD_CHECK_ID( uart, id );
+   if( size &amp;&amp; ( size &amp; ( size - 1 ) ) )
+     return luaL_error( L, &quot;the buffer size must be a power of 2 or 0&quot; );
++  if( size == 0 &amp;&amp; id &gt;= SERMUX_SERVICE_ID_FIRST )
++    return luaL_error( L, &quot;disabling buffers on virtual UARTs is not allowed&quot; );
+   if( platform_uart_set_buffer( id, intlog2( size ) ) == PLATFORM_ERR )
+     return luaL_error( L, &quot;unable to set UART buffer&quot; );
+   return 0;
+@@ -190,7 +196,7 @@
+ 
+ #ifdef BUILD_SERMUX
+ 
+-#define MAX_VUART_NAME_LEN    7
++#define MAX_VUART_NAME_LEN    6
+ #define MIN_VUART_NAME_LEN    6
+ 
+ // __index metafunction for UART
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000786.html">[Elua-svn] r833 - branches/remotefs_int/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000788.html">[Elua-svn] r835 - in trunk/doc: eluadoc en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#787">[ date ]</a>
+              <a href="thread.html#787">[ thread ]</a>
+              <a href="subject.html#787">[ subject ]</a>
+              <a href="author.html#787">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r258 - trunk/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r258%20-%20trunk/doc/en&In-Reply-To=%3C200903132113.n2DLDt8V026395%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000213.html">
+   <LINK REL="Next"  HREF="000215.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r258 - trunk/doc/en</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r258%20-%20trunk/doc/en&In-Reply-To=%3C200903132113.n2DLDt8V026395%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r258 - trunk/doc/en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Mar 13 22:13:55 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000213.html">[Elua-svn] r257 - in trunk/doc: . en wb
+</A></li>
+        <LI>Next message: <A HREF="000215.html">[Elua-svn] r259 - in trunk: doc/en src src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/stm32 src/platform/str7	src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#214">[ date ]</a>
+              <a href="thread.html#214">[ thread ]</a>
+              <a href="subject.html#214">[ subject ]</a>
+              <a href="author.html#214">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-03-13 22:13:54 +0100 (Fri, 13 Mar 2009)
+New Revision: 258
+
+Modified:
+   trunk/doc/en/arch_newport.html
+Log:
+completed the 'adding a new port to eLua' page
+
+Modified: trunk/doc/en/arch_newport.html
+===================================================================
+--- trunk/doc/en/arch_newport.html	2009-03-12 22:01:32 UTC (rev 257)
++++ trunk/doc/en/arch_newport.html	2009-03-13 21:13:54 UTC (rev 258)
+@@ -29,7 +29,7 @@
+ &lt;p&gt;If all of the above are true, you should continue reading this document to bring your port to life. If not, we're sorry, but (at least at this point)
+ &lt;b&gt;eLua&lt;/b&gt; can't be ported to your CPU. If, on the other hand, you're good to go, please take a bit of time and read 
+   &lt;a href=&quot;arch_overview.html#platforms&quot;&gt;this section&lt;/a&gt; first, as it details the structure of a port and might simplify your work quite a bit.&lt;/p&gt;
+-&lt;h3&gt;Adding a new board&lt;/h3&gt;
++&lt;a name=&quot;newboard&quot;&gt;&lt;h3&gt;Adding a new board&lt;/h3&gt;&lt;/a&gt;
+ &lt;p&gt;If all you need is to add a new board that uses a CPU already supported by &lt;b&gt;eLua&lt;/b&gt; (check &lt;a href=&quot;status.html&quot;&gt;here&lt;/a&gt; for a complete list), it's
+ fairly easy to accomplish this:
+ &lt;ol&gt;
+@@ -80,9 +80,64 @@
+ &lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
+ &lt;/li&gt;
+ &lt;/ol&gt;&lt;/p&gt;
+-&lt;p&gt;After you edit all the relevant source files, all you have to do is to execute &quot;scons board=&lt;boardname;&gt;&quot; and you'll have &lt;b&gt;eLua&lt;/b&gt; compiled for your board.&lt;/p&gt;
+-&lt;h3&gt;Adding a new CPU&lt;/h3&gt;
+-##TODO
+-&lt;h3&gt;Adding a new platform&lt;/h3&gt;
+-##TODO
++&lt;p&gt;After you edit all the relevant source files, all you have to do is to execute &lt;i&gt;scons board=&lt;boardname&gt;&lt;/i&gt; and you'll have &lt;b&gt;eLua&lt;/b&gt; compiled for your board.&lt;/p&gt;
++&lt;a name=&quot;newcpu&quot;&gt;&lt;h3&gt;Adding a new CPU&lt;/h3&gt;&lt;/a&gt;
++&lt;p&gt;If you want to add a new CPU to &lt;b&gt;eLua&lt;/b&gt; and the new CPU happens to be supported by a platform on which &lt;b&gt;eLua&lt;/b&gt; already runs (see &lt;a href=&quot;status.html&quot;&gt;here&lt;/a&gt; for a full
++list), your task is still quite easy. Follow the steps below:
++&lt;ol&gt;
++  &lt;li&gt;edit &lt;b&gt;SConstruct&lt;/b&gt; and add your new CPU to the &lt;b&gt;platform_list&lt;/b&gt; dictionary. Use the &quot;official&quot; name of the CPU (as it appears in its datasheet). An example is given below:
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;# List of platform/CPU/toolchains combinations
++# The first toolchain in the toolchains list is the default one
++# (the one that will be used if none is specified)
++platform_list = {
++  'at91sam7x' : { 'cpus' : [ 'AT91SAM7X256', 'AT91SAM7X512' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
++  'lm3s' : { 'cpus' : [ 'LM3S8962', 'LM3S6965', 'LM3S6918' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
++  'str9' : { 'cpus' : [ 'STR912FAW44' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
++  ..................
++}&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;
++  &lt;li&gt;you also need to add a new board to &lt;b&gt;eLua&lt;/b&gt; (which makes sense, since you're most likely going to run &lt;b&gt;eLua&lt;/b&gt; on a board built around the CPU 
++  of your choice, not only on the CPU itself). So follow the instruction from the &lt;a href=&quot;arch_newport.html#newboard&quot;&gt;previous paragraph&lt;/a&gt; to add
++  your new board.&lt;/li&gt;
++  &lt;li&gt;customize the &lt;b&gt;eLua&lt;/b&gt; image for this new CPU. You can use the variable &lt;b&gt;cputype&lt;/b&gt; in &lt;b&gt;conf.py&lt;/b&gt; to define new preprocessor macros specifically for your CPU
++  (that you can use later in &lt;b&gt;platform_conf.h&lt;/b&gt;, for example), or to include or exclude certain files from the build, or change the build flags and so on. An example taken from 
++  the &lt;b&gt;at91sam7x&lt;/b&gt; port is given below (part of &lt;b&gt;conf.py&lt;/b&gt;):
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;if cputype == 'AT91SAM7X256':
++  ldscript = &quot;flash256.lds&quot;
++  cdefs = cdefs + &quot; -Dat91sam7x256&quot;
++elif cputype == 'AT91SAM7X512':
++  ldscript = &quot;flash512.lds&quot;
++  cdefs = cdefs + &quot; -Dat91sam7x512&quot;
++else:
++  print &quot;Invalid AT91SAM7X CPU %s&quot; % cputype
++  sys.exit( -1 ) &lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;/ol&gt;&lt;/p&gt;
++&lt;p&gt;After you edit all the relevant source files, all you have to do is to execute &lt;i&gt;scons board=&lt;boardname&gt;&lt;/i&gt; and you'll have &lt;b&gt;eLua&lt;/b&gt; compiled for your board (and implicitly for
++  your new CPU).&lt;/p&gt;
++&lt;a name=&quot;newplatform&quot;&gt;&lt;h3&gt;Adding a new platform&lt;/h3&gt;&lt;/a&gt;
++&lt;p&gt;If you want to add a new CPU to &lt;b&gt;eLua&lt;/b&gt; and the new CPU is not supported by a platform on which &lt;b&gt;eLua&lt;/b&gt; already runs (see &lt;a href=&quot;status.html&quot;&gt;here&lt;/a&gt; for a full list), you have to
++go the whole way and add a completely new platform to &lt;b&gt;eLua&lt;/b&gt;. This is certainly more difficult than the previous cases, but still not that hard. Remember to start small (implement only
++minimal support at first) and don't write everything from scratch, start from an already existing platform implementation and work your way up from there. The &lt;b&gt;i386&lt;/b&gt; port is the simplest, 
++but also a bit different from the embedded ports. Another port that is quite simple at this point is the &lt;b&gt;lpc2888&lt;/b&gt; port, you might take a look at that too. After you &quot;get a feeling&quot; of
++how a port should look like, and after you read about the architecture of &lt;b&gt;eLua&lt;/b&gt; and the structure of a port &lt;a href=&quot;arch_overview.html&quot;&gt;here&lt;/a&gt;, follow the steps below:
++&lt;ol&gt;
++  &lt;li&gt;choose the name of your new platform. It should be an easy, descriptive name. For example, all the CPUs from the LM3S series are grouped inside a platform called &lt;b&gt;lm3s&lt;/b&gt;.&lt;/li&gt;
++  &lt;li&gt;create the &lt;i&gt;src/platform/&lt;name&gt;&lt;/i&gt; directory, and add all your platform-specific files here. Check &lt;a href=&quot;arch_overview.html#platforms&quot;&gt;here&lt;/a&gt; for specific details.&lt;/li&gt;
++  &lt;li&gt;use the instructions from the &lt;a href=&quot;arch_newport.html#newcpu&quot;&gt;previous paragraph&lt;/a&gt; to add your new CPU and board to &lt;b&gt;eLua&lt;/b&gt;.&lt;/b&gt;
++  &lt;li&gt;implement as much as you need from the &lt;a href=&quot;arch_platform.html&quot;&gt;platform interface&lt;/a&gt;.&lt;/li&gt;
++  &lt;li&gt;if your new platform uses a toolchain that wasn't previously configured in &lt;b&gt;eLua&lt;/b&gt;, add it now (see &lt;a href=&quot;toolchains.html&quot;&gt;here&lt;/a&gt; for more details about toolchains).&lt;/li&gt;
++  &lt;li&gt;let &lt;b&gt;SConstruct&lt;/b&gt; know about your new platform by modifying the &lt;b&gt;platform_list&lt;/b&gt; variable to add information about the CPU(s) available for your platform and about its toolchains. 
++An example is given below:
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;# List of platform/CPU/toolchains combinations
++# The first toolchain in the toolchains list is the default one
++# (the one that will be used if none is specified)
++platform_list = {
++  'at91sam7x' : { 'cpus' : [ 'AT91SAM7X256', 'AT91SAM7X512' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
++  'lm3s' : { 'cpus' : [ 'LM3S8962', 'LM3S6965', 'LM3S6918' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
++  'str9' : { 'cpus' : [ 'STR912FAW44' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
++  ..................
++}&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;
++  &lt;/ul&gt;&lt;/li&gt;
++&lt;/ol&gt;&lt;/p&gt;
++&lt;p&gt;After you edit all the relevant source files, all you have to do is to execute &lt;i&gt;scons board=&lt;boardname&gt;&lt;/i&gt; and you'll have &lt;b&gt;eLua&lt;/b&gt; compiled for your board (and implicitly for
++  your new CPU).&lt;/p&gt;
+ &lt;/body&gt;&lt;/html&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000213.html">[Elua-svn] r257 - in trunk/doc: . en wb
+</A></li>
+	<LI>Next message: <A HREF="000215.html">[Elua-svn] r259 - in trunk: doc/en src src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/stm32 src/platform/str7	src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#214">[ date ]</a>
+              <a href="thread.html#214">[ thread ]</a>
+              <a href="subject.html#214">[ subject ]</a>
+              <a href="author.html#214">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

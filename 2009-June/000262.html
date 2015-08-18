@@ -1,0 +1,429 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r306 - in branches/luarpc: inc src/lua src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r306%20-%20in%20branches/luarpc%3A%20inc%20src/lua%20src/modules&In-Reply-To=%3C200906210001.n5L01oZP021718%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000261.html">
+   <LINK REL="Next"  HREF="000263.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r306 - in branches/luarpc: inc src/lua src/modules</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r306%20-%20in%20branches/luarpc%3A%20inc%20src/lua%20src/modules&In-Reply-To=%3C200906210001.n5L01oZP021718%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r306 - in branches/luarpc: inc src/lua src/modules">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sun Jun 21 02:01:50 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000261.html">[Elua-svn] r305 - in branches/luarpc: . src/modules test
+</A></li>
+        <LI>Next message: <A HREF="000263.html">[Elua-svn] r307 - in branches/luarpc: src/lua src/modules test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#262">[ date ]</a>
+              <a href="thread.html#262">[ thread ]</a>
+              <a href="subject.html#262">[ subject ]</a>
+              <a href="author.html#262">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-21 02:01:49 +0200 (Sun, 21 Jun 2009)
+New Revision: 306
+
+Modified:
+   branches/luarpc/inc/luarpc_rpc.h
+   branches/luarpc/src/lua/lundump.c
+   branches/luarpc/src/modules/luarpc.c
+Log:
+Some handling for endianness.  It does not yet try to apply this to bytecode
+transferred, but that should already work since the dump and undump code can
+deal with this internally.  This will be made consistent, however.
+
+Modified: branches/luarpc/inc/luarpc_rpc.h
+===================================================================
+--- branches/luarpc/inc/luarpc_rpc.h	2009-06-17 22:49:40 UTC (rev 305)
++++ branches/luarpc/inc/luarpc_rpc.h	2009-06-21 00:01:49 UTC (rev 306)
+@@ -105,6 +105,12 @@
+ struct _Transport 
+ {
+   int fd;      /* INVALID_TRANSPORT if socket is closed */
++  u8     loc_little: 1, // Local is little endian?
++         loc_armflt: 1, // local float representation is arm float?
++         loc_intnum: 1, // Local is integer only?
++         net_little: 1, // Network is little endian?
++         net_intnum: 1; // Network is integer only?
++  u8     lnum_bytes;
+ };
+ 
+ #define LUARPC_MODE &quot;elua&quot;
+@@ -115,7 +121,7 @@
+   Transport tpt;      /* the handle socket */
+   int error_handler;    /* function reference */
+   int async;      /* nonzero if async mode being used */
+-  int read_reply_count;   /* number of async call return values to read */
++  int read_reply_count;   /* number of async call return values to read */  
+ };
+ 
+ 
+
+Modified: branches/luarpc/src/lua/lundump.c
+===================================================================
+--- branches/luarpc/src/lua/lundump.c	2009-06-17 22:49:40 UTC (rev 305)
++++ branches/luarpc/src/lua/lundump.c	2009-06-21 00:01:49 UTC (rev 306)
+@@ -262,9 +262,9 @@
+  int intck = (((lua_Number)0.5)==0); /* 0=float, 1=int */
+  luaU_header(h);
+  LoadBlock(S,s,LUAC_HEADERSIZE);
+- S-&gt;swap=(s[6]!=h[6]); s[6]=h[6];
+- S-&gt;numsize=h[10]=s[10];
+- S-&gt;toflt=(s[11]&gt;intck);
++ S-&gt;swap=(s[6]!=h[6]); s[6]=h[6]; /* Check if byte-swapping is needed  */
++ S-&gt;numsize=h[10]=s[10]; /* length of lua_Number */
++ S-&gt;toflt=(s[11]&gt;intck); /* check if conversion from int lua_Number to flt is needed */
+  if(S-&gt;toflt) s[11]=h[11];
+  IF (memcmp(h,s,LUAC_HEADERSIZE)!=0, &quot;bad header&quot;);
+ }
+
+Modified: branches/luarpc/src/modules/luarpc.c
+===================================================================
+--- branches/luarpc/src/modules/luarpc.c	2009-06-17 22:49:40 UTC (rev 305)
++++ branches/luarpc/src/modules/luarpc.c	2009-06-21 00:01:49 UTC (rev 306)
+@@ -22,6 +22,7 @@
+ 
+ #include &quot;luarpc_rpc.h&quot;
+ 
++
+ #ifdef BUILD_LUARPC
+ 
+ /* Support for Compiling with rotables */
+@@ -153,65 +154,132 @@
+   transport_write_buffer (tpt,&amp;x,1);
+ }
+ 
++static void swap_bytes( char *number, size_t numbersize )
++{
++ int i;
++ for (i=0; i&lt;numbersize/2; i++)
++ {
++  char temp = number[i];
++  number[i] = number[numbersize-1-i];
++  number[numbersize-1-i] = temp;
++ }
++}
+ 
++union u32_bytes {
++  u32 i;
++  u8 b[4];
++};
++
+ /* read a u32 from the transport */
+-
+ static u32 transport_read_u32( Transport *tpt )
+ {
+-  u8 b[4];
+-  u32 i;
++  union u32_bytes ub;
+   struct exception e;
+   TRANSPORT_VERIFY_OPEN;
+-  transport_read_buffer ( tpt, b, 4 );
+-  i = ( b[ 0 ] &lt;&lt; 24 ) | (b[ 1 ] &lt;&lt; 16 ) | ( b[ 2 ] &lt;&lt; 8) | b[ 3 ];
+-  return i;
++  transport_read_buffer ( tpt, ub.b, 4 );
++  if( tpt-&gt;net_little != tpt-&gt;loc_little )
++    swap_bytes( (char *)ub.b, 4 );
++  return ub.i;
+ }
+ 
+ 
+ /* write a u32 to the transport */
+-
+ static void transport_write_u32 (Transport *tpt, u32 x)
+ {
+-  u8 b[4];
++  union u32_bytes ub;
+   struct exception e;
+   TRANSPORT_VERIFY_OPEN;
+-  b[0] = x &gt;&gt; 24;
+-  b[1] = x &gt;&gt; 16;
+-  b[2] = x &gt;&gt; 8;
+-  b[3] = x;
+-  transport_write_buffer( tpt, b, 4 );
++  ub.i = x;
++  if( tpt-&gt;net_little != tpt-&gt;loc_little )
++    swap_bytes( (char *)ub.b, 4 );
++  transport_write_buffer( tpt, ub.b, 4 );
+ }
+ 
+-
+-/* Represent doubles as byte string */
+-union DoubleBytes {
+-  double d;
+-  u8 b[ sizeof( double ) ];
+-};
+-
+ /* read a double from the transport */
+ 
+-static double transport_read_double (Transport *tpt)
++static lua_Number transport_read_number (Transport *tpt)
+ {
+-  union DoubleBytes double_bytes;
++  lua_Number x;
++  u8 b[ tpt-&gt;lnum_bytes ];
+   struct exception e;
+   TRANSPORT_VERIFY_OPEN;
+-  /* @@@ handle endianness */
+-  transport_read_buffer ( tpt,double_bytes.b, sizeof( double ) );
+-  return double_bytes.d;
++  transport_read_buffer ( tpt, b, tpt-&gt;lnum_bytes );
++  
++  if( tpt-&gt;net_little != tpt-&gt;loc_little )
++    swap_bytes( ( char * )b, tpt-&gt;lnum_bytes );
++  
++  if( tpt-&gt;net_intnum != tpt-&gt;loc_intnum )
++  {
++    switch( tpt-&gt;lnum_bytes )
++    {
++      case 1: {
++        int8_t y = *( int8_t * )b;
++        x = ( lua_Number )y;
++      } break;
++       case 2: {
++        int16_t y = *( int16_t * )b;
++        x = ( lua_Number )y;
++      } break;
++      case 4: {
++        int32_t y = *( int32_t * )b;
++        x = ( lua_Number )y;
++      } break;
++      case 8: {
++        int64_t y = *( int64_t * )b;
++        x = ( lua_Number )y;
++      } break;
++      default: lua_assert(0);
++    }
++  }
++  else
++    x = ( lua_Number ) *( lua_Number * )b;
++    
++  return x;
+ }
+ 
+ 
+ /* write a double to the transport */
+ 
+-static void transport_write_double (Transport *tpt, double x)
++static void transport_write_number (Transport *tpt, lua_Number x)
+ {
+-  union DoubleBytes double_bytes;
+   struct exception e;
+   TRANSPORT_VERIFY_OPEN;
+-  /* @@@ handle endianness */
+-  double_bytes.d = x;
+-  transport_write_buffer( tpt,double_bytes.b, sizeof( double ) );
++   
++  if( tpt-&gt;net_intnum != tpt-&gt;loc_intnum )
++  {
++    switch( tpt-&gt;lnum_bytes )
++    {
++      case 1: {
++        int8_t y = ( int8_t )x;
++        transport_write_buffer( tpt, (char *)&amp;y, 1 );
++      } break;
++      case 2: {
++        int16_t y = ( int16_t )x;
++        if( tpt-&gt;net_little != tpt-&gt;loc_little )
++          swap_bytes( ( char * )&amp;y, 2 );
++        transport_write_buffer( tpt, (char *)&amp;y, 2 );
++      } break;
++      case 4: {
++        int32_t y = ( int32_t )x;
++        if( tpt-&gt;net_little != tpt-&gt;loc_little )
++          swap_bytes( ( char * )&amp;y, 4 );
++        transport_write_buffer( tpt, (char *)&amp;y, 4 );
++      } break;
++      case 8: {
++        int64_t y = ( int64_t )x;
++        if( tpt-&gt;net_little != tpt-&gt;loc_little )
++          swap_bytes( ( char * )&amp;y, 8 );
++        transport_write_buffer( tpt, (char *)&amp;y, 8 );
++      } break;
++      default: lua_assert(0);
++    }
++  }
++  else
++  {
++    if( tpt-&gt;net_little != tpt-&gt;loc_little )
++       swap_bytes( ( char * )&amp;x, 8 );
++    transport_write_buffer( tpt, ( char * )&amp;x, 8 );
++  }
+ }
+ 
+ 
+@@ -321,7 +389,7 @@
+   {
+     case LUA_TNUMBER:
+       transport_write_u8( tpt, RPC_NUMBER );
+-      transport_write_double( tpt, lua_tonumber( L, var_index ) );
++      transport_write_number( tpt, lua_tonumber( L, var_index ) );
+       break;
+ 
+     case LUA_TSTRING:
+@@ -428,7 +496,7 @@
+       break;
+ 
+     case RPC_NUMBER:
+-      lua_pushnumber( L, transport_read_double( tpt ) );
++      lua_pushnumber( L, transport_read_number( tpt ) );
+       break;
+ 
+     case RPC_STRING:
+@@ -470,25 +538,57 @@
+ /* functions for sending and receving headers
+  */
+ 
+-static void write_header( Transport *tpt )
++static void client_negotiate( Transport *tpt )
+ {
+-  char header[ 5 ];
++  struct exception e;
++  char header[ 8 ];
++  int x = 1;
+ 
++  tpt-&gt;loc_little = (char)*(char*)&x;
++  tpt-&gt;lnum_bytes = (char)sizeof(lua_Number);
++  tpt-&gt;loc_intnum = (char)(((lua_Number)0.5)==0);
++
+   /* write the protocol header */
+   header[0] = 'L';
+   header[1] = 'R';
+   header[2] = 'P';
+   header[3] = 'C';
+   header[4] = RPC_PROTOCOL_VERSION;
+-
++  header[5] = tpt-&gt;loc_little;
++  header[6] = tpt-&gt;lnum_bytes;
++  header[7] = tpt-&gt;loc_intnum;
+   transport_write_string( tpt, header, sizeof( header ) );
++  
++  
++  /* read response with wire configuration */
++  transport_read_string( tpt, header, sizeof( header ) );
++  if( header[0] != 'L' ||
++      header[1] != 'R' ||
++      header[2] != 'P' ||
++      header[3] != 'C' ||
++      header[4] != RPC_PROTOCOL_VERSION )
++  {
++    e.errnum = ERR_PROTOCOL;
++    e.type = nonfatal;
++    Throw( e );
++  }
++  
++  tpt-&gt;net_little = header[5];
++  tpt-&gt;lnum_bytes = header[6];
++  tpt-&gt;net_intnum = header[7];
+ }
+ 
+-static void read_header( Transport *tpt )
++static void server_negotiate( Transport *tpt )
+ {
+   struct exception e;
+-  char header[ 5 ];
++  char header[ 8 ];
++  int x = 1;
+   
++  tpt-&gt;net_little = tpt-&gt;loc_little = (char)*(char*)&x;
++  tpt-&gt;lnum_bytes = (char)sizeof(lua_Number);
++  tpt-&gt;net_intnum = tpt-&gt;loc_intnum = (char)(((lua_Number)0.5)==0);
++  
++  
+   /* check that the header is ok */
+   transport_read_string( tpt, header, sizeof( header ) );
+   if( header[0] != 'L' ||
+@@ -501,6 +601,22 @@
+     e.type = nonfatal;
+     Throw( e );
+   }
++  
++  /*  check if endianness differs, if so use big endian order  */
++  if( header[ 5 ] != tpt-&gt;loc_little )
++    header[ 5 ] = tpt-&gt;net_little = 0;
++    
++  /* set number precision to lowest common denominator */
++  if( header[ 6 ] &gt; tpt-&gt;lnum_bytes )
++    header[ 6 ] = tpt-&gt;lnum_bytes;
++  if( header[ 6 ] &lt; tpt-&gt;lnum_bytes )
++    tpt-&gt;lnum_bytes = header[ 6 ];
++  
++  /* if lua_Number is integer on either side, use integer */
++  if( header[ 7 ] != tpt-&gt;loc_intnum )
++    header[ 7 ] = tpt-&gt;net_intnum = 1;
++    
++  transport_write_string( tpt, header, sizeof( header ) );
+ }
+ 
+ /****************************************************************************/
+@@ -964,8 +1080,7 @@
+     transport_open_connection( L, handle );
+     
+     transport_write_u8( &amp;handle-&gt;tpt, RPC_CMD_CON );
+-    write_header( &amp;handle-&gt;tpt );
+-    read_header( &amp;handle-&gt;tpt );
++    client_negotiate( &amp;handle-&gt;tpt );
+   }
+   Catch( e )
+   {     
+@@ -1289,8 +1404,7 @@
+             read_cmd_get( &amp;handle-&gt;atpt, L );
+             break;
+           case RPC_CMD_CON: /*  @@@ allow client to &quot;reconnect&quot;, should support better mechanism */
+-            read_header( &amp;handle-&gt;atpt );
+-            write_header( &amp;handle-&gt;atpt );
++            server_negotiate( &amp;handle-&gt;atpt );
+             break;
+           case RPC_CMD_NEWINDEX:
+             transport_write_u8( &amp;handle-&gt;atpt, RPC_READY );
+@@ -1341,8 +1455,7 @@
+       switch ( transport_read_u8( &amp;handle-&gt;atpt ) )
+       {
+         case RPC_CMD_CON:
+-          read_header( &amp;handle-&gt;atpt );
+-          write_header( &amp;handle-&gt;atpt );
++          server_negotiate( &amp;handle-&gt;atpt );
+           break;
+         default: /* connection must be established to issue any other commands */
+           e.type = nonfatal;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000261.html">[Elua-svn] r305 - in branches/luarpc: . src/modules test
+</A></li>
+	<LI>Next message: <A HREF="000263.html">[Elua-svn] r307 - in branches/luarpc: src/lua src/modules test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#262">[ date ]</a>
+              <a href="thread.html#262">[ thread ]</a>
+              <a href="subject.html#262">[ subject ]</a>
+              <a href="author.html#262">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

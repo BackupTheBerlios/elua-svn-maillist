@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r530 - in branches/eagle_mmc/src: . platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r530%20-%20in%20branches/eagle_mmc/src%3A%20.%20platform/lm3s&In-Reply-To=%3C200911060210.nA62AeAQ030515%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000484.html">
+   <LINK REL="Next"  HREF="000487.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r530 - in branches/eagle_mmc/src: . platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r530%20-%20in%20branches/eagle_mmc/src%3A%20.%20platform/lm3s&In-Reply-To=%3C200911060210.nA62AeAQ030515%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r530 - in branches/eagle_mmc/src: . platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Nov  6 03:10:40 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000484.html">[Elua-svn] r529 - in branches/eagle_mmc: doc doc/eluadoc doc/luadoc	doc/wb src/lua src/modules
+</A></li>
+        <LI>Next message: <A HREF="000487.html">[Elua-svn] r531 - trunk/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#485">[ date ]</a>
+              <a href="thread.html#485">[ thread ]</a>
+              <a href="subject.html#485">[ subject ]</a>
+              <a href="author.html#485">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-11-06 03:10:39 +0100 (Fri, 06 Nov 2009)
+New Revision: 530
+
+Modified:
+   branches/eagle_mmc/src/elua_mmc.c
+   branches/eagle_mmc/src/platform/lm3s/platform_conf.h
+Log:
+Cleanup &amp; switch to new board defines for selecting SD/MMC configuration.
+
+Modified: branches/eagle_mmc/src/elua_mmc.c
+===================================================================
+--- branches/eagle_mmc/src/elua_mmc.c	2009-11-06 02:10:25 UTC (rev 529)
++++ branches/eagle_mmc/src/elua_mmc.c	2009-11-06 02:10:39 UTC (rev 530)
+@@ -27,10 +27,6 @@
+ #define CMD55    (0x40+55)    /* APP_CMD */
+ #define CMD58    (0x40+58)    /* READ_OCR */
+ 
+-
+-// GPIO for card chip select
+-// FIXME: these should be tied to evaluation kits rather than particular chips
+-
+ #ifndef SDC_SPI_NUM
+   #error &quot;MMC not supported on this board&quot;
+ #endif
+
+Modified: branches/eagle_mmc/src/platform/lm3s/platform_conf.h
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/platform_conf.h	2009-11-06 02:10:25 UTC (rev 529)
++++ branches/eagle_mmc/src/platform/lm3s/platform_conf.h	2009-11-06 02:10:39 UTC (rev 530)
+@@ -151,27 +151,32 @@
+ #define MMCFS_TICK_HZ     4
+ #define MMCFS_TICK_MS     ( 1000 / MMCFS_TICK_HZ )
+ 
+-#ifdef FORLM3S6965
++#ifdef ELUA_BOARD_EKLM3S6965
+   // EK-LM3S6965
+   #define SDC_CS_PORT                3
+   #define SDC_CS_PIN                 0
+   #define SDC_SPI_NUM                0
+ #endif
+ 
+-#ifdef FORLM3S8962
++#ifdef ELUA_BOARD_EKLM3S8962
+   // EK-LM3S8962
+   #define SDC_CS_PORT                6
+   #define SDC_CS_PIN                 0
+   #define SDC_SPI_NUM                0
+ #endif
+ 
+-#ifdef FORLM3S6918
++#ifdef ELUA_BOARD_EAGLE100
+   // Eagle-100
+   #define SDC_CS_PORT                6
+   #define SDC_CS_PIN                 1
+   #define SDC_SPI_NUM                0
+ #endif
+ 
++#ifndef SDC_SPI_NUM
++#undef BUILD_MMCFS
++#endif
++
++
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         SysCtlClockGet()
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000484.html">[Elua-svn] r529 - in branches/eagle_mmc: doc doc/eluadoc doc/luadoc	doc/wb src/lua src/modules
+</A></li>
+	<LI>Next message: <A HREF="000487.html">[Elua-svn] r531 - trunk/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#485">[ date ]</a>
+              <a href="thread.html#485">[ thread ]</a>
+              <a href="subject.html#485">[ subject ]</a>
+              <a href="author.html#485">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,535 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r36 - trunk/docs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r36%20-%20trunk/docs&In-Reply-To=%3C200808081256.m78CuUsQ009776%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000001.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r36 - trunk/docs</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r36%20-%20trunk/docs&In-Reply-To=%3C200808081256.m78CuUsQ009776%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r36 - trunk/docs">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Aug  8 14:56:30 CEST 2008</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000001.html">[Elua-svn] r37 - trunk/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#0">[ date ]</a>
+              <a href="thread.html#0">[ thread ]</a>
+              <a href="subject.html#0">[ subject ]</a>
+              <a href="author.html#0">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-08-08 14:56:29 +0200 (Fri, 08 Aug 2008)
+New Revision: 36
+
+Added:
+   trunk/docs/elua_components.txt
+   trunk/docs/terminal_support.txt
+   trunk/docs/the_rom_file_system.txt
+Modified:
+   trunk/docs/adding_a_new_platform.txt
+   trunk/docs/building.txt
+   trunk/docs/console_input_output.txt
+   trunk/docs/platform_interface.txt
+   trunk/docs/platform_modules.txt
+   trunk/docs/the_elua_shell.txt
+Log:
+documentation updated
+
+Modified: trunk/docs/adding_a_new_platform.txt
+===================================================================
+--- trunk/docs/adding_a_new_platform.txt	2008-08-07 20:02:24 UTC (rev 35)
++++ trunk/docs/adding_a_new_platform.txt	2008-08-08 12:56:29 UTC (rev 36)
+@@ -1,6 +1,6 @@
+ (NOTE: view this file with a monospaced font)
+ 
+-04. Adding a new platform to eLua
++Adding a new platform to eLua
+ ================================================================================
+ 
+ If you want to add a new platform to eLua, the first thing you need to check is
+@@ -8,7 +8,7 @@
+ (or even 128k for the integer-only version) and 64k of RAM should be enough for
+ a 32-bit platform. As usual, the more, the better (this is especially true for
+ the RAM memory).
+-Next, check if a GCC/Newlib toolchain is available for the platform. TO be more 
++Next, check if a GCC/Newlib toolchain is available for the platform. To be more 
+ precise, the compiler doesn't really matter, as long as you're able to compile
+ Newlib with it. If you don't, you won't be able to compile eLua. This limitation
+ might be eliminated in future versions, but it's not a priority of the project, 
+@@ -32,7 +32,7 @@
+ 
+ 1. create the src/platform/foo directory
+ 2. change the main build script (SConstruct) to include your new platform
+-3. you need at least 3 files (besides your platform specific files) in the 
++3. you need at least 4 files (besides your platform specific files) in the 
+    src/platform/foo directory:
+ 
+   - conf.py: this is read by SConstruct and describes how to build files for
+@@ -41,10 +41,11 @@
+   - type.h: data types used by eLua, declared in a platform independent way. 
+     Again, start from an existent type.h file and modify it if needed.
+   - platform_libs.h: see &quot;platform modules.txt&quot; for details.
++  - build.h: see &quot;elua_components.txt&quot; for details.
+ 
+ 4. implement the platform interface functions (see &quot;platform interface.txt&quot;). By
+    convention, they should be implemented in a file called &quot;platform.c&quot;. Note that
+-   SConstruct defines a C flag &lt;cputype&gt; for your platform so you code can
++   SConstruct defines a C macro (-D&lt;cputype&gt;) for your platform so you code can
+    do #ifdef &lt;cputype&gt; ...
+   
+ 5. That's it! Build (see &quot;building.txt&quot;) and enjoy!
+
+Modified: trunk/docs/building.txt
+===================================================================
+--- trunk/docs/building.txt	2008-08-07 20:02:24 UTC (rev 35)
++++ trunk/docs/building.txt	2008-08-08 12:56:29 UTC (rev 36)
+@@ -1,8 +1,16 @@
+ (NOTE: view this file with a monospaced font)
+ 
+-01. Building eLua
++Prerequisites
+ ================================================================================
+ 
++Before you start, you might want to check if the list of platform modules and 
++eLua components are set according to your needs. See docs/platform_modules.txt 
++and docs/elua_components.txt for details. By default, all the relevant
++modules and components for a given target are included in the build.
++
++Building eLua
++================================================================================
++
+ To build eLua you'll need:
+ 
+ - a GCC/Newlib toolchain for your target (see <A HREF="http://elua.berlios.de">http://elua.berlios.de</A> for 
+@@ -43,29 +51,38 @@
+ | i386       |    i686-elf-gcc     |     i686-elf-gcc     |        nasm        |
+ |============|=====================|======================|====================|
+ | Cortex-M3  |    arm-elf-gcc      |     arm-elf-gcc      |     arm-elf-gcc    |
++|============|=====================|======================|====================|
++| STR9       |    arm-elf-gcc      |     arm-elf-gcc      |     arm-elf-gcc    |
+ ================================================================================
+ 
+ If your toolchain uses different names, you have to modify the &quot;conf.py&quot; file
+-from src/platform/&lt;your platform&gt;.
++from src/platform/[your platform].
+ 
+ To build, go to the directory where you unpacked your eLua distribution and 
+ invoke scons:
+ 
+-$ scons [target=&lt;lua|lualong&gt;] 
+-  [cpu=&lt;at91sam7x256|at91sam7x512|i386|str912fw44|lm3s8962|lm3s6965&gt;] 
++$ scons [target=lua | lualong] 
++  [cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | lm3s6965]
++  [cpumode=arm | thumb] 
+   [prog]
+   
+-- target=lua | lualong: specify if you want to build full Lua (with floating point 
+-  support) or integer only Lua (lualong). The default is &quot;lua&quot;.
++- target=lua | lualong: specify if you want to build full Lua (with floating 
++  point support) or integer only Lua (lualong). The default is &quot;lua&quot;.
+ - cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | lm3s6965: 
+-  specify what CPU to build for. 
++  specify what CPU to build for. The default is AT91SAM7X256.
++- cpumode=arm | thumb: for ARM target (not Cortex) this specifies the
++  compilation mode. Its default value is 'thumb' for AT91SAM7X targets and
++  'arm' for STR9 targets.
+ - prog: by default, the above 'scons' command will build only the 'elf' file.
+   Specify &quot;prog&quot; to build also the platform-specific programming file where
+   appropriate (for example, on a AT91SAM7X256 this results in a .bin file that
+   can be programmed in the CPU). 
+   
+-The output will be a file named elua_&lt;target&gt;_&lt;cpu&gt;.elf (and also another
++The output will be a file named elua_[target]_[cpu].elf (and also another
+ file with the same name but ending in .bin if &quot;prog&quot; was specified for platforms
+ that need .bin files for programming).
+ If you want the equivalent of a &quot;make clean&quot;, invoke &quot;scons&quot; as shown above,
+-but add a &quot;-c&quot; at the end of the command line.
++but add a &quot;-c&quot; at the end of the command line. &quot;scons -c&quot; is also recommended 
++after you change the list of modules/components to build for your target (see 
++section &quot;prerequisites&quot; of this document), as scons seems to &quot;overlook&quot; the 
++changes to these files on some occasions.
+
+Modified: trunk/docs/console_input_output.txt
+===================================================================
+--- trunk/docs/console_input_output.txt	2008-08-07 20:02:24 UTC (rev 35)
++++ trunk/docs/console_input_output.txt	2008-08-08 12:56:29 UTC (rev 36)
+@@ -1,6 +1,6 @@
+ (NOTE: view this file with a monospaced font)
+ 
+-05. Console input/output in eLua
++Console input/output in eLua
+ ================================================================================
+ 
+ The console input/output is handled by a generic layer (src/newlib/genstd.c) 
+
+Added: trunk/docs/elua_components.txt
+===================================================================
+--- trunk/docs/elua_components.txt	2008-08-07 20:02:24 UTC (rev 35)
++++ trunk/docs/elua_components.txt	2008-08-08 12:56:29 UTC (rev 36)
+@@ -0,0 +1,74 @@
++(NOTE: view this file with a monospaced font)
++
++eLua components
++================================================================================
++
++Besides the Lua core, the platform modules (docs/platform_modules.txt) and the
++Newlib 'glue code', eLua uses a number of other code modules (components) for
++extended functionality. This is a great thing if you actually need the whole
++functionality in your code, but otherwise it becomes a waste of memory space. 
++Since eLua was designed to be as flexible as possible, it includes a mechanism 
++that allows the user to select exactly what components he needs. Only the 
++selected components will be part of the eLua image. Please note that this is 
++_not_ a replacement of the platform modules mechanism, the two are complementary
++to each other, since the components are not connected with the platform 
++interface (docs/platform_interface.txt) in any way.
++To use this feature, every platform (src/platform/[name]) must include a file
++named &quot;build.h&quot; that specifies what components should be built for that 
++platform. For example, the LM3S &quot;build.h&quot; file might look like this:
++
++(BEGIN src/platform/lm3s/build.h)
++// Define here what components you want for this platform
++
++#ifndef __BUILD_H__
++#define __BUILD_H__
++
++#define BUILD_XMODEM
++#define BUILD_SHELL
++#define BUILD_ROMFS
++#define BUILD_TERM
++
++#endif
++(END src/platform/lm3s/build.h)
++
++In this case, the XMODEM, SHELL, ROMFS and TERM components will be built. On the
++other hand, the i386 &quot;build.h&quot; will probably have less components:
++
++(BEGIN src/platform/i386/build.h)
++// Define here what components you want for this platform
++
++#ifndef __BUILD_H__
++#define __BUILD_H__
++
++#define BUILD_ROMFS
++#define BUILD_SHELL
++
++#endif
++(END src/platform/i386/build.h)
++
++You don't need to modify any other part of your code, just rebuild your image
++after you made changes to this file (docs/building.txt)
++Below you can find a list of eLua components and their functionality.
++
++XMODEM
++================================================================================
++The XMODEM component enables eLua to receive Lua source files via its shell and 
++execute them (docs/the_elua_shell.txt). If you don't need to use &quot;recv&quot; from the
++shell you can skip this component.
++
++SHELL
++================================================================================
++This enables the build of the eLua shell (docs/the_elua_shell.txt). If you don't
++need the shell, don't enable this component. eLua will execute the &quot;lua&quot; command
++at startup if the eLua shell is not built.
++
++ROMFS
++================================================================================
++If you need to use the ROM file system (docs/the_rom_file_system.txt) enable
++this component, otherwise you can skip it.
++
++TERM
++================================================================================
++The TERM module adds support for ANSI terminals. See docs/terminal_support.txt
++for details. If you don't need it, and if you're willing to miss the opportunity
++of playing hangman in eLua (examples/hangman.lua) you can skip this component :)
+
+Modified: trunk/docs/platform_interface.txt
+===================================================================
+--- trunk/docs/platform_interface.txt	2008-08-07 20:02:24 UTC (rev 35)
++++ trunk/docs/platform_interface.txt	2008-08-08 12:56:29 UTC (rev 36)
+@@ -1,6 +1,6 @@
+ (NOTE: view this file with a monospaced font)
+ 
+-02. eLua platform interface
++eLua platform interface
+ ================================================================================
+ 
+ This document describes the &quot;platform&quot; interface in eLua. Its purpose is to ease
+
+Modified: trunk/docs/platform_modules.txt
+===================================================================
+--- trunk/docs/platform_modules.txt	2008-08-07 20:02:24 UTC (rev 35)
++++ trunk/docs/platform_modules.txt	2008-08-08 12:56:29 UTC (rev 36)
+@@ -1,6 +1,6 @@
+ (NOTE: view this file with a monospaced font)
+ 
+-03. eLua platform modules
++eLua platform modules
+ ================================================================================
+ 
+ In order to make eLua usable on different platform, eLua provides a number of 
+@@ -64,6 +64,11 @@
+ optional. If there are no modules that use them in one platform, then you don't
+ need to define them at all for that platform, not even as &quot;bogus&quot; functions.
+ 
++NOTE: this mechanism is not used only for the platform modules, but also for 
++other modules in eLua. For an examples see src/terminal_support.txt in which the
++&quot;term&quot; is presented, and it can be enabled in the exact same way as a platform
++module, even though it's not connected to the platform interface.
++
+ ================================================================================
+ === The PIO module
+ ================================================================================
+
+Added: trunk/docs/terminal_support.txt
+===================================================================
+--- trunk/docs/terminal_support.txt	2008-08-07 20:02:24 UTC (rev 35)
++++ trunk/docs/terminal_support.txt	2008-08-08 12:56:29 UTC (rev 36)
+@@ -0,0 +1,102 @@
++(NOTE: view this file with a monospaced font)
++
++Terminal support in eLua
++================================================================================
++
++Besides standard stdio/stdout/stderr support (docs/console_input_output.txt), 
++eLua provides the &quot;term&quot; module to access ANSI compatible terminal emulators. 
++It is designed to be as flexible as possible, thus allowing a large number of
++terminal emulators to be used.
++To use the term module, remember to:
++
++- build it (add BUILD_TERM in your build.h file)
++- build its Lua binding ( add AUXLIB_TERM in your platform_libs.h)
++
++See docs/elua_components.h and docs/platform_modules.txt for details.
++
++To use it, first call the &quot;term_init&quot; function:
++
++(BEGIN inc/term.h)
++...........................
++// Terminal output function
++typedef void ( *p_term_out )( u8 );
++// Terminal input function
++typedef int ( *p_term_in )( int );
++// Terminal translate input function
++typedef int ( *p_term_translate )( u8 );
++...........................
++// Terminal initialization
++void term_init( unsigned lines, unsigned cols, p_term_out term_out_func, 
++                p_term_in term_in_func, p_term_translate term_translate_func );
++(END inc/term.h)
++
++The initialization function gets the physical size of the terminal emulator
++window (usually 80 lines and 25 cols) and three function pointers:
++
++- p_term_out: this function will be called to output characters to the terminal.
++  It receives the character to output as its single parameter.
++- p_term_in: this function will be called to read a character from the terminal.
++  It receives a parameter that can be either TERM_INPUT_DONT_WAIT (in which case
++  the function returns -1 immediately if no character is available) or
++  TERM_INPUT_WAIT (in which case the function will wait for the character).
++- p_term_translate: this function translates terminal-specific codes to &quot;term&quot;
++  codes. The &quot;term&quot; codes are defined in an enum from inc/term.h:
++
++(BEGIN inc/term.h)
++...........................
++  _D( KC_UP ),\
++  _D( KC_DOWN ),\
++  _D( KC_LEFT ),\
++...........................
++  _D( KC_ESC ),\
++  _D( KC_UNKNOWN )  
++...........................
++(END inc/term.h)
++
++By using this function, it is possible to adapt a very large number of &quot;term
++emulators&quot; to eLua. For example, you might want to run eLua in a &quot;standalone
++mode&quot; that does not require a PC at all, just an external LCD display and maybe
++a keyboard for data input. Your eLua board can connect to this standalone 
++terminal using its I/O pins, for example via SPI. By writing the three functions
++described above, the effort of making eLua work with this new type of device is
++minimal, as writing an &quot;ANSI emulation&quot; for your terminal device is not hard.
++For an example, see src/main.c, where these functions are implemented for an
++UART connection with a terminal emulator program running on PC.
++
++&quot;term&quot; functions
++================================================================================
++The &quot;term&quot; component exports its functions to Lua via the &quot;term&quot; module. The 
++methods of the &quot;term&quot; module are presented below.
++
++term.clrscr(): clear the screen
++
++term.clreol(): clear from the current cursor position to the end of the line 
++
++term.gotoxy( x, y ): position the cursor at the given coordinates
++
++term.up( delta ): move the cursor up &quot;delta&quot; lines
++
++term.down( delta ): move the cursor down &quot;delta&quot; lines
++
++term.left( delta ): move the cursor left &quot;delta&quot; lines
++
++term.right( delta ): move the cursor right &quot;delta&quot; lines
++
++Lines = term.lines(): returns the number of lines
++
++Cols = term.cols(): returns the number of columns
++
++term.put( c1, c2, ... ): writes the specified character(s) to the terminal
++
++term.putstr( s1, s2, ... ): writes the specified string(s) to the terminal
++
++Cx = term.cursorx(): return the cursor X position
++
++Cy = term.cursory(): return the cursor Y position
++
++c = term.getch( term.WAIT | term.NOWAIT ): returns a char read from the 
++  terminal. If term.WAIT is specified the function will wait for a character to
++  be ready, with term.NOWAIT it returns -1 if no char is available or the char
++  code if a char is available. The return of getch can be checked against the
++  char codes defined in inc/term.h, by appending &quot;term.&quot; to the constant name 
++  (for example: term.KC_UP, term.KC_LEFT, term.KC_ESC ... )
+
+Modified: trunk/docs/the_elua_shell.txt
+===================================================================
+--- trunk/docs/the_elua_shell.txt	2008-08-07 20:02:24 UTC (rev 35)
++++ trunk/docs/the_elua_shell.txt	2008-08-08 12:56:29 UTC (rev 36)
+@@ -1,6 +1,6 @@
+ (NOTE: view this file with a monospaced font)
+ 
+-06. The eLua shell
++The eLua shell
+ ================================================================================
+ 
+ After you burn eLua to your board and you connect the board to your terminal
+@@ -12,10 +12,13 @@
+ - query the eLua version
+ - get help on shell usage
+ 
+-First you'll need to configure your terminal emulation program to connect to
+-your eLua board. These are the parameters you'll need to set for your serial
+-connection:
++To enable the shell, define BUILD_SHELL in your build.h file, and also
++BUILD_XMODEM if you want to use the &quot;recv&quot; command (see below). See 
++docs/elua_components.txt for more details about enabling the shell.
+ 
++You'll need to configure your terminal emulation program to connect to your eLua
++board. These are the parameters you'll need to set for your serial connection:
++
+ - speed 115200, 8N1 (8 data bits, no parity, one stop bit)
+ - no flow control
+ - newline handling (if available): CR on receive, CR+LF on send
+@@ -36,22 +39,24 @@
+ 
+ The &quot;recv&quot; command
+ ================================================================================
+-To use this, your terminal emulation program must support sending files via the
+-XMODEM protocol. Both XMODEM with checksum (the original version) and XMODEM 
+-with CRC are supported, but only XMODEM with 128 byte packets is allowed (XMODEM
+-with 1K packets won't work). The file size that you can upload is limited to 1024
+-bytes, but this can be easily changed by modifying the &quot;XMODEM_MAX_FILE_SIZE&quot; 
+-macro in src/main.c:
++To use this, your eLua taret image must be built with support for XMODEM (see 
++docs/elua_components.txt for details). Also, your terminal emulation program must 
++support sending files via the XMODEM protocol. Both XMODEM with checksum (the 
++original version) and XMODEM with CRC are supported, but only XMODEM with 128 
++byte packets is allowed (XMODEM with 1K packets won't work). The file size that 
++you can upload is limited by the XMODEM_MAX_FILE_SIZE macro in src/main.c:
+ 
+ (BEGIN src/main.c)
+ // Maximum file size that can be received via XMODEM
+ // Should be a multiple of 128
+-#define XMODEM_MAX_FILE_SIZE      1024
++#define XMODEM_MAX_FILE_SIZE      [maximum file size in bytes]
+ (END src/main.c)
+ 
+ To use this feature, enter &quot;recv&quot; at the shell prompt. eLua will respond with 
+ &quot;Waiting for file ...&quot;. At this point you can send the file to the eLua board 
+-via XMODEM. eLua will receive and execute the file.
++via XMODEM. eLua will receive and execute the file. Don't worry when you see 'C'
++characters suddenly appearing on your terminal after you enter this command, 
++this is how the XMODEM transfer is initiated.
+ 
+ The &quot;lua&quot; command
+ ================================================================================
+
+Added: trunk/docs/the_rom_file_system.txt
+===================================================================
+--- trunk/docs/the_rom_file_system.txt	2008-08-07 20:02:24 UTC (rev 35)
++++ trunk/docs/the_rom_file_system.txt	2008-08-08 12:56:29 UTC (rev 36)
+@@ -0,0 +1,36 @@
++(NOTE: view this file with a monospaced font)
++
++The ROM file system
++================================================================================
++
++This is a small, read-only file system built inside eLua. It is integrated with
++Newlib, so you can use standard POSIX calls (fopen/fread/fwrite...) to access
++it. It is also accessible directly from Lua. The files in the file system are 
++part of the eLua binary image, thus they can't be modified after the image is
++built. For the seame reason, you can't add/delete files after the image is built.
++To use this file system:
++
++- copy all the files you need to the files/ directory.
++- Build eLua (docs/building.txt). As part of the build process, &quot;mkfs.py&quot; will
++  be called, which will read the contents of the &quot;files/&quot; directory and will
++  output a file that contains a binary description of the file system.
++- burn your image to the target
++- from your code, whenever you want to access a file, prefix its name with
++  &quot;/rom/&quot;. For example, if you want to open the &quot;a.txt&quot; file, you should call 
++  fopen like this:
++
++  f = fopen( &quot;/rom/a.txt&quot;, &quot;rb&quot; )
++
++  If you want to execute one file from the ROM file system with Lua, simply do
++  this from the shell:
++
++  eLua# lua /rom/bisect.lua
++
++  Or directly from Lua:
++
++  &gt; dofile &quot;/rom/bisect.lua&quot;
++
++The maximum file name of a ROMFS file is 14 characters, including the dot
++between the file name and its extension. Make sure that the file names from
++files/ follow this rule.
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000001.html">[Elua-svn] r37 - trunk/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#0">[ date ]</a>
+              <a href="thread.html#0">[ thread ]</a>
+              <a href="subject.html#0">[ subject ]</a>
+              <a href="author.html#0">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

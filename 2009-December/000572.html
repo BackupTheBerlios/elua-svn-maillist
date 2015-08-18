@@ -1,0 +1,309 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r616 - in branches/pre0.7/src/platform: at91sam7x avr32	lpc288x str7 str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r616%20-%20in%20branches/pre0.7/src/platform%3A%20at91sam7x%20avr32%0A%09lpc288x%20str7%20str9&In-Reply-To=%3C200912260511.nBQ5BvDT001506%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000571.html">
+   <LINK REL="Next"  HREF="000573.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r616 - in branches/pre0.7/src/platform: at91sam7x avr32	lpc288x str7 str9</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r616%20-%20in%20branches/pre0.7/src/platform%3A%20at91sam7x%20avr32%0A%09lpc288x%20str7%20str9&In-Reply-To=%3C200912260511.nBQ5BvDT001506%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r616 - in branches/pre0.7/src/platform: at91sam7x avr32	lpc288x str7 str9">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Dec 26 06:11:57 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000571.html">[Elua-svn] r615 - branches/pre0.7/src/lua
+</A></li>
+        <LI>Next message: <A HREF="000573.html">[Elua-svn] r617 - in branches/pre0.7/doc: eluadoc en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#572">[ date ]</a>
+              <a href="thread.html#572">[ thread ]</a>
+              <a href="subject.html#572">[ subject ]</a>
+              <a href="author.html#572">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-26 06:11:56 +0100 (Sat, 26 Dec 2009)
+New Revision: 616
+
+Modified:
+   branches/pre0.7/src/platform/at91sam7x/platform_conf.h
+   branches/pre0.7/src/platform/avr32/platform_conf.h
+   branches/pre0.7/src/platform/lpc288x/platform_conf.h
+   branches/pre0.7/src/platform/str7/platform_conf.h
+   branches/pre0.7/src/platform/str9/platform_conf.h
+Log:
+Add RPC option for at91sam7x, avr32, lpc288x, str7 &amp; str9 platforms.
+WARNING: these platforms are untested (all ARM7 or Cortex-M3 will likely
+work, but should be checked).
+
+sim &amp; i386 have not been configured as UART timeouts are used by the eLua
+backend, and these platforms don't provide this functionality.
+
+Modified: branches/pre0.7/src/platform/at91sam7x/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/at91sam7x/platform_conf.h	2009-12-26 03:16:34 UTC (rev 615)
++++ branches/pre0.7/src/platform/at91sam7x/platform_conf.h	2009-12-26 05:11:56 UTC (rev 616)
+@@ -15,6 +15,7 @@
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+ #define BUILD_CON_GENERIC
++//#define BUILD_RPC
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -28,6 +29,12 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++#ifdef BUILD_RPC
++#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#else
++#define RPCLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+@@ -38,6 +45,7 @@
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  RPCLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 
+ // *****************************************************************************
+@@ -60,6 +68,11 @@
+ #define NUM_ADC               0
+ #define NUM_CAN               0
+ 
++// RPC boot options
++#define RPC_UART_ID           CON_UART_ID
++#define RPC_TIMER_ID          CON_TIMER_ID
++#define RPC_UART_SPEED        CON_UART_SPEED
++
+ // Enable RX buffering on UART
+ #define BUF_ENABLE_UART
+ #define CON_BUF_SIZE          BUF_SIZE_128
+
+Modified: branches/pre0.7/src/platform/avr32/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/avr32/platform_conf.h	2009-12-26 03:16:34 UTC (rev 615)
++++ branches/pre0.7/src/platform/avr32/platform_conf.h	2009-12-26 05:11:56 UTC (rev 616)
+@@ -16,6 +16,7 @@
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+ #define BUILD_CON_GENERIC
++//#define BUILD_RPC
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -29,6 +30,12 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++#ifdef BUILD_RPC
++#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#else
++#define RPCLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+   _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
+@@ -36,6 +43,7 @@
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+   _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  RPCLINE\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+@@ -60,6 +68,11 @@
+ #define NUM_ADC               0
+ #define NUM_CAN               0
+ 
++// RPC boot options
++#define RPC_UART_ID           CON_UART_ID
++#define RPC_TIMER_ID          CON_TIMER_ID
++#define RPC_UART_SPEED        CON_UART_SPEED
++
+ // Enable RX buffering on UART
+ #define BUF_ENABLE_UART
+ #define CON_BUF_SIZE          BUF_SIZE_128
+
+Modified: branches/pre0.7/src/platform/lpc288x/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/lpc288x/platform_conf.h	2009-12-26 03:16:34 UTC (rev 615)
++++ branches/pre0.7/src/platform/lpc288x/platform_conf.h	2009-12-26 05:11:56 UTC (rev 616)
+@@ -15,6 +15,7 @@
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+ #define BUILD_CON_GENERIC
++//#define BUILD_RPC
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -40,6 +41,11 @@
+ #define NUM_ADC               0
+ #define NUM_CAN               0
+ 
++// RPC boot options
++#define RPC_UART_ID           CON_UART_ID
++#define RPC_TIMER_ID          CON_TIMER_ID
++#define RPC_UART_SPEED        CON_UART_SPEED
++
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         Fcclk
+ 
+@@ -61,6 +67,12 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++#ifdef BUILD_RPC
++#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#else
++#define RPCLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+@@ -69,6 +81,7 @@
+   _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  RPCLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 
+ #endif // #ifndef __PLATFORM_CONF_H__
+
+Modified: branches/pre0.7/src/platform/str7/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/str7/platform_conf.h	2009-12-26 03:16:34 UTC (rev 615)
++++ branches/pre0.7/src/platform/str7/platform_conf.h	2009-12-26 05:11:56 UTC (rev 616)
+@@ -14,6 +14,7 @@
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+ #define BUILD_CON_GENERIC
++//#define BUILD_RPC
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -27,6 +28,12 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++#ifdef BUILD_RPC
++#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#else
++#define RPCLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+@@ -37,6 +44,7 @@
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  RPCLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 
+ // *****************************************************************************
+@@ -55,6 +63,11 @@
+ #define NUM_ADC               0
+ #define NUM_CAN               0
+ 
++// RPC boot options
++#define RPC_UART_ID           CON_UART_ID
++#define RPC_TIMER_ID          CON_TIMER_ID
++#define RPC_UART_SPEED        CON_UART_SPEED
++
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         0
+ 
+
+Modified: branches/pre0.7/src/platform/str9/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/str9/platform_conf.h	2009-12-26 03:16:34 UTC (rev 615)
++++ branches/pre0.7/src/platform/str9/platform_conf.h	2009-12-26 05:11:56 UTC (rev 616)
+@@ -15,6 +15,7 @@
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+ #define BUILD_CON_GENERIC
++//#define BUILD_RPC
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -46,6 +47,11 @@
+ #define NUM_ADC               0
+ #define NUM_CAN               0
+ 
++// RPC boot options
++#define RPC_UART_ID           CON_UART_ID
++#define RPC_TIMER_ID          CON_TIMER_ID
++#define RPC_UART_SPEED        CON_UART_SPEED
++
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ u32 SCU_GetMCLKFreqValue();
+ #define CPU_FREQUENCY         ( SCU_GetMCLKFreqValue() * 1000 )
+@@ -71,6 +77,12 @@
+ // The name of the platform specific libs table
+ #define PS_LIB_TABLE_NAME   &quot;str9&quot;
+ 
++#ifdef BUILD_RPC
++#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#else
++#define RPCLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+@@ -80,6 +92,7 @@
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map)\
++  RPCLINE\
+   _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map)\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
+   _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000571.html">[Elua-svn] r615 - branches/pre0.7/src/lua
+</A></li>
+	<LI>Next message: <A HREF="000573.html">[Elua-svn] r617 - in branches/pre0.7/doc: eluadoc en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#572">[ date ]</a>
+              <a href="thread.html#572">[ thread ]</a>
+              <a href="subject.html#572">[ subject ]</a>
+              <a href="author.html#572">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

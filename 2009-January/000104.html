@@ -1,0 +1,3618 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r148 - trunk/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r148%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200901092321.n09NLxqp008859%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000103.html">
+   <LINK REL="Next"  HREF="000105.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r148 - trunk/src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r148%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200901092321.n09NLxqp008859%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r148 - trunk/src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Jan 10 00:21:59 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000103.html">[Elua-svn] r147 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000105.html">[Elua-svn] r149 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#104">[ date ]</a>
+              <a href="thread.html#104">[ thread ]</a>
+              <a href="subject.html#104">[ subject ]</a>
+              <a href="author.html#104">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-01-10 00:21:58 +0100 (Sat, 10 Jan 2009)
+New Revision: 148
+
+Added:
+   trunk/src/platform/lm3s/cpu.c
+Removed:
+   trunk/src/platform/lm3s/asmdefs.h
+   trunk/src/platform/lm3s/cpu.s
+Modified:
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/cpu.h
+   trunk/src/platform/lm3s/debug.h
+   trunk/src/platform/lm3s/ethernet.c
+   trunk/src/platform/lm3s/ethernet.h
+   trunk/src/platform/lm3s/flash.c
+   trunk/src/platform/lm3s/flash.h
+   trunk/src/platform/lm3s/gpio.c
+   trunk/src/platform/lm3s/gpio.h
+   trunk/src/platform/lm3s/hw_ethernet.h
+   trunk/src/platform/lm3s/hw_flash.h
+   trunk/src/platform/lm3s/hw_gpio.h
+   trunk/src/platform/lm3s/hw_ints.h
+   trunk/src/platform/lm3s/hw_memmap.h
+   trunk/src/platform/lm3s/hw_nvic.h
+   trunk/src/platform/lm3s/hw_pwm.h
+   trunk/src/platform/lm3s/hw_ssi.h
+   trunk/src/platform/lm3s/hw_sysctl.h
+   trunk/src/platform/lm3s/hw_timer.h
+   trunk/src/platform/lm3s/hw_types.h
+   trunk/src/platform/lm3s/hw_uart.h
+   trunk/src/platform/lm3s/interrupt.c
+   trunk/src/platform/lm3s/interrupt.h
+   trunk/src/platform/lm3s/pwm.c
+   trunk/src/platform/lm3s/pwm.h
+   trunk/src/platform/lm3s/rit128x96x4.c
+   trunk/src/platform/lm3s/rit128x96x4.h
+   trunk/src/platform/lm3s/ssi.c
+   trunk/src/platform/lm3s/ssi.h
+   trunk/src/platform/lm3s/sysctl.c
+   trunk/src/platform/lm3s/sysctl.h
+   trunk/src/platform/lm3s/systick.c
+   trunk/src/platform/lm3s/systick.h
+   trunk/src/platform/lm3s/timer.c
+   trunk/src/platform/lm3s/timer.h
+   trunk/src/platform/lm3s/usart.c
+   trunk/src/platform/lm3s/usart.h
+Log:
+Update drivers to StellarisWare revision 3740.
+- functionality added to UART driver
+- simplification to reduce code repetition
+- misc other fixes?
+
+Deleted: trunk/src/platform/lm3s/asmdefs.h
+===================================================================
+--- trunk/src/platform/lm3s/asmdefs.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/asmdefs.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -1,211 +0,0 @@
+-//*****************************************************************************
+-//
+-// asmdefs.h - Macros to allow assembly code be portable among toolchains.
+-//
+-// Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+-// Software License Agreement
+-// 
+-// Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+-// exclusively on LMI's microcontroller products.
+-// 
+-// The software is owned by LMI and/or its suppliers, and is protected under
+-// applicable copyright laws.  All rights are reserved.  You may not combine
+-// this software with &quot;viral&quot; open-source software in order to form a larger
+-// program.  Any use in violation of the foregoing restrictions may subject
+-// the user to criminal sanctions under applicable laws, as well as to civil
+-// liability for the breach of the terms and conditions of this license.
+-// 
+-// THIS SOFTWARE IS PROVIDED &quot;AS IS&quot;.  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
+-// OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
+-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
+-// LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+-// CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+-// 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
+-//
+-//*****************************************************************************
+-
+-#ifndef __ASMDEFS_H__
+-#define __ASMDEFS_H__
+-
+-//*****************************************************************************
+-//
+-// The defines required for code_red.
+-//
+-//*****************************************************************************
+-#ifdef codered
+-
+-//
+-// The assembly code preamble required to put the assembler into the correct
+-// configuration.
+-//
+-    .syntax unified
+-    .thumb
+-
+-//
+-// Section headers.
+-//
+-#define __LIBRARY__             @
+-#define __TEXT__                .text
+-#define __DATA__                .data
+-#define __BSS__                 .bss
+-#define __TEXT_NOROOT__         .text
+-
+-//
+-// Assembler nmenonics.
+-//
+-#define __ALIGN__               .balign 4
+-#define __END__                 .end
+-#define __EXPORT__              .globl
+-#define __IMPORT__              .extern
+-#define __LABEL__               :
+-#define __STR__                 .ascii
+-#define __THUMB_LABEL__         .thumb_func
+-#define __WORD__                .word
+-
+-#endif // codered
+-
+-//*****************************************************************************
+-//
+-// The defines required for EW-ARM.
+-//
+-//*****************************************************************************
+-#ifdef ewarm
+-
+-//
+-// Section headers.
+-//
+-#define __LIBRARY__             module
+-#define __TEXT__                rseg CODE:CODE(2)
+-#define __DATA__                rseg DATA:DATA(2)
+-#define __BSS__                 rseg DATA:DATA(2)
+-#define __TEXT_NOROOT__         rseg CODE:CODE:NOROOT(2)
+-
+-//
+-// Assembler nmenonics.
+-//
+-#define __ALIGN__               alignrom 2
+-#define __END__                 end
+-#define __EXPORT__              export
+-#define __IMPORT__              import
+-#define __LABEL__
+-#define __STR__                 dcb
+-#define __THUMB_LABEL__
+-#define __WORD__                dcd
+-
+-#endif // ewarm
+-
+-//*****************************************************************************
+-//
+-// The defines required for GCC.
+-//
+-//*****************************************************************************
+-#if defined(gcc)
+-
+-//
+-// The assembly code preamble required to put the assembler into the correct
+-// configuration.
+-//
+-    .syntax unified
+-    .thumb
+-
+-//
+-// Section headers.
+-//
+-#define __LIBRARY__             @
+-#define __TEXT__                .text
+-#define __DATA__                .data
+-#define __BSS__                 .bss
+-#define __TEXT_NOROOT__         .text
+-
+-//
+-// Assembler nmenonics.
+-//
+-#define __ALIGN__               .balign 4
+-#define __END__                 .end
+-#define __EXPORT__              .globl
+-#define __IMPORT__              .extern
+-#define __LABEL__               :
+-#define __STR__                 .ascii
+-#define __THUMB_LABEL__         .thumb_func
+-#define __WORD__                .word
+-
+-#endif // gcc
+-
+-//*****************************************************************************
+-//
+-// The defines required for RV-MDK.
+-//
+-//*****************************************************************************
+-#ifdef rvmdk
+-
+-//
+-// The assembly code preamble required to put the assembler into the correct
+-// configuration.
+-//
+-    thumb
+-    require8
+-    preserve8
+-
+-//
+-// Section headers.
+-//
+-#define __LIBRARY__             ;
+-#define __TEXT__                area ||.text||, code, readonly, align=2
+-#define __DATA__                area ||.data||, data, align=2
+-#define __BSS__                 area ||.bss||, noinit, align=2
+-#define __TEXT_NOROOT__         area ||.text||, code, readonly, align=2
+-
+-//
+-// Assembler nmenonics.
+-//
+-#define __ALIGN__               align 4
+-#define __END__                 end
+-#define __EXPORT__              export
+-#define __IMPORT__              import
+-#define __LABEL__
+-#define __STR__                 dcb
+-#define __THUMB_LABEL__
+-#define __WORD__                dcd
+-
+-#endif // rvmdk
+-
+-//*****************************************************************************
+-//
+-// The defines required for Sourcery G++.
+-//
+-//*****************************************************************************
+-#if defined(sourcerygxx)
+-
+-//
+-// The assembly code preamble required to put the assembler into the correct
+-// configuration.
+-//
+-    .syntax unified
+-    .thumb
+-
+-//
+-// Section headers.
+-//
+-#define __LIBRARY__             @
+-#define __TEXT__                .text
+-#define __DATA__                .data
+-#define __BSS__                 .bss
+-#define __TEXT_NOROOT__         .text
+-
+-//
+-// Assembler nmenonics.
+-//
+-#define __ALIGN__               .balign 4
+-#define __END__                 .end
+-#define __EXPORT__              .globl
+-#define __IMPORT__              .extern
+-#define __LABEL__               :
+-#define __STR__                 .ascii
+-#define __THUMB_LABEL__         .thumb_func
+-#define __WORD__                .word
+-
+-#endif // sourcerygxx
+-
+-#endif // __ASMDEF_H__
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/conf.py	2009-01-09 23:21:58 UTC (rev 148)
+@@ -1,6 +1,6 @@
+ # Configuration file for the LM3S microcontroller
+ 
+-specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.s rit128x96x4.c&quot;
++specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c rit128x96x4.c&quot;
+ ldscript = &quot;lm3s.ld&quot;
+   
+ # Prepend with path
+
+Added: trunk/src/platform/lm3s/cpu.c
+===================================================================
+--- trunk/src/platform/lm3s/cpu.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/cpu.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -0,0 +1,189 @@
++//*****************************************************************************
++//
++// cpu.c - Instruction wrappers for special CPU instructions needed by the
++//         drivers.
++//
++// Copyright (c) 2006-2008 Luminary Micro, Inc.  All rights reserved.
++// Software License Agreement
++// 
++// Luminary Micro, Inc. (LMI) is supplying this software for use solely and
++// exclusively on LMI's microcontroller products.
++// 
++// The software is owned by LMI and/or its suppliers, and is protected under
++// applicable copyright laws.  All rights are reserved.  You may not combine
++// this software with &quot;viral&quot; open-source software in order to form a larger
++// program.  Any use in violation of the foregoing restrictions may subject
++// the user to criminal sanctions under applicable laws, as well as to civil
++// liability for the breach of the terms and conditions of this license.
++// 
++// THIS SOFTWARE IS PROVIDED &quot;AS IS&quot;.  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
++// OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
++// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
++// LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
++// CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
++// 
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
++//
++//*****************************************************************************
++
++#include &quot;cpu.h&quot;
++
++//*****************************************************************************
++//
++// Wrapper function for the CPSID instruction.  Returns the state of PRIMASK
++// on entry.
++//
++//*****************************************************************************
++#if defined(codered) || defined(gcc) || defined(sourcerygxx)
++unsigned long __attribute__((naked))
++CPUcpsid(void)
++{
++    unsigned long ulRet;
++
++    //
++    // Read PRIMASK and disable interrupts.
++    //
++    __asm(&quot;    mrs     %0, PRIMASK\n&quot;
++          &quot;    cpsid   i\n&quot;
++          &quot;    bx      lr\n&quot;
++          : &quot;=r&quot; (ulRet));
++
++    //
++    // The return is handled in the inline assembly, but the compiler will
++    // still complain if there is not an explicit return here (despite the fact
++    // that this does not result in any code being produced because of the
++    // naked attribute).
++    //
++    return(ulRet);
++}
++#endif
++#if defined(ewarm)
++unsigned long
++CPUcpsid(void)
++{
++    //
++    // Read PRIMASK and disable interrupts.
++    //
++    __asm(&quot;    mrs     r0, PRIMASK\n&quot;
++          &quot;    cpsid   i\n&quot;);
++
++    //
++    // &quot;Warning[Pe940]: missing return statement at end of non-void function&quot;
++    // is suppressed here to avoid putting a &quot;bx lr&quot; in the inline assembly
++    // above and a superfluous return statement here.
++    //
++#pragma diag_suppress=Pe940
++}
++#pragma diag_default=Pe940
++#endif
++#if defined(rvmdk) || defined(__ARMCC_VERSION)
++__asm unsigned long
++CPUcpsid(void)
++{
++    //
++    // Read PRIMASK and disable interrupts.
++    //
++    mrs     r0, PRIMASK;
++    cpsid   i;
++    bx      lr
++}
++#endif
++
++//*****************************************************************************
++//
++// Wrapper function for the CPSIE instruction.  Returns the state of PRIMASK
++// on entry.
++//
++//*****************************************************************************
++#if defined(codered) || defined(gcc) || defined(sourcerygxx)
++unsigned long __attribute__((naked))
++CPUcpsie(void)
++{
++    unsigned long ulRet;
++
++    //
++    // Read PRIMASK and enable interrupts.
++    //
++    __asm(&quot;    mrs     %0, PRIMASK\n&quot;
++          &quot;    cpsie   i\n&quot;
++          &quot;    bx      lr\n&quot;
++          : &quot;=r&quot; (ulRet));
++
++    //
++    // The return is handled in the inline assembly, but the compiler will
++    // still complain if there is not an explicit return here (despite the fact
++    // that this does not result in any code being produced because of the
++    // naked attribute).
++    //
++    return(ulRet);
++}
++#endif
++#if defined(ewarm)
++unsigned long
++CPUcpsie(void)
++{
++    //
++    // Read PRIMASK and enable interrupts.
++    //
++    __asm(&quot;    mrs     r0, PRIMASK\n&quot;
++          &quot;    cpsie   i\n&quot;);
++
++    //
++    // &quot;Warning[Pe940]: missing return statement at end of non-void function&quot;
++    // is suppressed here to avoid putting a &quot;bx lr&quot; in the inline assembly
++    // above and a superfluous return statement here.
++    //
++#pragma diag_suppress=Pe940
++}
++#pragma diag_default=Pe940
++#endif
++#if defined(rvmdk) || defined(__ARMCC_VERSION)
++__asm unsigned long
++CPUcpsie(void)
++{
++    //
++    // Read PRIMASK and enable interrupts.
++    //
++    mrs     r0, PRIMASK;
++    cpsie   i;
++    bx      lr
++}
++#endif
++
++//*****************************************************************************
++//
++// Wrapper function for the WFI instruction.
++//
++//*****************************************************************************
++#if defined(codered) || defined(gcc) || defined(sourcerygxx)
++void __attribute__((naked))
++CPUwfi(void)
++{
++    //
++    // Wait for the next interrupt.
++    //
++    __asm(&quot;    wfi\n&quot;
++          &quot;    bx      lr\n&quot;);
++}
++#endif
++#if defined(ewarm)
++void
++CPUwfi(void)
++{
++    //
++    // Wait for the next interrupt.
++    //
++    __asm(&quot;    wfi\n&quot;);
++}
++#endif
++#if defined(rvmdk) || defined(__ARMCC_VERSION)
++__asm void
++CPUwfi(void)
++{
++    //
++    // Wait for the next interrupt.
++    //
++    wfi;
++    bx      lr
++}
++#endif
+
+Modified: trunk/src/platform/lm3s/cpu.h
+===================================================================
+--- trunk/src/platform/lm3s/cpu.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/cpu.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // cpu.h - Prototypes for the CPU instruction wrapper functions.
+ //
+ // Copyright (c) 2006-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Deleted: trunk/src/platform/lm3s/cpu.s
+===================================================================
+--- trunk/src/platform/lm3s/cpu.s	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/cpu.s	2009-01-09 23:21:58 UTC (rev 148)
+@@ -1,75 +0,0 @@
+-//*****************************************************************************
+-//
+-// cpu.S - Instruction wrappers for special CPU instructions needed by the
+-//         drivers.
+-//
+-// Copyright (c) 2006-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+-// Software License Agreement
+-// 
+-// Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+-// exclusively on LMI's microcontroller products.
+-// 
+-// The software is owned by LMI and/or its suppliers, and is protected under
+-// applicable copyright laws.  All rights are reserved.  You may not combine
+-// this software with &quot;viral&quot; open-source software in order to form a larger
+-// program.  Any use in violation of the foregoing restrictions may subject
+-// the user to criminal sanctions under applicable laws, as well as to civil
+-// liability for the breach of the terms and conditions of this license.
+-// 
+-// THIS SOFTWARE IS PROVIDED &quot;AS IS&quot;.  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
+-// OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
+-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
+-// LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+-// CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+-// 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
+-//
+-//*****************************************************************************
+-
+-#include &quot;asmdefs.h&quot;
+-
+-//*****************************************************************************
+-//
+-// The entire contents of this file go into the code section.
+-//
+-//*****************************************************************************
+-    __LIBRARY__ __lib_cpu
+-    __TEXT_NOROOT__
+-
+-//*****************************************************************************
+-//
+-// Wrapper function for the CPSID instruction.  Returns the state of PRIMASK
+-// on entry.
+-//
+-//*****************************************************************************
+-    __EXPORT__ CPUcpsid
+-    __THUMB_LABEL__
+-CPUcpsid __LABEL__
+-    mrs     r0, PRIMASK
+-    cpsid   i
+-    bx      lr
+-
+-//*****************************************************************************
+-//
+-// Wrapper function for the CPSIE instruction.  Returns the state of PRIMASK
+-// on entry.
+-//
+-//*****************************************************************************
+-    __EXPORT__ CPUcpsie
+-    __THUMB_LABEL__
+-CPUcpsie __LABEL__
+-    mrs     r0, PRIMASK
+-    cpsie   i
+-    bx      lr
+-
+-//*****************************************************************************
+-//
+-// Wrapper function for the WFI instruction.
+-//
+-//*****************************************************************************
+-    __EXPORT__ CPUwfi
+-    __THUMB_LABEL__
+-CPUwfi __LABEL__
+-    wfi
+-    bx      lr
+
+Modified: trunk/src/platform/lm3s/debug.h
+===================================================================
+--- trunk/src/platform/lm3s/debug.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/debug.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // debug.h - Macros for assisting debug of the driver library.
+ //
+ // Copyright (c) 2006-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/ethernet.c
+===================================================================
+--- trunk/src/platform/lm3s/ethernet.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/ethernet.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // ethernet.c - Driver for the Integrated Ethernet Controller
+ //
+ // Copyright (c) 2006-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/ethernet.h
+===================================================================
+--- trunk/src/platform/lm3s/ethernet.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/ethernet.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // ethernet.h - Defines and Macros for the ethernet module.
+ //
+ // Copyright (c) 2006-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/flash.c
+===================================================================
+--- trunk/src/platform/lm3s/flash.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/flash.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // flash.c - Driver for programming the on-chip flash.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/flash.h
+===================================================================
+--- trunk/src/platform/lm3s/flash.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/flash.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -2,8 +2,7 @@
+ //
+ // flash.h - Prototypes for the flash driver.
+ //
+-// Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
++// Copyright (c) 2005-2007 Luminary Micro, Inc.  All rights reserved
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/gpio.c
+===================================================================
+--- trunk/src/platform/lm3s/gpio.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/gpio.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // gpio.c - API for GPIO ports
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+@@ -44,6 +43,34 @@
+ //*****************************************************************************
+ //
+ //! \internal
++//! Checks a GPIO base address.
++//!
++//! \param ulPort is the base address of the GPIO port.
++//!
++//! This function determines if a GPIO port base address is valid.
++//!
++//! \return Returns \b true if the base address is valid and \b false
++//! otherwise.
++//
++//*****************************************************************************
++#ifdef DEBUG
++static tBoolean
++GPIOBaseValid(unsigned long ulPort)
++{
++    return((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
++           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
++           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
++           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
++           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
++           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
++           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
++           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++}
++#endif
++
++//*****************************************************************************
++//
++//! \internal
+ //! Gets the GPIO interrupt number.
+ //!
+ //! \param ulPort is the base address of the GPIO port.
+@@ -170,14 +197,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+     ASSERT((ulPinIO == GPIO_DIR_MODE_IN) || (ulPinIO == GPIO_DIR_MODE_OUT) ||
+            (ulPinIO == GPIO_DIR_MODE_HW));
+ 
+@@ -217,14 +237,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+     ASSERT(ucPin &lt; 8);
+ 
+     //
+@@ -282,14 +295,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+     ASSERT((ulIntType == GPIO_FALLING_EDGE) ||
+            (ulIntType == GPIO_RISING_EDGE) || (ulIntType == GPIO_BOTH_EDGES) ||
+            (ulIntType == GPIO_LOW_LEVEL) || (ulIntType == GPIO_HIGH_LEVEL));
+@@ -333,14 +339,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+     ASSERT(ucPin &lt; 8);
+ 
+     //
+@@ -412,14 +411,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+     ASSERT((ulStrength == GPIO_STRENGTH_2MA) ||
+            (ulStrength == GPIO_STRENGTH_4MA) ||
+            (ulStrength == GPIO_STRENGTH_8MA) ||
+@@ -503,14 +495,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+     ASSERT(ucPin &lt; 8);
+ 
+     //
+@@ -561,14 +546,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Enable the interrupts.
+@@ -598,14 +576,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Disable the interrupts.
+@@ -636,14 +607,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Return the interrupt status.
+@@ -689,14 +653,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Clear the interrupts.
+@@ -730,14 +687,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Get the interrupt number associated with the specified GPIO.
+@@ -778,14 +728,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Get the interrupt number associated with the specified GPIO.
+@@ -830,14 +773,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Return the pin value(s).
+@@ -869,14 +805,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Write the pins.
+@@ -911,14 +840,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be inputs.
+@@ -960,14 +882,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be inputs.
+@@ -1007,14 +922,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be inputs.
+@@ -1052,14 +960,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be inputs.
+@@ -1097,14 +998,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be outputs.
+@@ -1142,14 +1036,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be outputs.
+@@ -1189,14 +1076,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be peripheral controlled.
+@@ -1237,14 +1117,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be peripheral controlled.
+@@ -1285,14 +1158,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be peripheral controlled.
+@@ -1333,14 +1199,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be peripheral controlled.
+@@ -1381,14 +1240,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be peripheral controlled.
+@@ -1429,14 +1281,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be peripheral controlled.
+@@ -1477,14 +1322,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPort == GPIO_PORTA_BASE) || (ulPort == GPIO_PORTA_AHB_BASE) ||
+-           (ulPort == GPIO_PORTB_BASE) || (ulPort == GPIO_PORTB_AHB_BASE) ||
+-           (ulPort == GPIO_PORTC_BASE) || (ulPort == GPIO_PORTC_AHB_BASE) ||
+-           (ulPort == GPIO_PORTD_BASE) || (ulPort == GPIO_PORTD_AHB_BASE) ||
+-           (ulPort == GPIO_PORTE_BASE) || (ulPort == GPIO_PORTE_AHB_BASE) ||
+-           (ulPort == GPIO_PORTF_BASE) || (ulPort == GPIO_PORTF_AHB_BASE) ||
+-           (ulPort == GPIO_PORTG_BASE) || (ulPort == GPIO_PORTG_AHB_BASE) ||
+-           (ulPort == GPIO_PORTH_BASE) || (ulPort == GPIO_PORTH_AHB_BASE));
++    ASSERT(GPIOBaseValid(ulPort));
+ 
+     //
+     // Make the pin(s) be peripheral controlled.
+
+Modified: trunk/src/platform/lm3s/gpio.h
+===================================================================
+--- trunk/src/platform/lm3s/gpio.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/gpio.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // gpio.h - Defines and Macros for GPIO API.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/hw_ethernet.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_ethernet.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_ethernet.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,9 +3,8 @@
+ // hw_ethernet.h - Macros used when accessing the Ethernet hardware.
+ //
+ // Copyright (c) 2006-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+-// 
++//
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+ // exclusively on LMI's microcontroller products.
+ // 
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/hw_flash.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_flash.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_flash.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,9 +3,8 @@
+ // hw_flash.h - Macros used when accessing the flash controller.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+-// 
++//
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+ // exclusively on LMI's microcontroller products.
+ // 
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/hw_gpio.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_gpio.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_gpio.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // hw_gpio.h - Defines and Macros for GPIO hardware.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/hw_ints.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_ints.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_ints.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // hw_ints.h - Macros that define the interrupt assignment on Stellaris.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -12,7 +11,7 @@
+ // The software is owned by LMI and/or its suppliers, and is protected under
+ // applicable copyright laws.  All rights are reserved.  You may not combine
+ // this software with &quot;viral&quot; open-source software in order to form a larger
+-// program.  Any use in violation of the foregoing restrictions may subject
++// program. Any use in violation of the foregoing restrictions may subject
+ // the user to criminal sanctions under applicable laws, as well as to civil
+ // liability for the breach of the terms and conditions of this license.
+ // 
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/hw_memmap.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_memmap.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_memmap.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // hw_memmap.h - Macros defining the memory map of Stellaris.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/hw_nvic.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_nvic.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_nvic.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // hw_nvic.h - Macros used when accessing the NVIC hardware.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+@@ -945,15 +944,17 @@
+ //*****************************************************************************
+ #define NVIC_DBG_CTRL_DBGKEY_M  0xFFFF0000  // Debug key mask
+ #define NVIC_DBG_CTRL_DBGKEY    0xA05F0000  // Debug key
+-#define NVIC_DBG_CTRL_MON_PEND  0x00008000  // Pend the monitor
+-#define NVIC_DBG_CTRL_MON_REQ   0x00004000  // Monitor request
+-#define NVIC_DBG_CTRL_MON_EN    0x00002000  // Debug monitor enable
+-#define NVIC_DBG_CTRL_MONSTEP   0x00001000  // Monitor step the core
+-#define NVIC_DBG_CTRL_S_SLEEP   0x00000400  // Core is sleeping
+-#define NVIC_DBG_CTRL_S_HALT    0x00000200  // Core status on halt
+-#define NVIC_DBG_CTRL_S_REGRDY  0x00000100  // Register read/write available
+-#define NVIC_DBG_CTRL_S_LOCKUP  0x00000080  // Core is locked up
+-#define NVIC_DBG_CTRL_C_RESET   0x00000010  // Reset the core
++#define NVIC_DBG_CTRL_S_RESET_ST \
++                                0x02000000  // Core has reset since last read
++#define NVIC_DBG_CTRL_S_RETIRE_ST \
++                                0x01000000  // Core has executed insruction
++                                            // since last read
++#define NVIC_DBG_CTRL_S_LOCKUP  0x00080000  // Core is locked up
++#define NVIC_DBG_CTRL_S_SLEEP   0x00040000  // Core is sleeping
++#define NVIC_DBG_CTRL_S_HALT    0x00020000  // Core status on halt
++#define NVIC_DBG_CTRL_S_REGRDY  0x00010000  // Register read/write available
++#define NVIC_DBG_CTRL_C_SNAPSTALL \
++                                0x00000020  // Breaks a stalled load/store
+ #define NVIC_DBG_CTRL_C_MASKINT 0x00000008  // Mask interrupts when stepping
+ #define NVIC_DBG_CTRL_C_STEP    0x00000004  // Step the core
+ #define NVIC_DBG_CTRL_C_HALT    0x00000002  // Halt the core
+
+Modified: trunk/src/platform/lm3s/hw_pwm.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_pwm.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_pwm.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // hw_pwm.h - Defines and Macros for Pulse Width Modulation (PWM) ports
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+@@ -273,8 +272,8 @@
+ // bit definitions.
+ //
+ //*****************************************************************************
+-#define PWM_X_INTEN_TRCMPBD     0x00002000  // Trig if COUNT = CMPA D
+-#define PWM_X_INTEN_TRCMPBU     0x00001000  // Trig if COUNT = CMPA U
++#define PWM_X_INTEN_TRCMPBD     0x00002000  // Trig if COUNT = CMPB D
++#define PWM_X_INTEN_TRCMPBU     0x00001000  // Trig if COUNT = CMPB U
+ #define PWM_X_INTEN_TRCMPAD     0x00000800  // Trig if COUNT = CMPA D
+ #define PWM_X_INTEN_TRCMPAU     0x00000400  // Trig if COUNT = CMPA U
+ #define PWM_X_INTEN_TRCNTLOAD   0x00000200  // Trig if COUNT = LOAD
+
+Modified: trunk/src/platform/lm3s/hw_ssi.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_ssi.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_ssi.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // hw_ssi.h - Macros used when accessing the SSI hardware.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/hw_sysctl.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_sysctl.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_sysctl.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // hw_sysctl.h - Macros used when accessing the system control hardware.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/hw_timer.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_timer.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_timer.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // hw_timer.h - Defines and macros used when accessing the timer.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/hw_types.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_types.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_types.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // hw_types.h - Common types and macros.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+@@ -119,6 +118,12 @@
+          (SYSCTL_DID0_MAJ_REVA | SYSCTL_DID0_MIN_0))
+ #endif
+ 
++#ifndef REVISION_IS_A1
++#define REVISION_IS_A1                                                     \
++        ((HWREG(SYSCTL_DID0) &amp; (SYSCTL_DID0_MAJ_M | SYSCTL_DID0_MIN_M)) == \
++         (SYSCTL_DID0_MAJ_REVA | SYSCTL_DID0_MIN_0))
++#endif
++
+ #ifndef REVISION_IS_A2
+ #define REVISION_IS_A2                                                     \
+         ((HWREG(SYSCTL_DID0) &amp; (SYSCTL_DID0_MAJ_M | SYSCTL_DID0_MIN_M)) == \
+
+Modified: trunk/src/platform/lm3s/hw_uart.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_uart.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/hw_uart.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // hw_uart.h - Macros and defines used when accessing the UART hardware
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -15,14 +14,14 @@
+ // program.  Any use in violation of the foregoing restrictions may subject
+ // the user to criminal sanctions under applicable laws, as well as to civil
+ // liability for the breach of the terms and conditions of this license.
+-// 
++//
+ // THIS SOFTWARE IS PROVIDED &quot;AS IS&quot;.  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
+ // OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
+ // MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Firmware Development Package.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/interrupt.c
+===================================================================
+--- trunk/src/platform/lm3s/interrupt.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/interrupt.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // interrupt.c - Driver for the NVIC Interrupt Controller.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+@@ -196,7 +195,7 @@
+ void
+ IntRegister(unsigned long ulInterrupt, void (*pfnHandler)(void))
+ {
+-    unsigned long ulIdx;
++    unsigned long ulIdx, ulValue;
+ 
+     //
+     // Check the arguments.
+@@ -217,9 +216,11 @@
+         // Copy the vector table from the beginning of FLASH to the RAM vector
+         // table.
+         //
++        ulValue = HWREG(NVIC_VTABLE);
+         for(ulIdx = 0; ulIdx &lt; NUM_INTERRUPTS; ulIdx++)
+         {
+-            g_pfnRAMVectors[ulIdx] = (void (*)(void))HWREG(ulIdx * 4);
++            g_pfnRAMVectors[ulIdx] = (void (*)(void))HWREG((ulIdx * 4) +
++                                                     ulValue);
+         }
+ 
+         //
+
+Modified: trunk/src/platform/lm3s/interrupt.h
+===================================================================
+--- trunk/src/platform/lm3s/interrupt.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/interrupt.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // interrupt.h - Prototypes for the NVIC Interrupt Controller Driver.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/pwm.c
+===================================================================
+--- trunk/src/platform/lm3s/pwm.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/pwm.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // pwm.c - API for the PWM modules
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+@@ -60,6 +59,52 @@
+ 
+ //*****************************************************************************
+ //
++//! \internal
++//! Checks a PWM generator number.
++//!
++//! \param ulGen is the generator number.
++//!
++//! This function determines if a PWM generator number is valid.
++//!
++//! \return Returnes \b true if the generator number is valid and \b false
++//! otherwise.
++//
++//*****************************************************************************
++#ifdef DEBUG
++static tBoolean
++PWMGenValid(unsigned long ulGen)
++{
++    return((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++}
++#endif
++
++//*****************************************************************************
++//
++//! \internal
++//! Checks a PWM output number.
++//!
++//! \param ulPWMOut is the output number.
++//!
++//! This function determines if a PWM output number is valid.
++//!
++//! \return Returns \b true if the output number is valid and \b false
++//! otherwise.
++//
++//*****************************************************************************
++#ifdef DEBUG
++static tBoolean
++PWMOutValid(unsigned long ulPWMOut)
++{
++    return((ulPWMOut == PWM_OUT_0) || (ulPWMOut == PWM_OUT_1) ||
++           (ulPWMOut == PWM_OUT_2) || (ulPWMOut == PWM_OUT_3) ||
++           (ulPWMOut == PWM_OUT_4) || (ulPWMOut == PWM_OUT_5) ||
++           (ulPWMOut == PWM_OUT_6) || (ulPWMOut == PWM_OUT_7));
++}
++#endif
++
++//*****************************************************************************
++//
+ //! Configures a PWM generator.
+ //!
+ //! \param ulBase is the base address of the PWM module.
+@@ -123,7 +168,7 @@
+ //!   whether extended fault source selection support is enabled or not
+ //!
+ //! Setting \b PWM_GEN_MODE_FAULT_MINPER allows an application to set the
+-//! minimum duration of a PWM fault signal.  Fault will be signalled for at
++//! minimum duration of a PWM fault signal.  Fault will be signaled for at
+ //! least this time even if the external fault pin deasserts earlier.  Care
+ //! should be taken when using this mode since during the fault signal period,
+ //! the fault interrupt from the PWM generator will remain asserted.  The fault
+@@ -145,8 +190,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+ 
+     //
+     // Compute the generator's base address.
+@@ -223,8 +267,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+ 
+     //
+     // Compute the generator's base address.
+@@ -281,8 +324,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+ 
+     //
+     // Compute the generator's base address.
+@@ -329,8 +371,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+ 
+     //
+     // Enable the PWM generator.
+@@ -359,8 +400,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+ 
+     //
+     // Disable the PWM generator.
+@@ -397,10 +437,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulPWMOut == PWM_OUT_0) || (ulPWMOut == PWM_OUT_1) ||
+-           (ulPWMOut == PWM_OUT_2) || (ulPWMOut == PWM_OUT_3) ||
+-           (ulPWMOut == PWM_OUT_4) || (ulPWMOut == PWM_OUT_5) ||
+-           (ulPWMOut == PWM_OUT_6) || (ulPWMOut == PWM_OUT_7));
++    ASSERT(PWMOutValid(ulPWMOut));
+ 
+     //
+     // Compute the generator's base address.
+@@ -470,10 +507,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulPWMOut == PWM_OUT_0) || (ulPWMOut == PWM_OUT_1) ||
+-           (ulPWMOut == PWM_OUT_2) || (ulPWMOut == PWM_OUT_3) ||
+-           (ulPWMOut == PWM_OUT_4) || (ulPWMOut == PWM_OUT_5) ||
+-           (ulPWMOut == PWM_OUT_6) || (ulPWMOut == PWM_OUT_7));
++    ASSERT(PWMOutValid(ulPWMOut));
+ 
+     //
+     // Compute the generator's base address.
+@@ -535,8 +569,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+     ASSERT(usRise &lt; 4096);
+     ASSERT(usFall &lt; 4096);
+ 
+@@ -578,8 +611,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+ 
+     //
+     // Disable the deadband functionality.
+@@ -891,8 +923,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+ 
+     //
+     // Get the interrupt number associated with the specified generator.
+@@ -946,8 +977,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+ 
+     //
+     // Get the interrupt number associated with the specified generator.
+@@ -1076,8 +1106,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+     ASSERT((ulIntTrig &amp; ~(PWM_INT_CNT_ZERO | PWM_INT_CNT_LOAD |
+                           PWM_INT_CNT_AU | PWM_INT_CNT_AD | PWM_INT_CNT_BU |
+                           PWM_INT_CNT_BD | PWM_TR_CNT_ZERO | PWM_TR_CNT_LOAD |
+@@ -1118,8 +1147,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+     ASSERT((ulIntTrig &amp; ~(PWM_INT_CNT_ZERO | PWM_INT_CNT_LOAD |
+                           PWM_INT_CNT_AU | PWM_INT_CNT_AD | PWM_INT_CNT_BU |
+                           PWM_INT_CNT_BD | PWM_TR_CNT_ZERO | PWM_TR_CNT_LOAD |
+@@ -1157,8 +1185,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+ 
+     //
+     // Compute the generator's base address.
+@@ -1213,8 +1240,7 @@
+     // Check the arguments.
+     //
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+     ASSERT((ulInts &amp; ~(PWM_INT_CNT_ZERO | PWM_INT_CNT_LOAD | PWM_INT_CNT_AU |
+                        PWM_INT_CNT_AD | PWM_INT_CNT_BU | PWM_INT_CNT_BD)) ==
+            0);
+@@ -1388,9 +1414,9 @@
+ //! interrupts are derived by performing a logical OR of each of the configured
+ //! fault trigger signals for a given generator.  Therefore, these interrupts
+ //! are not directly related to the four possible FAULTn inputs to the device
+-//! but indicate that a fault has been signalled to one of the four possible
+-//! PWM generators.  On a device without extended PWM fault handling, the
+-//! interrupt is directly related to the state of the single FAULT pin.
++//! but indicate that a fault has been signaled to one of the four possible PWM
++//! generators.  On a device without extended PWM fault handling, the interrupt
++//! is directly related to the state of the single FAULT pin.
+ //!
+ //! \note Since there is a write buffer in the Cortex-M3 processor, it may take
+ //! several cycles before the interrupt source is actually cleared.  Therefore,
+@@ -1457,8 +1483,7 @@
+     //
+     ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+     ASSERT(ulMinFaultPeriod &lt; PWM_X_MINFLTPER_M);
+     ASSERT((ulFaultSenses &amp; ~(PWM_FAULT0_SENSE_HIGH | PWM_FAULT0_SENSE_LOW |
+                               PWM_FAULT1_SENSE_HIGH | PWM_FAULT1_SENSE_LOW |
+@@ -1518,8 +1543,7 @@
+     //
+     ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+     ASSERT(ulGroup == PWM_FAULT_GROUP_0);
+     ASSERT((ulFaultTriggers &amp; ~(PWM_FAULT_FAULT0 | PWM_FAULT_FAULT1 |
+                                 PWM_FAULT_FAULT2 | PWM_FAULT_FAULT3)) == 0);
+@@ -1563,8 +1587,7 @@
+     //
+     ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+     ASSERT(ulGroup == PWM_FAULT_GROUP_0);
+ 
+     //
+@@ -1613,8 +1636,7 @@
+     //
+     ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+     ASSERT(ulGroup == PWM_FAULT_GROUP_0);
+ 
+     //
+@@ -1655,8 +1677,7 @@
+     //
+     ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
+     ASSERT(ulBase == PWM_BASE);
+-    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
+-           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(PWMGenValid(ulGen));
+     ASSERT(ulGroup == PWM_FAULT_GROUP_0);
+     ASSERT((ulFaultTriggers &amp; ~(PWM_FAULT_FAULT0 | PWM_FAULT_FAULT1 |
+                                 PWM_FAULT_FAULT2 | PWM_FAULT_FAULT3)) == 0);
+
+Modified: trunk/src/platform/lm3s/pwm.h
+===================================================================
+--- trunk/src/platform/lm3s/pwm.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/pwm.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // pwm.h - API function protoypes for Pulse Width Modulation (PWM) ports
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/rit128x96x4.c
+===================================================================
+--- trunk/src/platform/lm3s/rit128x96x4.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/rit128x96x4.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // rit128x96x4.c - Driver for the RIT 128x96x4 graphical OLED display.
+ //
+ // Copyright (c) 2007-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,17 +21,17 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2692 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+ //*****************************************************************************
+ //
+-//! \addtogroup ek_lm3s8962_api
++//! \addtogroup display_api
+ //! @{
+ //
+ //*****************************************************************************
+-
++          
+ #include &quot;hw_ssi.h&quot;
+ #include &quot;hw_memmap.h&quot;
+ #include &quot;hw_sysctl.h&quot;
+@@ -61,7 +60,6 @@
+   #define GPIO_OLEDDC_PIN             GPIO_PIN_6
+   #define GPIO_OLEDEN_PIN             GPIO_PIN_7
+ #endif
+-
+ //*****************************************************************************
+ //
+ // Flag to indicate if SSI port is enabled for display usage.
+@@ -434,6 +432,10 @@
+ //! This function will clear the display RAM.  All pixels in the display will
+ //! be turned off.
+ //!
++//! This function is contained in &lt;tt&gt;rit128x96x4.c&lt;/tt&gt;, with
++//! &lt;tt&gt;rit128x96x4.h&lt;/tt&gt; containing the API definition for use by
++//! applications.
++//!
+ //! \return None.
+ //
+ //*****************************************************************************
+@@ -501,6 +503,10 @@
+ //! characters will be drawn.  Therefore, special care is not required to avoid
+ //! supplying a string that is ``too long'' to display.
+ //!
++//! This function is contained in &lt;tt&gt;rit128x96x4.c&lt;/tt&gt;, with
++//! &lt;tt&gt;rit128x96x4.h&lt;/tt&gt; containing the API definition for use by
++//! applications.
++//!
+ //! \note Because the OLED display packs 2 pixels of data in a single byte, the
+ //! parameter \e ulX must be an even column number (for example, 0, 2, 4, and
+ //! so on).
+@@ -547,11 +553,10 @@
+         // Get a working copy of the current character and convert to an
+         // index into the character bit-map array.
+         //
+-        ucTemp = *pcStr;
+-        ucTemp &amp;= 0x7F;
++        ucTemp = *pcStr++ &amp; 0x7f;
+         if(ucTemp &lt; ' ')
+         {
+-            ucTemp = ' ';
++            ucTemp = 0;
+         }
+         else
+         {
+@@ -595,11 +600,6 @@
+                 return;
+             }
+         }
+-
+-        //
+-        // Advance to the next character.
+-        //
+-        pcStr++;
+     }
+ }
+ 
+@@ -661,6 +661,10 @@
+ //!     +---------+---------+---------+---------+---------+---------+
+ //! \endverbatim
+ //!
++//! This function is contained in &lt;tt&gt;rit128x96x4.c&lt;/tt&gt;, with
++//! &lt;tt&gt;rit128x96x4.h&lt;/tt&gt; containing the API definition for use by
++//! applications.
++//!
+ //! \return None.
+ //
+ //*****************************************************************************
+@@ -719,6 +723,10 @@
+ //!
+ //! This function initializes the SSI interface to the OLED display.
+ //!
++//! This function is contained in &lt;tt&gt;rit128x96x4.c&lt;/tt&gt;, with
++//! &lt;tt&gt;rit128x96x4.h&lt;/tt&gt; containing the API definition for use by
++//! applications.
++//!
+ //! \return None.
+ //
+ //*****************************************************************************
+@@ -769,6 +777,10 @@
+ //!
+ //! This function initializes the SSI interface to the OLED display.
+ //!
++//! This function is contained in &lt;tt&gt;rit128x96x4.c&lt;/tt&gt;, with
++//! &lt;tt&gt;rit128x96x4.h&lt;/tt&gt; containing the API definition for use by
++//! applications.
++//!
+ //! \return None.
+ //
+ //*****************************************************************************
+@@ -812,6 +824,10 @@
+ //! This function initializes the SSI interface to the OLED display and
+ //! configures the SSD1329 controller on the panel.
+ //!
++//! This function is contained in &lt;tt&gt;rit128x96x4.c&lt;/tt&gt;, with
++//! &lt;tt&gt;rit128x96x4.h&lt;/tt&gt; containing the API definition for use by
++//! applications.
++//!
+ //! \return None.
+ //
+ //*****************************************************************************
+@@ -876,6 +892,10 @@
+ //! This function will turn on the OLED display, causing it to display the
+ //! contents of its internal frame buffer.
+ //!
++//! This function is contained in &lt;tt&gt;rit128x96x4.c&lt;/tt&gt;, with
++//! &lt;tt&gt;rit128x96x4.h&lt;/tt&gt; containing the API definition for use by
++//! applications.
++//!
+ //! \return None.
+ //
+ //*****************************************************************************
+@@ -908,6 +928,10 @@
+ //! the panel due to burn-in (it has similar characters to a CRT in this
+ //! respect).
+ //!
++//! This function is contained in &lt;tt&gt;rit128x96x4.c&lt;/tt&gt;, with
++//! &lt;tt&gt;rit128x96x4.h&lt;/tt&gt; containing the API definition for use by
++//! applications.
++//!
+ //! \return None.
+ //
+ //*****************************************************************************
+
+
+Property changes on: trunk/src/platform/lm3s/rit128x96x4.c
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Modified: trunk/src/platform/lm3s/rit128x96x4.h
+===================================================================
+--- trunk/src/platform/lm3s/rit128x96x4.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/rit128x96x4.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -4,7 +4,6 @@
+ //                   OLED display.
+ //
+ // Copyright (c) 2007-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -23,7 +22,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2692 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the EK-LM3S6965 Rev C Firmware Package.
+ //
+ //*****************************************************************************
+ 
+
+
+Property changes on: trunk/src/platform/lm3s/rit128x96x4.h
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Modified: trunk/src/platform/lm3s/ssi.c
+===================================================================
+--- trunk/src/platform/lm3s/ssi.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/ssi.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // ssi.c - Driver for Synchronous Serial Interface.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+@@ -51,7 +50,7 @@
+ //! \param ulProtocol specifies the data transfer protocol.
+ //! \param ulMode specifies the mode of operation.
+ //! \param ulBitRate specifies the clock rate.
+-//! \param ulDataWidth specifies number of bits transfered per frame.
++//! \param ulDataWidth specifies number of bits transferred per frame.
+ //!
+ //! This function configures the synchronous serial interface.  It sets
+ //! the SSI protocol, mode of operation, bit rate, and data width.
+@@ -99,7 +98,7 @@
+ //! \return None.
+ //
+ //*****************************************************************************
+-unsigned long
++void
+ SSIConfigSetExpClk(unsigned long ulBase, unsigned long ulSSIClk,
+                    unsigned long ulProtocol, unsigned long ulMode,
+                    unsigned long ulBitRate, unsigned long ulDataWidth)
+@@ -113,13 +112,20 @@
+     //
+     // Check the arguments.
+     //
+-    if(!(((ulMode == SSI_MODE_MASTER) &amp;&amp; (ulBitRate &lt;= (ulSSIClk / 2))) ||
+-           ((ulMode != SSI_MODE_MASTER) &amp;&amp; (ulBitRate &lt;= (ulSSIClk / 12)))))
+-      return 0;
+-    if(!((ulSSIClk / ulBitRate) &lt;= (254 * 256)))
+-      return 0;
+-    if(!((ulDataWidth &gt;= 4) &amp;&amp; (ulDataWidth &lt;= 16)))
+-      return 0;
++    ASSERT((ulBase == SSI0_BASE) || (ulBase == SSI1_BASE));
++    ASSERT((ulProtocol == SSI_FRF_MOTO_MODE_0) ||
++           (ulProtocol == SSI_FRF_MOTO_MODE_1) ||
++           (ulProtocol == SSI_FRF_MOTO_MODE_2) ||
++           (ulProtocol == SSI_FRF_MOTO_MODE_3) ||
++           (ulProtocol == SSI_FRF_TI) ||
++           (ulProtocol == SSI_FRF_NMW));
++    ASSERT((ulMode == SSI_MODE_MASTER) ||
++           (ulMode == SSI_MODE_SLAVE) ||
++           (ulMode == SSI_MODE_SLAVE_OD));
++    ASSERT(((ulMode == SSI_MODE_MASTER) &amp;&amp; (ulBitRate &lt;= (ulSSIClk / 2))) ||
++           ((ulMode != SSI_MODE_MASTER) &amp;&amp; (ulBitRate &lt;= (ulSSIClk / 12))));
++    ASSERT((ulSSIClk / ulBitRate) &lt;= (254 * 256));
++    ASSERT((ulDataWidth &gt;= 4) &amp;&amp; (ulDataWidth &lt;= 16));
+ 
+     //
+     // Set the mode.
+@@ -148,9 +154,6 @@
+     ulProtocol &amp;= SSI_CR0_FRF_M;
+     ulRegVal = (ulSCR &lt;&lt; 8) | ulSPH_SPO | ulProtocol | (ulDataWidth - 1);
+     HWREG(ulBase + SSI_O_CR0) = ulRegVal;
+-
+-    // Return actual clock rate
+-    return ulSSIClk / ( ulPreDiv * ( ulSCR + 1 ) );
+ }
+ 
+ //*****************************************************************************
+
+Modified: trunk/src/platform/lm3s/ssi.h
+===================================================================
+--- trunk/src/platform/lm3s/ssi.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/ssi.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // ssi.h - Prototypes for the Synchronous Serial Interface Driver.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+@@ -80,7 +79,7 @@
+ // Prototypes for the APIs.
+ //
+ //*****************************************************************************
+-extern unsigned long SSIConfigSetExpClk(unsigned long ulBase, unsigned long ulSSIClk,
++extern void SSIConfigSetExpClk(unsigned long ulBase, unsigned long ulSSIClk,
+                                unsigned long ulProtocol, unsigned long ulMode,
+                                unsigned long ulBitRate,
+                                unsigned long ulDataWidth);
+
+Modified: trunk/src/platform/lm3s/sysctl.c
+===================================================================
+--- trunk/src/platform/lm3s/sysctl.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/sysctl.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // sysctl.c - Driver for the system controller.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+@@ -162,6 +161,64 @@
+ 
+ //*****************************************************************************
+ //
++//! \internal
++//! Checks a peripheral identifier.
++//!
++//! \param ulPeripheral is the peripheral identifier.
++//!
++//! This function determines if a peripheral identifier is valid.
++//!
++//! \return Returns \b true if the peripheral identifier is valid and \b false
++//! otherwise.
++//
++//*****************************************************************************
++#ifdef DEBUG
++static tBoolean
++SysCtlPeripheralValid(unsigned long ulPeripheral)
++{
++    return((ulPeripheral == SYSCTL_PERIPH_ADC) ||
++           (ulPeripheral == SYSCTL_PERIPH_CAN0) ||
++           (ulPeripheral == SYSCTL_PERIPH_CAN1) ||
++           (ulPeripheral == SYSCTL_PERIPH_CAN2) ||
++           (ulPeripheral == SYSCTL_PERIPH_COMP0) ||
++           (ulPeripheral == SYSCTL_PERIPH_COMP1) ||
++           (ulPeripheral == SYSCTL_PERIPH_COMP2) ||
++           (ulPeripheral == SYSCTL_PERIPH_ETH) ||
++           (ulPeripheral == SYSCTL_PERIPH_GPIOA) ||
++           (ulPeripheral == SYSCTL_PERIPH_GPIOB) ||
++           (ulPeripheral == SYSCTL_PERIPH_GPIOC) ||
++           (ulPeripheral == SYSCTL_PERIPH_GPIOD) ||
++           (ulPeripheral == SYSCTL_PERIPH_GPIOE) ||
++           (ulPeripheral == SYSCTL_PERIPH_GPIOF) ||
++           (ulPeripheral == SYSCTL_PERIPH_GPIOG) ||
++           (ulPeripheral == SYSCTL_PERIPH_GPIOH) ||
++           (ulPeripheral == SYSCTL_PERIPH_HIBERNATE) ||
++           (ulPeripheral == SYSCTL_PERIPH_I2C0) ||
++           (ulPeripheral == SYSCTL_PERIPH_I2C1) ||
++           (ulPeripheral == SYSCTL_PERIPH_IEEE1588) ||
++           (ulPeripheral == SYSCTL_PERIPH_MPU) ||
++           (ulPeripheral == SYSCTL_PERIPH_PLL) ||
++           (ulPeripheral == SYSCTL_PERIPH_PWM) ||
++           (ulPeripheral == SYSCTL_PERIPH_QEI0) ||
++           (ulPeripheral == SYSCTL_PERIPH_QEI1) ||
++           (ulPeripheral == SYSCTL_PERIPH_SSI0) ||
++           (ulPeripheral == SYSCTL_PERIPH_SSI1) ||
++           (ulPeripheral == SYSCTL_PERIPH_TEMP) ||
++           (ulPeripheral == SYSCTL_PERIPH_TIMER0) ||
++           (ulPeripheral == SYSCTL_PERIPH_TIMER1) ||
++           (ulPeripheral == SYSCTL_PERIPH_TIMER2) ||
++           (ulPeripheral == SYSCTL_PERIPH_TIMER3) ||
++           (ulPeripheral == SYSCTL_PERIPH_UART0) ||
++           (ulPeripheral == SYSCTL_PERIPH_UART1) ||
++           (ulPeripheral == SYSCTL_PERIPH_UART2) ||
++           (ulPeripheral == SYSCTL_PERIPH_UDMA) ||
++           (ulPeripheral == SYSCTL_PERIPH_USB0) ||
++           (ulPeripheral == SYSCTL_PERIPH_WDOG));
++}
++#endif
++
++//*****************************************************************************
++//
+ //! Gets the size of the SRAM.
+ //!
+ //! This function determines the size of the SRAM on the Stellaris device.
+@@ -310,44 +367,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPeripheral == SYSCTL_PERIPH_ADC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_ETH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOB) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOD) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOF) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOG) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_HIBERNATE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_IEEE1588) ||
+-           (ulPeripheral == SYSCTL_PERIPH_MPU) ||
+-           (ulPeripheral == SYSCTL_PERIPH_PLL) ||
+-           (ulPeripheral == SYSCTL_PERIPH_PWM) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TEMP) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER3) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UDMA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_USB0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_WDOG));
++    ASSERT(SysCtlPeripheralValid(ulPeripheral));
+ 
+     //
+     // Read the correct DC register and determine if this peripheral exists.
+@@ -399,40 +419,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPeripheral == SYSCTL_PERIPH_ADC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_ETH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOB) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOD) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOF) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOG) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_HIBERNATE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_PWM) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER3) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UDMA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_USB0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_WDOG));
++    ASSERT(SysCtlPeripheralValid(ulPeripheral));
+ 
+     //
+     // Put the peripheral into the reset state.
+@@ -493,41 +480,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPeripheral == SYSCTL_PERIPH_ADC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_ETH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOB) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOD) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOF) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOG) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_HIBERNATE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_PWM) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER3) ||
+-           (ulPeripheral == SYSCTL_PERIPH_USB0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UDMA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_USB0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_WDOG));
++    ASSERT(SysCtlPeripheralValid(ulPeripheral));
+ 
+     //
+     // Enable this peripheral.
+@@ -568,40 +521,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPeripheral == SYSCTL_PERIPH_ADC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_ETH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOB) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOD) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOF) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOG) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_HIBERNATE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_PWM) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER3) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UDMA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_USB0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_WDOG));
++    ASSERT(SysCtlPeripheralValid(ulPeripheral));
+ 
+     //
+     // Disable this peripheral.
+@@ -649,40 +569,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPeripheral == SYSCTL_PERIPH_ADC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_ETH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOB) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOD) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOF) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOG) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_HIBERNATE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_PWM) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER3) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UDMA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_USB0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_WDOG));
++    ASSERT(SysCtlPeripheralValid(ulPeripheral));
+ 
+     //
+     // Enable this peripheral in sleep mode.
+@@ -731,40 +618,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPeripheral == SYSCTL_PERIPH_ADC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_ETH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOB) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOD) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOF) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOG) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_HIBERNATE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_PWM) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER3) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UDMA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_USB0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_WDOG));
++    ASSERT(SysCtlPeripheralValid(ulPeripheral));
+ 
+     //
+     // Disable this peripheral in sleep mode.
+@@ -814,40 +668,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPeripheral == SYSCTL_PERIPH_ADC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_ETH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOB) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOD) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOF) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOG) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_HIBERNATE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_PWM) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER3) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UDMA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_USB0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_WDOG));
++    ASSERT(SysCtlPeripheralValid(ulPeripheral));
+ 
+     //
+     // Enable this peripheral in deep-sleep mode.
+@@ -899,40 +720,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulPeripheral == SYSCTL_PERIPH_ADC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_CAN2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_COMP2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_ETH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOB) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOC) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOD) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOF) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOG) ||
+-           (ulPeripheral == SYSCTL_PERIPH_GPIOH) ||
+-           (ulPeripheral == SYSCTL_PERIPH_HIBERNATE) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_I2C1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_PWM) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_QEI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_SSI1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_TIMER3) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART1) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UART2) ||
+-           (ulPeripheral == SYSCTL_PERIPH_UDMA) ||
+-           (ulPeripheral == SYSCTL_PERIPH_USB0) ||
+-           (ulPeripheral == SYSCTL_PERIPH_WDOG));
++    ASSERT(SysCtlPeripheralValid(ulPeripheral));
+ 
+     //
+     // Disable this peripheral in deep-sleep mode.
+
+Modified: trunk/src/platform/lm3s/sysctl.h
+===================================================================
+--- trunk/src/platform/lm3s/sysctl.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/sysctl.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // sysctl.h - Prototypes for the system control driver.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/systick.c
+===================================================================
+--- trunk/src/platform/lm3s/systick.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/systick.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // systick.c - Driver for the SysTick timer in NVIC.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/systick.h
+===================================================================
+--- trunk/src/platform/lm3s/systick.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/systick.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // systick.h - Prototypes for the SysTick driver.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/timer.c
+===================================================================
+--- trunk/src/platform/lm3s/timer.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/timer.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // timer.c - Driver for the timer module.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+@@ -43,6 +42,28 @@
+ 
+ //*****************************************************************************
+ //
++//! \internal
++//! Checks a timer base address.
++//!
++//! \param ulBase is the base address of the timer module.
++//!
++//! This function determines if a timer module base address is valid.
++//!
++//! \return Returns \b true if the base address is valid and \b false
++//! otherwise.
++//
++//*****************************************************************************
++#ifdef DEBUG
++static tBoolean
++TimerBaseValid(unsigned long ulBase)
++{
++    return((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
++           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++}
++#endif
++
++//*****************************************************************************
++//
+ //! Enables the timer(s).
+ //!
+ //! \param ulBase is the base address of the timer module.
+@@ -61,8 +82,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -91,8 +111,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -144,8 +163,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulConfig == TIMER_CFG_32_BIT_OS) ||
+            (ulConfig == TIMER_CFG_32_BIT_PER) ||
+            (ulConfig == TIMER_CFG_32_RTC) ||
+@@ -203,8 +221,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -240,8 +257,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -278,8 +294,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -316,8 +331,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -348,8 +362,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+ 
+     //
+     // Enable RTC counting.
+@@ -374,8 +387,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+ 
+     //
+     // Disable RTC counting.
+@@ -407,8 +419,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+     ASSERT(ulValue &lt; 256);
+@@ -451,8 +462,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -486,8 +496,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -529,8 +538,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B));
+ 
+     //
+@@ -560,8 +568,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B));
+ 
+     //
+@@ -595,8 +602,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -637,8 +643,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B));
+ 
+     //
+@@ -676,8 +681,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -745,8 +749,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+     ASSERT((ulTimer == TIMER_A) || (ulTimer == TIMER_B) ||
+            (ulTimer == TIMER_BOTH));
+ 
+@@ -821,8 +824,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+ 
+     //
+     // Enable the specified interrupts.
+@@ -853,8 +855,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+ 
+     //
+     // Disable the specified interrupts.
+@@ -884,8 +885,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+ 
+     //
+     // Return either the interrupt status or the raw interrupt status as
+@@ -927,8 +927,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+ 
+     //
+     // Clear the requested interrupt sources.
+@@ -956,8 +955,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == TIMER0_BASE) || (ulBase == TIMER1_BASE) ||
+-           (ulBase == TIMER2_BASE) || (ulBase == TIMER3_BASE));
++    ASSERT(TimerBaseValid(ulBase));
+ 
+     //
+     // Disable the timer.
+
+Modified: trunk/src/platform/lm3s/timer.h
+===================================================================
+--- trunk/src/platform/lm3s/timer.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/timer.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // timer.h - Prototypes for the timer module
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+
+Modified: trunk/src/platform/lm3s/usart.c
+===================================================================
+--- trunk/src/platform/lm3s/usart.c	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/usart.c	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // uart.c - Driver for the UART.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,7 +21,7 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+@@ -32,11 +31,12 @@
+ //! @{
+ //
+ //*****************************************************************************
+-
++          
+ #include &quot;hw_ints.h&quot;
+ #include &quot;hw_memmap.h&quot;
+ #include &quot;hw_types.h&quot;
+ #include &quot;hw_uart.h&quot;
++#include &quot;hw_sysctl.h&quot;
+ #include &quot;debug.h&quot;
+ #include &quot;interrupt.h&quot;
+ #include &quot;sysctl.h&quot;
+@@ -44,6 +44,36 @@
+ 
+ //*****************************************************************************
+ //
++// The system clock divider defining the maximum baud rate supported by the
++// UART.
++//
++//*****************************************************************************
++#define UART_CLK_DIVIDER 16
++
++//*****************************************************************************
++//
++//! \internal
++//! Checks a UART base address.
++//!
++//! \param ulBase is the base address of the UART port.
++//!
++//! This function determines if a UART port base address is valid.
++//!
++//! \return Returns \b true if the base address is valid and \b false
++//! otherwise.
++//
++//*****************************************************************************
++#ifdef DEBUG
++static tBoolean
++UARTBaseValid(unsigned long ulBase)
++{
++    return((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
++           (ulBase == UART2_BASE));
++}
++#endif
++
++//*****************************************************************************
++//
+ //! Sets the type of parity.
+ //!
+ //! \param ulBase is the base address of the UART port.
+@@ -64,8 +94,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+     ASSERT((ulParity == UART_CONFIG_PAR_NONE) ||
+            (ulParity == UART_CONFIG_PAR_EVEN) ||
+            (ulParity == UART_CONFIG_PAR_ODD) ||
+@@ -100,8 +129,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Return the current parity setting.
+@@ -135,8 +163,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+     ASSERT((ulTxLevel == UART_FIFO_TX1_8) ||
+            (ulTxLevel == UART_FIFO_TX2_8) ||
+            (ulTxLevel == UART_FIFO_TX4_8) ||
+@@ -181,8 +208,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Read the FIFO level register.
+@@ -245,6 +271,13 @@
+       return 0;
+ 
+     //
++    // Check the arguments.
++    //
++    ASSERT(UARTBaseValid(ulBase));
++    ASSERT(ulBaud != 0);
++    ASSERT(ulUARTClk &gt;= (ulBaud * UART_CLK_DIVIDER));
++
++    //
+     // Stop the UART.
+     //
+     UARTDisable(ulBase);
+@@ -278,7 +311,7 @@
+     // Return the actual baud
+     ulInt = HWREG(ulBase + UART_O_IBRD);
+     ulFrac = HWREG(ulBase + UART_O_FBRD);
+-    return (ulUARTClk * 4) / ((64 * ulInt) + ulFrac);    
++    return (ulUARTClk * 4) / ((64 * ulInt) + ulFrac);
+ }
+ 
+ //*****************************************************************************
+@@ -318,8 +351,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Compute the baud rate.
+@@ -354,8 +386,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Enable the FIFO.
+@@ -387,8 +418,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Wait for end of TX.
+@@ -411,7 +441,7 @@
+ 
+ //*****************************************************************************
+ //
+-//! Enables SIR (IrDA) mode on specified UART.
++//! Enables SIR (IrDA) mode on the specified UART.
+ //!
+ //! \param ulBase is the base address of the UART port.
+ //! \param bLowPower indicates if SIR Low Power Mode is to be used.
+@@ -419,7 +449,7 @@
+ //! Enables the SIREN control bit for IrDA mode on the UART.  If the
+ //! \e bLowPower flag is set, then SIRLP bit will also be set.
+ //!
+-//! \note SIR (IrDA) operation is supported only on Fury-class devices.
++//! \note SIR (IrDA) operation is not supported on Sandstorm-class devices.
+ //!
+ //! \return None.
+ //
+@@ -430,8 +460,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Enable SIR and SIRLP (if appropriate).
+@@ -454,7 +483,7 @@
+ //!
+ //! Clears the SIREN (IrDA) and SIRLP (Low Power) bits.
+ //!
+-//! \note SIR (IrDA) operation is supported only on Fury-class devices.
++//! \note SIR (IrDA) operation is not supported on Sandstorm-class devices.
+ //!
+ //! \return None.
+ //
+@@ -465,8 +494,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Disable SIR and SIRLP (if appropriate).
+@@ -493,8 +521,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Return the availability of characters.
+@@ -521,8 +548,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Return the availability of space.
+@@ -554,8 +580,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // See if there are any characters in the receive FIFO.
+@@ -596,8 +621,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Wait until a char is available.
+@@ -639,8 +663,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // See if there is space in the transmit FIFO.
+@@ -686,8 +709,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Wait until space is available.
+@@ -723,8 +745,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Set the break condition as requested.
+@@ -737,6 +758,35 @@
+ 
+ //*****************************************************************************
+ //
++//! Determines whether the UART transmitter is busy or not.
++//!
++//! \param ulBase is the base address of the UART port.
++//!
++//! Allows the caller to determine whether all transmitted bytes have cleared
++//! the transmitter hardware.  If \b false is returned, the transmit FIFO is
++//! empty and all bits of the last transmitted character, including all stop
++//! bits, have left the hardware shift register.
++//!
++//! \return Returns \b true if the UART is transmitting or \b false if all
++//! transmissions are complete.
++//
++//*****************************************************************************
++tBoolean
++UARTBusy(unsigned long ulBase)
++{
++    //
++    // Check the argument.
++    //
++    ASSERT(UARTBaseValid(ulBase));
++
++    //
++    // Determine if the UART is busy.
++    //
++    return((HWREG(ulBase + UART_O_FR) &amp; UART_FR_BUSY) ? true : false);
++}
++
++//*****************************************************************************
++//
+ //! Registers an interrupt handler for a UART interrupt.
+ //!
+ //! \param ulBase is the base address of the UART port.
+@@ -762,8 +812,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Determine the interrupt number based on the UART port.
+@@ -807,8 +856,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Determine the interrupt number based on the UART port.
+@@ -857,8 +905,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Enable the specified interrupts.
+@@ -889,8 +936,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Disable the specified interrupts.
+@@ -920,8 +966,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Return either the interrupt status or the raw interrupt status as
+@@ -969,8 +1014,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Clear the requested interrupt sources.
+@@ -1006,8 +1050,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Set the requested bits in the UART DMA control register.
+@@ -1039,8 +1082,7 @@
+     //
+     // Check the arguments.
+     //
+-    ASSERT((ulBase == UART0_BASE) || (ulBase == UART1_BASE) ||
+-           (ulBase == UART2_BASE));
++    ASSERT(UARTBaseValid(ulBase));
+ 
+     //
+     // Clear the requested bits in the UART DMA control register.
+@@ -1050,6 +1092,67 @@
+ 
+ //*****************************************************************************
+ //
++//! Gets current receiver errors.
++//!
++//! \param ulBase is the base address of the UART port.
++//!
++//! This function returns the current state of each of the 4 receiver error
++//! sources.  The returned errors are equivalent to the four error bits
++//! returned via the previous call to UARTCharGet() or UARTCharGetNonBlocking()
++//! with the exception that the overrun error is set immediately the overrun
++//! occurs rather than when a character is next read.
++//!
++//! \return Returns a logical OR combination of the receiver error flags,
++//! \b UART_RXERROR_FRAMING, \b UART_RXERROR_PARITY, \b UART_RXERROR_BREAK
++//! and \b UART_RXERROR_OVERRUN.
++//
++//*****************************************************************************
++unsigned long
++UARTRxErrorGet(unsigned long ulBase)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(UARTBaseValid(ulBase));
++
++    //
++    // Return the current value of the receive status register.
++    //
++    return(HWREG(ulBase + UART_O_RSR) &amp; 0x0000000F);
++
++}
++
++//*****************************************************************************
++//
++//! Clears all reported receiver errors.
++//!
++//! \param ulBase is the base address of the UART port.
++//!
++//! This function is used to clear all receiver error conditions reported via
++//! UARTRxErrorGet().  If using the overrun, framing error, parity error or
++//! break interrupts, this function must be called after clearing the interrupt
++//! to ensure that later errors of the same type trigger another interrupt.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++UARTRxErrorClear(unsigned long ulBase)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(UARTBaseValid(ulBase));
++
++    //
++    // Any write to the Error Clear Register will clear all bits which are
++    // currently set.
++    //
++    HWREG(ulBase + UART_O_ECR) = 0;
++}
++
++//*****************************************************************************
++//
+ // Close the Doxygen group.
+ //! @}
+ //
+
+Modified: trunk/src/platform/lm3s/usart.h
+===================================================================
+--- trunk/src/platform/lm3s/usart.h	2009-01-09 22:18:23 UTC (rev 147)
++++ trunk/src/platform/lm3s/usart.h	2009-01-09 23:21:58 UTC (rev 148)
+@@ -3,7 +3,6 @@
+ // uart.h - Defines and Macros for the UART.
+ //
+ // Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
+-// 
+ // Software License Agreement
+ // 
+ // Luminary Micro, Inc. (LMI) is supplying this software for use solely and
+@@ -22,12 +21,12 @@
+ // LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+ // CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+ // 
+-// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++// This is part of revision 3740 of the Stellaris Peripheral Driver Library.
+ //
+ //*****************************************************************************
+ 
+-#ifndef __USART_H__
+-#define __USART_H__
++#ifndef __UART_H__
++#define __UART_H__
+ 
+ //*****************************************************************************
+ //
+@@ -113,6 +112,16 @@
+ 
+ //*****************************************************************************
+ //
++// Values returned from UARTRxErrorGet().
++//
++//*****************************************************************************
++#define UART_RXERROR_OVERRUN    0x00000008
++#define UART_RXERROR_BREAK      0x00000004
++#define UART_RXERROR_PARITY     0x00000002
++#define UART_RXERROR_FRAMING    0x00000001
++
++//*****************************************************************************
++//
+ // API Function prototypes
+ //
+ //*****************************************************************************
+@@ -139,6 +148,7 @@
+                                        unsigned char ucData);
+ extern void UARTCharPut(unsigned long ulBase, unsigned char ucData);
+ extern void UARTBreakCtl(unsigned long ulBase, tBoolean bBreakState);
++extern tBoolean UARTBusy(unsigned long ulBase);
+ extern void UARTIntRegister(unsigned long ulBase, void(*pfnHandler)(void));
+ extern void UARTIntUnregister(unsigned long ulBase);
+ extern void UARTIntEnable(unsigned long ulBase, unsigned long ulIntFlags);
+@@ -147,6 +157,8 @@
+ extern void UARTIntClear(unsigned long ulBase, unsigned long ulIntFlags);
+ extern void UARTDMAEnable(unsigned long ulBase, unsigned long ulDMAFlags);
+ extern void UARTDMADisable(unsigned long ulBase, unsigned long ulDMAFlags);
++extern unsigned long UARTRxErrorGet(unsigned long ulBase);
++extern void UARTRxErrorClear(unsigned long ulBase);
+ 
+ //*****************************************************************************
+ //
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000103.html">[Elua-svn] r147 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000105.html">[Elua-svn] r149 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#104">[ date ]</a>
+              <a href="thread.html#104">[ thread ]</a>
+              <a href="subject.html#104">[ subject ]</a>
+              <a href="author.html#104">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

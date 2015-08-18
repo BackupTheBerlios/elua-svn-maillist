@@ -1,0 +1,332 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r614 - in branches/pre0.7/src: lua modules platform/lm3s	platform/lpc24xx platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r614%20-%20in%20branches/pre0.7/src%3A%20lua%20modules%20platform/lm3s%0A%09platform/lpc24xx%20platform/stm32&In-Reply-To=%3C200912260316.nBQ3GPBE000813%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000569.html">
+   <LINK REL="Next"  HREF="000571.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r614 - in branches/pre0.7/src: lua modules platform/lm3s	platform/lpc24xx platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r614%20-%20in%20branches/pre0.7/src%3A%20lua%20modules%20platform/lm3s%0A%09platform/lpc24xx%20platform/stm32&In-Reply-To=%3C200912260316.nBQ3GPBE000813%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r614 - in branches/pre0.7/src: lua modules platform/lm3s	platform/lpc24xx platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Dec 26 04:16:25 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000569.html">[Elua-svn] r613 - in branches/pre0.7: inc src src/modules	src/platform/lm3s src/platform/lpc24xx src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000571.html">[Elua-svn] r615 - branches/pre0.7/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#570">[ date ]</a>
+              <a href="thread.html#570">[ thread ]</a>
+              <a href="subject.html#570">[ subject ]</a>
+              <a href="author.html#570">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-26 04:16:23 +0100 (Sat, 26 Dec 2009)
+New Revision: 614
+
+Modified:
+   branches/pre0.7/src/lua/linit.c
+   branches/pre0.7/src/modules/auxmods.h
+   branches/pre0.7/src/modules/luarpc.c
+   branches/pre0.7/src/platform/lm3s/platform.c
+   branches/pre0.7/src/platform/lm3s/platform_conf.h
+   branches/pre0.7/src/platform/lm3s/startup_gcc.c
+   branches/pre0.7/src/platform/lpc24xx/platform_conf.h
+   branches/pre0.7/src/platform/stm32/platform.c
+   branches/pre0.7/src/platform/stm32/platform_conf.h
+Log:
+Build fixes for both RPC &amp; ADC to enable inclusion of either being optional.
+
+Modified: branches/pre0.7/src/lua/linit.c
+===================================================================
+--- branches/pre0.7/src/lua/linit.c	2009-12-24 21:04:25 UTC (rev 613)
++++ branches/pre0.7/src/lua/linit.c	2009-12-26 03:16:23 UTC (rev 614)
+@@ -24,7 +24,7 @@
+ #ifdef LUA_RPC
+ #include &quot;auxmods.h&quot;
+ #define LUA_PLATFORM_LIBS_ROM \
+-  _ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )
++  _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #endif
+ 
+ static const luaL_Reg lualibs[] = {
+
+Modified: branches/pre0.7/src/modules/auxmods.h
+===================================================================
+--- branches/pre0.7/src/modules/auxmods.h	2009-12-24 21:04:25 UTC (rev 613)
++++ branches/pre0.7/src/modules/auxmods.h	2009-12-26 03:16:23 UTC (rev 614)
+@@ -45,8 +45,8 @@
+ #define AUXLIB_ADC      &quot;adc&quot;
+ LUALIB_API int ( luaopen_adc )( lua_State *L );
+ 
+-#define AUXLIB_LUARPC   &quot;rpc&quot;
+-LUALIB_API int ( luaopen_luarpc )( lua_State *L );
++#define AUXLIB_RPC   &quot;rpc&quot;
++LUALIB_API int ( luaopen_rpc )( lua_State *L );
+ 
+ #define AUXLIB_BITARRAY &quot;bitarray&quot;
+ LUALIB_API int ( luaopen_bitarray )( lua_State *L );
+
+Modified: branches/pre0.7/src/modules/luarpc.c
+===================================================================
+--- branches/pre0.7/src/modules/luarpc.c	2009-12-24 21:04:25 UTC (rev 613)
++++ branches/pre0.7/src/modules/luarpc.c	2009-12-26 03:16:23 UTC (rev 614)
+@@ -44,7 +44,7 @@
+ #endif
+ 
+ // Prototypes for Local Functions  
+-LUALIB_API int luaopen_luarpc( lua_State *L );
++LUALIB_API int luaopen_rpc( lua_State *L );
+ Handle *handle_create( lua_State *L );
+ 
+ 
+@@ -1622,7 +1622,7 @@
+ };
+ 
+ 
+-LUALIB_API int luaopen_luarpc(lua_State *L)
++LUALIB_API int luaopen_rpc(lua_State *L)
+ {
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   luaL_rometatable(L, &quot;rpc.helper&quot;, (void*)rpc_helper);
+@@ -1680,7 +1680,7 @@
+ };
+ 
+ 
+-LUALIB_API int luaopen_luarpc(lua_State *L)
++LUALIB_API int luaopen_rpc(lua_State *L)
+ {
+   luaL_register( L, &quot;rpc&quot;, rpc_map );
+   lua_pushstring(L, LUARPC_MODE);
+
+Modified: branches/pre0.7/src/platform/lm3s/platform.c
+===================================================================
+--- branches/pre0.7/src/platform/lm3s/platform.c	2009-12-24 21:04:25 UTC (rev 613)
++++ branches/pre0.7/src/platform/lm3s/platform.c	2009-12-26 03:16:23 UTC (rev 614)
+@@ -106,8 +106,10 @@
+   // Setup PWMs
+   pwms_init();
+ 
++#ifdef BUILD_ADC
+   // Setup ADCs
+   adcs_init();
++#endif
+ 
+   // Setup ethernet (TCP/IP)
+   eth_init();
+@@ -559,6 +561,8 @@
+ // *****************************************************************************
+ // ADC specific functions and variables
+ 
++#ifdef BUILD_ADC
++
+ // Pin configuration if necessary
+ #ifdef FORLM3S9B92
+   const static u32 adc_ports[] =  { GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE,
+@@ -751,6 +755,8 @@
+   return PLATFORM_OK;
+ }
+ 
++#endif // ifdef BUILD_ADC
++
+ // ****************************************************************************
+ // OLED Display specific functions
+ //
+
+Modified: branches/pre0.7/src/platform/lm3s/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/lm3s/platform_conf.h	2009-12-24 21:04:25 UTC (rev 613)
++++ branches/pre0.7/src/platform/lm3s/platform_conf.h	2009-12-26 03:16:23 UTC (rev 614)
+@@ -55,6 +55,18 @@
+ #define NETLINE
+ #endif
+ 
++#ifdef BUILD_ADC
++#define ADCLINE _ROM( AUXLIB_ADC, luaopen_adc, adc_map )
++#else
++#define ADCLINE
++#endif
++
++#ifdef BUILD_RPC
++#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#else
++#define RPCLINE
++#endif
++
+ #ifdef PS_LIB_TABLE_NAME
+ #define PLATLINE _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
+ #else
+@@ -74,8 +86,8 @@
+   _ROM( AUXLIB_BITARRAY, luaopen_bitarray, bitarray_map )\
+   NETLINE\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+-  _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
+-  _ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )\
++  ADCLINE\
++  RPCLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
+   PLATLINE
+ 
+
+Modified: branches/pre0.7/src/platform/lm3s/startup_gcc.c
+===================================================================
+--- branches/pre0.7/src/platform/lm3s/startup_gcc.c	2009-12-24 21:04:25 UTC (rev 613)
++++ branches/pre0.7/src/platform/lm3s/startup_gcc.c	2009-12-26 03:16:23 UTC (rev 614)
+@@ -96,10 +96,17 @@
+     IntDefaultHandler,                      // PWM Generator 1
+     IntDefaultHandler,                      // PWM Generator 2
+     IntDefaultHandler,                      // Quadrature Encoder 0
++#ifdef BUILD_ADC
+     ADCIntHandler,	                        // ADC Sequence 0
+     ADCIntHandler,                          // ADC Sequence 1
+     ADCIntHandler,                          // ADC Sequence 2
+     ADCIntHandler,                          // ADC Sequence 3
++#else
++    IntDefaultHandler,	                    // ADC Sequence 0
++    IntDefaultHandler,                      // ADC Sequence 1
++    IntDefaultHandler,                      // ADC Sequence 2
++    IntDefaultHandler,                      // ADC Sequence 3
++#endif
+     IntDefaultHandler,                      // Watchdog timer
+     IntDefaultHandler,                      // Timer 0 subtimer A
+     IntDefaultHandler,                      // Timer 0 subtimer B
+
+Modified: branches/pre0.7/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/lpc24xx/platform_conf.h	2009-12-24 21:04:25 UTC (rev 613)
++++ branches/pre0.7/src/platform/lpc24xx/platform_conf.h	2009-12-26 03:16:23 UTC (rev 614)
+@@ -29,6 +29,12 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++#ifdef BUILD_RPC
++#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#else
++#define RPCLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+@@ -40,7 +46,7 @@
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
+-  _ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )\
++  RPCLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 
+ // *****************************************************************************
+
+Modified: branches/pre0.7/src/platform/stm32/platform.c
+===================================================================
+--- branches/pre0.7/src/platform/stm32/platform.c	2009-12-24 21:04:25 UTC (rev 613)
++++ branches/pre0.7/src/platform/stm32/platform.c	2009-12-26 03:16:23 UTC (rev 614)
+@@ -71,9 +71,11 @@
+   
+   // Setup PWMs
+   pwms_init();
+-  
++
++#ifdef BUILD_ADC
+   // Setup ADCs
+   adcs_init();
++#endif
+   
+   // Setup CANs
+   cans_init();
+@@ -942,6 +944,8 @@
+ // *****************************************************************************
+ // ADC specific functions and variables
+ 
++#ifdef BUILD_ADC
++
+ #define ADC1_DR_Address ((u32)ADC1_BASE + 0x4C)
+ 
+ static ADC_TypeDef *const adc[] = { ADC1, ADC2, ADC3 };
+@@ -1193,4 +1197,6 @@
+   }
+ 
+   return PLATFORM_OK;
+-}
+\ No newline at end of file
++}
++
++#endif // ifdef BUILD_ADC
+
+Modified: branches/pre0.7/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/stm32/platform_conf.h	2009-12-24 21:04:25 UTC (rev 613)
++++ branches/pre0.7/src/platform/stm32/platform_conf.h	2009-12-26 03:16:23 UTC (rev 614)
+@@ -44,6 +44,18 @@
+ #define LCDLINE
+ #endif
+ 
++#ifdef BUILD_ADC
++#define ADCLINE _ROM( AUXLIB_ADC, luaopen_adc, adc_map )
++#else
++#define ADCLINE
++#endif
++
++#ifdef BUILD_RPC
++#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#else
++#define RPCLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
+@@ -54,10 +66,10 @@
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+-  _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
++  ADCLINE\
+   _ROM( AUXLIB_CAN, luaopen_can, can_map )\
+   _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
+-  _ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )\
++  RPCLINE\
+   LCDLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 	
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000569.html">[Elua-svn] r613 - in branches/pre0.7: inc src src/modules	src/platform/lm3s src/platform/lpc24xx src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000571.html">[Elua-svn] r615 - branches/pre0.7/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#570">[ date ]</a>
+              <a href="thread.html#570">[ thread ]</a>
+              <a href="subject.html#570">[ subject ]</a>
+              <a href="author.html#570">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

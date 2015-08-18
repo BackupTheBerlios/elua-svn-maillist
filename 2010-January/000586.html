@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r630 - in branches/pre0.7/doc: eluadoc en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r630%20-%20in%20branches/pre0.7/doc%3A%20eluadoc%20en&In-Reply-To=%3C201001120943.o0C9hEtD016367%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000585.html">
+   <LINK REL="Next"  HREF="000587.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r630 - in branches/pre0.7/doc: eluadoc en</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r630%20-%20in%20branches/pre0.7/doc%3A%20eluadoc%20en&In-Reply-To=%3C201001120943.o0C9hEtD016367%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r630 - in branches/pre0.7/doc: eluadoc en">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Tue Jan 12 10:43:14 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000585.html">[Elua-svn] r629 - branches/pre0.7/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000587.html">[Elua-svn] r631 - branches/pre0.7/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#586">[ date ]</a>
+              <a href="thread.html#586">[ thread ]</a>
+              <a href="subject.html#586">[ subject ]</a>
+              <a href="author.html#586">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2010-01-12 10:43:14 +0100 (Tue, 12 Jan 2010)
+New Revision: 630
+
+Modified:
+   branches/pre0.7/doc/eluadoc/arch_platform_ll.lua
+   branches/pre0.7/doc/en/arch_ltr.html
+   branches/pre0.7/doc/en/building.html
+Log:
+(minor) Fixes on the LTR parameters doc
+(minor) Fixes on the platform_last/first_free_ram doc
+Some other doc revisions and refinements
+
+
+
+Modified: branches/pre0.7/doc/eluadoc/arch_platform_ll.lua
+===================================================================
+--- branches/pre0.7/doc/eluadoc/arch_platform_ll.lua	2010-01-12 02:33:16 UTC (rev 629)
++++ branches/pre0.7/doc/eluadoc/arch_platform_ll.lua	2010-01-12 09:43:14 UTC (rev 630)
+@@ -63,7 +63,7 @@
+   RAM chips).  Implemented in $src/common.c$, it uses the the $MEM_START_ADDRESS$ macro that must be defined in the platform's $platform_conf.h$
+   file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). This macro must be defined as an array that contains all the start addresses of 
+   free RAM in the system. For internal RAM, this is generally handled by a linker exported symbol (named $end$ in many eLua ports) which 
+-  points to the firs RAM address after all the constant and non-constant program data. An example is given below:&lt;/p&gt;
++  points to the first RAM address after all the constant and non-constant program data. An example is given below:&lt;/p&gt;
+   ~#define MEM_START_ADDRESS     { ( void* )end }~&lt;p&gt;]],
+       args = &quot;$id$ - the identifier of the RAM area&quot;,
+       ret = &quot;the start address of the given memory area&quot;,   
+@@ -141,7 +141,7 @@
+       }, 
+     },
+ 
+-    { sig = &quot;void* #platform_get_last_free_ram#( unsigned id );&quot;,
++    { sig = &quot;void* #platform_get_first_free_ram#( unsigned id );&quot;,
+       desc = [[Returns the start address of a free RAM area in the system (this is the RAM that will be used by any part of the code that uses malloc(), 
+   a good example being the Lua interpreter itself). There can be multiple free RAM areas in the system (for example the internal MCU RAM and external 
+   RAM chips).  Implemented in $src/common.c$, it uses the the $MEM_START_ADDRESS$ macro that must be defined in the platform's $platform_conf.h$
+
+Modified: branches/pre0.7/doc/en/arch_ltr.html
+===================================================================
+--- branches/pre0.7/doc/en/arch_ltr.html	2010-01-12 02:33:16 UTC (rev 629)
++++ branches/pre0.7/doc/en/arch_ltr.html	2010-01-12 09:43:14 UTC (rev 630)
+@@ -99,7 +99,7 @@
+    but a precise performance penalty figure is not known. Experience suggests that the performance penalty is minimal, and it certainly can't be observed 
+    with &quot;regular&quot; (non-computationally intensive) Lua programs.&lt;/p&gt;
+ &lt;h2&gt;How to enable LTR&lt;/h2&gt;
+-&lt;p&gt;Enabling LTR is very easy: all you need to do is specify the &lt;b&gt;opt=1&lt;/b&gt; as a parameter to scons when building &lt;b&gt;eLua&lt;/b&gt;, as explained
++&lt;p&gt;Enabling LTR is very easy: all you need to do is specify the &lt;b&gt;optram=1&lt;/b&gt; as a parameter to scons when building &lt;b&gt;eLua&lt;/b&gt;, as explained
+    &lt;a href=&quot;building.html&quot;&gt;here&lt;/a&gt;. You don't even to specify this explicitly, as LTR is enabled by default for all &lt;b&gt;eLua&lt;/b&gt; targets.&lt;/p&gt;
+ &lt;p&gt;When &lt;b&gt;optram&lt;/b&gt; is 0, LTR is not active. In this mode the patch just tries to keep the modified version as close as possible to the unpatched version 
+   in terms of speed and functionality. You might want to use this if you want full Lua compatibility (although this is rarely an issue in practice),
+@@ -155,7 +155,7 @@
+   0.&lt;/li&gt;
+ &lt;/ul&gt;
+ &lt;p&gt;The two forms above (for regular tables and for rotables) are clearly different, but we want to keep them both to be able to work at both &lt;b&gt;optram=0&lt;/b&gt;
+-  and &lt;b&gt;optram=2&lt;/b&gt;. You can use #ifdefs to differentiate between the two cases in different optimization levels, but this becomes really annoying after 
++  and &lt;b&gt;optram=1&lt;/b&gt;. You can use #ifdefs to differentiate between the two cases in different optimization levels, but this becomes really annoying after 
+   a (short) while. This is why I added another file called &lt;b&gt;lrodefs.h&lt;/b&gt; (&lt;i&gt;src/lua&lt;/i&gt;) that can be used to give an &quot;universal&quot; definition to our map 
+   arrays. Here's how our example looks after rewriting it to take advantage of &lt;b&gt;lrodefs.h&lt;/b&gt;:&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;&lt;span class=&quot;warning&quot;&gt;#define MIN_OPT_LEVEL  2 // the minimum optimization level at which we use rotables&lt;/span&gt;
+
+Modified: branches/pre0.7/doc/en/building.html
+===================================================================
+--- branches/pre0.7/doc/en/building.html	2010-01-12 02:33:16 UTC (rev 629)
++++ branches/pre0.7/doc/en/building.html	2010-01-12 09:43:14 UTC (rev 630)
+@@ -13,7 +13,7 @@
+ name&gt;/platform_conf.h)&lt;/i&gt;. The configuration parameters
+ are described in detail in the next paragraphs.&lt;/p&gt;
+ &lt;a name=&quot;components&quot;&gt;&lt;h2&gt;Configuring components&lt;/h2&gt;&lt;/a&gt;
+-&lt;p&gt;A &lt;b&gt;component&lt;/b&gt; is a feature that can be
++&lt;p&gt;An &lt;b&gt;eLua component&lt;/b&gt; is a feature that can be
+ enabled to add functionality to &lt;b&gt;eLua&lt;/b&gt; itself,
+ without modifying its API (which is the part that the programmer uses
+ to write &lt;b&gt;eLua&lt;/b&gt; programs). An example of component configuration from
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000585.html">[Elua-svn] r629 - branches/pre0.7/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000587.html">[Elua-svn] r631 - branches/pre0.7/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#586">[ date ]</a>
+              <a href="thread.html#586">[ thread ]</a>
+              <a href="subject.html#586">[ subject ]</a>
+              <a href="author.html#586">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

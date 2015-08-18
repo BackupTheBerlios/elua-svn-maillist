@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r407 - tags/pre0.6/doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r407%20-%20tags/pre0.6/doc&In-Reply-To=%3C200908241432.n7OEWmkC020943%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000362.html">
+   <LINK REL="Next"  HREF="000364.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r407 - tags/pre0.6/doc</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r407%20-%20tags/pre0.6/doc&In-Reply-To=%3C200908241432.n7OEWmkC020943%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r407 - tags/pre0.6/doc">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Aug 24 16:32:48 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000362.html">[Elua-svn] r406 - in tags/pre0.6/doc: . ddlevelsfiles en images
+</A></li>
+        <LI>Next message: <A HREF="000364.html">[Elua-svn] r408 - tags/pre0.6/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#363">[ date ]</a>
+              <a href="thread.html#363">[ thread ]</a>
+              <a href="subject.html#363">[ subject ]</a>
+              <a href="author.html#363">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-08-24 16:32:47 +0200 (Mon, 24 Aug 2009)
+New Revision: 407
+
+Modified:
+   tags/pre0.6/doc/buildall.lua
+   tags/pre0.6/doc/docdata.lua
+   tags/pre0.6/doc/luadoc.lua
+Log:
+small fixes of the documentation generator
+
+Modified: tags/pre0.6/doc/buildall.lua
+===================================================================
+--- tags/pre0.6/doc/buildall.lua	2009-08-24 14:13:32 UTC (rev 406)
++++ tags/pre0.6/doc/buildall.lua	2009-08-24 14:32:47 UTC (rev 407)
+@@ -13,16 +13,7 @@
+ end
+ 
+ -------------------------------------------------------------------------------
+--- Menu is defined by a { name, link, submenu, title } array
+--- 'name' is actually another array keeping names for all languages, in the same
+--- order as defined in the &quot;languages&quot; table above
+--- The submenu part is optional
+--- 'title' is the title of the HTML page associated with the menu entry (specified
+--- as an array in different langauges, just like 'name'). If not given, it's the same 
+--- as 'name'
+--- Arrays without a link correspond to menu separators
+--- Arrays withtout a name are &quot;hidden items&quot;: they are part of the template to HTML
+--- generation process, but they don't appear in the menu. These entries NEED A TITLE FIELD!
++-- Indexes into our menu table (defined in docdata.lua)
+ name_idx, link_idx, submenu_idx , title_idx = 1, 2, 3, 4
+ 
+ -------------------------------------------------------------------------------
+
+Modified: tags/pre0.6/doc/docdata.lua
+===================================================================
+--- tags/pre0.6/doc/docdata.lua	2009-08-24 14:13:32 UTC (rev 406)
++++ tags/pre0.6/doc/docdata.lua	2009-08-24 14:32:47 UTC (rev 407)
+@@ -1,5 +1,26 @@
+ -- Documentation structure is defined here
+ 
++--[[
++The menu is defined by an array of { name, link, submenu, title } arrays
++
++'name' can be another array keeping names for all languages, in the same order 
++as defined in the &quot;languages&quot; from 'buildall.lua'. If 'name' is a string instead
++of a table, it will be used in all languages.
++
++'link' is the relative link corresponding to the menu entry.
++
++'submenu' is optional. If specified, it is an array of arrays, just like the main
++menu.
++
++'title' is the title of the HTML page associated with the menu entry (specified as 
++an array in different languages or as a string, just like 'name'). If not given, 
++it's the same as 'name'.
++
++If 'link' is nil, the entry defines a menu separator.
++If 'name' is nil, the entry defines a &quot;hidden menu item&quot;: they are part of the template to HTML
++generation process, but they don't appear in the menu. These entries NEED A LINK
++AND TITLE FIELDS! See the definition of 'forum.html' below for an example of such item.
++--]]
+ local menu =
+ {
+   -- &quot;Overview&quot;
+@@ -114,7 +135,7 @@
+   -- Platform interface (automatically generated)
+   { &quot;Platform interface&quot;, &quot;arch_platform.html&quot;, &quot;arch_platform&quot; },
+ 
+-  -- Other [TODO] WRITE THE arch_platform_other.html file
++  -- Other WRITE THE arch_platform_other.html file
+   { &quot;Other&quot;, &quot;#&quot;, 
+     {
+       { &quot;ROM file system&quot;, &quot;arch_romfs.html&quot; },
+@@ -140,10 +161,9 @@
+   }
+ }
+ 
+--- Translations for different words neede by the generator
++-- Translations for different strings needed by the generator
+ -- The order of languages is the same as the one defines in the languages array 
+ -- defined at the beginning of buildall.lua
+-
+ local translations = 
+ {
+   { &quot;Overview&quot; },
+
+Modified: tags/pre0.6/doc/luadoc.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc.lua	2009-08-24 14:13:32 UTC (rev 406)
++++ tags/pre0.6/doc/luadoc.lua	2009-08-24 14:32:47 UTC (rev 407)
+@@ -90,7 +90,7 @@
+   str = str:gsub( &quot;eLua&quot;, &quot;&lt;b&gt;eLua&lt;/b&gt;&quot; )
+ 
+   -- $string$ becomes &lt;b&gt;string&gt;&lt;/b&gt;
+-  str = str:gsub( &quot;%$i(.-)%$&quot;, &quot;&lt;b&gt;%1&lt;/b&gt;&quot; )
++  str = str:gsub( &quot;%$(.-)%$&quot;, &quot;&lt;b&gt;%1&lt;/b&gt;&quot; )
+ 
+   -- %string% becomes &lt;i&gt;string&lt;/i&gt;
+   str = str:gsub( &quot;%%(.-)%%&quot;, &quot;&lt;i&gt;%1&lt;/i&gt;&quot; )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000362.html">[Elua-svn] r406 - in tags/pre0.6/doc: . ddlevelsfiles en images
+</A></li>
+	<LI>Next message: <A HREF="000364.html">[Elua-svn] r408 - tags/pre0.6/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#363">[ date ]</a>
+              <a href="thread.html#363">[ thread ]</a>
+              <a href="subject.html#363">[ subject ]</a>
+              <a href="author.html#363">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

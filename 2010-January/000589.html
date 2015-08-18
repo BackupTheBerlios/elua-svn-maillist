@@ -1,0 +1,191 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r633 - in branches/pre0.7/doc: . eluadoc en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r633%20-%20in%20branches/pre0.7/doc%3A%20.%20eluadoc%20en&In-Reply-To=%3C201001122039.o0CKdHAs007065%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000588.html">
+   <LINK REL="Next"  HREF="000590.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r633 - in branches/pre0.7/doc: . eluadoc en</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r633%20-%20in%20branches/pre0.7/doc%3A%20.%20eluadoc%20en&In-Reply-To=%3C201001122039.o0CKdHAs007065%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r633 - in branches/pre0.7/doc: . eluadoc en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Jan 12 21:39:17 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000588.html">[Elua-svn] r632 - branches/pre0.7/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000590.html">[Elua-svn] r634 - branches/pre0.7/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#589">[ date ]</a>
+              <a href="thread.html#589">[ thread ]</a>
+              <a href="subject.html#589">[ subject ]</a>
+              <a href="author.html#589">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-01-12 21:39:17 +0100 (Tue, 12 Jan 2010)
+New Revision: 633
+
+Added:
+   branches/pre0.7/doc/eluadoc/refman_ps_str9_pio.lua
+   branches/pre0.7/doc/en/modules_str9.html
+Modified:
+   branches/pre0.7/doc/docdata.lua
+   branches/pre0.7/doc/eluadoc.lua
+   branches/pre0.7/doc/en/news.html
+Log:
+- Added documentation for the STR9 platform specific pio module
+- Updated the &quot;news&quot; page
+
+
+
+Modified: branches/pre0.7/doc/docdata.lua
+===================================================================
+--- branches/pre0.7/doc/docdata.lua	2010-01-12 20:27:01 UTC (rev 632)
++++ branches/pre0.7/doc/docdata.lua	2010-01-12 20:39:17 UTC (rev 633)
+@@ -178,10 +178,11 @@
+   -- &quot;Generic modules&quot; (automatically generated)
+   { { &quot;Generic modules&quot;, &quot;M&#243;dulos Gen&#233;ricos&quot; }, &quot;refman_gen.html&quot;, &quot;refman_gen&quot; },
+ 
+-  -- &quot;Platform modules&quot;
++  -- &quot;Platform modules&quot; (automatically generated)
+   { { &quot;Platform modules&quot;, &quot;M&#243;dulos Espec&#237;ficos&quot; }, &quot;refman_dep.html&quot;, 
+     {
+-      { &quot;lm3s&quot;, &quot;modules_lm3s.html&quot;, &quot;refman_ps_lm3s&quot; }
++      { &quot;lm3s&quot;, &quot;modules_lm3s.html&quot;, &quot;refman_ps_lm3s&quot; },
++      { &quot;str9&quot;, &quot;modules_str9.html&quot;, &quot;refman_ps_str9&quot; }
+     }
+   }
+ }
+
+Added: branches/pre0.7/doc/eluadoc/refman_ps_str9_pio.lua
+===================================================================
+--- branches/pre0.7/doc/eluadoc/refman_ps_str9_pio.lua	2010-01-12 20:27:01 UTC (rev 632)
++++ branches/pre0.7/doc/eluadoc/refman_ps_str9_pio.lua	2010-01-12 20:39:17 UTC (rev 633)
+@@ -0,0 +1,35 @@
++-- eLua reference manual - platform data
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - STR9 pio module&quot;,
++
++  -- Menu name
++  menu_name = &quot;pio&quot;,
++
++  -- Overview
++  overview = [[This module contains functions for accesing the particular features of the PIO subsystem of the STR9 family of CPUs. This subsystem is very flexible, allowing things like
++  configurable output types (push-pull or open collector), multiple alternate functions for the PIO pins, and others. For a full description of the STR9 PIO module check the STR9 CPU
++  Reference manual, available from ST at @<A HREF="http://www.st.com/mcu/devicedocs-STR912FAW44-101.html@this">http://www.st.com/mcu/devicedocs-STR912FAW44-101.html@this</A> <A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">address at .</A> Note that this module is a supplement of the platform independent 
++  @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">refman_gen_pio.html at pio</A>@ module, not a replacement. Use this module only for setting up the STR9 PIO pins, and the @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">refman_gen_pio.html at pio</A>@ module for all the other PIO related operations.]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;#str9.pio.setpin#( pin, direction, type, ipconnected, alternate )&quot;,
++      desc = &quot;Setup the pin.&quot;,
++      args = 
++      {
++        &quot;$pin$ - the pin, as encoded in the @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">refman_gen_pio.html at pio</A>@ module.&quot;,
++        &quot;$direction$ - the pin direction, can be either $str9.pio.INTPUT$ or $str9.pio.OUTPUT$,&quot;,
++        &quot;$type$ - the type of the pin, can be either $str9.pio.OUTPUT_PUSHPULL$ (push-pull) or $str9.pio.OUTPUT_OC$ (open collector).&quot;,
++        &quot;$ipconnected$ - $true$ to connect the pin to its corresponding peripheral(s), $false$ otherwise.&quot;,
++        &quot;$alternate$ - alternate pin function. Must be either $str9.pio.ALT_INPUT$, $str9.pio.ALT_OUTPUT1$, $str9.pio.ALT_OUTPUT2$, $str9.pio.ALT_OUTPUT3$.&quot;
++      }
++    },
++
++  },
++}
++
+
+Modified: branches/pre0.7/doc/eluadoc.lua
+===================================================================
+--- branches/pre0.7/doc/eluadoc.lua	2010-01-12 20:27:01 UTC (rev 632)
++++ branches/pre0.7/doc/eluadoc.lua	2010-01-12 20:39:17 UTC (rev 633)
+@@ -9,14 +9,15 @@
+ -- Data structure declarations
+ 
+ -- List here all the sections for which we're generating the documentation
+-local doc_sections = { &quot;arch_platform&quot;, &quot;refman_gen&quot;, &quot;refman_ps_lm3s&quot; }
++local doc_sections = { &quot;arch_platform&quot;, &quot;refman_gen&quot;, &quot;refman_ps_lm3s&quot;, &quot;refman_ps_str9&quot; }
+ 
+ -- List here all the components of each section
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+   refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot;, &quot;can&quot;, &quot;rpc&quot;, &quot;elua&quot; },
+-  refman_ps_lm3s = { &quot;disp&quot; }
++  refman_ps_lm3s = { &quot;disp&quot; },
++  refman_ps_str9 = { &quot;pio&quot; }
+ }
+ 
+ -------------------------------------------------------------------------------
+
+Added: branches/pre0.7/doc/en/modules_str9.html
+===================================================================
+--- branches/pre0.7/doc/en/modules_str9.html	2010-01-12 20:27:01 UTC (rev 632)
++++ branches/pre0.7/doc/en/modules_str9.html	2010-01-12 20:39:17 UTC (rev 633)
+@@ -0,0 +1,5 @@
++$$HEADER$$
++&lt;h3&gt;Reference manual - STR9 platform dependent modules&lt;/h3&gt;
++&lt;p&gt;This paragraph presents all the modules specific to the &lt;a href=&quot;status.html&quot;&gt;STR9&lt;/a&gt; platform.&lt;/p&gt;
++$$FOOTER$$
++
+
+Modified: branches/pre0.7/doc/en/news.html
+===================================================================
+--- branches/pre0.7/doc/en/news.html	2010-01-12 20:27:01 UTC (rev 632)
++++ branches/pre0.7/doc/en/news.html	2010-01-12 20:39:17 UTC (rev 633)
+@@ -6,10 +6,11 @@
+ &lt;p&gt;Version 0.7 is released. Here's the changelog:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;Added Robert Jakabosky's EGC (Emergency Garbage Collector) patch to &lt;b&gt;eLua&lt;/b&gt; (see &lt;a href=&quot;elua_egc.html&quot;&gt;here&lt;/a&gt; for details)&lt;/li&gt;
+-  &lt;li&gt;???? Added generic and portable SD/MMC Card FAT File System support&lt;/li&gt;
++  &lt;li&gt;Added generic and portable SD/MMC Card FAT File System support, check &lt;a href=&quot;fatfs.html&quot;&gt;here&lt;/a&gt; for details.&lt;/li&gt;
+   &lt;li&gt;Added &lt;a href=&quot;<A HREF="http://fanplastic.org/2009/05/11/lua-rpc/">http://fanplastic.org/2009/05/11/lua-rpc/</A>&quot;&gt;LuaRPC&lt;/a&gt; support (remote procedure calls in the embedded world)&lt;/li&gt;
+   &lt;li&gt;New &lt;b&gt;eLua&lt;/b&gt; shell cat/type command, lists text file contents&lt;/li&gt;
+-  &lt;li&gt;Added support for &lt;a href=&quot;<A HREF="http://www.olimex.com/dev/str-e912.html">http://www.olimex.com/dev/str-e912.html</A>&quot;&gt;Olimex STR-E912&lt;/a&gt; board, ST Electronics STR912FW44X MCU&lt;/li&gt;
++  &lt;li&gt;Added support for &lt;a href=&quot;<A HREF="http://www.olimex.com/dev/str-e912.html">http://www.olimex.com/dev/str-e912.html</A>&quot;&gt;Olimex STR-E912&lt;/a&gt; board&lt;/li&gt;
++  &lt;li&gt;Added the STR9 platform specific &lt;a href=&quot;refman_ps_str9_pio.html&quot;&gt;pio module&lt;/a&gt;.&lt;/li&gt;
+   &lt;li&gt;Added support for the &lt;a href=&quot;<A HREF="http://www.giga.puc-rio.br/site/embedded/eluademoboard">http://www.giga.puc-rio.br/site/embedded/eluademoboard</A>&quot;&gt;PUC-Rio  eLua&lt;/a&gt; board, NXP LPC2468 MCU&lt;/li&gt;
+   &lt;li&gt;Compiling &lt;b&gt;eLua&lt;/b&gt; under Windows is now officialy supported, tutorial added &lt;a href=&quot;build_win.html&quot;&gt;here&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;New ROMFS build modes: compress and compile (see &lt;a href=&quot;arch_romfs.html#mode&quot;&gt;here&lt;/a&gt; for details)&lt;/li&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000588.html">[Elua-svn] r632 - branches/pre0.7/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000590.html">[Elua-svn] r634 - branches/pre0.7/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#589">[ date ]</a>
+              <a href="thread.html#589">[ thread ]</a>
+              <a href="subject.html#589">[ subject ]</a>
+              <a href="author.html#589">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

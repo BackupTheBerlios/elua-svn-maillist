@@ -1,0 +1,812 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r970 - in trunk: . rfs_server_src src/platform/lpc24xx	src/platform/lpc288x src/platform/str7 src/platform/str9 utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r970%20-%20in%20trunk%3A%20.%20rfs_server_src%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/str7%20src/platform/str9%20utils&In-Reply-To=%3C20110222095803.575144812B2%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000922.html">
+   <LINK REL="Next"  HREF="000924.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r970 - in trunk: . rfs_server_src src/platform/lpc24xx	src/platform/lpc288x src/platform/str7 src/platform/str9 utils</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r970%20-%20in%20trunk%3A%20.%20rfs_server_src%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/str7%20src/platform/str9%20utils&In-Reply-To=%3C20110222095803.575144812B2%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r970 - in trunk: . rfs_server_src src/platform/lpc24xx	src/platform/lpc288x src/platform/str7 src/platform/str9 utils">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Feb 22 10:58:03 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000922.html">[Elua-svn] r969 - in trunk: . src/platform/at91sam7x	src/platform/i386 src/platform/lm3s src/platform/lpc17xx	src/platform/sim utils
+</A></li>
+        <LI>Next message: <A HREF="000924.html">[Elua-svn] r971 - trunk/rfs_server_src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#923">[ date ]</a>
+              <a href="thread.html#923">[ thread ]</a>
+              <a href="subject.html#923">[ subject ]</a>
+              <a href="author.html#923">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-22 10:58:02 +0100 (Tue, 22 Feb 2011)
+New Revision: 970
+
+Added:
+   trunk/src/platform/lpc24xx/conf.lua
+   trunk/src/platform/lpc288x/conf.lua
+   trunk/src/platform/str7/conf.lua
+   trunk/src/platform/str9/conf.lua
+Modified:
+   trunk/build_elua.lua
+   trunk/rfs_server_src/serial_win32.c
+   trunk/utils/build.lua
+Log:
+Now all eLua platforms compile using build_elua.lua; output compared with scons' output to verify that the same code is generated
+
+Modified: trunk/build_elua.lua
+===================================================================
+--- trunk/build_elua.lua	2011-02-21 23:29:54 UTC (rev 969)
++++ trunk/build_elua.lua	2011-02-22 09:58:02 UTC (rev 970)
+@@ -358,7 +358,7 @@
+ 
+ -- CPU/allocator mapping (if allocator not specified)
+ if comp.allocator == 'auto' then
+-  if utils.array_element_index( comp.board:upper(), { 'LPC-H2888', 'ATEVK1100', 'MBED' } ) then
++  if utils.array_element_index( { 'LPC-H2888', 'ATEVK1100', 'MBED' }, comp.board:upper() ) then
+     comp.allocator = 'multiple'
+   else
+     comp.allocator = 'newlib'
+@@ -535,7 +535,7 @@
+ -- Create 'prog' target
+ progtarget = builder:target( &quot;#phony:prog&quot;, { exetarget }, tools[ platform ].progfunc )
+ builder:add_target( progtarget, &quot;build eLua firmware image&quot;, { &quot;prog&quot; } )
+-progtarget:set_explicit_deps( tools[ platform ].prog_flist )
++progtarget:set_explicit_targets( tools[ platform ].prog_flist )
+ 
+ -- If the backend needs to do more processing before the build starts, do it now
+ if tools[ platform ].pre_build then
+
+Modified: trunk/rfs_server_src/serial_win32.c
+===================================================================
+--- trunk/rfs_server_src/serial_win32.c	2011-02-21 23:29:54 UTC (rev 969)
++++ trunk/rfs_server_src/serial_win32.c	2011-02-22 09:58:02 UTC (rev 970)
+@@ -8,17 +8,24 @@
+ #include &quot;serial.h&quot;
+ 
+ #define WIN_ERROR     ( HANDLE )-1
+-#define WIN_MAX_PORT_NAME   1024
++#define WIN_MAX_PORT_NAME   MAX_PATH
+ #define MAX_HANDLES   1024
+ 
+-static HANDLE sel_handlers[ MAX_HANDLES ];
+-static int sel_handler_map[ MAX_HANDLES ];
++static HANDLE sel_handlers[ MAX_HANDLES ]; // XXX: consider making this an static variable of ser_select_byte
++static int sel_handler_map[ MAX_HANDLES ]; // XXX: consider making this an static variable of ser_select_byte
+ 
++static void init_ov( OVERLAPPED* o )
++{
++  HANDLE temp = o-&gt;hEvent;
++  memset( o, 0, sizeof( OVERLAPPED ) );
++  o-&gt;hEvent = temp;
++}
++
+ // Helper: set timeout
+ static int ser_win32_set_timeouts( HANDLE hComm, DWORD ri, DWORD rtm, DWORD rtc, DWORD wtm, DWORD wtc )
+-{   
++{
+   COMMTIMEOUTS timeouts;
+-  
++
+   if( GetCommTimeouts( hComm, &amp;timeouts ) == FALSE )
+   {
+     CloseHandle( hComm );
+@@ -29,18 +36,18 @@
+   timeouts.ReadTotalTimeoutMultiplier = rtc;
+   timeouts.WriteTotalTimeoutConstant = wtm;
+   timeouts.WriteTotalTimeoutMultiplier = wtc;
+-	if( SetCommTimeouts( hComm, &amp;timeouts ) == FALSE )
+-	{
+-	  CloseHandle( hComm );
+-	  return SER_ERR;
+-  }               
+-  
++  if( SetCommTimeouts( hComm, &amp;timeouts ) == FALSE )
++  {
++    CloseHandle( hComm );
++    return SER_ERR;
++  }
++
+   return SER_OK;
+ }
+ 
+ // Helper: set communication timeout
+ static int ser_set_timeout_ms( HANDLE hComm, u32 timeout )
+-{ 
++{
+   if( timeout == SER_NO_TIMEOUT )
+     return ser_win32_set_timeouts( hComm, MAXDWORD, 0, 0, 0, 0 );
+   else if( timeout == SER_INF_TIMEOUT )
+@@ -55,8 +62,8 @@
+   char portname[ WIN_MAX_PORT_NAME + 1 ];
+   HANDLE hComm;
+   ser_handler hnd;
+-  
+-  portname[ 0 ] = portname[ WIN_MAX_PORT_NAME ] = '\0';
++
++  portname[ WIN_MAX_PORT_NAME ] = '\0';
+   _snprintf( portname, WIN_MAX_PORT_NAME, &quot;\\\\.\\%s&quot;, sername );
+   hComm = CreateFile( portname, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0 );
+   if( hComm == INVALID_HANDLE_VALUE )
+@@ -70,10 +77,15 @@
+   memset( hnd, 0, sizeof( SERIAL_DATA ) );
+   hnd-&gt;hnd = hComm;
+   hnd-&gt;fWaitingOnRead = FALSE;
+-  if( ( hnd-&gt;o.hEvent = CreateEvent( NULL, TRUE, FALSE, NULL ) ) == NULL )
++  if( ( hnd-&gt;o.hEvent = CreateEvent( NULL, TRUE, FALSE, NULL ) ) == NULL ) {
++    free( hnd );
+     return SER_HANDLER_INVALID;
+-  if( ( hnd-&gt;o_wr.hEvent = CreateEvent( NULL, TRUE, FALSE, NULL ) ) == NULL )
+-    return SER_HANDLER_INVALID;    
++  }
++  if( ( hnd-&gt;o_wr.hEvent = CreateEvent( NULL, TRUE, FALSE, NULL ) ) == NULL ) {
++    free( hnd );
++    CloseHandle( hnd-&gt;o.hEvent );
++    return SER_HANDLER_INVALID;
++  }
+   return hnd;
+ }
+ 
+@@ -81,7 +93,7 @@
+ void ser_close( ser_handler id )
+ {
+   CloseHandle( id-&gt;o.hEvent );
+-  CloseHandle( id-&gt;o_wr.hEvent );  
++  CloseHandle( id-&gt;o_wr.hEvent );
+   CloseHandle( id-&gt;hnd );
+   free( id );
+ }
+@@ -90,12 +102,13 @@
+ {
+   HANDLE hComm = id-&gt;hnd;
+   DCB dcb;
+-  
+-	if( GetCommState( hComm, &amp;dcb ) == FALSE )
+-	{
+-		CloseHandle( hComm );
+-		return SER_ERR;
+-	}
++  dcb.DCBlength = sizeof(DCB);
++
++  if( GetCommState( hComm, &amp;dcb ) == FALSE )
++  {
++    CloseHandle( hComm );
++    return SER_ERR;
++  }
+   dcb.BaudRate = baud;
+   dcb.ByteSize = databits;
+   dcb.Parity = parity == SER_PARITY_NONE ? NOPARITY : ( parity == SER_PARITY_EVEN ? EVENPARITY : ODDPARITY );
+@@ -120,59 +133,63 @@
+     dcb.fRtsControl = RTS_CONTROL_HANDSHAKE;
+     dcb.fOutxCtsFlow = TRUE;
+   }
+-  if( SetCommState( hComm, &amp;dcb ) == 0 )
++  if( SetCommState( hComm, &amp;dcb ) == FALSE )
+   {
+     CloseHandle( hComm );
+     return SER_ERR;
+   }
+-  
++
+   if( ser_win32_set_timeouts( hComm, 0, 0, 0, 0, 0 ) == SER_ERR )
+   {
+     CloseHandle( hComm );
+     return SER_ERR;
+   }
+-  
++
+   FlushFileBuffers( hComm );
+ 
+   return SER_OK;
+ }
+ 
+-// Read up to the specified number of bytes, return bytes actually read
+-u32 ser_read( ser_handler id, u8* dest, u32 maxsize, u32 timeout )
++static u32 ser_read_internal( ser_handler id, u32 timeout )
+ {
+   HANDLE hComm = id-&gt;hnd;
+   DWORD readbytes = 0;
+-  
+-  if( !id-&gt;fWaitingOnRead )
++  DWORD dwRes = WaitForSingleObject( id-&gt;o.hEvent, timeout == SER_INF_TIMEOUT ? INFINITE : timeout );
++  if( dwRes == WAIT_OBJECT_0 )
+   {
+-    if( ReadFile( hComm, dest, maxsize, &amp;readbytes, &amp;id-&gt;o ) == FALSE )
+-    {
+-      if( GetLastError() != ERROR_IO_PENDING )   
+-        return 0;
+-      else
+-        id-&gt;fWaitingOnRead = TRUE;
+-    }
+-    else
+-      return readbytes;
++    if( !GetOverlappedResult( hComm, &amp;id-&gt;o, &amp;readbytes, TRUE ) )
++      readbytes = 0;
+   }
+-      
++  else if( dwRes == WAIT_TIMEOUT )
++  {
++    CancelIo( hComm );
++    GetOverlappedResult( hComm, &amp;id-&gt;o, &amp;readbytes, TRUE );
++    readbytes = 0;
++  }
++  ResetEvent( id-&gt;o.hEvent );
++  return readbytes;
++}
++
++// Read up to the specified number of bytes, return bytes actually read
++u32 ser_read( ser_handler id, u8* dest, u32 maxsize, u32 timeout )
++{
++  DWORD readbytes = 0;
+   if( id-&gt;fWaitingOnRead )
+   {
+-    DWORD dwRes = WaitForSingleObject( id-&gt;o.hEvent, timeout == SER_INF_TIMEOUT ? INFINITE : timeout ); 
+-    if( dwRes == WAIT_OBJECT_0 ) 
+-    {
+-      if( !GetOverlappedResult( hComm, &amp;id-&gt;o, &amp;readbytes, TRUE ) )
+-        readbytes = 0;
+-    }
+-    else if( dwRes == WAIT_TIMEOUT )
+-    {
+-      CancelIo( hComm );
+-      GetOverlappedResult( hComm, &amp;id-&gt;o, &amp;readbytes, TRUE );
+-      readbytes = 0;
+-    }
+-    ResetEvent( id-&gt;o.hEvent );   
+-  }  
+-  id-&gt;fWaitingOnRead = FALSE;  
++    readbytes = ser_read_internal( id, timeout );
++    dest[0] = id-&gt;databuf;
++  }
++  else
++  {
++    init_ov( &amp;id-&gt;o );
++    if( ReadFile( id-&gt;hnd, dest, maxsize, &amp;readbytes, &amp;id-&gt;o ) )
++      return readbytes;
++    if( GetLastError() != ERROR_IO_PENDING )
++      return 0;
++    id-&gt;fWaitingOnRead = TRUE; // XXX: consider removing statement
++    readbytes = ser_read_internal( id, timeout );
++  }
++  id-&gt;fWaitingOnRead = FALSE;
+   return readbytes;
+ }
+ 
+@@ -180,41 +197,25 @@
+ int ser_read_byte( ser_handler id, u32 timeout )
+ {
+   u8 data;
+-  int res = ser_read( id, &amp;data, 1, timeout );
+-
+-  return res == 1 ? data : -1;
++  return ser_read( id, &amp;data, 1, timeout ) == 1 ? data : -1;
+ }
+ 
+ // Write up to the specified number of bytes, return bytes actually written
+ u32 ser_write( ser_handler id, const u8 *src, u32 size )
+ {
+   HANDLE hComm = id-&gt;hnd;
+-  DWORD written = 0;
+-  BOOL fWaitingOnWrite = FALSE;
+-	HANDLE temp = id-&gt;o_wr.hEvent;
+-	
+-	memset( &amp;id-&gt;o_wr, 0, sizeof( OVERLAPPED ) );
+-	id-&gt;o_wr.hEvent = temp;
+-  if( WriteFile( hComm, src, size, &amp;written, &amp;id-&gt;o_wr ) == FALSE )
+-  {
+-    if( GetLastError() != ERROR_IO_PENDING )    
+-      return 0;
+-    else
+-      fWaitingOnWrite = TRUE;
+-  }
+-  else
++  DWORD written;
++
++  init_ov( &amp;id-&gt;o_wr );
++  if( WriteFile( hComm, src, size, &amp;written, &amp;id-&gt;o_wr ) )
+     return written;
++  if( GetLastError() != ERROR_IO_PENDING )
++    return 0;
++  if( !GetOverlappedResult( hComm, &amp;id-&gt;o_wr, &amp;written, TRUE ) )
++    written = 0;
++  ResetEvent( id-&gt;o_wr.hEvent );
+ 
+-  if( fWaitingOnWrite )
+-  {                              
+-    DWORD dwRes = WaitForSingleObject( id-&gt;o_wr.hEvent, INFINITE );      
+-    if( dwRes == WAIT_OBJECT_0 )
+-      if( !GetOverlappedResult( hComm, &amp;id-&gt;o_wr, &amp;written, FALSE ) )
+-        written = 0;
+-    ResetEvent( id-&gt;o_wr.hEvent );        
+-  }
+-
+-  return written; 
++  return written;
+ }
+ 
+ // Write a byte to the serial port
+@@ -228,73 +229,57 @@
+ // otherwise
+ int ser_select_byte( ser_handler *pobjects, unsigned nobjects, int timeout )
+ {
+-  int i, idx;
++  int i;
+   DWORD readbytes;
+   int res = -1;
+   unsigned num_wait = 0;
+   ser_handler hnd;
+-  HANDLE temp;
+-  
++
++  if( nobjects &gt;= MAXIMUM_WAIT_OBJECTS )
++    return -1;
++
+   // Try to read directly first
+   for( i = 0; i &lt; nobjects; i ++ )
+-  {   
+-    temp = pobjects[ i ]-&gt;o.hEvent;
+-    memset( &amp;pobjects[ i ]-&gt;o, 0, sizeof( OVERLAPPED ) );
+-    pobjects[ i ]-&gt;o.hEvent = temp;
++  {
+     if( !pobjects[ i ]-&gt;fWaitingOnRead )
+     {
+-      if( ReadFile( pobjects[ i ]-&gt;hnd, &amp;pobjects[ i ]-&gt;databuf, 1, &amp;readbytes, &amp;pobjects[ i ]-&gt;o ) == FALSE )
+-      {
+-        if( GetLastError() != ERROR_IO_PENDING )
+-          return -1;
+-        else
+-        {
+-          pobjects[ i ]-&gt;fWaitingOnRead = TRUE;
+-          sel_handler_map[ num_wait ] = i;
+-          sel_handlers[ num_wait ++ ] = pobjects[ i ]-&gt;o.hEvent;
+-        }
+-      }
+-      else
+-      {
+-        if( readbytes == 1 )
+-          return pobjects[ i ]-&gt;databuf | ( i &lt;&lt; 8 );
+-        else
+-          return -1;
+-      }    
+-    }  
+-    else
+-    {
+-      sel_handler_map[ num_wait ] = i;
+-      sel_handlers[ num_wait ++ ] = pobjects[ i ]-&gt;o.hEvent;
+-    }  
++      init_ov( &amp;pobjects[ i ]-&gt;o );
++      if( ReadFile( pobjects[ i ]-&gt;hnd, &amp;pobjects[ i ]-&gt;databuf, 1, &amp;readbytes, &amp;pobjects[ i ]-&gt;o ) )
++        return readbytes != 1 ? -1 : pobjects[ i ]-&gt;databuf | ( i &lt;&lt; 8 );
++      if( GetLastError() != ERROR_IO_PENDING )
++        return -1;
++      pobjects[ i ]-&gt;fWaitingOnRead = TRUE;
++    }
++    sel_handler_map[ num_wait ] = i;
++    sel_handlers[ num_wait ++ ] = pobjects[ i ]-&gt;o.hEvent;
+   }
+-    
+-  if( num_wait &gt; 0 )
++
++  if( num_wait == 0 )
++    return -1;
++
++  DWORD dwRes = WaitForMultipleObjects( num_wait, sel_handlers, FALSE, timeout == SER_INF_TIMEOUT ? INFINITE : timeout );
++  if( dwRes &gt;= WAIT_OBJECT_0 &amp;&amp; dwRes &lt; WAIT_OBJECT_0 + num_wait )
+   {
+-    idx = -1;
+-    DWORD dwRes = WaitForMultipleObjects( num_wait, sel_handlers, FALSE, timeout == SER_INF_TIMEOUT ? INFINITE : timeout );
+-    if( dwRes &gt;= WAIT_OBJECT_0 &amp;&amp; dwRes &lt; WAIT_OBJECT_0 + num_wait ) 
++    i = dwRes - WAIT_OBJECT_0;
++    hnd = pobjects[ sel_handler_map[ i ] ];
++    hnd-&gt;fWaitingOnRead = FALSE;
++    if( GetOverlappedResult( hnd-&gt;hnd, &amp;hnd-&gt;o, &amp;readbytes, TRUE ) &amp;&amp; readbytes == 1 )
++      res = hnd-&gt;databuf | ( sel_handler_map[ i ] &lt;&lt; 8 );
++    ResetEvent( hnd-&gt;o.hEvent );
++  }
++  else if( dwRes == WAIT_TIMEOUT )
++  {
++    for( i = 0; i &lt; num_wait; i ++ )
+     {
+-      i = idx = dwRes - WAIT_OBJECT_0;
+       hnd = pobjects[ sel_handler_map[ i ] ];
+       hnd-&gt;fWaitingOnRead = FALSE;
+-      if( GetOverlappedResult( hnd-&gt;hnd, &amp;hnd-&gt;o, &amp;readbytes, TRUE ) &amp;&amp; readbytes == 1 )
+-        res = hnd-&gt;databuf | ( sel_handler_map[ i ] &lt;&lt; 8 );
+-      ResetEvent( hnd-&gt;o.hEvent );        
++      CancelIo( hnd-&gt;hnd );
+     }
+-    else if( dwRes == WAIT_TIMEOUT )
+-    {
+-      for( i = 0; i &lt; num_wait; i ++ )
+-      {
+-        hnd = pobjects[ sel_handler_map[ i ] ];      
+-        hnd-&gt;fWaitingOnRead = FALSE;      
+-        CancelIo( hnd-&gt;hnd );
+-        GetOverlappedResult( hnd-&gt;hnd, &amp;hnd-&gt;o, &amp;readbytes, TRUE );
+-        ResetEvent( hnd-&gt;o.hEvent );
+-      } 
+-    }  
+-  }  
+-    
+-  return res;    
++    WaitForMultipleObjects( num_wait, sel_handlers, TRUE, INFINITE );
++    for( i = 0; i &lt; num_wait; i ++ )
++      ResetEvent( pobjects[ sel_handler_map[ i ] ]-&gt;o.hEvent );
++  }
++
++  return res;
+ }
+ 
+
+Added: trunk/src/platform/lpc24xx/conf.lua
+===================================================================
+--- trunk/src/platform/lpc24xx/conf.lua	                        (rev 0)
++++ trunk/src/platform/lpc24xx/conf.lua	2011-02-22 09:58:02 UTC (rev 970)
+@@ -0,0 +1,52 @@
++-- Configuration file for the LPC24xx backend
++
++local cpumode = ( builder:get_option( 'cpumode' ) or 'arm' ):lower()
++
++specific_files = &quot;startup.s irq.c target.c platform.c platform_int.c&quot;
++
++local ldscript = &quot;lpc2468.lds&quot;
++
++-- Prepend with path
++specific_files = utils.prepend_path( specific_files, sf( &quot;src/platform/%s&quot;, platform ) )
++specific_files = specific_files .. &quot; src/platform/arm_utils.s src/platform/arm_cortex_interrupts.c&quot;
++ldscript = sf( &quot;src/platform/%s/%s&quot;, platform, ldscript )
++
++addm{ &quot;FOR&quot; .. comp.cpu:upper(), 'gcc' }
++
++-- Standard GCC Flags
++addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
++addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
++addaf{ '-x', 'assembler-with-cpp', '-Wall' }
++addlib{ 'c','gcc','m' }
++
++-- Specific target configuration
++local target_flags = '-mcpu=arm7tdmi'
++if cpumode == 'thumb' then
++  target_flags = { target_flags, '-mthumb' }
++  addm( 'CPUMODE_THUMB' )
++else
++  addm( 'CPUMODE_ARM' )
++end
++
++addcf( target_flags )
++addlf{ target_flags, '-Wl,-e,entry' }
++addaf{ target_flags, '-D___ASSEMBLY__' }
++
++-- Toolset data
++tools.lpc24xx = {}
++
++-- Programming function
++tools.lpc24xx.progfunc = function( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  print &quot;Generating binary image...&quot;
++  os.execute( sf( &quot;%s -O ihex %s %s.hex&quot;, toolset.bin, outname, output ) )
++  return 0
++end
++
++-- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
++tools.lpc24xx.prog_flist = { output .. &quot;.hex&quot; }
++
++-- We use 'gcc' as the assembler
++toolset.asm = toolset.compile
++
+
+Added: trunk/src/platform/lpc288x/conf.lua
+===================================================================
+--- trunk/src/platform/lpc288x/conf.lua	                        (rev 0)
++++ trunk/src/platform/lpc288x/conf.lua	2011-02-22 09:58:02 UTC (rev 970)
+@@ -0,0 +1,53 @@
++-- Configuration file for the LPC288x backend
++
++local cpumode = ( builder:get_option( 'cpumode' ) or 'arm' ):lower()
++
++specific_files = &quot;lpc28xx.s platform.c target.c uart.c&quot;
++
++local ldscript = &quot;lpc2888.lds&quot;
++
++if cpumode == 'thumb' then
++  print &quot;ERROR: due to a hardware limitation, it is not possible to run Thumb code from the LPC2888 internal flash.&quot;  
++  print &quot;Compile again, this time with cpumode=arm (or without specifying 'cpumode')&quot;
++  os.exit( -1 )
++end  
++  
++-- Prepend with path
++specific_files = utils.prepend_path( specific_files, sf( &quot;src/platform/%s&quot;, platform ) )
++specific_files = specific_files .. &quot; src/platform/arm_utils.s src/platform/arm_cortex_interrupts.c&quot;
++ldscript = sf( &quot;src/platform/%s/%s&quot;, platform, ldscript )
++
++addm{ &quot;FOR&quot; .. comp.cpu:upper(), 'gcc' }
++
++-- Standard GCC flags
++addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
++addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
++addaf{ '-x', 'assembler-with-cpp', '-Wall' }
++addlib{ 'c','gcc','m' }
++
++-- Special target configuration
++local target_flags = { '-mcpu=arm7tdmi' }
++addm( 'CPUMODE_ARM' )
++ 
++addcf( target_flags )
++addlf{ target_flags, '-Wl,-e,HardReset' }
++addaf{ target_flags,'-D__ASSEMBLY__' }
++
++-- Toolset data
++tools.lpc288x = {}
++
++-- Programming function for AT91SAM7X
++tools.lpc288x.progfunc = function( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  print &quot;Generating binary image...&quot;
++  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
++  return 0
++end
++ 
++-- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
++tools.lpc288x.prog_flist = { output .. &quot;.bin&quot; }
++
++-- We use 'gcc' as the assembler
++toolset.asm = toolset.compile
++
+
+Added: trunk/src/platform/str7/conf.lua
+===================================================================
+--- trunk/src/platform/str7/conf.lua	                        (rev 0)
++++ trunk/src/platform/str7/conf.lua	2011-02-22 09:58:02 UTC (rev 970)
+@@ -0,0 +1,50 @@
++-- Configuration file for the STR7 backend
++
++local cpumode = ( builder:get_option( 'cpumode' ) or 'thumb' ):lower()
++specific_files = &quot;platform.c crt0.s 71x_rccu.c 71x_uart.c 71x_apb.c 71x_gpio.c 71x_tim.c&quot;
++local ldscript = 'str711fr2.lds'
++    
++-- Prepend with path
++specific_files = utils.prepend_path( specific_files, sf( &quot;src/platform/%s&quot;, platform ) )
++specific_files = specific_files .. &quot; src/platform/arm_utils.s src/platform/arm_cortex_interrupts.c&quot;
++ldscript = sf( &quot;src/platform/%s/%s&quot;, platform, ldscript )
++
++addm{ &quot;FOR&quot; .. comp.cpu:upper(), 'gcc' }
++
++-- Standard GCC flags
++addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing','-Wall' }
++addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
++addaf{ '-x', 'assembler-with-cpp', '-Wall' }
++addlib{ 'c','gcc','m' }
++
++-- Special target configuration
++local target_flasg = '-mcpu=arm7tdmi'
++if cpumode == 'thumb' then
++  target_flags = { target_flags, '-mthumb' }
++  addm( 'CPUMODE_THUMB' )
++else
++  addm( 'CPUMODE_ARM' )
++end
++
++addcf( target_flags )
++addlf{ target_flags, '-Wl,-e,entry' }
++addaf( target_flags )
++
++-- Toolset data
++tools.str7 = {}
++
++-- Programming function for AT91SAM7X
++tools.str7.progfunc = function( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  print &quot;Generating binary image...&quot;
++  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
++  return 0
++end
++ 
++-- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
++tools.str7.prog_flist = { output .. &quot;.bin&quot; }
++
++-- We use 'gcc' as the assembler
++toolset.asm = toolset.compile
++
+
+Added: trunk/src/platform/str9/conf.lua
+===================================================================
+--- trunk/src/platform/str9/conf.lua	                        (rev 0)
++++ trunk/src/platform/str9/conf.lua	2011-02-22 09:58:02 UTC (rev 970)
+@@ -0,0 +1,57 @@
++-- Configuration file for the STR9 backend
++
++local cpumode = ( builder:get_option( 'cpumode' ) or 'arm' ):lower()
++
++specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c 91x_vic.c interrupt.c str9_pio.c 91x_i2c.c 91x_wiu.c 91x_adc.c platform_int.c&quot;
++
++local ldscript = &quot;str912fw44.lds&quot;
++
++-- Prepend with path
++specific_files = utils.prepend_path( specific_files, sf( &quot;src/platform/%s&quot;, platform ) )
++specific_files = specific_files .. &quot; src/platform/arm_utils.s src/platform/arm_cortex_interrupts.c&quot;
++ldscript = sf( &quot;src/platform/%s/%s&quot;, platform, ldscript )
++
++addm{ &quot;FOR&quot; .. comp.cpu:upper(), 'gcc' }
++
++-- Standard GCC Flags
++addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
++addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
++addaf{ '-x', 'assembler-with-cpp', '-Wall' }
++addlib{ 'c','gcc','m' }
++
++-- Special target configuration
++local target_flags = '-mcpu=arm966e-s'
++if cpumode == 'thumb' then
++  target_flags = { target_flags, '-mthumb' }
++  addm( 'CPUMODE_THUMB' )
++else
++  addm( 'CPUMODE_ARM' )
++end
++
++-- Toolchain 'arm-gcc' requires '-mfpu=fpa' for some reason
++if comp.toolchain:lower() == 'arm-gcc' then
++  target_flags = { target_flags, '-mfpu=fpa' }
++end  
++
++addcf( target_flags )
++addlf{ target_flags, '-Wl,-e,_startup' }
++addaf( target_flags )
++
++-- Toolset data
++tools.str9 = {}
++
++-- Programming function for AT91SAM7X
++tools.str9.progfunc = function( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  print &quot;Generating binary image...&quot;
++  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
++  return 0
++end
++ 
++-- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
++tools.str9.prog_flist = { output .. &quot;.bin&quot; }
++
++-- We use 'gcc' as the assembler
++toolset.asm = toolset.compile
++
+
+Modified: trunk/utils/build.lua
+===================================================================
+--- trunk/utils/build.lua	2011-02-21 23:29:54 UTC (rev 969)
++++ trunk/utils/build.lua	2011-02-22 09:58:02 UTC (rev 970)
+@@ -244,23 +244,27 @@
+ end
+ 
+ -- Function to execute in clean mode
+-_target._cleaner = function( target, deps )
++_target._cleaner = function( target, deps, dummy, explicit_targets )
++  local cleaner = function( fname )
++    io.write( sf( &quot;Removing %s ... &quot;, fname ) )
++    if os.remove( fname ) then print &quot;done.&quot; else print &quot;failed!&quot; end
++    end
++  -- Clean explicit targets
++  if type( explicit_targets ) == &quot;table&quot; then
++    for _, v in pairs( explicit_targets ) do cleaner( v ) end
++  end
++  -- Clean the main target if it is not a phony target
+   if is_phony( target ) then return 0 end
+-  io.write( sf( &quot;Removing %s ... &quot;, target ) )
+-  if os.remove( target ) then
+-    print &quot;done.&quot;
+-  else
+-    print &quot;failed!&quot;
+-  end
++  cleaner( target )
+   return 0
+ end
+ 
+ -- Build the given target
+ _target.build = function( self )
+   local docmd = self:target_name() and lfs.attributes( self:target_name(), &quot;mode&quot; ) ~= &quot;file&quot;
+-  -- Check explicit dependencies
+-  if type( self._explicit_deps ) == &quot;table&quot; then
+-    for _, v in pairs( self._explicit_deps ) do
++  -- Check explicit targets
++  if type( self._explicit_targets ) == &quot;table&quot; then
++    for _, v in pairs( self._explicit_targets ) do
+       if not utils.is_file( v ) then docmd = true end
+     end
+   end
+@@ -284,7 +288,7 @@
+       print( cmd )
+       code = os.execute( cmd )   
+     else
+-      code = cmd( self.target, self.dep, self._target_args )
++      code = cmd( self.target, self.dep, self._target_args, self._explicit_targets )
+       if code == 1 then -- this means 'mark target as 'not executed'
+         keep_flag = false
+         code = 0
+@@ -303,10 +307,10 @@
+   return get_target_name( self.target )
+ end
+ 
+--- Set 'explicit dependencies' for this target
++-- Set 'explicit targets'
+ -- The target will rebuild itself if these don't exist
+-_target.set_explicit_deps = function( self, deps )
+-  self._explicit_deps = deps
++_target.set_explicit_targets = function( self, targets )
++  self._explicit_targets = targets
+ end
+ 
+ -------------------------------------------------------------------------------
+@@ -579,6 +583,12 @@
+   self.asm_dep_cmd = asm_dep_cmd
+ end
+ 
++-- Set a specific dependency generation command for the compiler
++-- Pass 'false' to skip dependency generation for C files
++builder.set_c_dep_cmd = function( self, c_dep_cmd )
++  self.c_dep_cmd = c_dep_cmd
++end
++
+ ---------------------------------------
+ -- Command line builders
+ 
+@@ -707,10 +717,14 @@
+   for i = 1, #ftable do
+     local isasm = ftable[ i ]:find( &quot;%.c$&quot; ) == nil
+     -- Skip assembler targets if 'asm_dep_cmd' is set to 'false'
+-    if not isasm or self.asm_dep_cmd ~= false then
++    -- Skip C targets if 'c_dep_cmd' is set to 'false'
++    local skip = isasm and self.asm_dep_cmd == false
++    skip = skip or ( not isasm and self.c_dep_cmd == false )
++    if not skip then
+       local cmd = isasm and self.asm_cmd or self.comp_cmd
+       local depcmd = cmd:gsub( &quot;-c &quot;, &quot;-E -MM &quot; )
+       if isasm and self.asm_dep_cmd then depcmd = self.asm_dep_cmd end
++      if not isasm and self.c_dep_cmd then depcmd = self.c_dep_cmd end
+       local target = self:dep_target( ftable[ i ], initdep[ ftable[ i ] ], depcmd )
+       table.insert( deptargets, target )
+     end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000922.html">[Elua-svn] r969 - in trunk: . src/platform/at91sam7x	src/platform/i386 src/platform/lm3s src/platform/lpc17xx	src/platform/sim utils
+</A></li>
+	<LI>Next message: <A HREF="000924.html">[Elua-svn] r971 - trunk/rfs_server_src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#923">[ date ]</a>
+              <a href="thread.html#923">[ thread ]</a>
+              <a href="subject.html#923">[ subject ]</a>
+              <a href="author.html#923">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

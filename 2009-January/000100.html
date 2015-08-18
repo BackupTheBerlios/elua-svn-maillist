@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r144 - trunk/src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r144%20-%20trunk/src/modules&In-Reply-To=%3C200901072027.n07KR8no000838%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000099.html">
+   <LINK REL="Next"  HREF="000101.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r144 - trunk/src/modules</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r144%20-%20trunk/src/modules&In-Reply-To=%3C200901072027.n07KR8no000838%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r144 - trunk/src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Jan  7 21:27:08 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000099.html">[Elua-svn] r143 - in trunk: . inc src src/modules src/newlib	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/stm32	src/platform/stm32/FWLib/library/src src/platform/str7	src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000101.html">[Elua-svn] r145 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#100">[ date ]</a>
+              <a href="thread.html#100">[ thread ]</a>
+              <a href="subject.html#100">[ subject ]</a>
+              <a href="author.html#100">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-01-07 21:27:07 +0100 (Wed, 07 Jan 2009)
+New Revision: 144
+
+Modified:
+   trunk/src/modules/tmr.c
+Log:
+updated tmr module for the virtual timers
+
+Modified: trunk/src/modules/tmr.c
+===================================================================
+--- trunk/src/modules/tmr.c	2009-01-07 20:17:18 UTC (rev 143)
++++ trunk/src/modules/tmr.c	2009-01-07 20:27:07 UTC (rev 144)
+@@ -7,6 +7,7 @@
+ #include &quot;auxmods.h&quot;
+ #include &quot;platform_conf.h&quot;
+ #include &quot;common.h&quot;
++#include &lt;stdio.h&gt;
+ 
+ // Helper function for the read/start functions
+ static int tmrh_timer_op( lua_State* L, int op )
+@@ -132,8 +133,15 @@
+ {
+   luaL_register( L, AUXLIB_TMR, tmr_map );
+ #if VTMR_NUM_TIMERS &gt; 0
+-  lua_pushnumber( L, VTMR_FIRST_ID );
+-  lua_setfield( L, -2, &quot;VIRT0&quot; );  
++  unsigned i;
++  char tname[ 8 ];
++  for( i = 0; i &lt; VTMR_NUM_TIMERS; i ++ )
++  {
++    tname[ 0 ] = tname[ 7 ] = '\0';
++    snprintf( tname, 7, &quot;VIRT%d&quot;, i );
++    lua_pushnumber( L, VTMR_FIRST_ID + i );
++    lua_setfield( L, -2, tname );  
++  }
+ #endif
+   return 1;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000099.html">[Elua-svn] r143 - in trunk: . inc src src/modules src/newlib	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/stm32	src/platform/stm32/FWLib/library/src src/platform/str7	src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000101.html">[Elua-svn] r145 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#100">[ date ]</a>
+              <a href="thread.html#100">[ thread ]</a>
+              <a href="subject.html#100">[ subject ]</a>
+              <a href="author.html#100">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

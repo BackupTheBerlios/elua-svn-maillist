@@ -1,0 +1,597 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r229 - trunk/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r229%20-%20trunk/doc/en&In-Reply-To=%3C200902280546.n1S5kf3Q008287%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000184.html">
+   <LINK REL="Next"  HREF="000186.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r229 - trunk/doc/en</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r229%20-%20trunk/doc/en&In-Reply-To=%3C200902280546.n1S5kf3Q008287%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r229 - trunk/doc/en">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Sat Feb 28 06:46:41 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000184.html">[Elua-svn] r228 - in trunk: . src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000186.html">[Elua-svn] r230 - in trunk: doc src src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#185">[ date ]</a>
+              <a href="thread.html#185">[ thread ]</a>
+              <a href="subject.html#185">[ subject ]</a>
+              <a href="author.html#185">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2009-02-28 06:46:39 +0100 (Sat, 28 Feb 2009)
+New Revision: 229
+
+Modified:
+   trunk/doc/en/building.html
+Log:
+List Items identation problem partially fixed but I could not figure out yet
+what is wrong with the html :(
+
+
+
+Modified: trunk/doc/en/building.html
+===================================================================
+--- trunk/doc/en/building.html	2009-02-27 10:57:58 UTC (rev 228)
++++ trunk/doc/en/building.html	2009-02-28 05:46:39 UTC (rev 229)
+@@ -2,235 +2,349 @@
+ &lt;html&gt;&lt;head&gt;
+ &lt;meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=ISO-8859-1&quot;&gt;
+ &lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;Building eLua&lt;/title&gt;
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
++
++&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;
++&lt;/head&gt;
+ &lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
+ &lt;h3&gt;Building eLua&lt;/h3&gt;
+-&lt;p&gt;If you decide to build your own &lt;b&gt;eLua&lt;/b&gt; binary image (instead of &lt;a href=&quot;downloads.html&quot;&gt;downloading one&lt;/a&gt;) you need to check a few things first:
++&lt;p&gt;If you decide to build your own &lt;b&gt;eLua&lt;/b&gt;
++binary image (instead of &lt;a href=&quot;downloads.html&quot;&gt;downloading
++one&lt;/a&gt;) you need to check a few things first:
++&lt;/p&gt;
+ &lt;ul&gt;
+-  &lt;li&gt;you're using Linux. Compiling under windows should be possible, however this isn't tested. I'm using Ubuntu, so I'm also using &quot;apt-get&quot;. 
+-      If you're using a distro with a different package manager you'll need to translate the &quot;apt-get&quot; calls to your 
+-      specific distribution.&lt;/li&gt;
+-  &lt;li&gt;you have a toolchain (compiler, linker, assembler and standard C libraries) for your target. Check &lt;a href=&quot;toolchains.html&quot;&gt;##the toolchains page&lt;/a&gt; 
+-      for toolchain instructions. Please note that even if you already have a compiled toolchain, the differences in the Newlib configure flags (mainly the
+-      --disable-newlib-supplied-syscalls flags) might prevent &lt;b&gt;eLua&lt;/b&gt; for building properly on your machine.&lt;/li&gt;
+-  &lt;li&gt;you set your platform configuration options properly. Check the next paragraph for instructions on how to configure your build.&lt;/li&gt;
+-  &lt;li&gt;python. It should be already installed; if it's not use apt-get to install it:
+-    &lt;p&gt;&lt;pre&gt;&lt;code&gt;$ sudo apt-get install python&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;
+-  &lt;li&gt;scons. &lt;b&gt;eLua&lt;/b&gt; uses scons instead of make and makefiles, because I find scons much more &quot;natural&quot; and easier to use than make. To install it:
+-    &lt;p&gt;&lt;pre&gt;&lt;code&gt;$ sudo apt-get install scons&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;   
+-  &lt;li&gt;your toolchain's &quot;bin&quot; directory (this is generally something like /usr/local/cross-arm/bin, where /usr/local/cross-arm is the directory in which 
+-    you installed your toolchain) must be in $PATH. &lt;/p&gt;&lt;/li&gt;   
+-  &lt;li&gt;if you're building for the i386 platform, you'll also need &quot;nasm&quot;:  
+-    &lt;p&gt;&lt;pre&gt;&lt;code&gt;$ sudo apt-get install nasm&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;   
++&lt;li&gt;you're using Linux. Compiling under windows should be
++possible, however this isn't tested. We are in Ubuntu, so what
++we use is&nbsp;&quot;apt-get&quot;. If you're using a distro with a different
++package
++manager you'll need to translate the &quot;apt-get&quot; calls to your specific
++distribution.&lt;/li&gt;
++&lt;li&gt;you have a toolchain (compiler, linker, assembler and
++standard C libraries) for your target. Check &lt;a href=&quot;toolchains.html&quot;&gt;##the toolchains page&lt;/a&gt; for
++toolchain instructions. Please note that even if you already have a
++compiled toolchain, the differences in the Newlib configure flags
++(mainly the --disable-newlib-supplied-syscalls flags) might prevent &lt;b&gt;eLua&lt;/b&gt;
++for building properly on your machine.&lt;/li&gt;
++&lt;li&gt;you set your platform configuration options properly. Check
++the next paragraph for instructions on how to configure your build.&lt;/li&gt;
++&lt;li&gt;Python - It should be already installed. If it's not, use
++apt-get to install it:
++&lt;pre&gt;&lt;code&gt;$ sudo apt-get install python&lt;/code&gt;&lt;/pre&gt;
++&lt;/li&gt;
++&lt;li&gt;Scons - &lt;b&gt;eLua&lt;/b&gt; uses scons instead of make
++and makefiles, because we find scons much more &quot;natural&quot; and easier to
++use than make. To install it:
++&lt;pre&gt;&lt;code&gt;$ sudo apt-get install scons&lt;/code&gt;&lt;/pre&gt;
++&lt;/li&gt;
++&lt;li&gt;your toolchain's &quot;bin&quot; directory (this is generally
++something like /usr/local/cross-arm/bin, where /usr/local/cross-arm is
++the directory in which you installed your toolchain) must be in $PATH.
++&lt;/li&gt;
++&lt;li&gt;if you're building for the i386 platform, you'll also need
++&quot;nasm&quot;:
++&lt;pre&gt;&lt;code&gt;$ sudo apt-get install nasm&lt;/code&gt;&lt;/pre&gt;
++&lt;/li&gt;
+ &lt;/ul&gt;
++&lt;p&gt;For each platform, &lt;b&gt;eLua&lt;/b&gt; assumes a certain
++name for the toolchain components, as shown below.
+ &lt;/p&gt;
+-&lt;p&gt;For each platform, &lt;b&gt;eLua&lt;/b&gt; assumes a certain name for the toolchain components, as shown below.
+-&lt;/p&gt;
+-&lt;p&gt;If your toolchain uses different names, you have to modify the toolchain definition in SConstruct. See the &lt;a href=&quot;toolchains.html&quot;&gt;toolchains instructions&lt;/a&gt; for details.&lt;/p&gt;
++&lt;p&gt;If your toolchain uses different names, you have to modify the
++toolchain definition in SConstruct. See the &lt;a href=&quot;toolchains.html&quot;&gt;toolchains instructions&lt;/a&gt; for
++details.&lt;/p&gt;
+ &lt;h3&gt;Configuring the build image&lt;/h3&gt;
+-&lt;p&gt;&lt;b&gt;eLua&lt;/b&gt; has a very flexible build system that can be used to select the components that are going to be part of the &lt;b&gt;eLua&lt;/b&gt; binary image and to set the compile time (static) configuration.
+-To use it, you need to edit a single configuration file (&lt;i&gt;platform_conf.h&lt;/i&gt;) located in the platform specific directory (&lt;i&gt;src/platform/&lt;platform name&gt;/platform_conf.h)&lt;/i&gt;. The configuration parameters are described in detail in the next paragraphs.&lt;/p&gt;
++&lt;p&gt;&lt;b&gt;eLua&lt;/b&gt; has a very flexible build system that
++can be used to select the components that are going to be part of the &lt;b&gt;eLua&lt;/b&gt;
++binary image and to set the compile time (static) configuration.
++To use it, you need to edit a single configuration file (&lt;i&gt;platform_conf.h&lt;/i&gt;)
++located in the platform specific directory (&lt;i&gt;src/platform/&lt;platform
++name&gt;/platform_conf.h)&lt;/i&gt;. The configuration parameters
++are described in detail in the next paragraphs.&lt;/p&gt;
+ &lt;h2&gt;Configuring components&lt;/h2&gt;
+-&lt;p&gt;A &lt;b&gt;component&lt;/b&gt; is a feature that can be enabled to add functionality to &lt;b&gt;eLua&lt;/b&gt; itself, without modifying its API (which is the part that the programmer uses to write &lt;b&gt;eLua&lt;/b&gt; programs). The components that can be configured in &lt;b&gt;eLua&lt;/b&gt; are:
++&lt;p&gt;A &lt;b&gt;component&lt;/b&gt; is a feature that can be
++enabled to add functionality to &lt;b&gt;eLua&lt;/b&gt; itself,
++without modifying its API (which is the part that the programmer uses
++to write &lt;b&gt;eLua&lt;/b&gt; programs). The components that can be
++configured in &lt;b&gt;eLua&lt;/b&gt; are:
++&lt;/p&gt;
+ &lt;table class=&quot;table_center&quot;&gt;
+ &lt;tbody&gt;
+ &lt;tr&gt;
+-  &lt;th style=&quot;text-align: left;&quot;&gt;Name&lt;/th&gt;
+-  &lt;th style=&quot;text-align: center;&quot;&gt;Meaning&lt;/th&gt;
++&lt;th style=&quot;text-align: left;&quot;&gt;Name&lt;/th&gt;
++&lt;th style=&quot;text-align: center;&quot;&gt;Meaning&lt;/th&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_XMODEM&lt;/td&gt;
+-  &lt;td&gt;Define this to build support for XMODEM receive. If enabled, you can use the &quot;recv&quot; command from the shell to receive a Lua file (either source code
+-      or precompiled byte code) and run in on the target. Works only over RS-232 connections (although in theory it's possible to make it work over any kind
+-      of transport).&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_XMODEM&lt;/td&gt;
++&lt;td&gt;Define this to build support for XMODEM receive. If
++enabled, you can use the &quot;recv&quot; command from the shell to receive a Lua
++file (either source code or precompiled byte code) and run in on the
++target. Works only over RS-232 connections (although in theory it's
++possible to make it work over any kind of transport).&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_SHELL&lt;/td&gt;
+-  &lt;td&gt;This build the &lt;b&gt;eLua&lt;/b&gt; shell (see &lt;a href=&quot;using.html&quot;&gt;Using eLua&lt;/a&gt; for details on the shell). If the shell is not enabled, the code looks for
+-      a file called &lt;i&gt;/rom/autorun.lua&lt;/i&gt; and executes it. If this file is not found, a regular Lua intepreter is started on the target.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_SHELL&lt;/td&gt;
++&lt;td&gt;This build the &lt;b&gt;eLua&lt;/b&gt; shell (see &lt;a href=&quot;using.html&quot;&gt;Using eLua&lt;/a&gt; for details on the
++shell). If the shell is not enabled, the code looks for a file called &lt;i&gt;/rom/autorun.lua&lt;/i&gt;
++and executes it. If this file is not found, a regular Lua intepreter is
++started on the target.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_ROMFS&lt;/td&gt;
+-  &lt;td&gt;Enable the &lt;b&gt;eLua&lt;/b&gt; read-only filesystem. See the &lt;a href=&quot;romfs.html&quot;&gt;##ROMFS documentation&lt;/a&gt; for details about using the ROM file system.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_ROMFS&lt;/td&gt;
++&lt;td&gt;Enable the &lt;b&gt;eLua&lt;/b&gt; read-only
++filesystem. See the &lt;a href=&quot;romfs.html&quot;&gt;##ROMFS
++documentation&lt;/a&gt; for details about using the ROM file system.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_TERM&lt;/td&gt;
+-  &lt;td&gt;Enable ANSI terminal support. It allows &lt;b&gt;eLua&lt;/b&gt; to interact with terminals that support ANSI escape sequences. Currently it works only over
+-      RS-232 connections, although this is not a strict requirement. You need to enable this if you want to use the &lt;a href=&quot;m_term.html&quot;&gt;##term module&lt;/a&gt;.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_TERM&lt;/td&gt;
++&lt;td&gt;Enable ANSI terminal support. It allows &lt;b&gt;eLua&lt;/b&gt;
++to interact with terminals that support ANSI escape sequences.
++Currently it works only over RS-232 connections, although this is not a
++strict requirement. You need to enable this if you want to use the &lt;a href=&quot;m_term.html&quot;&gt;##term module&lt;/a&gt;.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_UIP&lt;/td&gt;
+-  &lt;td&gt;Enable TCP/IP networking support. You need to enable this if you want to use the &lt;a href=&quot;m_net.html&quot;&gt;##net module&lt;/a&gt;. Also, your platform must
+-      implement the uIP support functions (see the &lt;a href=&quot;platform_interface.html&quot;&gt;##platform interface&lt;/a&gt; documentation for details).&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_UIP&lt;/td&gt;
++&lt;td&gt;Enable TCP/IP networking support. You need to enable
++this if you want to use the &lt;a href=&quot;m_net.html&quot;&gt;##net
++module&lt;/a&gt;. Also, your platform must implement the uIP support
++functions (see the &lt;a href=&quot;platform_interface.html&quot;&gt;##platform
++interface&lt;/a&gt; documentation for details).&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_DHCPC&lt;/td&gt;
+-  &lt;td&gt;If BUILD_UIP is enabled, you can enable this to include a DHCP client in the TCP/IP networking subsystem.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_DHCPC&lt;/td&gt;
++&lt;td&gt;If BUILD_UIP is enabled, you can enable this to include
++a DHCP client in the TCP/IP networking subsystem.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_DNS&lt;/td&gt;
+-  &lt;td&gt;If BUILD_UIP is enabled, you can enable this to include a minimal DNS resolver in the TCP/IP networking subsystem.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_DNS&lt;/td&gt;
++&lt;td&gt;If BUILD_UIP is enabled, you can enable this to include
++a minimal DNS resolver in the TCP/IP networking subsystem.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_CON_GENERIC&lt;/td&gt;
+-  &lt;td&gt;Generic console support. Enables console access (stdio/stdout/stderr) via a serial transport (currently RS-232, but others can be supported).
+-      Enable this if you want to use console input/output over your RS-232 connection. Don't enable this if you need console input/ouput over Ethernet
+-      (see the next option).
+-  &lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_CON_GENERIC&lt;/td&gt;
++&lt;td&gt;Generic console support. Enables console access
++(stdio/stdout/stderr) via a serial transport (currently RS-232, but
++others can be supported). Enable this if you want to use console
++input/output over your RS-232 connection. Don't enable this if you need
++console input/ouput over Ethernet (see the next option). &lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_CON_TCP&lt;/td&gt;
+-  &lt;td&gt;Console input/output over TCP/IP connections only. Use this if you want to use your &lt;b&gt;eLua&lt;/b&gt; board over a telnet session. 
+-      Don't enable this if you need console input/output over serial transports (see the previous option).&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_CON_TCP&lt;/td&gt;
++&lt;td&gt;Console input/output over TCP/IP connections only. Use
++this if you want to use your &lt;b&gt;eLua&lt;/b&gt; board over a
++telnet session. Don't enable this if you need console input/output over
++serial transports (see the previous option).&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_ADC&lt;/td&gt;
+-  &lt;td&gt;Generic ADC support code. You need to enable this if you want to use the &lt;a href=&quot;m_adc.html&quot;&gt;##adc&lt;/a&gt; module, or simply the ADC functions 
+-      from the platform interface. You don't need it if you're not planning to use the ADC.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_ADC&lt;/td&gt;
++&lt;td&gt;Generic ADC support code. You need to enable this if
++you want to use the &lt;a href=&quot;m_adc.html&quot;&gt;##adc&lt;/a&gt;
++module, or simply the ADC functions from the platform interface. You
++don't need it if you're not planning to use the ADC.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;/tbody&gt;
+ &lt;/table&gt;
++&lt;h2&gt;Configuring modules&lt;/h2&gt;
++&lt;p&gt;You can also choose the modules that are going to be part of
++the &lt;b&gt;eLua&lt;/b&gt; image. Unlike components, the modules have
++a direct impact on the &lt;b&gt;eLua&lt;/b&gt; API, so choose them
++carefully. Disabling a module will save Flash space (and potentially
++RAM) but will also completely remove the possibility of using that
++module from &lt;b&gt;eLua&lt;/b&gt;.&lt;/p&gt;
++&lt;p&gt;The modules included in the build are specified by the
++LUA_PLATFORM_LIBS_ROM macro. An example is given below: &lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;#define LUA_PLATFORM_LIBS_ROM\&lt;br&gt; _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\&lt;br&gt; _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\&lt;br&gt; _ROM( AUXLIB_PD, luaopen_pd, pd_map )\&lt;br&gt; _ROM( AUXLIB_UART, luaopen_uart, uart_map )\&lt;br&gt; _ROM( AUXLIB_TERM, luaopen_term, term_map )\&lt;br&gt; _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\&lt;br&gt; _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\&lt;br&gt; _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\&lt;br&gt; _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\&lt;br&gt; _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )&lt;/code&gt;&lt;/pre&gt;
++&lt;p&gt;Each module is defined by a &lt;b&gt;_ROM( module_name,
++module_init_function, module_map_array )&lt;/b&gt; macro, where:
+ &lt;/p&gt;
+-&lt;h2&gt;Configuring modules&lt;/h2&gt;
+-&lt;p&gt;You can also choose the modules that are going to be part of the &lt;b&gt;eLua&lt;/b&gt; image. Unlike components, the modules have a direct impact on the &lt;b&gt;eLua&lt;/b&gt; API, so choose them carefully. 
+-   Disabling a module will save Flash space (and potentially RAM) but will also completely remove the possibility of using that module from &lt;b&gt;eLua&lt;/b&gt;.&lt;/p&gt;
+-&lt;p&gt;The modules included in the build are specified by the LUA_PLATFORM_LIBS_ROM macro. An example is given below:
+-  &lt;pre&gt;&lt;code&gt;#define LUA_PLATFORM_LIBS_ROM\
+-  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+-  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+-  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+-  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
+-  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+-  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
+-  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+-  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+-  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+-  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
+-&lt;p&gt;Each module is defined by a &lt;b&gt;_ROM( module_name, module_init_function, module_map_array )&lt;/b&gt; macro, where:
+ &lt;ul&gt;
+-  &lt;li&gt;&lt;b&gt;module_name&lt;/b&gt; is the name by which the module can be used from Lua&lt;/li&gt;
+-  &lt;li&gt;&lt;b&gt;module_init_function&lt;/b&gt; is a function called by the Lua runtime when the module is initialized&lt;/li&gt;
+-  &lt;li&gt;&lt;b&gt;module_map_array&lt;/b&gt; is a list of all the functions and constants exported by a module&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
+-&lt;p&gt;Please note that this notation is specific to LTR (the &lt;b&gt;L&lt;/b&gt;ua &lt;b&gt;T&lt;/b&gt;iny &lt;b&gt;R&lt;/b&gt;AM patch) and it's not the only way to specify the list of modules included in the build (although it is the most common one). Check the &lt;a href=&quot;&quot;&gt;##LTR section&lt;/a&gt; for more information about LTR.&lt;/p&gt;
+-&lt;p&gt;For the full list of modules that can be enabled or disabled via &lt;i&gt;platform_conf.h&lt;/i&gt; check &lt;a href=&quot;&quot;&gt;##the eLua reference manual&lt;/a&gt;.&lt;/p&gt;
++&lt;li&gt;&lt;b&gt;module_name&lt;/b&gt; is the name by which the
++module can be used from Lua&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;module_init_function&lt;/b&gt; is a function
++called by the Lua runtime when the module is initialized&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;module_map_array&lt;/b&gt; is a list of all the
++functions and constants exported by a module&lt;/li&gt;
++&lt;/ul&gt;
++&lt;p&gt;Please note that this notation is specific to LTR (the &lt;b&gt;L&lt;/b&gt;ua
++&lt;b&gt;T&lt;/b&gt;iny &lt;b&gt;R&lt;/b&gt;AM patch) and it's not the
++only way to specify the list of modules included in the build (although
++it is the most common one). Check the &lt;a href=&quot;&quot;&gt;##LTR
++section&lt;/a&gt; for more information about LTR.&lt;/p&gt;
++&lt;p&gt;For the full list of modules that can be enabled or disabled
++via &lt;i&gt;platform_conf.h&lt;/i&gt; check &lt;a href=&quot;&quot;&gt;##the
++eLua reference manual&lt;/a&gt;.&lt;/p&gt;
+ &lt;h2&gt;Static configuration data&lt;/h2&gt;
+-&lt;p&gt;&quot;Static configuration&quot; reffers to the compile-time configuration. Static configuration parameters are hard-coded in the firmware image and can't be changed at run-time. The table below lists the static configuration parameters and their semantics.
++&lt;p&gt;&quot;Static configuration&quot; reffers to the compile-time
++configuration. Static configuration parameters are hard-coded in the
++firmware image and can't be changed at run-time. The table below lists
++the static configuration parameters and their semantics.
++&lt;/p&gt;
+ &lt;table class=&quot;table_center&quot;&gt;
+ &lt;tbody&gt;
+ &lt;tr&gt;
+-  &lt;th style=&quot;text-align: left;&quot;&gt;Name&lt;/th&gt;
+-  &lt;th style=&quot;text-align: center;&quot;&gt;Meaning&lt;/th&gt;
++&lt;th style=&quot;text-align: left;&quot;&gt;Name&lt;/th&gt;
++&lt;th style=&quot;text-align: center;&quot;&gt;Meaning&lt;/th&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;CON_UART_ID&lt;br&gt;CON_UART_SPEED&lt;/td&gt;
+-  &lt;td&gt;Used to configure console input/output over UART. The specified UART id will be used for console input/output, at the specified speed. The data format is always 8N1 (8 data bits, no parity,
+-      1 stop bits) at this point.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;CON_UART_ID&lt;br&gt;
++CON_UART_SPEED&lt;/td&gt;
++&lt;td&gt;Used to configure console input/output over UART. The
++specified UART id will be used for console input/output, at the
++specified speed. The data format is always 8N1 (8 data bits, no parity,
++1 stop bits) at this point.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;XMODEM_TIMER_ID&lt;/td&gt;
+-  &lt;td&gt;Defines the id of the timer used by XMODEM to handle timeouts (if XMODEM is enabled in the build). At this point, the XMODEM subsystem uses the same UART id as the one specified by
+-      CON_UART_ID.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;XMODEM_TIMER_ID&lt;/td&gt;
++&lt;td&gt;Defines the id of the timer used by XMODEM to handle
++timeouts (if XMODEM is enabled in the build). At this point, the XMODEM
++subsystem uses the same UART id as the one specified by CON_UART_ID.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;TERM_TIMER_ID&lt;br&gt;TERM_LINES&lt;br&gt;TERM_COLS&lt;br&gt;TERM_TIMEOUT&lt;br&gt;&lt;/td&gt;
+-  &lt;td&gt;Used to configure the ANSI terminal support (if enabled in the build). Used to specify (respectively): the timer id used by the &quot;term&quot; implementation to handle timeouts, the number of
+-      lines and columns of the ANSI terminal, and the ANSI input timeout (used as a inter-char timeout when a key sends more than one code to the ANSI subsystem, for example the up, down, left
+-      and right keys on a PC keyboard).&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;TERM_TIMER_ID&lt;br&gt;
++TERM_LINES&lt;br&gt;
++TERM_COLS&lt;br&gt;
++TERM_TIMEOUT&lt;br&gt;
++&lt;/td&gt;
++&lt;td&gt;Used to configure the ANSI terminal support (if enabled
++in the build). Used to specify (respectively): the timer id used by the
++&quot;term&quot; implementation to handle timeouts, the number of lines and
++columns of the ANSI terminal, and the ANSI input timeout (used as a
++inter-char timeout when a key sends more than one code to the ANSI
++subsystem, for example the up, down, left and right keys on a PC
++keyboard).&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;ELUA_CONF_IPADDR0..3&lt;br&gt;ELUA_CONF_NETMASK0..3&lt;br&gt;ELUA_CONF_DEFGW0..3&lt;br&gt;ELUA_CONF_DNS0..3&lt;/td&gt;
+-  &lt;td&gt;Used by the TCP/IP implementation when the DHCP client is not enabled, or when it is enabled but can't be contacted. Specifies the IP address, network mask, default gateway and DNS server.
+-      Only needed if BUILD_UIP is enabled.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;ELUA_CONF_IPADDR0..3&lt;br&gt;
++ELUA_CONF_NETMASK0..3&lt;br&gt;
++ELUA_CONF_DEFGW0..3&lt;br&gt;
++ELUA_CONF_DNS0..3&lt;/td&gt;
++&lt;td&gt;Used by the TCP/IP implementation when the DHCP client
++is not enabled, or when it is enabled but can't be contacted. Specifies
++the IP address, network mask, default gateway and DNS server. Only
++needed if BUILD_UIP is enabled.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;VTMR_NUM_TIMERS&lt;br&gt;VTMR_FREQ_HZ&lt;/td&gt;
+-  &lt;td&gt;Specify the virtual timers configuration for the platform (reffer to &lt;a href=&quot;&quot;&gt;##the timer module documentation&lt;/a&gt; for details). Define VTMR_NUM_TIMERS to 0 if this feature is not used.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;VTMR_NUM_TIMERS&lt;br&gt;
++VTMR_FREQ_HZ&lt;/td&gt;
++&lt;td&gt;Specify the virtual timers configuration for the
++platform (reffer to &lt;a href=&quot;&quot;&gt;##the timer module
++documentation&lt;/a&gt; for details). Define VTMR_NUM_TIMERS to 0 if
++this feature is not used.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;PLATFORM_CPU_CONSTANTS&lt;/td&gt;
+-  &lt;td&gt;If the &lt;a href=&quot;&quot;&gt;##cpu module&lt;/a&gt; is enabled, this defines a list of platform-specific constants (for example interrupt masks) that can be accessed using the cpu.&lt;constant name&gt;
+-      notation. Each constant name must be specified instead of a specific costruct (&lt;i&gt;_C(&lt;constant name&gt;&lt;/i&gt;). For example:
+-      &lt;p&gt;&lt;pre&gt;&lt;code&gt;#define PLATFORM_CPU_CONSTANTS\
+-  _C( INT_GPIOA ),\
+-  _C( INT_GPIOB ),\
+-  _C( INT_GPIOC ),\
+-  _C( INT_GPIOD ),\
+-  _C( INT_GPIOE )
+-&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
+-  After compilation, you can access these constants using &lt;i&gt;cpu.INT_GPIOx&lt;/i&gt;. Note that the implementation of this feature needs virtually no RAM at all, so you can define as many constants as you want here.
+-  &lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;PLATFORM_CPU_CONSTANTS&lt;/td&gt;
++&lt;td&gt;If the &lt;a href=&quot;&quot;&gt;##cpu module&lt;/a&gt;
++is enabled, this defines a list of platform-specific constants (for
++example interrupt masks) that can be accessed using the
++cpu.&lt;constant name&gt; notation. Each constant name must be
++specified instead of a specific costruct (&lt;i&gt;_C(&lt;constant
++name&gt;&lt;/i&gt;). For example:
++&lt;pre&gt;&lt;code&gt;#define PLATFORM_CPU_CONSTANTS\&lt;br&gt; _C( INT_GPIOA ),\&lt;br&gt; _C( INT_GPIOB ),\&lt;br&gt; _C( INT_GPIOC ),\&lt;br&gt; _C( INT_GPIOD ),\&lt;br&gt; _C( INT_GPIOE )&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;
++After compilation, you can access these constants using &lt;i&gt;cpu.INT_GPIOx&lt;/i&gt;.
++Note that the implementation of this feature needs virtually no RAM at
++all, so you can define as many constants as you want here. &lt;/td&gt;
+ &lt;/tr&gt;
+-&lt;/tbody&gt;&lt;/table&gt;&lt;/p&gt;
+-&lt;p&gt;The rest of the static configuration data parameters are meant to be modified mainly by developers and thus they're not listed here.&lt;br&gt;
+-One more thing you might want to configure for your build is the contents of the ROM file system. See the &lt;a href=&quot;&quot;&gt;ROMFS documentation&lt;/a&gt; for details on how to do this.&lt;/p&gt;
++&lt;/tbody&gt;
++&lt;/table&gt;
++&lt;p&gt;The rest of the static configuration data parameters are meant
++to be modified mainly by developers and thus they're not listed here.&lt;br&gt;
++One more thing you might want to configure for your build is the
++contents of the ROM file system. See the &lt;a href=&quot;&quot;&gt;ROMFS
++documentation&lt;/a&gt; for details on how to do this.&lt;/p&gt;
+ &lt;h3&gt;Invoking the build system&lt;/h3&gt;
+-&lt;p&gt;Once you have everything in place, all you have to do is to invoke the build system (scons) with the right arguments. This is a fairly easy step, although it might look intimidating because of
+-   the multitude of options than can be given to scons. They are used to fine tune the final image to your specific needs, but unless your needs are very special you won't need to modify them, so
+-   don't worry about the aparent complexity. The examples at the end of this section will show how easy it is to use the build system in practice.
+-&lt;pre&gt;&lt;code&gt;$ scons 
+-  [target=lua | lualong]
+-  [cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | 
+-       lm3s6965 | lm3s6918 | lpc2888 | str711fr2 | at32uc3a0512 | stm32f103ze
+-  [board=ek-lm3s8962 | ek-lm3s6965 | eagle-100 | str9-comstick | sam7-ex256 | 
+-         lpc-h2888 | mod711 | pc | atevk1100 | stm3210e-eval ]
+-  [cpumode=arm | thumb] 
+-  [allocator = newlib | multiple | simple]
+-  [toolchain = &lt;toolchain name&gt;]
+-  [optram = 0 | 1]
+-  [prog]&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
+-&lt;p&gt;Your build target is specified by two paramters: cpu and board. &quot;cpu&quot; gives the name of your CPU, and &quot;board&quot; the name of the board. A board can be associated with more than one CPU. 
+-   This allows the build system to be very flexible. You  can use these two options together or separately, as shown below:&lt;/p&gt;
++&lt;p&gt;Once you have everything in place, all you have to do is to
++invoke the build system (scons) with the right arguments. This is a
++fairly easy step, although it might look intimidating because of the
++multitude of options than can be given to scons. They are used to fine
++tune the final image to your specific needs, but unless your needs are
++very special you won't need to modify them, so don't worry about the
++aparent complexity. The examples at the end of this section will show
++how easy it is to use the build system in practice.
++&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ scons &lt;br&gt; [target=lua | lualong]&lt;br&gt; [cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | &lt;br&gt; lm3s6965 | lm3s6918 | lpc2888 | str711fr2 | at32uc3a0512 | stm32f103ze&lt;br&gt; [board=ek-lm3s8962 | ek-lm3s6965 | eagle-100 | str9-comstick | sam7-ex256 | &lt;br&gt; lpc-h2888 | mod711 | pc | atevk1100 | stm3210e-eval ]&lt;br&gt; [cpumode=arm | thumb] &lt;br&gt; [allocator = newlib | multiple | simple]&lt;br&gt; [toolchain = &lt;toolchain name&gt;]&lt;br&gt; [optram = 0 | 1]&lt;br&gt; [prog]&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;
++&lt;p&gt;Your build target is specified by two paramters: cpu and
++board. &quot;cpu&quot; gives the name of your CPU, and &quot;board&quot; the name of the
++board. A board can be associated with more than one CPU. This allows
++the build system to be very flexible. You can use these two options
++together or separately, as shown below:&lt;/p&gt;
+ &lt;ul&gt;
+-&lt;li&gt;&lt;b&gt;cpu=name&lt;/b&gt;: build for the specified CPU. A board name will be assigned by the build system automatically.&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;board=name&lt;/b&gt;: build for the specified board. The CPU name will be inferred by the build system automatically.&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;cpu=name board=name&lt;/b&gt;: build for the specified board and CPU. The build script won't allow invalid CPU/board combinations.&lt;/li&gt;&lt;/ul&gt;
+-&lt;p&gt;For board/CPU assignment look at the beginning of the SConstruct file (the &lt;i&gt;platform_list&lt;/i&gt; array), it's self-explanatory.&lt;br&gt;
++&lt;li&gt;&lt;b&gt;cpu=name&lt;/b&gt;: build for the specified CPU. A
++board name will be assigned by the build system automatically.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;board=name&lt;/b&gt;: build for the specified
++board. The CPU name will be inferred by the build system automatically.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;cpu=name board=name&lt;/b&gt;: build for the
++specified board and CPU. The build script won't allow invalid CPU/board
++combinations.&lt;/li&gt;
++&lt;/ul&gt;
++&lt;p&gt;For board/CPU assignment look at the beginning of the
++SConstruct file (the &lt;i&gt;platform_list&lt;/i&gt; array), it's
++self-explanatory.&lt;br&gt;
+ The other options are as follows:&lt;/p&gt;
+-
+ &lt;ul&gt;
+-&lt;li&gt;&lt;b&gt;target=lua | lualong&lt;/b&gt;: specify if you want to build &quot;regular&quot; Lua (with floating point support) or integer only Lua (lualong). The default is &quot;lua&quot;. &quot;lualong&quot; runs faster on targets that 
+-    lack a floating point co-processor (which is the case for all current &lt;b&gt;eLua&lt;/b&gt; targets) but it completely lacks support for floating point operations, it can only handle integers.&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;cpumode=arm | thumb&lt;/b&gt;: for ARM targets (not Cortex) this specifies the compilation mode. Its default value is 'thumb' for AT91SAM7X targets and 'arm' for STR9 and LPC2888 targets.&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;allocator = newlib | multiple | simple&lt;/b&gt;: choose between the default newlib allocator (newlib) which is an older version of dlmalloc, the multiple memory spaces allocator (multiple) which
+-    is a newer version of dlmalloc that can handle multiple memory spaces, and a very simple memory allocator (simple) that is slow and doesn't handle fragmentation very well, but it requires 
+-    very few resources (Flash/RAM). You should use the 'multiple' allocator only if you need to support multiple memory spaces. The default value is 'newlib' for all CPUs except 'lpc2888' and
+-    'at32uc3a0512', since the LPC-H2888 and ATEVK1100 board come with external SDRAM memory and thus are an ideal target for 'multiple'. You should use 'simple' only on very resource-constrained
+-    systems.
+-&lt;li&gt;&lt;b&gt;toolchain=&lt;toolchain name&gt;&lt;/b&gt;: this specifies the name of the toolchain used to build the image. See &lt;a href=&quot;toolchains.html#configuration&quot;&gt;this link&lt;/a&gt; for details.&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;optram=0 | 1&lt;/b&gt;: enables of disables the LTR patch, see the &lt;a href=&quot;&quot;&gt;##LTR documentation&lt;/a&gt; for more details. The default is 1, which enables the LTR patch.&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;prog&lt;/b&gt;: by default, the above 'scons' command will build only the 'elf' (executable) file. Specify &quot;prog&quot; to build also the platform-specific programming file where appropriate 
+-    (for example, on a AT91SAM7X256 this results in a .bin file that can be programmed in the CPU). 
+-&lt;/li&gt;&lt;/ul&gt;&lt;/p&gt;
+-&lt;p&gt;The output will be a file named elua_&lt;i&gt;[target]&lt;/i&gt;_&lt;i&gt;[cpu]&lt;/i&gt;.elf (and also another file with the same name but ending in .bin/.hex if &quot;prog&quot; was specified for platforms that need 
+-   these files for programming).&lt;br&gt;
+-If you want the equivalent of a &quot;make clean&quot;, invoke &quot;scons&quot; as shown above, but add a &quot;-c&quot; at the end of the command line. &quot;scons -c&quot; is also recommended after you reconfigure your build image, 
+-as scons seems to &quot;overlook&quot; the changes to these files on some occasions.&lt;/p&gt;
+-
++&lt;li&gt;&lt;b&gt;target=lua | lualong&lt;/b&gt;: specify if you
++want to build &quot;regular&quot; Lua (with floating point support) or integer
++only Lua (lualong). The default is &quot;lua&quot;. &quot;lualong&quot; runs faster on
++targets that lack a floating point co-processor (which is the case for
++all current &lt;b&gt;eLua&lt;/b&gt; targets) but it completely lacks
++support for floating point operations, it can only handle integers.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;cpumode=arm | thumb&lt;/b&gt;: for ARM targets
++(not Cortex) this specifies the compilation mode. Its default value is
++'thumb' for AT91SAM7X targets and 'arm' for STR9 and LPC2888 targets.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;allocator = newlib | multiple | simple&lt;/b&gt;:
++choose between the default newlib allocator (newlib) which is an older
++version of dlmalloc, the multiple memory spaces allocator (multiple)
++which is a newer version of dlmalloc that can handle multiple memory
++spaces, and a very simple memory allocator (simple) that is slow and
++doesn't handle fragmentation very well, but it requires very few
++resources (Flash/RAM). You should use the 'multiple' allocator only if
++you need to support multiple memory spaces. The default value is
++'newlib' for all CPUs except 'lpc2888' and 'at32uc3a0512', since the
++LPC-H2888 and ATEVK1100 board come with external SDRAM memory and thus
++are an ideal target for 'multiple'. You should use 'simple' only on
++very resource-constrained systems.
++&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;toolchain=&lt;toolchain name&gt;&lt;/b&gt;:
++this specifies the name of the toolchain used to build the image. See &lt;a href=&quot;toolchains.html#configuration&quot;&gt;this link&lt;/a&gt; for
++details.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;optram=0 | 1&lt;/b&gt;: enables of disables the
++LTR patch, see the &lt;a href=&quot;&quot;&gt;##LTR documentation&lt;/a&gt;
++for more details. The default is 1, which enables the LTR patch.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;prog&lt;/b&gt;: by default, the above 'scons'
++command will build only the 'elf' (executable) file. Specify &quot;prog&quot; to
++build also the platform-specific programming file where appropriate
++(for example, on a AT91SAM7X256 this results in a .bin file that can be
++programmed in the CPU). &lt;/li&gt;
++&lt;/ul&gt;
++&lt;p&gt;The output will be a file named elua_&lt;i&gt;[target]&lt;/i&gt;_&lt;i&gt;[cpu]&lt;/i&gt;.elf
++(and also another file with the same name but ending in .bin/.hex if
++&quot;prog&quot; was specified for platforms that need these files for
++programming).&lt;br&gt;
++If you want the equivalent of a &quot;make clean&quot;, invoke &quot;scons&quot; as shown
++above, but add a &quot;-c&quot; at the end of the command line. &quot;scons -c&quot; is
++also recommended after you reconfigure your build image, as scons seems
++to &quot;overlook&quot; the changes to these files on some occasions.&lt;/p&gt;
+ &lt;p&gt;&lt;b&gt;A few examples:&lt;/b&gt;&lt;/p&gt;
+-
+ &lt;pre&gt;&lt;code&gt;$ scons cpu=at91sam7x256 -c &lt;br&gt;&lt;/code&gt;&lt;/pre&gt;
+ &lt;p&gt;Clear previously built intermediate files.&lt;/p&gt;
+-
+ &lt;pre&gt;&lt;code&gt;$ scons cpu=at91sam7x256&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;
+-&lt;p&gt;Build eLua for the AT91SAM7X256 CPU. The board name is detected as sam7-ex256.&lt;/p&gt;
+-
++&lt;p&gt;Build eLua for the AT91SAM7X256 CPU. The board name is
++detected as sam7-ex256.&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;$ scons board=sam7-ex256&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;
+-&lt;p&gt;Build eLua for the SAM7-EX256 board. The CPU is detected as AT91SAM7X256.&lt;/p&gt;
+-
+-
++&lt;p&gt;Build eLua for the SAM7-EX256 board. The CPU is detected as
++AT91SAM7X256.&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;$ scons board=sam7-ex256 cpu=at91sam7x512&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;
+-&lt;p&gt;Build eLua for the SAM7-EX256 board, but &quot;overwrite&quot; the default CPU. This is useful when you'd like to see how the specified board would behave (in terms of resources) with a different CPU 
+-  (in the case of the SAM7-EX256 board it's possible to switch the on-board AT91SAM7X256 CPU for an AT91SAM7X512 which has the same pinout but comes with more Flash/RAM memory).&lt;/p&gt;
+-
+-
++&lt;p&gt;Build eLua for the SAM7-EX256 board, but &quot;overwrite&quot; the
++default CPU. This is useful when you'd like to see how the specified
++board would behave (in terms of resources) with a different CPU (in the
++case of the SAM7-EX256 board it's possible to switch the on-board
++AT91SAM7X256 CPU for an AT91SAM7X512 which has the same pinout but
++comes with more Flash/RAM memory).&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;$ scons cpu=lpc2888 prog &lt;/code&gt;&lt;/pre&gt;
+-&lt;p&gt;Build eLua for the lpc2888 CPU. The board name is detected as LPC-H2888. Also,
+-the bin file required for target programming is generated. The allocator is automatically detected as &quot;multiple&quot;.&lt;/p&gt;
+-
++&lt;p&gt;Build eLua for the lpc2888 CPU. The board name is detected as
++LPC-H2888. Also,
++the bin file required for target programming is generated. The
++allocator is automatically detected as &quot;multiple&quot;.&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;$ scons cpu=lm3s8962 toolchain=codesourcery prog&lt;/code&gt;&lt;/pre&gt;
+-&lt;p&gt;Build the image for the Cortex LM3S8962 CPU, but use the CodeSourcery toolchain instead of the default toolchain (which is a &quot;generic&quot; ARM GCC toolchain, usually the one built by following
+-the tutorials from this site&lt;/p&gt;.
+-
+-&lt;/body&gt;&lt;/html&gt;
+-
++&lt;p&gt;Build the image for the Cortex LM3S8962 CPU, but use the
++CodeSourcery toolchain instead of the default toolchain (which is a
++&quot;generic&quot; ARM GCC toolchain, usually the one built by following
++the tutorials from this site&lt;/p&gt;
++.
++&lt;/body&gt;&lt;/html&gt;
+\ No newline at end of file
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000184.html">[Elua-svn] r228 - in trunk: . src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000186.html">[Elua-svn] r230 - in trunk: doc src src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#185">[ date ]</a>
+              <a href="thread.html#185">[ thread ]</a>
+              <a href="subject.html#185">[ subject ]</a>
+              <a href="author.html#185">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

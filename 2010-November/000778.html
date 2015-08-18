@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r825 - trunk/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r825%20-%20trunk/doc/en&In-Reply-To=%3C20101117205534.0488848103D%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000777.html">
+   <LINK REL="Next"  HREF="000779.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r825 - trunk/doc/en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r825%20-%20trunk/doc/en&In-Reply-To=%3C20101117205534.0488848103D%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r825 - trunk/doc/en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Nov 17 21:55:33 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000777.html">[Elua-svn] r824 - in trunk: doc/en inc src src/lua src/modules	src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000779.html">[Elua-svn] r826 - in branches/remotefs_int/src: .	platform/at91sam7x platform/i386 platform/lpc17xx	platform/lpc24xx platform/lpc288x platform/sim platform/stm32	platform/str7 platform/str9 remotefs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#778">[ date ]</a>
+              <a href="thread.html#778">[ thread ]</a>
+              <a href="subject.html#778">[ subject ]</a>
+              <a href="author.html#778">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-17 21:55:33 +0100 (Wed, 17 Nov 2010)
+New Revision: 825
+
+Modified:
+   trunk/doc/en/inthandlers.txt
+Log:
+fixed INT support example in documentation
+
+Modified: trunk/doc/en/inthandlers.txt
+===================================================================
+--- trunk/doc/en/inthandlers.txt	2010-11-17 20:21:36 UTC (rev 824)
++++ trunk/doc/en/inthandlers.txt	2010-11-17 20:55:33 UTC (rev 825)
+@@ -94,23 +94,30 @@
+ [bblue]*cpu.sei( cpu.INT_TMR_MATCH, vtmrid )*
+ 
+ local tmrid, count = 0, 0
+--- Enter an infinite loop that prints &quot;Outside interrupt&quot; every second
+--- This output will be interleaved with the interrupt handler timeout:
+---   the timer interrupt message will appear every 1.5 seconds
+---   the GPIO message will appear each time pin 0 of port 0 changes state from 1 to 0
+ while true do
+   print &quot;Outside interrupt&quot; 
+-  for i = 1, 1000 do 
+-    tmr.delay( tmrid, 1000 )
+-    count = count + 1 
+-  end
+-  if count == 5 then -- Set new handler after 5 seconds
+-    print &quot;Setting new handler for INT_TMR_MATCH&quot;
++  for i = 1, 1000 do tmr.delay( tmrid, 1000 ) end
++  if uart.getchar( uartid, 0 ) ~= &quot;&quot; then break end 
++  count = count + 1
++  if count == 5 then
++    print &quot;Changing timer interrupt handler&quot;
+     [bblue]*new_prev_tmr = cpu.set_int_handler( cpu.INT_TMR_MATCH, new_tmr_handler )*
+   end
+ end
+--------------------------------
+ 
++-- Cleanup
++-- Stop the timer from generating periodic interrupts
++[bblue]*tmr.set_match_int( vtmrid, 0, tmr.INT_CYCLIC );*
++-- Disable the GPIO interrupt on change (negative edge) interrupt 
++[bblue]*cpu.cli( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )*
++-- Disable the timer interrupt on match interrupt
++[bblue]*cpu.cli( cpu.INT_TMR_MATCH, vtmrid )*
++-- Clear the timer interrupt handler
++[bblue]*cpu.set_int_handler( cpu.INT_TMR_MATCH, nil );*
++-- Clear the GPIO interrupt handler
++[bblue]*cpu.set_int_handler( cpu.INT_GPIO_NEGEDGE, nil );*
++------------------------------
++
+ This is the most common use case for Lua interrupts, but it's not the only one. Another way to use interrupts from eLua uses *polling* instead of interrupt handlers: directly 
+ check the interrupt flags and execute a certain action when one of them becomes set. For this, use the _cpu.get_int_flag( id, resnum, [clear] )_ function from the _mcpu module, 
+ which returns the specified interrupt's status for resource *resnum*. *clear* is an optional boolean parameter, specifying if the interrupt flag should be cleared if it is set. 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000777.html">[Elua-svn] r824 - in trunk: doc/en inc src src/lua src/modules	src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000779.html">[Elua-svn] r826 - in branches/remotefs_int/src: .	platform/at91sam7x platform/i386 platform/lpc17xx	platform/lpc24xx platform/lpc288x platform/sim platform/stm32	platform/str7 platform/str9 remotefs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#778">[ date ]</a>
+              <a href="thread.html#778">[ thread ]</a>
+              <a href="subject.html#778">[ subject ]</a>
+              <a href="author.html#778">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

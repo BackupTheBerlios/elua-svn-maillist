@@ -1,0 +1,419 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r784 - in branches/ints: . inc romfs src src/modules	src/platform/lpc24xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r784%20-%20in%20branches/ints%3A%20.%20inc%20romfs%20src%20src/modules%0A%09src/platform/lpc24xx&In-Reply-To=%3C20100906235659.F3225480DFD%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000736.html">
+   <LINK REL="Next"  HREF="000738.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r784 - in branches/ints: . inc romfs src src/modules	src/platform/lpc24xx</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r784%20-%20in%20branches/ints%3A%20.%20inc%20romfs%20src%20src/modules%0A%09src/platform/lpc24xx&In-Reply-To=%3C20100906235659.F3225480DFD%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r784 - in branches/ints: . inc romfs src src/modules	src/platform/lpc24xx">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Sep  7 01:56:59 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000736.html">[Elua-svn] r783 - in branches/ints: inc src src/modules	src/platform/lpc24xx src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000738.html">[Elua-svn] r785 - in branches/ints: inc romfs src/modules	src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#737">[ date ]</a>
+              <a href="thread.html#737">[ thread ]</a>
+              <a href="subject.html#737">[ subject ]</a>
+              <a href="author.html#737">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-09-07 01:56:59 +0200 (Tue, 07 Sep 2010)
+New Revision: 784
+
+Added:
+   branches/ints/romfs/inttest.lua
+Modified:
+   branches/ints/SConstruct
+   branches/ints/inc/elua_int.h
+   branches/ints/inc/platform.h
+   branches/ints/src/elua_int.c
+   branches/ints/src/modules/cpu.c
+   branches/ints/src/platform/lpc24xx/platform.c
+Log:
+working proof of concept on LPC2468 for GPIO interrupt-on-change
+
+Modified: branches/ints/SConstruct
+===================================================================
+--- branches/ints/SConstruct	2010-09-05 22:56:15 UTC (rev 783)
++++ branches/ints/SConstruct	2010-09-06 23:56:59 UTC (rev 784)
+@@ -110,7 +110,8 @@
+           'life' : [ 'life.lua' ],
+           'logo' : ['logo.lua', 'logo.bin' ],
+           'spaceship' : [ 'spaceship.lua' ],
+-          'tetrives' : [ 'tetrives.lua' ]
++          'tetrives' : [ 'tetrives.lua' ],
++          'inttest' : [ 'inttest.lua' ]
+         }
+ 
+ # List of board/romfs data combinations
+@@ -128,7 +129,7 @@
+               'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect','adcscope','adcpoll', 'dualpwm', 'pwmled' ],
+               'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ],
+-              'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'pwmled' ]
++              'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'pwmled', 'inttest' ]
+ }
+ 
+ # Variants: board = &lt;boardname&gt;
+
+Modified: branches/ints/inc/elua_int.h
+===================================================================
+--- branches/ints/inc/elua_int.h	2010-09-05 22:56:15 UTC (rev 783)
++++ branches/ints/inc/elua_int.h	2010-09-06 23:56:59 UTC (rev 784)
+@@ -10,6 +10,7 @@
+ 
+ #define ELUA_INT_EMPTY_SLOT             0
+ #define ELUA_INT_FIRST_ID               1
++#define ELUA_INT_INVALID_INTERRUPT      0xFF
+ 
+ // This is what gets pushed in the interrupt queue
+ typedef struct 
+
+Modified: branches/ints/inc/platform.h
+===================================================================
+--- branches/ints/inc/platform.h	2010-09-05 22:56:15 UTC (rev 783)
++++ branches/ints/inc/platform.h	2010-09-06 23:56:59 UTC (rev 784)
+@@ -5,6 +5,7 @@
+ 
+ #include &quot;devman.h&quot;
+ #include &quot;type.h&quot;
++#include &quot;elua_int.h&quot;
+ 
+ // Error / status codes
+ enum
+@@ -192,8 +193,8 @@
+ 
+ int platform_cpu_set_global_interrupts( int status );
+ int platform_cpu_get_global_interrupts();
+-int platform_cpu_set_interrupt( unsigned id, int status );
+-int platform_cpu_get_interrupt( unsigned id );
++int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status );
++int platform_cpu_get_interrupt( elua_int_id id, elua_int_resnum resnum );
+ u32 platform_cpu_get_frequency();
+ 
+ // *****************************************************************************
+
+Added: branches/ints/romfs/inttest.lua
+===================================================================
+--- branches/ints/romfs/inttest.lua	                        (rev 0)
++++ branches/ints/romfs/inttest.lua	2010-09-06 23:56:59 UTC (rev 784)
+@@ -0,0 +1,12 @@
++local function handler( id, resnum )
++  print( string.format( &quot;Got interrupt with id %d and resnum %d&quot;, id, resnum ) )
++end
++
++cpu.set_int_handler( handler )
++cpu.sei( cpu.INT_GPIO0_NEGEDGE, pio.P0_0 )
++local tmrid = 0
++while true do
++  print &quot;Outside interrupt&quot; 
++  for i = 1, 1000 do tmr.delay( tmrid, 1000 ) end
++end
++
+
+Modified: branches/ints/src/elua_int.c
+===================================================================
+--- branches/ints/src/elua_int.c	2010-09-05 22:56:15 UTC (rev 783)
++++ branches/ints/src/elua_int.c	2010-09-06 23:56:59 UTC (rev 784)
+@@ -39,16 +39,19 @@
+   // Call Lua handler
+   if( cpu_is_int_handler_active() )
+   {
++    old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );    
++    lua_sethook( L, NULL, 0, 0 );
++    platform_cpu_set_global_interrupts( old_status );    
+     lua_rawgeti( L, LUA_REGISTRYINDEX, LUA_INT_HANDLER_KEY );
+     lua_pushinteger( L, crt.id );
+     lua_pushinteger( L, crt.resnum );
+-    lua_call( L, 2, 0 );
++    lua_call( L, 2, 0 );    
+   }
+ 
+-  // Unset hook if needed
++  // Set hook again if needed
+   old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+-  if( elua_int_queue[ elua_int_read_idx ].id == ELUA_INT_EMPTY_SLOT )
+-    lua_sethook( L, elua_int_hook, 0, 0 );
++  if( elua_int_queue[ elua_int_read_idx ].id != ELUA_INT_EMPTY_SLOT )
++    lua_sethook( lua_getstate(), elua_int_hook, LUA_MASKCOUNT, 2 );
+   platform_cpu_set_global_interrupts( old_status );
+ }
+ 
+
+Modified: branches/ints/src/modules/cpu.c
+===================================================================
+--- branches/ints/src/modules/cpu.c	2010-09-05 22:56:15 UTC (rev 783)
++++ branches/ints/src/modules/cpu.c	2010-09-06 23:56:59 UTC (rev 784)
+@@ -70,20 +70,22 @@
+ }
+ 
+ // Lua: cli() - to disable all interrupts
+-// or cli( id1, id2, ..., idn ) - to disable specific interrupts
++// or cli( id1, resnum1, [resnum2], ..., [resnumn] ) - to disable a specific id/resnum(s)
+ static int cpu_cli( lua_State *L )
+ {
+   unsigned i;
+   elua_int_id id;
++  elua_int_resnum resnum;
+ 
+   if( lua_gettop( L ) &gt; 0 )
+   {
+-    for( i = 1; i &lt;= lua_gettop( L ); i ++ )
++    id = ( elua_int_id )luaL_checkinteger( L, 1 );
++    for( i = 2; i &lt;= lua_gettop( L ); i ++ )
+     {
+-      id = ( elua_int_id )luaL_checkinteger( L, i );
+-      platform_cpu_set_interrupt( id, PLATFORM_CPU_DISABLE );
+-      elua_int_disable( id );
++      resnum = ( elua_int_resnum )luaL_checkinteger( L, i );
++      platform_cpu_set_interrupt( id, resnum, PLATFORM_CPU_DISABLE );
+     }
++    elua_int_disable( id );
+   }
+   else
+     platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+@@ -91,20 +93,22 @@
+ }
+ 
+ // Lua: sei() - to enable all interrupts
+-// or set( id1, id2, ..., idn ) - to enable specific interrupts
++// or sei( id1, resnum1, [resnum2], ..., [resnumn] ) - to enable a specific id/resnum(s)
+ static int cpu_sei( lua_State *L )
+ {
+   unsigned i;
+   elua_int_id id;
++  elua_int_resnum resnum;  
+ 
+   if( lua_gettop( L ) &gt; 0 )
+   {
+-    for( i = 1; i &lt;= lua_gettop( L ); i ++ )
++    id = ( elua_int_id )luaL_checkinteger( L, 1 );
++    for( i = 2; i &lt;= lua_gettop( L ); i ++ )
+     {
+-      id = ( elua_int_id )luaL_checkinteger( L, i );
+-      platform_cpu_set_interrupt( id, PLATFORM_CPU_ENABLE );
+-      elua_int_enable( id );
++      resnum = ( elua_int_resnum )luaL_checkinteger( L, i );
++      platform_cpu_set_interrupt( id, resnum, PLATFORM_CPU_ENABLE );
+     }
++    elua_int_enable( id );
+   }
+   else
+     platform_cpu_set_global_interrupts( PLATFORM_CPU_ENABLE );
+
+Modified: branches/ints/src/platform/lpc24xx/platform.c
+===================================================================
+--- branches/ints/src/platform/lpc24xx/platform.c	2010-09-05 22:56:15 UTC (rev 783)
++++ branches/ints/src/platform/lpc24xx/platform.c	2010-09-06 23:56:59 UTC (rev 784)
+@@ -13,6 +13,7 @@
+ #include &quot;utils.h&quot;
+ #include &quot;common.h&quot;
+ #include &quot;platform_conf.h&quot;
++#include &quot;elua_int.h&quot;
+ 
+ // Platform includes
+ #include &quot;LPC23xx.h&quot;                        /* LPC23xx/24xx definitions */
+@@ -20,9 +21,51 @@
+ #include &quot;irq.h&quot;
+ #include &quot;uart.h&quot;
+ 
+-extern void enable_ints();
+-extern void disable_ints();
++// *****************************************************************************
++// These interrupt handlers are the link to elua_int.c
+ 
++static void __attribute__((optimize(0))) __attribute__((interrupt (&quot;IRQ&quot;))) eint3_int_handler()
++{
++  elua_int_id id = ELUA_INT_INVALID_INTERRUPT;
++  elua_int_resnum resnum = 0;
++  
++  EXTINT |= 1 &lt;&lt; 3; // clear interrupt
++  // Look for interrupt source
++  // In can only be GPIO0/GPIO2, as the EXT interrupts are not (yet) used
++  if( IO_INT_STAT &amp; 1 )
++  {
++    if( IO0_INT_STAT_R )
++    {
++      id = INT_GPIO0_POSEDGE;
++      resnum = intlog2( IO0_INT_STAT_R );
++    }
++    else
++    {
++      id = INT_GPIO0_NEGEDGE;
++      resnum = intlog2( IO0_INT_STAT_F );
++    }
++    IO0_INT_CLR = 1 &lt;&lt; resnum;
++  }
++  else
++  {
++    if( IO2_INT_STAT_R )
++    {
++      id = INT_GPIO2_POSEDGE;
++      resnum = intlog2( IO2_INT_STAT_R );
++    }
++    else
++    {
++      id = INT_GPIO2_NEGEDGE;
++      resnum = intlog2( IO2_INT_STAT_F );
++    }  
++    IO2_INT_CLR = 1 &lt;&lt; resnum;
++  }
++  
++  // Queue interrupt
++  elua_int_add( id, resnum );
++  VICVectAddr = 0; // ACK interrupt    
++}
++
+ // ****************************************************************************
+ // Platform initialization
+ 
+@@ -55,6 +98,12 @@
+   SCS |= 1;
+ }
+ 
++// Setup all required interrupt handlers
++static void platform_setup_interrupts()
++{
++  install_irq( EINT3_INT, eint3_int_handler, HIGHEST_PRIORITY - 1 );   
++}
++
+ int platform_init()
+ {
+   // Complete CPU initialization
+@@ -63,6 +112,9 @@
+   // Setup peripherals
+   platform_setup_timers();
+   platform_setup_pwm();
++  
++  // Setup interrupt handlers
++  platform_setup_interrupts();
+ 
+   // Initialize console UART
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+@@ -418,6 +470,11 @@
+ extern void disable_ints();
+ extern u32 get_int_status();
+ 
++static PREG const IO0INTR = ( PREG )&amp;IO0_INT_EN_R; 
++static PREG const IO0INTF = ( PREG )&amp;IO0_INT_EN_F;
++static PREG const IO2INTR = ( PREG )&amp;IO2_INT_EN_R;
++static PREG const IO2INTF = ( PREG )&amp;IO2_INT_EN_F;
++
+ int platform_cpu_set_global_interrupts( int status )
+ {
+   u32 crt_status = get_int_status();
+@@ -435,19 +492,65 @@
+ }
+ 
+ // Helper: return the status of a specific interrupt (enabled/disabled)
+-static int platform_cpuh_get_int_status( unsigned id )
++static int platform_cpuh_get_int_status( elua_int_id id, elua_int_resnum resnum )
+ {
++  switch( id )
++  {
++    case INT_GPIO0_POSEDGE:
++      return ( *IO0INTR &amp; ( 1 &lt;&lt; resnum ) ) ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
++      
++    case INT_GPIO0_NEGEDGE:
++      return ( *IO0INTF &amp; ( 1 &lt;&lt; resnum ) ) ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
++      
++    case INT_GPIO2_POSEDGE:
++      return ( *IO2INTR &amp; ( 1 &lt;&lt; resnum ) ) ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
++      
++    case INT_GPIO2_NEGEDGE:
++      return ( *IO2INTF &amp; ( 1 &lt;&lt; resnum ) ) ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
++  }
+   return PLATFORM_CPU_DISABLED;
+ }
+ 
+-int platform_cpu_set_interrupt( unsigned id, int status )
++int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status )
+ {
+-  return PLATFORM_CPU_ENABLED;
++  int crt_status = platform_cpuh_get_int_status( id, resnum );
++
++  switch( id )
++  {
++    case INT_GPIO0_POSEDGE:
++      if( status == PLATFORM_CPU_ENABLE )
++        *IO0INTR |= 1 &lt;&lt; resnum;
++      else
++        *IO0INTR &amp;= ~( 1 &lt;&lt; resnum );        
++      break;
++      
++    case INT_GPIO0_NEGEDGE:
++      if( status == PLATFORM_CPU_ENABLE )
++        *IO0INTF |= 1 &lt;&lt; resnum;
++      else
++        *IO0INTF &amp;= ~( 1 &lt;&lt; resnum );        
++      break;
++      
++    case INT_GPIO2_POSEDGE:
++      if( status == PLATFORM_CPU_ENABLE )
++        *IO2INTR |= 1 &lt;&lt; resnum;
++      else
++        *IO2INTR &amp;= ~( 1 &lt;&lt; resnum );       
++      break;
++      
++    case INT_GPIO2_NEGEDGE:
++      if( status == PLATFORM_CPU_ENABLE )
++        *IO2INTF |= 1 &lt;&lt; resnum;
++      else
++        *IO2INTF &amp;= ~( 1 &lt;&lt; resnum );         
++      break;
++  }
++  return crt_status;
+ }
+ 
+-int platform_cpu_get_interrupt( unsigned id )
++int platform_cpu_get_interrupt( elua_int_id id, elua_int_resnum resnum )
+ {
+-  return PLATFORM_CPU_ENABLED;
++  return platform_cpuh_get_int_status( id, resnum );
+ }
+ 
+ // ****************************************************************************
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000736.html">[Elua-svn] r783 - in branches/ints: inc src src/modules	src/platform/lpc24xx src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000738.html">[Elua-svn] r785 - in branches/ints: inc romfs src/modules	src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#737">[ date ]</a>
+              <a href="thread.html#737">[ thread ]</a>
+              <a href="subject.html#737">[ subject ]</a>
+              <a href="author.html#737">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

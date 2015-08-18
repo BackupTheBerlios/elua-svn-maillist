@@ -1,0 +1,356 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r459 - in tags/pre0.6: . romfs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r459%20-%20in%20tags/pre0.6%3A%20.%20romfs&In-Reply-To=%3C200909292212.n8TMC37B025068%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000414.html">
+   <LINK REL="Next"  HREF="000416.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r459 - in tags/pre0.6: . romfs</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r459%20-%20in%20tags/pre0.6%3A%20.%20romfs&In-Reply-To=%3C200909292212.n8TMC37B025068%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r459 - in tags/pre0.6: . romfs">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Wed Sep 30 00:12:03 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000414.html">[Elua-svn] r458 - in tags/pre0.6/doc: . en pt
+</A></li>
+        <LI>Next message: <A HREF="000416.html">[Elua-svn] r460 - tags/pre0.6/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#415">[ date ]</a>
+              <a href="thread.html#415">[ thread ]</a>
+              <a href="subject.html#415">[ subject ]</a>
+              <a href="author.html#415">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2009-09-30 00:12:02 +0200 (Wed, 30 Sep 2009)
+New Revision: 459
+
+Added:
+   tags/pre0.6/romfs/LM3S8962.lua
+Removed:
+   tags/pre0.6/romfs/LM3S.lua
+Modified:
+   tags/pre0.6/SConstruct
+   tags/pre0.6/romfs/pong.lua
+Log:
+Pong refactored to the require(pd.cpu()) scheme.
+In the future, it will be require(pd.platform()) but we have some problems with the platform dependent LM3S module now. This will be fixed soon.
+I/O assignment/definition module LM3S8962.lua added. This makes available thru a simple require(pd.cpu()), the pins and some functions for the kit underneath.
+Another LM3Sxxxx.lua must be created, for the other LM3S platform with the OLED display, so it can run our games/examples too.
+SConstruct updated for the new LM3S8962.lua name
+Old LM3S.lua removed from distro. It is now a native platform dependent module (that will probably disappear in the future too).
+
+
+
+Modified: tags/pre0.6/SConstruct
+===================================================================
+--- tags/pre0.6/SConstruct	2009-09-29 21:57:52 UTC (rev 458)
++++ tags/pre0.6/SConstruct	2009-09-29 22:12:02 UTC (rev 459)
+@@ -86,7 +86,7 @@
+ romfs = { 'bisect' : [ 'bisect.lua' ],
+           'hangman' : [ 'hangman.lua' ],
+           'lhttpd' : [ 'index.pht', 'lhttpd.lua', 'test.lua' ],
+-          'pong' : [ 'pong.lua', 'LM3S.lua' ],
++          'pong' : [ 'pong.lua', 'LM3S8962.lua' ],
+           'led' : [ 'led.lua' ],
+           'piano' : [ 'piano.lua' ],
+           'pwmled' : [ 'pwmled.lua' ],
+
+Deleted: tags/pre0.6/romfs/LM3S.lua
+===================================================================
+--- tags/pre0.6/romfs/LM3S.lua	2009-09-29 21:57:52 UTC (rev 458)
++++ tags/pre0.6/romfs/LM3S.lua	2009-09-29 22:12:02 UTC (rev 459)
+@@ -1,27 +0,0 @@
+--- This module introduces some constants and functions, specific to the
+--- Luminary Micro's LM3S platforms.
+-
+--- ## It currently handles only LM3S8962 definitions
+--- ## Definitions for other kits needed, as well....
+--- .... if pd/board() == .........
+-
+-local pio = pio
+-  
+-module(...)
+-
+-BTN_UP      = pio.PE_0
+-BTN_DOWN    = pio.PE_1
+-BTN_LEFT    = pio.PE_2
+-BTN_RIGHT   = pio.PE_3
+-BTN_SELECT  = pio.PF_1
+-
+-btnpressed = function( button )
+-  return pio.pin.getval( button ) == 0
+-end
+-
+-LED_1 = pio.PF_0
+-
+-pio.pin.setdir( pio.INPUT, pio.PE_0, pio.PE_1, pio.PE_2, pio.PE_3, pio.PF_1 )
+-pio.pin.setpull( pio.PULLUP, pio.PE_0, pio.PE_1, pio.PE_2, pio.PE_3, pio.PF_1 )
+-pio.pin.setdir( pio.OUTPUT, pio.PF_0 )
+-
+
+Added: tags/pre0.6/romfs/LM3S8962.lua
+===================================================================
+--- tags/pre0.6/romfs/LM3S8962.lua	2009-09-29 21:57:52 UTC (rev 458)
++++ tags/pre0.6/romfs/LM3S8962.lua	2009-09-29 22:12:02 UTC (rev 459)
+@@ -0,0 +1,20 @@
++local pio = pio
++  
++module(...)
++
++BTN_UP      = pio.PE_0
++BTN_DOWN    = pio.PE_1
++BTN_LEFT    = pio.PE_2
++BTN_RIGHT   = pio.PE_3
++BTN_SELECT  = pio.PF_1
++
++btn_pressed = function( button )
++  return pio.pin.getval( button ) == 0
++end
++
++LED_1 = pio.PF_0
++
++pio.pin.setdir( pio.INPUT, pio.PE_0, pio.PE_1, pio.PE_2, pio.PE_3, pio.PF_1 )
++pio.pin.setpull( pio.PULLUP, pio.PE_0, pio.PE_1, pio.PE_2, pio.PE_3, pio.PF_1 )
++pio.pin.setdir( pio.OUTPUT, pio.PF_0 )
++
+
+Modified: tags/pre0.6/romfs/pong.lua
+===================================================================
+--- tags/pre0.6/romfs/pong.lua	2009-09-29 21:57:52 UTC (rev 458)
++++ tags/pre0.6/romfs/pong.lua	2009-09-29 22:12:02 UTC (rev 459)
+@@ -64,10 +64,10 @@
+ local pressed = {}             -- pressed[ button ] is true if the corresponding button was pressed, or nil if not
+ 
+ 
+-require( pd.platform() )
++require( pd.cpu() )
+ 
++local kit = _G[ pd.cpu() ]
+ 
+-
+ local itemFunction = {
+ [&quot;L&quot;] = function ()
+     draw_paddle( paddle.y, 0, 0 )
+@@ -101,14 +101,14 @@
+   end,
+ 
+ [&quot;Z&quot;] = function ()
+-    disp.print( tostring( score ), 111, 89, 0 )
++    lm3s.disp.print( tostring( score ), 111, 89, 0 )
+     score = 0
+   end,
+ 
+ [&quot;T&quot;] = function ()
+-    disp.print( ball.char, ball.x, ball.y, 0 )
++    lm3s.disp.print( ball.char, ball.x, ball.y, 0 )
+     ball.y = math.random( 82 )
+-    disp.print( ball.char, ball.x, ball.y, 15 )
++    lm3s.disp.print( ball.char, ball.x, ball.y, 15 )
+   end,
+ [&quot;F&quot;] = function()
+     if delay_time &gt;= 1000 then
+@@ -119,14 +119,14 @@
+ 
+ -- Updates Y paddle position and draw it using the draw_paddle( ... ) function
+ function update_paddle_pos()
+-  if LM3S.btnpressed( LM3S.BTN_UP ) then
++  if kit.btn_pressed( kit.BTN_UP ) then
+     if ( paddle.y &gt; 0 ) then
+       paddle.y = paddle.y - 1
+       draw_paddle( paddle.y, 11, -1 )
+     else
+       tmr.delay( 1, 1700 )
+     end
+-  elseif LM3S.btnpressed( LM3S.BTN_DOWN ) then
++  elseif kit.btn_pressed( kit.BTN_DOWN ) then
+     if ( paddle.y + ( paddle.size*6 ) + 1 &lt; 90 ) then
+       paddle.y = paddle.y + 1
+       draw_paddle( paddle.y, 11, 1 )
+@@ -143,21 +143,21 @@
+ function draw_paddle( y, color, movement )
+   if ( movement == 0 ) then
+     for i = 0, paddle.size, 1 do
+-      disp.print( &quot;|&quot;, 0, y + ( i * 6 ),  color )
++      lm3s.disp.print( &quot;|&quot;, 0, y + ( i * 6 ),  color )
+     end
+   elseif ( movement &gt; 0 ) then      -- Paddle moving Down
+     if y &lt; 8 then
+-      disp.print( &quot;|&quot;, 0, 0,  0 )
++      lm3s.disp.print( &quot;|&quot;, 0, 0,  0 )
+     else
+-      disp.print( &quot;|&quot;, 0, y - 8 , 0 )
++      lm3s.disp.print( &quot;|&quot;, 0, y - 8 , 0 )
+     end
+     for i = 0, paddle.size, 1 do
+-      disp.print( &quot;|&quot;, 0, y + ( i * 6 ),  color )
++      lm3s.disp.print( &quot;|&quot;, 0, y + ( i * 6 ),  color )
+     end
+   elseif ( movement &lt; 0 ) then    -- Paddle moving Up
+-    disp.print( &quot;|&quot;, 0, y + ( ( paddle.size + 1 ) * 6 ) + 2 , 0 )
++    lm3s.disp.print( &quot;|&quot;, 0, y + ( ( paddle.size + 1 ) * 6 ) + 2 , 0 )
+     for i = 0, paddle.size, 1 do
+-      disp.print( &quot;|&quot;, 0, y + ( i * 6 ),  color )
++      lm3s.disp.print( &quot;|&quot;, 0, y + ( i * 6 ),  color )
+     end
+   end
+ end
+@@ -173,20 +173,20 @@
+   if( ( ball.y &gt;= 90 - ball.dy ) or ( ball.y &lt;= 1 - ball.dy ) ) then
+     ball.dy = -ball.dy;
+   end
+-  disp.print( ball.char, ball.x, ball.y, 0 )
++  lm3s.disp.print( ball.char, ball.x, ball.y, 0 )
+   ball.x, ball.y = ( ball.x + ball.dx ), ( ball.y + ball.dy );
+-  disp.print( ball.char, ball.x, ball.y, 15 )
++  lm3s.disp.print( ball.char, ball.x, ball.y, 15 )
+ end
+ 
+ 
+ -- Draw the top wall and erase the last one. Used to move it
+ function draw_wall( x )
+   for i = 0, canvas.y, 7 do                    -- Erase the wall
+-    disp.print( &quot;|&quot;, canvas.x + 1, i, 0 )
++    lm3s.disp.print( &quot;|&quot;, canvas.x + 1, i, 0 )
+   end
+   canvas.x = x
+   for i = 0, canvas.y, 7 do                    -- Draw a new wall
+-    disp.print( &quot;|&quot;, canvas.x + 1, i, 6 )
++    lm3s.disp.print( &quot;|&quot;, canvas.x + 1, i, 6 )
+   end
+ end
+ 
+@@ -212,13 +212,13 @@
+       if ( ( item.y + 8 &lt; paddle.y ) or ( item.y &gt; paddle.y + ( paddle.size * 6 ) + 8 ) ) == false then
+         use_item()
+       end
+-      disp.print( item.char, item.x, item.y, 0 )
++      lm3s.disp.print( item.char, item.x, item.y, 0 )
+       item.char = false
+       return
+     end
+-    disp.print( item.char, item.x, item.y, 0 )
++    lm3s.disp.print( item.char, item.x, item.y, 0 )
+     item.x = item.x - 2
+-    disp.print( item.char, item.x, item.y, 10 )
++    lm3s.disp.print( item.char, item.x, item.y, 10 )
+   end
+ end
+ 
+@@ -230,7 +230,7 @@
+ -- Checks if a button was clicked ( pressed and released )
+ -- Returns true or false
+ function button_clicked( button )
+-  if LM3S.btnpressed( button ) then
++  if kit.btn_pressed( button ) then
+     pressed[ button ] = true
+   else
+     if pressed[ button ] then
+@@ -244,7 +244,7 @@
+ 
+ ------------ MAIN ------------
+ upload_items()
+-disp.init( 1000000 )
++lm3s.disp.init( 1000000 )
+ 
+ tmr.start( tmr_id )
+ --menu()
+@@ -282,7 +282,7 @@
+   delay_time = 10000
+   paddle_hits = 0
+ 
+-  disp.clear()
++  lm3s.disp.clear()
+ 
+   draw_wall( canvas.x )
+   draw_paddle( paddle.y, 11, 0 )
+@@ -303,11 +303,11 @@
+       end
+     end
+ 
+-    if button_clicked( LM3S.BTN_RIGHT ) and delay_time &gt; 0 then   -- If the right button is clicked, increase the level
++    if button_clicked( kit.BTN_RIGHT ) and delay_time &gt; 0 then   -- If the right button is clicked, increase the level
+       delay_time = delay_time - delay_incr
+       dscore = dscore + 1
+     end
+-    if button_clicked( LM3S.BTN_LEFT ) and dscore &gt; 0 then    -- If the left button is clicked, decrease the level
++    if button_clicked( kit.BTN_LEFT ) and dscore &gt; 0 then    -- If the left button is clicked, decrease the level
+       delay_time = delay_time + delay_incr
+       dscore = dscore - 1
+     end
+@@ -316,8 +316,8 @@
+       paddle_hits = 0
+       draw_wall( canvas.x - 5 )
+     end
+-    disp.print( tostring( dscore ), 118, 0, 6 )
+-    disp.print( tostring( score ), 111, 89, 6 )
++    lm3s.disp.print( tostring( dscore ), 118, 0, 6 )
++    lm3s.disp.print( tostring( score ), 111, 89, 6 )
+     collectgarbage( &quot;collect&quot; )
+   end
+ -------------------------------------------
+@@ -326,18 +326,18 @@
+   if score &gt;= ( highscore or 0 ) then
+     highscore = score
+   end
+-  disp.clear()
+-  disp.print( &quot;Game Over :(&quot;, 30, 20, 11 )
+-  disp.print( &quot;Your score was &quot;..tostring( score ), 15, 40, 11 )
+-  disp.print( &quot;Highscore: &quot;..tostring( highscore ), 15, 50, 11 )
+-  disp.print( &quot;SELECT to restart&quot;, 6, 70, 11 )
++  lm3s.disp.clear()
++  lm3s.disp.print( &quot;Game Over :(&quot;, 30, 20, 11 )
++  lm3s.disp.print( &quot;Your score was &quot;..tostring( score ), 15, 40, 11 )
++  lm3s.disp.print( &quot;Highscore: &quot;..tostring( highscore ), 15, 50, 11 )
++  lm3s.disp.print( &quot;SELECT to restart&quot;, 6, 70, 11 )
+   enough = true
+   for i=1, 100000 do
+-    if LM3S.btnpressed( LM3S.BTN_SELECT ) then
++    if kit.btn_pressed( kit.BTN_SELECT ) then
+       enough = false
+       break
+     end
+   end
+ until ( enough )
+ 
+-disp.off()
++lm3s.disp.off()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000414.html">[Elua-svn] r458 - in tags/pre0.6/doc: . en pt
+</A></li>
+	<LI>Next message: <A HREF="000416.html">[Elua-svn] r460 - tags/pre0.6/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#415">[ date ]</a>
+              <a href="thread.html#415">[ thread ]</a>
+              <a href="subject.html#415">[ subject ]</a>
+              <a href="author.html#415">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

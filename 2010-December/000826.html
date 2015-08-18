@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r873 - in trunk: . src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r873%20-%20in%20trunk%3A%20.%20src/platform/lm3s&In-Reply-To=%3C20101227121023.92440480587%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000825.html">
+   <LINK REL="Next"  HREF="000827.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r873 - in trunk: . src/platform/lm3s</H1>
+    <B>dadosutter at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r873%20-%20in%20trunk%3A%20.%20src/platform/lm3s&In-Reply-To=%3C20101227121023.92440480587%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r873 - in trunk: . src/platform/lm3s">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Mon Dec 27 13:10:23 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000825.html">[Elua-svn] r872 - trunk/src/lua
+</A></li>
+        <LI>Next message: <A HREF="000827.html">[Elua-svn] r874 - trunk/src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#826">[ date ]</a>
+              <a href="thread.html#826">[ thread ]</a>
+              <a href="subject.html#826">[ subject ]</a>
+              <a href="author.html#826">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2010-12-27 13:10:23 +0100 (Mon, 27 Dec 2010)
+New Revision: 873
+
+Modified:
+   trunk/SConstruct
+   trunk/src/platform/lm3s/platform.c
+Log:
+- Added support for the Netduino platform on the build options (board=netduino)
+- Minor notes added to LM3Sxxxx platform initialization functions
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-12-27 12:03:16 UTC (rev 872)
++++ trunk/SConstruct	2010-12-27 12:10:23 UTC (rev 873)
+@@ -101,6 +101,7 @@
+                'ELUA-PUC' : ['LPC2468' ],
+                'MBED' : ['LPC1768'],
+                'MIZAR32' : [ 'AT32UC3A0128' ],
++               'NETDUINO' : [ 'AT91SAM7X512' ],
+             }
+ 
+ cpu_list = sum([board_list[i] for i in board_list],[])
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2010-12-27 12:03:16 UTC (rev 872)
++++ trunk/src/platform/lm3s/platform.c	2010-12-27 12:10:23 UTC (rev 873)
+@@ -876,10 +876,12 @@
+ #endif // ifdef BUILD_ADC
+ 
+ // ****************************************************************************
+-// OLED Display specific functions
++// Support for specific onboard devices on 
++// Texas Instruments / Luminary Micro kits.
+ //
+-// Initially immplementing the funcionalities offered by the RIT128x96x4
+-// OLED display driver.
++// FIXME: This was previously tied to the &quot;disp&quot; module but should be renamed in the future
++//        to include support for initialization of other onboard devices of the EK-LM3Sxxxx kits.
++//        Note that not all kits have all devices available.
+ 
+ void lm3s_disp_init( unsigned long freq )
+ {
+@@ -923,6 +925,7 @@
+   RIT128x96x4DisplayOff();
+ }
+ 
++
+ // ****************************************************************************
+ // Ethernet functions
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000825.html">[Elua-svn] r872 - trunk/src/lua
+</A></li>
+	<LI>Next message: <A HREF="000827.html">[Elua-svn] r874 - trunk/src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#826">[ date ]</a>
+              <a href="thread.html#826">[ thread ]</a>
+              <a href="subject.html#826">[ subject ]</a>
+              <a href="author.html#826">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

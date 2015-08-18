@@ -1,0 +1,1327 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r716 - in trunk/src: fatfs platform/avr32	platform/lpc17xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r716%20-%20in%20trunk/src%3A%20fatfs%20platform/avr32%0A%09platform/lpc17xx&In-Reply-To=%3C201002200026.o1K0QrJe003402%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000668.html">
+   <LINK REL="Next"  HREF="000670.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r716 - in trunk/src: fatfs platform/avr32	platform/lpc17xx</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r716%20-%20in%20trunk/src%3A%20fatfs%20platform/avr32%0A%09platform/lpc17xx&In-Reply-To=%3C201002200026.o1K0QrJe003402%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r716 - in trunk/src: fatfs platform/avr32	platform/lpc17xx">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Feb 20 01:26:53 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000668.html">[Elua-svn] r715 - branches
+</A></li>
+        <LI>Next message: <A HREF="000670.html">[Elua-svn] r717 - trunk/src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#669">[ date ]</a>
+              <a href="thread.html#669">[ thread ]</a>
+              <a href="subject.html#669">[ subject ]</a>
+              <a href="author.html#669">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-02-20 01:26:51 +0100 (Sat, 20 Feb 2010)
+New Revision: 716
+
+Added:
+   trunk/src/fatfs/ffconf.h
+Modified:
+   trunk/src/fatfs/ff.c
+   trunk/src/fatfs/ff.h
+   trunk/src/platform/avr32/platform_conf.h
+   trunk/src/platform/lpc17xx/mbed_pio.c
+Log:
+Update fatfs (attempting to resolve a bug that hangs directory listing)
+Other misc changes for RPC building, comment for mbed_pio.
+
+Modified: trunk/src/fatfs/ff.c
+===================================================================
+--- trunk/src/fatfs/ff.c	2010-02-19 05:58:26 UTC (rev 715)
++++ trunk/src/fatfs/ff.c	2010-02-20 00:26:51 UTC (rev 716)
+@@ -1,9 +1,9 @@
+ /*----------------------------------------------------------------------------/
+-/  FatFs - FAT file system module  R0.07c                    (C)ChaN, 2009
++/  FatFs - FAT file system module  R0.07e                    (C)ChaN, 2009
+ /-----------------------------------------------------------------------------/
+-/ FatFs module is an open source software to implement FAT file system to
+-/ small embedded systems. This is a free software and is opened for education,
+-/ research and commercial use under license policy of following trems.
++/ FatFs module is a generic FAT file system module for small embedded systems.
++/ This is a free software that opened for education, research and commercial
++/ developments under license policy of following trems.
+ /
+ /  Copyright (C) 2009, ChaN, all right reserved.
+ /
+@@ -63,11 +63,17 @@
+ /                   Renamed string functions to avoid name collision.
+ / Apr 14,'09 R0.07a Separated out OS dependent code on reentrant cfg.
+ /                   Added multiple sector size support.
+-/ Jun 21,'09 R0.07c Fixed f_unlink() may return FR_OK on error.
++/ Jun 21,'09 R0.07c Fixed f_unlink() can return FR_OK on error.
+ /                   Fixed wrong cache control in f_lseek().
+ /                   Added relative path feature.
+ /                   Added f_chdir() and f_chdrive().
+ /                   Added proper case conversion to extended char.
++/ Nov 03,'09 R0.07e Separated out configuration options from ff.h to ffconf.h.
++/                   Fixed f_unlink() fails to remove a sub-dir on _FS_RPATH.
++/                   Fixed name matching error on the 13 char boundary.
++/                   Added a configuration option, _LFN_UNICODE.
++/                   Changed f_readdir() to return the SFN with always upper
++/                   case on non-LFN cfg.
+ /---------------------------------------------------------------------------*/
+ 
+ #include &quot;ff.h&quot;			/* FatFs configurations and declarations */
+@@ -79,6 +85,10 @@
+ 
+ ---------------------------------------------------------------------------*/
+ 
++#if _FATFS != 0x007E
++#error Wrong include file (ff.h).
++#endif
++
+ #if _FS_REENTRANT
+ #if _USE_LFN == 1
+ #error Static LFN work area must not be used in re-entrant configuration.
+@@ -99,7 +109,8 @@
+ #endif
+ 
+ /* Name status flags */
+-#define NS_LOSS		0x01	/* Lossy conversion */
++#define NS			11		/* Offset of name status byte */
++#define NS_LOSS		0x01	/* Out of 8.3 format */
+ #define NS_LFN		0x02	/* Force to create LFN entry */
+ #define NS_LAST		0x04	/* Last segment */
+ #define NS_BODY		0x08	/* Lower case flag (body) */
+@@ -115,6 +126,9 @@
+ 
+ ---------------------------------------------------------------------------*/
+ 
++#if _DRIVES &lt; 1 || _DRIVES &gt; 9
++#error Number of drives must be 1-9.
++#endif
+ static
+ FATFS *FatFs[_DRIVES];	/* Pointer to the file system objects (logical drives) */
+ 
+@@ -129,7 +143,7 @@
+ 
+ #if _USE_LFN == 1	/* LFN with static LFN working buffer */
+ static
+-WORD LfnBuf[_MAX_LFN + 1];
++WCHAR LfnBuf[_MAX_LFN + 1];
+ #define	NAMEBUF(sp,lp)	BYTE sp[12]; WCHAR *lp = LfnBuf
+ #define INITBUF(dj,sp,lp)	dj.fn = sp; dj.lfn = lp
+ 
+@@ -148,7 +162,7 @@
+ 
+ /*--------------------------------------------------------------------------
+ 
+-   Private Functions
++   Module Private Functions
+ 
+ ---------------------------------------------------------------------------*/
+ 
+@@ -305,7 +319,7 @@
+ /* FAT access - Read value of a FAT entry                                */
+ /*-----------------------------------------------------------------------*/
+ 
+-static
++
+ DWORD get_fat (	/* 0xFFFFFFFF:Disk error, 1:Interal error, Else:Cluster status */
+ 	FATFS *fs,	/* File system object */
+ 	DWORD clst	/* Cluster# to get the link information */
+@@ -347,7 +361,7 @@
+ /* FAT access - Change value of a FAT entry                              */
+ /*-----------------------------------------------------------------------*/
+ #if !_FS_READONLY
+-static
++
+ FRESULT put_fat (
+ 	FATFS *fs,	/* File system object */
+ 	DWORD clst,	/* Cluster# to be changed in range of 2 to fs-&gt;max_clust - 1 */
+@@ -509,7 +523,7 @@
+ /* Get sector# from cluster#                                             */
+ /*-----------------------------------------------------------------------*/
+ 
+-static
++
+ DWORD clust2sect (	/* !=0: Sector number, 0: Failed - invalid cluster# */
+ 	FATFS *fs,		/* File system object */
+ 	DWORD clst		/* Cluster# to be converted */
+@@ -653,18 +667,26 @@
+ )
+ {
+ 	int i, s;
+-	WCHAR wc;
++	WCHAR wc, uc;
+ 
+ 
+ 	i = ((dir[LDIR_Ord] &amp; 0xBF) - 1) * 13;	/* Get offset in the LFN buffer */
+-	s = 0;
++	s = 0; wc = 1;
+ 	do {
+-		wc = ff_wtoupper(LD_WORD(dir+LfnOfs[s]));	/* Get an LFN character */
+-		if (i &gt;= _MAX_LFN || wc != ff_wtoupper(lfnbuf[i++]))	/* Compare it with the reference character */
+-			return FALSE;
+-	} while (++s &lt; 13 &amp;&amp; wc);		/* Repeat until all chars in the entry or a NUL char is processed */
++		uc = LD_WORD(dir+LfnOfs[s]);	/* Pick an LFN character from the entry */
++		if (wc) {	/* Last char has not been processed */
++			wc = ff_wtoupper(uc);		/* Convert it to upper case */
++			if (i &gt;= _MAX_LFN || wc != ff_wtoupper(lfnbuf[i++]))	/* Compare it */
++				return FALSE;			/* Not matched */
++		} else {
++			if (uc != 0xFFFF) return FALSE;	/* Check filler */
++		}
++	} while (++s &lt; 13);				/* Repeat until all chars in the entry are checked */
+ 
+-	return TRUE;					/* The LFN entry matched */
++	if ((dir[LDIR_Ord] &amp; 0x40) &amp;&amp; wc &amp;&amp; lfnbuf[i])	/* Last segment matched but different length */
++		return FALSE;
++
++	return TRUE;					/* The part of LFN matched */
+ }
+ 
+ 
+@@ -676,18 +698,21 @@
+ )
+ {
+ 	int i, s;
+-	WCHAR wc;
++	WCHAR wc, uc;
+ 
+ 
+ 	i = ((dir[LDIR_Ord] &amp; 0x3F) - 1) * 13;	/* Offset in the LFN buffer */
+ 
+-	s = 0;
++	s = 0; wc = 1;
+ 	do {
+-		if (i &gt;= _MAX_LFN) return FALSE;	/* Buffer overflow? */
+-		wc = LD_WORD(dir+LfnOfs[s]);		/* Get an LFN char */
+-		if (!wc) break;						/* End of LFN? */
+-		lfnbuf[i++] = wc;					/* Store it */
+-	} while (++s &lt; 13);						/* Repeat until last char is copied */
++		uc = LD_WORD(dir+LfnOfs[s]);			/* Pick an LFN character from the entry */
++		if (wc) {	/* Last char has not been processed */
++			if (i &gt;= _MAX_LFN) return FALSE;	/* Buffer overflow? */
++			lfnbuf[i++] = wc = uc;				/* Store it */
++		} else {
++			if (uc != 0xFFFF) return FALSE;		/* Check filler */
++		}
++	} while (++s &lt; 13);						/* Read all character in the entry */
+ 
+ 	if (dir[LDIR_Ord] &amp; 0x40) {				/* Put terminator if it is the last LFN part */
+ 		if (i &gt;= _MAX_LFN) return FALSE;	/* Buffer overflow? */
+@@ -809,14 +834,14 @@
+ 	FRESULT res;
+ 	BYTE c, *dir;
+ #if _USE_LFN
+-	BYTE a, lfen, ord, sum;
++	BYTE a, ord, sum;
+ #endif
+ 
+ 	res = dir_seek(dj, 0);			/* Rewind directory object */
+ 	if (res != FR_OK) return res;
+ 
+ #if _USE_LFN
+-	ord = sum = 0xFF; lfen = *(dj-&gt;fn+11) &amp; NS_LOSS;
++	ord = sum = 0xFF;
+ #endif
+ 	do {
+ 		res = move_window(dj-&gt;fs, dj-&gt;sect);
+@@ -833,28 +858,23 @@
+ 				if (dj-&gt;lfn) {
+ 					if (c &amp; 0x40) {		/* Is it start of LFN sequence? */
+ 						sum = dir[LDIR_Chksum];
+-						c &amp;= 0xBF; ord = c;		/* LFN start order */
++						c &amp;= 0xBF; ord = c;	/* LFN start order */
+ 						dj-&gt;lfn_idx = dj-&gt;index;
+ 					}
+-					/* Check LFN validity. Compare LFN if it is out of 8.3 format */
+-					ord = (c == ord &amp;&amp; sum == dir[LDIR_Chksum] &amp;&amp; (!lfen || cmp_lfn(dj-&gt;lfn, dir))) ? ord - 1 : 0xFF;
++					/* Check validity of the LFN entry and compare it with given name */
++					ord = (c == ord &amp;&amp; sum == dir[LDIR_Chksum] &amp;&amp; cmp_lfn(dj-&gt;lfn, dir)) ? ord - 1 : 0xFF;
+ 				}
+ 			} else {					/* An SFN entry is found */
+-				if (ord || sum != sum_sfn(dir))	/* Did not LFN match? */
+-					dj-&gt;lfn_idx = 0xFFFF;
+-				if (lfen) {				/* Match LFN if it is out of 8.3 format */
+-					if (ord == 0) break;
+-				} else {				/* Match SFN if LFN is in 8.3 format */
+-					if (!mem_cmp(dir, dj-&gt;fn, 11)) break;
+-				}
+-				ord = 0xFF;
++				if (!ord &amp;&amp; sum == sum_sfn(dir)) break;	/* LFN matched? */
++				ord = 0xFF; dj-&gt;lfn_idx = 0xFFFF;	/* Reset LFN sequence */
++				if (!(dj-&gt;fn[NS] &amp; NS_LOSS) &amp;&amp; !mem_cmp(dir, dj-&gt;fn, 11)) break;	/* SFN matched? */
+ 			}
+ 		}
+ #else		/* Non LFN configuration */
+ 		if (!(dir[DIR_Attr] &amp; AM_VOL) &amp;&amp; !mem_cmp(dir, dj-&gt;fn, 11)) /* Is it a valid entry? */
+ 			break;
+ #endif
+-		res = dir_next(dj, FALSE);				/* Next entry */
++		res = dir_next(dj, FALSE);		/* Next entry */
+ 	} while (res == FR_OK);
+ 
+ 	return res;
+@@ -899,8 +919,8 @@
+ 				/* Check LFN validity and capture it */
+ 				ord = (c == ord &amp;&amp; sum == dir[LDIR_Chksum] &amp;&amp; pick_lfn(dj-&gt;lfn, dir)) ? ord - 1 : 0xFF;
+ 			} else {					/* An SFN entry is found */
+-				if (ord || sum != sum_sfn(dir))	/* Is there a valid LFN entry? */
+-					dj-&gt;lfn_idx = 0xFFFF;		/* No LFN. */
++				if (ord || sum != sum_sfn(dir))	/* Is there a valid LFN? */
++					dj-&gt;lfn_idx = 0xFFFF;		/* It has no LFN. */
+ 				break;
+ 			}
+ 		}
+@@ -940,10 +960,10 @@
+ 	fn = dj-&gt;fn; lfn = dj-&gt;lfn;
+ 	mem_cpy(sn, fn, 12);
+ 
+-	if (_FS_RPATH &amp;&amp; (sn[11] &amp; NS_DOT)) return FR_INVALID_NAME;	/* Cannot create dot entry */
++	if (_FS_RPATH &amp;&amp; (sn[NS] &amp; NS_DOT)) return FR_INVALID_NAME;	/* Cannot create dot entry */
+ 
+-	if (sn[11] &amp; NS_LOSS) {			/* When LFN is out of 8.3 format, generate a numbered name */
+-		fn[11] = 0; dj-&gt;lfn = NULL;			/* Find only SFN */
++	if (sn[NS] &amp; NS_LOSS) {			/* When LFN is out of 8.3 format, generate a numbered name */
++		fn[NS] = 0; dj-&gt;lfn = NULL;			/* Find only SFN */
+ 		for (n = 1; n &lt; 100; n++) {
+ 			gen_numname(fn, sn, lfn, n);	/* Generate a numbered name */
+ 			res = dir_find(dj);				/* Check if the name collides with existing SFN */
+@@ -951,10 +971,10 @@
+ 		}
+ 		if (n == 100) return FR_DENIED;		/* Abort if too many collisions */
+ 		if (res != FR_NO_FILE) return res;	/* Abort if the result is other than 'not collided' */
+-		fn[11] = sn[11]; dj-&gt;lfn = lfn;
++		fn[NS] = sn[NS]; dj-&gt;lfn = lfn;
+ 	}
+ 
+-	if (sn[11] &amp; NS_LFN) {			/* When LFN is to be created, reserve reserve an SFN + LFN entries. */
++	if (sn[NS] &amp; NS_LFN) {			/* When LFN is to be created, reserve reserve an SFN + LFN entries. */
+ 		for (ne = 0; lfn[ne]; ne++) ;
+ 		ne = (ne + 25) / 13;
+ 	} else {						/* Otherwise reserve only an SFN entry. */
+@@ -1012,7 +1032,7 @@
+ 			dir = dj-&gt;dir;
+ 			mem_set(dir, 0, 32);		/* Clean the entry */
+ 			mem_cpy(dir, dj-&gt;fn, 11);	/* Put SFN */
+-			dir[DIR_NTres] = *(dj-&gt;fn+11) &amp; 0x18;	/* Put NT flag */
++			dir[DIR_NTres] = *(dj-&gt;fn+NS) &amp; (NS_BODY | NS_EXT);	/* Put NT flag */
+ 			dj-&gt;fs-&gt;wflag = 1;
+ 		}
+ 	}
+@@ -1073,7 +1093,6 @@
+ /* Pick a segment and create the object name in directory form           */
+ /*-----------------------------------------------------------------------*/
+ 
+-
+ static
+ FRESULT create_name (
+ 	DIR *dj,			/* Pointer to the directory object */
+@@ -1083,6 +1102,7 @@
+ #ifdef _EXCVT
+ 	static const BYTE cvt[] = _EXCVT;
+ #endif
++
+ #if _USE_LFN	/* LFN configuration */
+ 	BYTE b, cf;
+ 	WCHAR w, *lfn;
+@@ -1095,29 +1115,29 @@
+ 	lfn = dj-&gt;lfn;
+ 	for (;;) {
+ 		w = p[si++];					/* Get a character */
+-		if (w &lt; L' ' || w == L'/' || w == L'\\') break;	/* Break on end of segment */
++		if (w &lt; ' ' || w == '/' || w == '\\') break;	/* Break on end of segment */
+ 		if (di &gt;= _MAX_LFN)				/* Reject too long name */
+ 			return FR_INVALID_NAME;
+ #if !_LFN_UNICODE
+ 		w &amp;= 0xFF;
+ 		if (IsDBCS1(w)) {				/* If it is a DBC 1st byte */
+-			BYTE c = p[si++];			/* Get 2nd byte */
+-			if (!IsDBCS2(c))			/* Reject invalid code for DBC */
++			b = p[si++];				/* Get 2nd byte */
++			if (!IsDBCS2(b))			/* Reject invalid code for DBC */
+ 				return FR_INVALID_NAME;
+-			w = (w &lt;&lt; 8) + c;
++			w = (w &lt;&lt; 8) + b;
+ 		}
+ 		w = ff_convert(w, 1);			/* Convert OEM to Unicode */
+ 		if (!w) return FR_INVALID_NAME;	/* Reject invalid code */
+ #endif
+-		if (w &lt; 0x80 &amp;&amp; chk_chr(&quot;\&quot;*:&lt;&gt;\?|\x7F&quot;, w)) /* Reject unallowable chars for LFN */
++		if (w &lt; 0x80 &amp;&amp; chk_chr(&quot;\&quot;*:&lt;&gt;\?|\x7F&quot;, w)) /* Reject illegal chars for LFN */
+ 			return FR_INVALID_NAME;
+ 		lfn[di++] = w;					/* Store the Unicode char */
+ 	}
+ 	*path = &amp;p[si];						/* Rerurn pointer to the next segment */
+-	cf = (w &lt; L' ') ? NS_LAST : 0;		/* Set last segment flag if end of path */
++	cf = (w &lt; ' ') ? NS_LAST : 0;		/* Set last segment flag if end of path */
+ #if _FS_RPATH
+-	if ((di == 1 &amp;&amp; lfn[di - 1] == L'.') || /* Is this a dot entry? */
+-		(di == 2 &amp;&amp; lfn[di - 1] == L'.' &amp;&amp; lfn[di - 2] == L'.')) {
++	if ((di == 1 &amp;&amp; lfn[di - 1] == '.') || /* Is this a dot entry? */
++		(di == 2 &amp;&amp; lfn[di - 1] == '.' &amp;&amp; lfn[di - 2] == '.')) {
+ 		lfn[di] = 0;
+ 		for (i = 0; i &lt; 11; i++)
+ 			dj-&gt;fn[i] = (i &lt; di) ? '.' : ' ';
+@@ -1127,7 +1147,7 @@
+ #endif
+ 	while (di) {						/* Strip trailing spaces and dots */
+ 		w = lfn[di - 1];
+-		if (w != L' ' &amp;&amp; w != L'.') break;
++		if (w != ' ' &amp;&amp; w != '.') break;
+ 		di--;
+ 	}
+ 	if (!di) return FR_INVALID_NAME;	/* Reject null string */
+@@ -1136,15 +1156,15 @@
+ 
+ 	/* Create SFN in directory form */
+ 	mem_set(dj-&gt;fn, ' ', 11);
+-	for (si = 0; lfn[si] == L' ' || lfn[si] == L'.'; si++) ;	/* Strip leading spaces and dots */
++	for (si = 0; lfn[si] == ' ' || lfn[si] == '.'; si++) ;	/* Strip leading spaces and dots */
+ 	if (si) cf |= NS_LOSS | NS_LFN;
+ 	while (di &amp;&amp; lfn[di - 1] != '.') di--;	/* Find extension (di&lt;=si: no extension) */
+ 
+ 	b = i = 0; ni = 8;
+ 	for (;;) {
+ 		w = lfn[si++];					/* Get an LFN char */
+-		if (!w) break;					/* Break when enf of the LFN */
+-		if (w == L' ' || (w == L'.' &amp;&amp; si != di)) {	/* Remove spaces and dots */
++		if (!w) break;					/* Break on enf of the LFN */
++		if (w == ' ' || (w == '.' &amp;&amp; si != di)) {	/* Remove spaces and dots */
+ 			cf |= NS_LOSS | NS_LFN; continue;
+ 		}
+ 
+@@ -1152,7 +1172,7 @@
+ 			if (ni == 11) {				/* Long extension */
+ 				cf |= NS_LOSS | NS_LFN; break;
+ 			}
+-			if (si != di) cf |= NS_LOSS | NS_LFN;	/* File name is longer than 8 bytes */
++			if (si != di) cf |= NS_LOSS | NS_LFN;	/* Out of 8.3 format */
+ 			if (si &gt; di) break;			/* No extension */
+ 			si = di; i = 8; ni = 11;	/* Enter extension section */
+ 			b &lt;&lt;= 2; continue;
+@@ -1161,11 +1181,11 @@
+ 		if (w &gt;= 0x80) {				/* Non ASCII char */
+ #ifdef _EXCVT
+ 			w = ff_convert(w, 0);		/* Unicode -&gt; OEM code */
+-			if (w) w = cvt[w - 0x80];	/* Convert extend char (SBCS) */
++			if (w) w = cvt[w - 0x80];	/* Convert extended char to upper (SBCS) */
+ #else
+-			w = ff_convert(ff_wtoupper(w), 0);	/* Unicode (Caps) -&gt; OEM code */
++			w = ff_convert(ff_wtoupper(w), 0);	/* Upper converted Unicode -&gt; OEM code */
+ #endif
+-			cf |= NS_LFN;				/* Force create an LFN */
++			cf |= NS_LFN;				/* Force create LFN entry */
+ 		}
+ 
+ 		if (_DF1S &amp;&amp; w &gt;= 0x100) {		/* Double byte char */
+@@ -1174,13 +1194,13 @@
+ 			}
+ 			dj-&gt;fn[i++] = (BYTE)(w &gt;&gt; 8);
+ 		} else {						/* Single byte char */
+-			if (!w || chk_chr(&quot;+,;[=]&quot;, w)) {	/* Replace unallowable chars for SFN */
++			if (!w || chk_chr(&quot;+,;[=]&quot;, w)) {		/* Replace illegal chars for SFN */
+ 				w = '_'; cf |= NS_LOSS | NS_LFN;	/* Lossy conversion */
+ 			} else {
+-				if (IsUpper(w)) {		/* Large capital */
++				if (IsUpper(w)) {		/* ASCII large capital */
+ 					b |= 2;
+ 				} else {
+-					if (IsLower(w)) {	/* Small capital */
++					if (IsLower(w)) {	/* ASCII small capital */
+ 						b |= 1; w -= 0x20;
+ 					}
+ 				}
+@@ -1189,7 +1209,7 @@
+ 		dj-&gt;fn[i++] = (BYTE)w;
+ 	}
+ 
+-	if (dj-&gt;fn[0] == 0xE5) dj-&gt;fn[0] = 0x05;	/* If the first char collides with 0xE5, replace it with 0x05 */
++	if (dj-&gt;fn[0] == 0xE5) dj-&gt;fn[0] = 0x05;	/* If the first char collides with deleted mark, replace it with 0x05 */
+ 
+ 	if (ni == 8) b &lt;&lt;= 2;
+ 	if ((b &amp; 0x0C) == 0x0C || (b &amp; 0x03) == 0x03)	/* Create LFN entry when there are composite capitals */
+@@ -1199,9 +1219,11 @@
+ 		if ((b &amp; 0x0C) == 0x04) cf |= NS_BODY;	/* NT flag (Filename has only small capital) */
+ 	}
+ 
+-	dj-&gt;fn[11] = cf;	/* SFN is created */
++	dj-&gt;fn[NS] = cf;	/* SFN is created */
+ 
++	return FR_OK;
+ 
++
+ #else	/* Non-LFN configuration */
+ 	BYTE b, c, d, *sfn;
+ 	int ni, si, i;
+@@ -1219,15 +1241,15 @@
+ 			if (c != '.' || si &gt;= 3) break;
+ 			sfn[i++] = c;
+ 		}
+-		if (c != '/' &amp;&amp; c != '\\' &amp;&amp; c &gt;= ' ') return FR_INVALID_NAME;
++		if (c != '/' &amp;&amp; c != '\\' &amp;&amp; c &gt; ' ') return FR_INVALID_NAME;
+ 		*path = &amp;p[si];									/* Rerurn pointer to the next segment */
+-		sfn[11] = (c &lt; ' ') ? NS_LAST|NS_DOT : NS_DOT;	/* Set last segment flag if end of path */
++		sfn[NS] = (c &lt;= ' ') ? NS_LAST | NS_DOT : NS_DOT;	/* Set last segment flag if end of path */
+ 		return FR_OK;
+ 	}
+ #endif
+ 	for (;;) {
+ 		c = p[si++];
+-		if (c &lt; ' ' || c == '/' || c == '\\') break;	/* Break on end of segment */
++		if (c &lt;= ' ' || c == '/' || c == '\\') break;	/* Break on end of segment */
+ 		if (c == '.' || i &gt;= ni) {
+ 			if (ni != 8 || c != '.') return FR_INVALID_NAME;
+ 			i = 8; ni = 11;
+@@ -1243,19 +1265,19 @@
+ #endif
+ #endif
+ 		}
+-		if (IsDBCS1(c)) {				/* If it is DBC 1st byte */
++		if (IsDBCS1(c)) {				/* DBC 1st byte? */
+ 			d = p[si++];				/* Get 2nd byte */
+ 			if (!IsDBCS2(d) || i &gt;= ni - 1)	/* Reject invalid DBC */
+ 				return FR_INVALID_NAME;
+ 			sfn[i++] = c;
+ 			sfn[i++] = d;
+-		} else {
+-			if (chk_chr(&quot; \&quot;*+,[=]|\x7F&quot;, c))	/* Reject unallowable chrs for SFN */
++		} else {						/* Single byte code */
++			if (chk_chr(&quot; \&quot;*+,[=]|\x7F&quot;, c))	/* Reject illegal chrs for SFN */
+ 				return FR_INVALID_NAME;
+-			if (IsUpper(c)) {
++			if (IsUpper(c)) {			/* ASCII large capital? */
+ 				b |= 2;
+ 			} else {
+-				if (IsLower(c)) {
++				if (IsLower(c)) {		/* ASCII small capital? */
+ 					b |= 1; c -= 0x20;
+ 				}
+ 			}
+@@ -1263,7 +1285,7 @@
+ 		}
+ 	}
+ 	*path = &amp;p[si];						/* Rerurn pointer to the next segment */
+-	c = (c &lt; ' ') ? NS_LAST : 0;		/* Set last segment flag if end of path */
++	c = (c &lt;= ' ') ? NS_LAST : 0;		/* Set last segment flag if end of path */
+ 
+ 	if (!i) return FR_INVALID_NAME;		/* Reject null string */
+ 	if (sfn[0] == 0xE5) sfn[0] = 0x05;	/* When first char collides with 0xE5, replace it with 0x05 */
+@@ -1272,10 +1294,10 @@
+ 	if ((b &amp; 0x03) == 0x01) c |= NS_EXT;	/* NT flag (Extension has only small capital) */
+ 	if ((b &amp; 0x0C) == 0x04) c |= NS_BODY;	/* NT flag (Filename has only small capital) */
+ 
+-	sfn[11] = c;		/* Store NT flag, File name is created */
+-#endif
++	sfn[NS] = c;		/* Store NT flag, File name is created */
+ 
+ 	return FR_OK;
++#endif
+ }
+ 
+ 
+@@ -1288,15 +1310,12 @@
+ static
+ void get_fileinfo (		/* No return code */
+ 	DIR *dj,			/* Pointer to the directory object */
+-	FILINFO *fno	 	/* Pointer to store the file information */
++	FILINFO *fno	 	/* Pointer to the file information to be filled */
+ )
+ {
+ 	int i;
+ 	BYTE c, nt, *dir;
+ 	char *p;
+-#if _USE_LFN
+-	XCHAR *tp;
+-#endif
+ 
+ 
+ 	p = fno-&gt;fname;
+@@ -1307,7 +1326,7 @@
+ 			c = dir[i];
+ 			if (c == ' ') break;
+ 			if (c == 0x05) c = 0xE5;
+-			if ((nt &amp; 0x08) &amp;&amp; IsUpper(c)) c += 0x20;
++			if (_USE_LFN &amp;&amp; (nt &amp; NS_BODY) &amp;&amp; IsUpper(c)) c += 0x20;
+ 			*p++ = c;
+ 		}
+ 		if (dir[8] != ' ') {		/* Copy name extension */
+@@ -1315,7 +1334,7 @@
+ 			for (i = 8; i &lt; 11; i++) {
+ 				c = dir[i];
+ 				if (c == ' ') break;
+-				if ((nt &amp; 0x10) &amp;&amp; IsUpper(c)) c += 0x20;
++				if (_USE_LFN &amp;&amp; (nt &amp; NS_EXT) &amp;&amp; IsUpper(c)) c += 0x20;
+ 				*p++ = c;
+ 			}
+ 		}
+@@ -1327,8 +1346,8 @@
+ 	*p = 0;
+ 
+ #if _USE_LFN
+-	tp = fno-&gt;lfname;
+-	if (tp) {
++	if (fno-&gt;lfname) {
++		XCHAR *tp = fno-&gt;lfname;
+ 		WCHAR w, *lfn;
+ 
+ 		i = 0;
+@@ -1340,8 +1359,8 @@
+ 				if (!w) { i = 0; break; }		/* Could not convert, no LFN */
+ 				if (_DF1S &amp;&amp; w &gt;= 0x100)		/* Put 1st byte if it is a DBC */
+ 					tp[i++] = (XCHAR)(w &gt;&gt; 8);
++#endif
+ 				if (i &gt;= fno-&gt;lfsize - 1) { i = 0; break; }	/* Buffer overrun, no LFN */
+-#endif
+ 				tp[i++] = (XCHAR)w;
+ 			}
+ 		}
+@@ -1368,6 +1387,7 @@
+ 	BYTE *dir, last;
+ 
+ 
++	while (!_USE_LFN &amp;&amp; *path == ' ') path++;	/* Skip leading spaces */
+ #if _FS_RPATH
+ 	if (*path == '/' || *path == '\\') { /* There is a heading separator */
+ 		path++;	dj-&gt;sclust = 0;		/* Strip it and start from the root dir */
+@@ -1389,7 +1409,7 @@
+ 			res = create_name(dj, &amp;path);	/* Get a segment */
+ 			if (res != FR_OK) break;
+ 			res = dir_find(dj);				/* Find it */
+-			last = *(dj-&gt;fn+11) &amp; NS_LAST;
++			last = *(dj-&gt;fn+NS) &amp; NS_LAST;
+ 			if (res != FR_OK) {				/* Could not find the object */
+ 				if (res == FR_NO_FILE &amp;&amp; !last)
+ 					res = FR_NO_PATH;
+@@ -1420,17 +1440,14 @@
+ 	DWORD sect	/* Sector# (lba) to check if it is an FAT boot record or not */
+ )
+ {
+-	static const char fatstr[] = &quot;FAT&quot;;
+-
+-
+ 	if (disk_read(fs-&gt;drive, fs-&gt;win, sect, 1) != RES_OK)	/* Load boot record */
+ 		return 3;
+ 	if (LD_WORD(&amp;fs-&gt;win[BS_55AA]) != 0xAA55)		/* Check record signature (always placed at offset 510 even if the sector size is &gt;512) */
+ 		return 2;
+ 
+-	if (!mem_cmp(&amp;fs-&gt;win[BS_FilSysType], fatstr, 3))	/* Check FAT signature */
++	if ((LD_DWORD(&amp;fs-&gt;win[BS_FilSysType]) &amp; 0xFFFFFF) == 0x544146)	/* Check &quot;FAT&quot; string */
+ 		return 0;
+-	if (!mem_cmp(&amp;fs-&gt;win[BS_FilSysType32], fatstr, 3) &amp;&amp; !(fs-&gt;win[BPB_ExtFlags] &amp; 0x80))
++	if ((LD_DWORD(&amp;fs-&gt;win[BS_FilSysType32]) &amp; 0xFFFFFF) == 0x544146)
+ 		return 0;
+ 
+ 	return 1;
+@@ -1443,14 +1460,13 @@
+ /* Make sure that the file system is valid                               */
+ /*-----------------------------------------------------------------------*/
+ 
+-static
+-FRESULT auto_mount (	/* FR_OK(0): successful, !=0: any error occured */
++
++FRESULT chk_mounted (	/* FR_OK(0): successful, !=0: any error occured */
+ 	const XCHAR **path,	/* Pointer to pointer to the path name (drive number) */
+ 	FATFS **rfs,		/* Pointer to pointer to the found file system object */
+ 	BYTE chk_wp			/* !=0: Check media write protection for write access */
+ )
+ {
+-	FRESULT res;
+ 	BYTE fmt, *tbl;
+ 	UINT vol;
+ 	DSTATUS stat;
+@@ -1458,7 +1474,6 @@
+ 	const XCHAR *p = *path;
+ 	FATFS *fs;
+ 
+-
+ 	/* Get logical drive number from the path name */
+ 	vol = p[0] - '0';				/* Is there a drive number? */
+ 	if (vol &lt;= 9 &amp;&amp; p[1] == ':') {	/* Found a drive number, get and strip it */
+@@ -1475,7 +1490,7 @@
+ 	if (vol &gt;= _DRIVES) 			/* Is the drive number valid? */
+ 		return FR_INVALID_DRIVE;
+ 	*rfs = fs = FatFs[vol];			/* Returen pointer to the corresponding file system object */
+-	if (!fs) return FR_NOT_ENABLED;	/* Is the file system object registered? */
++	if (!fs) return FR_NOT_ENABLED;	/* Is the file system object available? */
+ 
+ 	ENTER_FF(fs);					/* Lock file system */
+ 
+@@ -1528,9 +1543,9 @@
+ 	fs-&gt;fatbase = bsect + LD_WORD(fs-&gt;win+BPB_RsvdSecCnt); /* FAT start sector (lba) */
+ 	fs-&gt;csize = fs-&gt;win[BPB_SecPerClus];				/* Number of sectors per cluster */
+ 	fs-&gt;n_rootdir = LD_WORD(fs-&gt;win+BPB_RootEntCnt);	/* Nmuber of root directory entries */
+-	tsect = LD_WORD(fs-&gt;win+BPB_TotSec16);				/* Number of sectors on the file system */
++	tsect = LD_WORD(fs-&gt;win+BPB_TotSec16);				/* Number of sectors on the volume */
+ 	if (!tsect) tsect = LD_DWORD(fs-&gt;win+BPB_TotSec32);
+-	fs-&gt;max_clust = mclst = (tsect						/* Last cluster# + 1 */
++	fs-&gt;max_clust = mclst = (tsect						/* Last cluster# + 1 (Number of clusters + 2) */
+ 		- LD_WORD(fs-&gt;win+BPB_RsvdSecCnt) - fsize - fs-&gt;n_rootdir / (SS(fs)/32)
+ 		) / fs-&gt;csize + 2;
+ 
+@@ -1567,9 +1582,8 @@
+ 	fs-&gt;cdir = 0;			/* Current directory (root dir) */
+ #endif
+ 	fs-&gt;id = ++Fsid;		/* File system mount ID */
+-	res = FR_OK;
+ 
+-	return res;
++	return FR_OK;
+ }
+ 
+ 
+@@ -1663,10 +1677,10 @@
+ 	fp-&gt;fs = NULL;		/* Clear file object */
+ #if !_FS_READONLY
+ 	mode &amp;= (FA_READ | FA_WRITE | FA_CREATE_ALWAYS | FA_OPEN_ALWAYS | FA_CREATE_NEW);
+-	res = auto_mount(&amp;path, &amp;dj.fs, (BYTE)(mode &amp; (FA_WRITE | FA_CREATE_ALWAYS | FA_OPEN_ALWAYS | FA_CREATE_NEW)));
++	res = chk_mounted(&amp;path, &amp;dj.fs, (BYTE)(mode &amp; (FA_WRITE | FA_CREATE_ALWAYS | FA_OPEN_ALWAYS | FA_CREATE_NEW)));
+ #else
+ 	mode &amp;= FA_READ;
+-	res = auto_mount(&amp;path, &amp;dj.fs, 0);
++	res = chk_mounted(&amp;path, &amp;dj.fs, 0);
+ #endif
+ 	if (res != FR_OK) LEAVE_FF(dj.fs, res);
+ 	INITBUF(dj, sfn, lfn);
+@@ -1759,7 +1773,7 @@
+ 	BYTE *rbuff = buff;
+ 
+ 
+-	*br = 0;
++	*br = 0;	/* Initialize bytes read */
+ 
+ 	res = validate(fp-&gt;fs, fp-&gt;id);					/* Check validity of the object */
+ 	if (res != FR_OK) LEAVE_FF(fp-&gt;fs, res);
+@@ -1854,7 +1868,7 @@
+ 	const BYTE *wbuff = buff;
+ 
+ 
+-	*bw = 0;
++	*bw = 0;	/* Initialize bytes written */
+ 
+ 	res = validate(fp-&gt;fs, fp-&gt;id);					/* Check validity of the object */
+ 	if (res != FR_OK) LEAVE_FF(fp-&gt;fs, res);
+@@ -2055,7 +2069,7 @@
+ 	BYTE *dir;
+ 
+ 
+-	res = auto_mount(&amp;path, &amp;dj.fs, 0);
++	res = chk_mounted(&amp;path, &amp;dj.fs, 0);
+ 	if (res == FR_OK) {
+ 		INITBUF(dj, sfn, lfn);
+ 		res = follow_path(&amp;dj, path);		/* Follow the file path */
+@@ -2194,7 +2208,7 @@
+ 	BYTE *dir;
+ 
+ 
+-	res = auto_mount(&amp;path, &amp;dj-&gt;fs, 0);
++	res = chk_mounted(&amp;path, &amp;dj-&gt;fs, 0);
+ 	if (res == FR_OK) {
+ 		INITBUF((*dj), sfn, lfn);
+ 		res = follow_path(dj, path);			/* Follow the path to the directory */
+@@ -2276,7 +2290,7 @@
+ 	NAMEBUF(sfn, lfn);
+ 
+ 
+-	res = auto_mount(&amp;path, &amp;dj.fs, 0);
++	res = chk_mounted(&amp;path, &amp;dj.fs, 0);
+ 	if (res == FR_OK) {
+ 		INITBUF(dj, sfn, lfn);
+ 		res = follow_path(&amp;dj, path);	/* Follow the file path */
+@@ -2311,7 +2325,7 @@
+ 
+ 
+ 	/* Get drive number */
+-	res = auto_mount(&amp;path, fatfs, 0);
++	res = chk_mounted(&amp;path, fatfs, 0);
+ 	if (res != FR_OK) LEAVE_FF(*fatfs, res);
+ 
+ 	/* If number of free cluster is valid, return it without cluster scan. */
+@@ -2347,7 +2361,7 @@
+ 				if (LD_WORD(p) == 0) n++;
+ 				p += 2; i -= 2;
+ 			} else {
+-				if (LD_DWORD(p) == 0) n++;
++				if ((LD_DWORD(p) &amp; 0x0FFFFFFF) == 0) n++;
+ 				p += 4; i -= 4;
+ 			}
+ 		} while (--clst);
+@@ -2421,12 +2435,12 @@
+ 	DWORD dclst;
+ 
+ 
+-	res = auto_mount(&amp;path, &amp;dj.fs, 1);
++	res = chk_mounted(&amp;path, &amp;dj.fs, 1);
+ 	if (res != FR_OK) LEAVE_FF(dj.fs, res);
+ 
+ 	INITBUF(dj, sfn, lfn);
+ 	res = follow_path(&amp;dj, path);			/* Follow the file path */
+-	if (_FS_RPATH &amp;&amp; res == FR_OK &amp;&amp; (dj.fn[11] &amp; NS_DOT))
++	if (_FS_RPATH &amp;&amp; res == FR_OK &amp;&amp; (dj.fn[NS] &amp; NS_DOT))
+ 		res = FR_INVALID_NAME;
+ 	if (res != FR_OK) LEAVE_FF(dj.fs, res); /* Follow failed */
+ 
+@@ -2439,9 +2453,9 @@
+ 
+ 	if (dir[DIR_Attr] &amp; AM_DIR) {			/* It is a sub-directory */
+ 		if (dclst &lt; 2) LEAVE_FF(dj.fs, FR_INT_ERR);
+-		mem_cpy(&amp;sdj, &amp;dj, sizeof(DIR));		/* Check if the sub-dir is empty or not */
++		mem_cpy(&amp;sdj, &amp;dj, sizeof(DIR));	/* Check if the sub-dir is empty or not */
+ 		sdj.sclust = dclst;
+-		res = dir_seek(&amp;sdj, 0);
++		res = dir_seek(&amp;sdj, 2);
+ 		if (res != FR_OK) LEAVE_FF(dj.fs, res);
+ 		res = dir_read(&amp;sdj);
+ 		if (res == FR_OK) res = FR_DENIED;	/* Not empty sub-dir */
+@@ -2476,13 +2490,13 @@
+ 	DWORD dsect, dclst, pclst, tim;
+ 
+ 
+-	res = auto_mount(&amp;path, &amp;dj.fs, 1);
++	res = chk_mounted(&amp;path, &amp;dj.fs, 1);
+ 	if (res != FR_OK) LEAVE_FF(dj.fs, res);
+ 
+ 	INITBUF(dj, sfn, lfn);
+ 	res = follow_path(&amp;dj, path);			/* Follow the file path */
+ 	if (res == FR_OK) res = FR_EXIST;		/* Any file or directory is already existing */
+-	if (_FS_RPATH &amp;&amp; res == FR_NO_FILE &amp;&amp; (dj.fn[11] &amp; NS_DOT))
++	if (_FS_RPATH &amp;&amp; res == FR_NO_FILE &amp;&amp; (dj.fn[NS] &amp; NS_DOT))
+ 		res = FR_INVALID_NAME;
+ 	if (res != FR_NO_FILE)					/* Any error occured */
+ 		LEAVE_FF(dj.fs, res);
+@@ -2556,11 +2570,11 @@
+ 	BYTE *dir;
+ 
+ 
+-	res = auto_mount(&amp;path, &amp;dj.fs, 1);
++	res = chk_mounted(&amp;path, &amp;dj.fs, 1);
+ 	if (res == FR_OK) {
+ 		INITBUF(dj, sfn, lfn);
+ 		res = follow_path(&amp;dj, path);		/* Follow the file path */
+-		if (_FS_RPATH &amp;&amp; res == FR_OK &amp;&amp; (dj.fn[11] &amp; NS_DOT))
++		if (_FS_RPATH &amp;&amp; res == FR_OK &amp;&amp; (dj.fn[NS] &amp; NS_DOT))
+ 			res = FR_INVALID_NAME;
+ 		if (res == FR_OK) {
+ 			dir = dj.dir;
+@@ -2596,11 +2610,11 @@
+ 	BYTE *dir;
+ 
+ 
+-	res = auto_mount(&amp;path, &amp;dj.fs, 1);
++	res = chk_mounted(&amp;path, &amp;dj.fs, 1);
+ 	if (res == FR_OK) {
+ 		INITBUF(dj, sfn, lfn);
+ 		res = follow_path(&amp;dj, path);	/* Follow the file path */
+-		if (_FS_RPATH &amp;&amp; res == FR_OK &amp;&amp; (dj.fn[11] &amp; NS_DOT))
++		if (_FS_RPATH &amp;&amp; res == FR_OK &amp;&amp; (dj.fn[NS] &amp; NS_DOT))
+ 			res = FR_INVALID_NAME;
+ 		if (res == FR_OK) {
+ 			dir = dj.dir;
+@@ -2638,11 +2652,11 @@
+ 
+ 
+ 	INITBUF(dj_old, sfn, lfn);
+-	res = auto_mount(&amp;path_old, &amp;dj_old.fs, 1);
++	res = chk_mounted(&amp;path_old, &amp;dj_old.fs, 1);
+ 	if (res == FR_OK) {
+ 		dj_new.fs = dj_old.fs;
+ 		res = follow_path(&amp;dj_old, path_old);	/* Check old object */
+-		if (_FS_RPATH &amp;&amp; res == FR_OK &amp;&amp; (dj_old.fn[11] &amp; NS_DOT))
++		if (_FS_RPATH &amp;&amp; res == FR_OK &amp;&amp; (dj_old.fn[NS] &amp; NS_DOT))
+ 			res = FR_INVALID_NAME;
+ 	}
+ 	if (res != FR_OK) LEAVE_FF(dj_old.fs, res);	/* The old object is not found */
+
+Modified: trunk/src/fatfs/ff.h
+===================================================================
+--- trunk/src/fatfs/ff.h	2010-02-19 05:58:26 UTC (rev 715)
++++ trunk/src/fatfs/ff.h	2010-02-20 00:26:51 UTC (rev 716)
+@@ -1,9 +1,9 @@
+ /*---------------------------------------------------------------------------/
+-/  FatFs - FAT file system module include file  R0.07c       (C)ChaN, 2009
++/  FatFs - FAT file system module include file  R0.07e       (C)ChaN, 2009
+ /----------------------------------------------------------------------------/
+-/ FatFs module is an open source software to implement FAT file system to
+-/ small embedded systems. This is a free software and is opened for education,
+-/ research and commercial developments under license policy of following trems.
++/ FatFs module is a generic FAT file system module for small embedded systems.
++/ This is a free software that opened for education, research and commercial
++/ developments under license policy of following trems.
+ /
+ /  Copyright (C) 2009, ChaN, all right reserved.
+ /
+@@ -13,146 +13,17 @@
+ / * Redistributions of source code must retain the above copyright notice.
+ /----------------------------------------------------------------------------*/
+ 
+-#include &quot;integer.h&quot;
+-
+-/*---------------------------------------------------------------------------/
+-/ FatFs Configuration Options
+-/
+-/ CAUTION! Do not forget to make clean the project after any changes to
+-/ the configuration options.
+-/
+-/----------------------------------------------------------------------------*/
+ #ifndef _FATFS
+-#define _FATFS	0x007C
++#define _FATFS	0x007E
+ 
+-#define _WORD_ACCESS	0
+-/* The _WORD_ACCESS option defines which access method is used to the word
+-/  data in the FAT structure.
+-/
+-/   0: Byte-by-byte access. Always compatible with all platforms.
+-/   1: Word access. Do not choose this unless following condition is met.
+-/
+-/  When the byte order on the memory is big-endian or address miss-aligned
+-/  word access results incorrect behavior, the _WORD_ACCESS must be set to 0.
+-/  If it is not the case, the value can also be set to 1 to improve the
+-/  performance and code efficiency. */
++#include &quot;integer.h&quot;	/* Basic integer types */
++#include &quot;ffconf.h&quot;		/* FatFs configuration options */
+ 
++#if _FATFS != _FFCONFIG
++#error Wrong configuration file (ffconf.h).
++#endif
+ 
+-#define _FS_READONLY	0
+-/* Setting _FS_READONLY to 1 defines read only configuration. This removes
+-/  writing functions, f_write, f_sync, f_unlink, f_mkdir, f_chmod, f_rename,
+-/  f_truncate and useless f_getfree. */
+ 
+-
+-#define _FS_MINIMIZE	0
+-/* The _FS_MINIMIZE option defines minimization level to remove some functions.
+-/
+-/   0: Full function.
+-/   1: f_stat, f_getfree, f_unlink, f_mkdir, f_chmod, f_truncate and f_rename
+-/      are removed.
+-/   2: f_opendir and f_readdir are removed in addition to level 1.
+-/   3: f_lseek is removed in addition to level 2. */
+-
+-
+-#define	_FS_TINY	0
+-/* When _FS_TINY is set to 1, FatFs uses the sector buffer in the file system
+-/  object instead of the sector buffer in the individual file object for file
+-/  data transfer. This reduces memory consumption 512 bytes each file object. */
+-
+-
+-#define	_USE_STRFUNC	0
+-/* To enable string functions, set _USE_STRFUNC to 1 or 2. */
+-
+-
+-#define	_USE_MKFS	0
+-/* To enable f_mkfs function, set _USE_MKFS to 1 and set _FS_READONLY to 0 */
+-
+-
+-#define	_USE_FORWARD	0
+-/* To enable f_forward function, set _USE_FORWARD to 1 and set _FS_TINY to 1. */
+-
+-
+-#define _CODE_PAGE	1
+-/* The _CODE_PAGE specifies the OEM code page to be used on the target system.
+-/
+-/   932  - Japanese Shift-JIS (DBCS, OEM, Windows)
+-/   936  - Simplified Chinese GBK (DBCS, OEM, Windows)
+-/   949  - Korean (DBCS, OEM, Windows)
+-/   950  - Traditional Chinese Big5 (DBCS, OEM, Windows)
+-/   1250 - Central Europe (Windows)
+-/   1251 - Cyrillic (Windows)
+-/   1252 - Latin 1 (Windows)
+-/   1253 - Greek (Windows)
+-/   1254 - Turkish (Windows)
+-/   1255 - Hebrew (Windows)
+-/   1256 - Arabic (Windows)
+-/   1257 - Baltic (Windows)
+-/   1258 - Vietnam (OEM, Windows)
+-/   437  - U.S. (OEM)
+-/   720  - Arabic (OEM)
+-/   737  - Greek (OEM)
+-/   775  - Baltic (OEM)
+-/   850  - Multilingual Latin 1 (OEM)
+-/   858  - Multilingual Latin 1 + Euro (OEM)
+-/   852  - Latin 2 (OEM)
+-/   855  - Cyrillic (OEM)
+-/   866  - Russian (OEM)
+-/   857  - Turkish (OEM)
+-/   862  - Hebrew (OEM)
+-/   874  - Thai (OEM, Windows)
+-/	1 - ASCII (Valid for only non LFN cfg.)
+-*/
+-
+-
+-#define	_USE_LFN	0
+-#define	_MAX_LFN	255		/* Maximum LFN length to handle (max:255) */
+-/* The _USE_LFN option switches the LFN support.
+-/
+-/   0: Disable LFN.
+-/   1: Enable LFN with static working buffer on the bss. NOT REENTRANT.
+-/   2: Enable LFN with dynamic working buffer on the caller's STACK.
+-/
+-/  The working buffer occupies (_MAX_LFN + 1) * 2 bytes. When enable LFN,
+-/  a Unicode handling functions ff_convert() and ff_wtoupper() must be added
+-/  to the project. */
+-
+-
+-#define _FS_RPATH	0
+-/* When _FS_RPATH is set to 1, relative path feature is enabled and f_chdir,
+-/  f_chdrive function are available.
+-/  Note that output of the f_readdir fnction is affected by this option. */
+-
+-
+-#define _FS_REENTRANT	0
+-#define _TIMEOUT		1000	/* Timeout period in unit of time ticks of the OS */
+-#define	_SYNC_t			HANDLE	/* Type of sync object used on the OS. e.g. HANDLE, OS_EVENT*, ID and etc.. */
+-/* To make the FatFs module re-entrant, set _FS_REENTRANT to 1 and add user
+-/  provided synchronization handlers, ff_req_grant, ff_rel_grant, ff_del_syncobj
+-/  and ff_cre_syncobj function to the project. */
+-
+-
+-#define _DRIVES		1
+-/* Number of volumes (logical drives) to be used. */
+-
+-
+-#define	_MAX_SS		512
+-/* Maximum sector size to be handled. (512/1024/2048/4096) */
+-/* Usually set 512 for memory card and hard disk but 1024 for floppy disk, 2048 for MO disk */
+-/* When _MAX_SS &gt; 512, GET_SECTOR_SIZE must be implememted to disk_ioctl() */
+-
+-
+-#define	_MULTI_PARTITION	0
+-/* When _MULTI_PARTITION is set to 0, each volume is bound to the same physical
+-/ drive number and can mount only first primaly partition. When it is set to 1,
+-/ each volume is tied to the partitions listed in Drives[]. */
+-
+-
+-
+-/* End of configuration options. Do not change followings without care.     */
+-/*--------------------------------------------------------------------------*/
+-
+-
+-
+ /* DBCS code ranges and SBCS extend char conversion table */
+ 
+ #if _CODE_PAGE == 932	/* Japanese Shift-JIS */
+@@ -352,23 +223,22 @@
+ 
+ #define IsUpper(c)	(((c)&gt;='A')&amp;&amp;((c)&lt;='Z'))
+ #define IsLower(c)	(((c)&gt;='a')&amp;&amp;((c)&lt;='z'))
+-#define IsDigit(c)	(((c)&gt;='0')&amp;&amp;((c)&lt;='9'))
+ 
+-#if _DF1S	/* DBCS configuration */
++#if _DF1S		/* DBCS configuration */
+ 
+-#if _DF2S	/* Two 1st byte areas */
++#ifdef _DF2S	/* Two 1st byte areas */
+ #define IsDBCS1(c)	(((BYTE)(c) &gt;= _DF1S &amp;&amp; (BYTE)(c) &lt;= _DF1E) || ((BYTE)(c) &gt;= _DF2S &amp;&amp; (BYTE)(c) &lt;= _DF2E))
+-#else		/* One 1st byte area */
++#else			/* One 1st byte area */
+ #define IsDBCS1(c)	((BYTE)(c) &gt;= _DF1S &amp;&amp; (BYTE)(c) &lt;= _DF1E)
+ #endif
+ 
+-#if _DS3S	/* Three 2nd byte areas */
++#ifdef _DS3S	/* Three 2nd byte areas */
+ #define IsDBCS2(c)	(((BYTE)(c) &gt;= _DS1S &amp;&amp; (BYTE)(c) &lt;= _DS1E) || ((BYTE)(c) &gt;= _DS2S &amp;&amp; (BYTE)(c) &lt;= _DS2E) || ((BYTE)(c) &gt;= _DS3S &amp;&amp; (BYTE)(c) &lt;= _DS3E))
+-#else		/* Two 2nd byte areas */
++#else			/* Two 2nd byte areas */
+ #define IsDBCS2(c)	(((BYTE)(c) &gt;= _DS1S &amp;&amp; (BYTE)(c) &lt;= _DS1E) || ((BYTE)(c) &gt;= _DS2S &amp;&amp; (BYTE)(c) &lt;= _DS2E))
+ #endif
+ 
+-#else		/* SBCS configuration */
++#else			/* SBCS configuration */
+ 
+ #define IsDBCS1(c)	0
+ #define IsDBCS2(c)	0
+@@ -402,10 +272,10 @@
+ 
+ /* Definitions corresponds to multiple sector size */
+ 
+-#if _MAX_SS == 512
++#if _MAX_SS == 512		/* Single sector size */
+ #define	SS(fs)	512U
+ 
+-#elif _MAX_SS == 1024 || _MAX_SS == 2048 || _MAX_SS == 4096
++#elif _MAX_SS == 1024 || _MAX_SS == 2048 || _MAX_SS == 4096	/* Multiple sector size */
+ #define	SS(fs)	((fs)-&gt;s_size)
+ 
+ #else
+@@ -433,6 +303,7 @@
+ 	BYTE	csize;		/* Number of sectors per cluster */
+ 	BYTE	n_fats;		/* Number of FAT copies */
+ 	BYTE	wflag;		/* win[] dirty flag (1:must be written back) */
++	BYTE	fsi_flag;	/* fsinfo dirty flag (1:must be written back) */
+ 	WORD	id;			/* File system mount ID */
+ 	WORD	n_rootdir;	/* Number of root directory entries (0 on FAT32) */
+ #if _FS_REENTRANT
+@@ -442,7 +313,6 @@
+ 	WORD	s_size;		/* Sector size */
+ #endif
+ #if !_FS_READONLY
+-	BYTE	fsi_flag;	/* fsinfo dirty flag (1:must be written back) */
+ 	DWORD	last_clust;	/* Last allocated cluster */
+ 	DWORD	free_clust;	/* Number of free clusters */
+ 	DWORD	fsi_sector;	/* fsinfo sector */
+@@ -553,11 +423,11 @@
+ FRESULT f_close (FIL*);								/* Close an open file object */
+ FRESULT f_opendir (DIR*, const XCHAR*);				/* Open an existing directory */
+ FRESULT f_readdir (DIR*, FILINFO*);					/* Read a directory item */
+-FRESULT f_stat (const XCHAR*, FILINFO*);				/* Get file status */
++FRESULT f_stat (const XCHAR*, FILINFO*);			/* Get file status */
+ FRESULT f_getfree (const XCHAR*, DWORD*, FATFS**);	/* Get number of free clusters on the drive */
+ FRESULT f_truncate (FIL*);							/* Truncate file */
+ FRESULT f_sync (FIL*);								/* Flush cached data of a writing file */
+-FRESULT f_unlink (const XCHAR*);						/* Delete an existing file or directory */
++FRESULT f_unlink (const XCHAR*);					/* Delete an existing file or directory */
+ FRESULT	f_mkdir (const XCHAR*);						/* Create a new directory */
+ FRESULT f_chmod (const XCHAR*, BYTE, BYTE);			/* Change attriburte of the file/dir */
+ FRESULT f_utime (const XCHAR*, const FILINFO*);		/* Change timestamp of the file/dir */
+
+Added: trunk/src/fatfs/ffconf.h
+===================================================================
+--- trunk/src/fatfs/ffconf.h	2010-02-19 05:58:26 UTC (rev 715)
++++ trunk/src/fatfs/ffconf.h	2010-02-20 00:26:51 UTC (rev 716)
+@@ -0,0 +1,166 @@
++/*---------------------------------------------------------------------------/
++/  FatFs - FAT file system module configuration file  R0.07e  (C)ChaN, 2009
++/----------------------------------------------------------------------------/
++/
++/ CAUTION! Do not forget to make clean the project after any changes to
++/ the configuration options.
++/
++/----------------------------------------------------------------------------*/
++#ifndef _FFCONFIG
++#define _FFCONFIG 0x007E
++
++
++/*---------------------------------------------------------------------------/
++/ Function and Buffer Configurations
++/----------------------------------------------------------------------------*/
++
++#define	_FS_TINY	0		/* 0 or 1 */
++/* When _FS_TINY is set to 1, FatFs uses the sector buffer in the file system
++/  object instead of the sector buffer in the individual file object for file
++/  data transfer. This reduces memory consumption 512 bytes each file object. */
++
++
++#define _FS_READONLY	0	/* 0 or 1 */
++/* Setting _FS_READONLY to 1 defines read only configuration. This removes
++/  writing functions, f_write, f_sync, f_unlink, f_mkdir, f_chmod, f_rename,
++/  f_truncate and useless f_getfree. */
++
++
++#define _FS_MINIMIZE	0	/* 0, 1, 2 or 3 */
++/* The _FS_MINIMIZE option defines minimization level to remove some functions.
++/
++/   0: Full function.
++/   1: f_stat, f_getfree, f_unlink, f_mkdir, f_chmod, f_truncate and f_rename
++/      are removed.
++/   2: f_opendir and f_readdir are removed in addition to level 1.
++/   3: f_lseek is removed in addition to level 2. */
++
++
++#define	_USE_STRFUNC	0	/* 0, 1 or 2 */
++/* To enable string functions, set _USE_STRFUNC to 1 or 2. */
++
++
++#define	_USE_MKFS	0		/* 0 or 1 */
++/* To enable f_mkfs function, set _USE_MKFS to 1 and set _FS_READONLY to 0 */
++
++
++#define	_USE_FORWARD	0	/* 0 or 1 */
++/* To enable f_forward function, set _USE_FORWARD to 1 and set _FS_TINY to 1. */
++
++
++
++/*---------------------------------------------------------------------------/
++/ Locale and Namespace Configurations
++/----------------------------------------------------------------------------*/
++
++#define _CODE_PAGE	932
++/* The _CODE_PAGE specifies the OEM code page to be used on the target system.
++/  Incorrect setting of the code page can cause a file open failure.
++/
++/   932  - Japanese Shift-JIS (DBCS, OEM, Windows)
++/   936  - Simplified Chinese GBK (DBCS, OEM, Windows)
++/   949  - Korean (DBCS, OEM, Windows)
++/   950  - Traditional Chinese Big5 (DBCS, OEM, Windows)
++/   1250 - Central Europe (Windows)
++/   1251 - Cyrillic (Windows)
++/   1252 - Latin 1 (Windows)
++/   1253 - Greek (Windows)
++/   1254 - Turkish (Windows)
++/   1255 - Hebrew (Windows)
++/   1256 - Arabic (Windows)
++/   1257 - Baltic (Windows)
++/   1258 - Vietnam (OEM, Windows)
++/   437  - U.S. (OEM)
++/   720  - Arabic (OEM)
++/   737  - Greek (OEM)
++/   775  - Baltic (OEM)
++/   850  - Multilingual Latin 1 (OEM)
++/   858  - Multilingual Latin 1 + Euro (OEM)
++/   852  - Latin 2 (OEM)
++/   855  - Cyrillic (OEM)
++/   866  - Russian (OEM)
++/   857  - Turkish (OEM)
++/   862  - Hebrew (OEM)
++/   874  - Thai (OEM, Windows)
++/	1    - ASCII only (Valid for non LFN cfg.)
++*/
++
++
++#define	_USE_LFN	0		/* 0, 1 or 2 */
++#define	_MAX_LFN	255		/* Maximum LFN length to handle (12 to 255) */
++/* The _USE_LFN option switches the LFN support.
++/
++/   0: Disable LFN. _MAX_LFN and _LFN_UNICODE have no effect.
++/   1: Enable LFN with static working buffer on the bss. NOT REENTRANT.
++/   2: Enable LFN with dynamic working buffer on the STACK.
++/
++/  The LFN working buffer occupies (_MAX_LFN + 1) * 2 bytes. When enable LFN,
++/  two Unicode handling functions ff_convert() and ff_wtoupper() must be added
++/  to the project. */
++
++
++#define	_LFN_UNICODE	0	/* 0 or 1 */
++/* To switch the character code set on FatFs API to Unicode,
++/  enable LFN feature and set _LFN_UNICODE to 1.
++*/
++
++
++#define _FS_RPATH	0		/* 0 or 1 */
++/* When _FS_RPATH is set to 1, relative path feature is enabled and f_chdir,
++/  f_chdrive function are available.
++/  Note that output of the f_readdir fnction is affected by this option. */
++
++
++
++/*---------------------------------------------------------------------------/
++/ Physical Drive Configurations
++/----------------------------------------------------------------------------*/
++
++#define _DRIVES		1
++/* Number of volumes (logical drives) to be used. */
++
++
++#define	_MAX_SS		512		/* 512, 1024, 2048 or 4096 */
++/* Maximum sector size to be handled.
++/  Always set 512 for memory card and hard disk but a larger value may be
++/  required for floppy disk (512/1024) and optical disk (512/2048).
++/  When _MAX_SS is larger than 512, GET_SECTOR_SIZE command must be implememted
++/  to the disk_ioctl function. */
++
++
++#define	_MULTI_PARTITION	0	/* 0 or 1 */
++/* When _MULTI_PARTITION is set to 0, each volume is bound to the same physical
++/ drive number and can mount only first primaly partition. When it is set to 1,
++/ each volume is tied to the partitions listed in Drives[]. */
++
++
++
++/*---------------------------------------------------------------------------/
++/ System Configurations
++/----------------------------------------------------------------------------*/
++
++#define _WORD_ACCESS	0	/* 0 or 1 */
++/* The _WORD_ACCESS option defines which access method is used to the word
++/  data on the FAT volume.
++/
++/   0: Byte-by-byte access. Always compatible with all platforms.
++/   1: Word access. Do not choose this unless following condition is met.
++/
++/  When the byte order on the memory is big-endian or address miss-aligned
++/  word access results incorrect behavior, the _WORD_ACCESS must be set to 0.
++/  If it is not the case, the value can also be set to 1 to improve the
++/  performance and code size. */
++
++
++#define _FS_REENTRANT	0		/* 0 or 1 */
++#define _FS_TIMEOUT		1000	/* Timeout period in unit of time ticks */
++#define	_SYNC_t			HANDLE	/* O/S dependent type of sync object. e.g. HANDLE, OS_EVENT*, ID and etc.. */
++/* The _FS_REENTRANT option switches the reentrancy of the FatFs module.
++/
++/   0: Disable reentrancy. _SYNC_t and _FS_TIMEOUT have no effect.
++/   1: Enable reentrancy. Also user provided synchronization handlers,
++/      ff_req_grant, ff_rel_grant, ff_del_syncobj and ff_cre_syncobj
++/      function must be added to the project. */
++
++
++#endif /* _FFCONFIG */
+
+Modified: trunk/src/platform/avr32/platform_conf.h
+===================================================================
+--- trunk/src/platform/avr32/platform_conf.h	2010-02-19 05:58:26 UTC (rev 715)
++++ trunk/src/platform/avr32/platform_conf.h	2010-02-20 00:26:51 UTC (rev 716)
+@@ -30,11 +30,14 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#ifdef BUILD_RPC
++#if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+ #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #else
+ #define RPCLINE
++#if !defined( BUILD_RPC )
++#define BUILD_RPC
+ #endif
++#endif
+ 
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+
+Modified: trunk/src/platform/lpc17xx/mbed_pio.c
+===================================================================
+--- trunk/src/platform/lpc17xx/mbed_pio.c	2010-02-19 05:58:26 UTC (rev 715)
++++ trunk/src/platform/lpc17xx/mbed_pio.c	2010-02-20 00:26:51 UTC (rev 716)
+@@ -8,7 +8,7 @@
+ #include &quot;platform_conf.h&quot;
+ #include &quot;auxmods.h&quot;
+ 
+-
++// mbed pin map from DIP pins to lpc17xx ports/pins
+ u32 pin_ports[] = {0,0,0,0,0,0,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,2,2,2,2,2,2,0 ,0 ,0,0, // mbed p5 - p30 -- mapped to P0_
+                  1 ,1 ,1 ,1 ,0,0}; // mbed LED1-4, USBTX, USBRX -- mapped to P1_
+ u32 pin_nums[]  = {9,8,7,6,0,1,18,17,15,16,23,24,25,26,30,31,5,4,3,2,1,0,11,10,5,4,
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000668.html">[Elua-svn] r715 - branches
+</A></li>
+	<LI>Next message: <A HREF="000670.html">[Elua-svn] r717 - trunk/src/platform/lpc17xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#669">[ date ]</a>
+              <a href="thread.html#669">[ thread ]</a>
+              <a href="subject.html#669">[ subject ]</a>
+              <a href="author.html#669">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

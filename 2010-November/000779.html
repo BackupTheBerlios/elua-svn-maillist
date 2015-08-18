@@ -1,0 +1,569 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r826 - in branches/remotefs_int/src: .	platform/at91sam7x platform/i386 platform/lpc17xx	platform/lpc24xx platform/lpc288x platform/sim platform/stm32	platform/str7 platform/str9 remotefs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r826%20-%20in%20branches/remotefs_int/src%3A%20.%0A%09platform/at91sam7x%20platform/i386%20platform/lpc17xx%0A%09platform/lpc24xx%20platform/lpc288x%20platform/sim%20platform/stm32%0A%09platform/str7%20platform/str9%20remotefs&In-Reply-To=%3C20101120181112.0FEF0480C8C%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000778.html">
+   <LINK REL="Next"  HREF="000780.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r826 - in branches/remotefs_int/src: .	platform/at91sam7x platform/i386 platform/lpc17xx	platform/lpc24xx platform/lpc288x platform/sim platform/stm32	platform/str7 platform/str9 remotefs</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r826%20-%20in%20branches/remotefs_int/src%3A%20.%0A%09platform/at91sam7x%20platform/i386%20platform/lpc17xx%0A%09platform/lpc24xx%20platform/lpc288x%20platform/sim%20platform/stm32%0A%09platform/str7%20platform/str9%20remotefs&In-Reply-To=%3C20101120181112.0FEF0480C8C%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r826 - in branches/remotefs_int/src: .	platform/at91sam7x platform/i386 platform/lpc17xx	platform/lpc24xx platform/lpc288x platform/sim platform/stm32	platform/str7 platform/str9 remotefs">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Nov 20 19:11:11 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000778.html">[Elua-svn] r825 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000780.html">[Elua-svn] r827 - in branches/remotefs_int/src: . platform/avr32	platform/avr32/EVK1100 platform/avr32/EVK1101 platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#779">[ date ]</a>
+              <a href="thread.html#779">[ thread ]</a>
+              <a href="subject.html#779">[ subject ]</a>
+              <a href="author.html#779">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-20 19:11:11 +0100 (Sat, 20 Nov 2010)
+New Revision: 826
+
+Modified:
+   branches/remotefs_int/src/common.c
+   branches/remotefs_int/src/common_tmr.c
+   branches/remotefs_int/src/platform/at91sam7x/platform_conf.h
+   branches/remotefs_int/src/platform/i386/platform.c
+   branches/remotefs_int/src/platform/lpc17xx/platform.c
+   branches/remotefs_int/src/platform/lpc24xx/platform.c
+   branches/remotefs_int/src/platform/lpc24xx/platform_conf.h
+   branches/remotefs_int/src/platform/lpc24xx/platform_int.c
+   branches/remotefs_int/src/platform/lpc288x/platform.c
+   branches/remotefs_int/src/platform/sim/platform.c
+   branches/remotefs_int/src/platform/stm32/platform_int.c
+   branches/remotefs_int/src/platform/str7/platform.c
+   branches/remotefs_int/src/platform/str9/platform.c
+   branches/remotefs_int/src/platform/str9/platform_int.c
+   branches/remotefs_int/src/remotefs/client.c
+   branches/remotefs_int/src/remotefs/elua_rfs.c
+Log:
+continuing integration of RFS and the new implementation of UART buffering mechanism
+
+Modified: branches/remotefs_int/src/common.c
+===================================================================
+--- branches/remotefs_int/src/common.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/common.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -14,6 +14,7 @@
+ #include &quot;term.h&quot;
+ #include &quot;xmodem.h&quot;
+ #include &quot;elua_int.h&quot;
++#include &quot;sermux.h&quot;
+ 
+ // [TODO] the new builder should automatically do this
+ #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
+@@ -23,7 +24,7 @@
+ #define INT_TMR_MATCH         ELUA_INT_INVALID_INTERRUPT
+ #endif
+ 
+-extern elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
++extern const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
+ 
+ #endif // #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
+ 
+@@ -164,7 +165,7 @@
+     platform_uart_set_buffer( i + SERMUX_SERVICE_ID_FIRST, bufsizes[ i ] );    
+ #endif
+ 
+-#if defined( CON_UART_ID ) &amp;&amp; CON_UART_ID &lt; SERMUX_SERVICE_ID_FIRST
++#if CON_UART_ID &lt; SERMUX_SERVICE_ID_FIRST
+   // Setup console UART
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );  
+   platform_uart_set_buffer( CON_UART_ID, CON_BUF_SIZE );
+
+Modified: branches/remotefs_int/src/common_tmr.c
+===================================================================
+--- branches/remotefs_int/src/common_tmr.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/common_tmr.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -17,7 +17,7 @@
+ #define INT_TMR_MATCH         ELUA_INT_INVALID_INTERRUPT
+ #endif
+ 
+-extern elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
++extern const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
+ 
+ #endif // #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
+ 
+
+Modified: branches/remotefs_int/src/platform/at91sam7x/platform_conf.h
+===================================================================
+--- branches/remotefs_int/src/platform/at91sam7x/platform_conf.h	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/at91sam7x/platform_conf.h	2010-11-20 18:11:11 UTC (rev 826)
+@@ -78,8 +78,8 @@
+ #define RPC_UART_SPEED        CON_UART_SPEED
+ 
+ // Enable RX buffering on UART
+-#define BUF_ENABLE_UART
+-#define CON_BUF_SIZE          BUF_SIZE_128
++//#define BUF_ENABLE_UART
++//#define CON_BUF_SIZE          BUF_SIZE_128
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         BOARD_MCK
+
+Modified: branches/remotefs_int/src/platform/i386/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/i386/platform.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/i386/platform.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -168,6 +168,19 @@
+ }
+ 
+ // ****************************************************************************
++// &quot;Dummy&quot; CPU functions
++
++int platform_cpu_set_global_interrupts( int status )
++{
++  return 0;
++}
++
++int platform_cpu_get_global_interrupts()
++{
++  return 0;
++}
++
++// ****************************************************************************
+ // Allocator support
+ 
+ u32 platform_get_lastmem()
+
+Modified: branches/remotefs_int/src/platform/lpc17xx/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/lpc17xx/platform.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/lpc17xx/platform.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -61,9 +61,6 @@
+   platform_setup_timers();
+   //platform_setup_pwm();
+ 
+-  // Initialize console UART
+-  platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+-
+ #ifdef BUILD_ADC
+   // Setup ADCs
+   platform_setup_adcs();
+
+Modified: branches/remotefs_int/src/platform/lpc24xx/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/lpc24xx/platform.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/lpc24xx/platform.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -139,9 +139,6 @@
+   platform_setup_timers();
+   platform_setup_pwm();
+   
+-  // Initialize console UART
+-  platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+-  
+ #ifdef BUILD_ADC
+   // Setup ADCs
+   platform_setup_adcs();
+
+Modified: branches/remotefs_int/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- branches/remotefs_int/src/platform/lpc24xx/platform_conf.h	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/lpc24xx/platform_conf.h	2010-11-20 18:11:11 UTC (rev 826)
+@@ -8,6 +8,7 @@
+ #include &quot;target.h&quot;
+ #include &quot;buf.h&quot;
+ #include &quot;elua_int.h&quot;
++#include &quot;sermux.h&quot;
+ 
+ // *****************************************************************************
+ // Define here what components you want for this platform
+@@ -19,13 +20,16 @@
+ #define BUILD_CON_GENERIC
+ #define BUILD_ADC
+ #define BUILD_RPC
++#define BUILD_RFS
++#define BUILD_SERMUX
+ #define BUILD_LUA_INT_HANDLERS
+ #define BUILD_C_INT_HANDLERS
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+ 
+-#define CON_UART_ID           0
++#define CON_UART_ID           ( SERMUX_SERVICE_ID_FIRST + 1 )
++//#define CON_UART_ID           0
+ #define CON_UART_SPEED        115200
+ #define CON_TIMER_ID          0
+ #define TERM_LINES            25
+@@ -89,9 +93,8 @@
+ // Interrupt data
+ #define PLATFORM_INT_QUEUE_LOG_SIZE   BUF_SIZE_32
+ // Enable RX buffering on UART
+-// [TODO] make this happen
+-//#define BUF_ENABLE_UART
+-//#define CON_BUF_SIZE          BUF_SIZE_128
++#define BUF_ENABLE_UART
++#define CON_BUF_SIZE          BUF_SIZE_128
+ 
+ // ADC Configuration Params
+ #define ADC_BIT_RESOLUTION    10
+@@ -118,6 +121,18 @@
+ // Use #define PIO_PINS_PER_PORT 0 if this isn't needed
+ #define PIO_PINS_PER_PORT     32
+ 
++// Remote file system data
++#define RFS_BUFFER_SIZE       BUF_SIZE_512
++#define RFS_UART_ID           ( SERMUX_SERVICE_ID_FIRST )
++#define RFS_TIMER_ID          0
++#define RFS_TIMEOUT           100000
++#define RFS_UART_SPEED        115200
++
++#define SERMUX_PHYS_ID        0
++#define SERMUX_PHYS_SPEED     115200
++#define SERMUX_NUM_VUART      2
++#define SERMUX_BUFFER_SIZES   { RFS_BUFFER_SIZE, CON_BUF_SIZE }
++
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+ #define SRAM_ORIGIN           0x40000000
+@@ -155,7 +170,8 @@
+ #define INT_GPIO_POSEDGE      ELUA_INT_FIRST_ID
+ #define INT_GPIO_NEGEDGE      ( ELUA_INT_FIRST_ID + 1 )
+ #define INT_TMR_MATCH         ( ELUA_INT_FIRST_ID + 2 )
+-#define INT_ELUA_LAST         INT_TMR_MATCH
++#define INT_UART_RX           ( ELUA_INT_FIRST_ID + 3 )
++#define INT_ELUA_LAST         INT_UART_RX
+ 
+ #define PLATFORM_CPU_CONSTANTS\
+  _C( IO_PINSEL0 ),\
+@@ -171,7 +187,8 @@
+  _C( IO_PINSEL10 ),\
+  _C( INT_GPIO_POSEDGE ),\
+  _C( INT_GPIO_NEGEDGE ),\
+- _C( INT_TMR_MATCH )
++ _C( INT_TMR_MATCH ),\
++ _C( INT_UART_RX )
+  
+ #endif // #ifndef __PLATFORM_CONF_H__
+ 
+
+Modified: branches/remotefs_int/src/platform/lpc24xx/platform_int.c
+===================================================================
+--- branches/remotefs_int/src/platform/lpc24xx/platform_int.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/lpc24xx/platform_int.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -10,10 +10,14 @@
+ #include &quot;irq.h&quot;
+ #include &quot;LPC23xx.h&quot;
+ #include &quot;target.h&quot;
++#include &quot;uart.h&quot;
+ 
+ // ****************************************************************************
+ // Interrupt handlers
+ 
++// ----------------------------------------------------------------------------
++// GPIO
++
+ static PREG const posedge_status[] = { ( PREG )&amp;IO0_INT_STAT_R, ( PREG )&amp;IO2_INT_STAT_R };
+ static PREG const negedge_status[] = { ( PREG )&amp;IO0_INT_STAT_F, ( PREG )&amp;IO2_INT_STAT_F };
+ static PREG const intclr_regs[] = { ( PREG )&amp;IO0_INT_CLR, ( PREG )&amp;IO2_INT_CLR };
+@@ -49,6 +53,40 @@
+   VICVectAddr = 0; // ACK interrupt    
+ }
+ 
++// ----------------------------------------------------------------------------
++// UART
++
++static PREG const uart_ier[] = { ( PREG )&amp;U0IER, ( PREG )&amp;U1IER, ( PREG )&amp;U2IER, ( PREG )&amp;U3IER };
++static PREG const uart_iir[] = { ( PREG )&amp;U0IIR, ( PREG )&amp;U1IIR, ( PREG )&amp;U2IIR, ( PREG )&amp;U3IIR };
++
++// Common UART interrupt handler
++static void uart_rx_common_handler( elua_int_resnum resnum )
++{
++  cmn_int_handler( INT_UART_RX, resnum );
++  VICVectAddr = 0;
++}
++
++// Interrupt handlers for individual UARTs
++static void int_handler_uart0()
++{
++  uart_rx_common_handler( 0 );
++}
++
++static void int_handler_uart1()
++{
++  uart_rx_common_handler( 1 );
++}
++
++static void int_handler_uart2()
++{
++  uart_rx_common_handler( 2 );
++}
++
++static void int_handler_uart3()
++{
++  uart_rx_common_handler( 3 );
++}
++
+ // ****************************************************************************
+ // GPIO helper functions
+ 
+@@ -151,35 +189,75 @@
+ 
+ static int int_tmr_match_set_status( elua_int_resnum resnum, int status )
+ {
+-  return PLATFORM_INT_NOT_HANDLED;
++  return PLATFORM_INT_BAD_RESNUM;
+ }
+ 
+ static int int_tmr_match_get_status( elua_int_resnum resnum )
+ {
+-  return PLATFORM_INT_NOT_HANDLED;
++  return PLATFORM_INT_BAD_RESNUM;
+ }
+ 
+ static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
+ {
+-  return PLATFORM_INT_NOT_HANDLED;
++  return PLATFORM_INT_BAD_RESNUM;
+ }
+ 
+ // ****************************************************************************
++// Interrupt: INT_UART_RX
++
++static int int_uart_rx_get_status( elua_int_resnum resnum )
++{
++  PREG UxIER = uart_ier[ resnum ];
++
++  return ( *UxIER &amp; IER_RBR ) ? 1 : 0; 
++}
++
++static int int_uart_rx_set_status( elua_int_resnum resnum, int status )
++{
++  PREG UxIER = uart_ier[ resnum ];
++  int prev = int_uart_rx_get_status( resnum );
++
++  if( status == PLATFORM_CPU_ENABLE )
++    *UxIER |= IER_RBR;
++  else
++    *UxIER &amp;= ~IER_RBR; 
++  return prev;
++}
++
++static int int_uart_rx_get_flag( elua_int_resnum resnum, int clear )
++{
++  PREG UxIIR = uart_iir[ resnum ];
++
++  // 'clear' is not needed here, the interrupt will be cleared when reading the RBR register
++  ( void )clear;
++  if( ( *UxIIR &amp; IIR_PEND ) == 0 )
++    return ( ( *UxIIR &gt;&gt; 1 ) &amp; 0x07 ) == IIR_RDA;
++  return 0;
++}
++
++// ****************************************************************************
+ // Interrupt initialization
+ 
++typedef void ( *p_handler )();
++
+ void platform_int_init()
+ {
+-  install_irq( EINT3_INT, int_handler_eint3, HIGHEST_PRIORITY - 1 );   
++  install_irq( EINT3_INT, int_handler_eint3, HIGHEST_PRIORITY + 1 );   
++  install_irq( UART0_INT, int_handler_uart0, HIGHEST_PRIORITY + 2 );
++  install_irq( UART1_INT, int_handler_uart1, HIGHEST_PRIORITY + 3 );
++  install_irq( UART2_INT, int_handler_uart2, HIGHEST_PRIORITY + 4 );
++  install_irq( UART3_INT, int_handler_uart3, HIGHEST_PRIORITY + 5 );
+ }
+ 
+ // ****************************************************************************
+ // Interrupt table
+ // Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
+ 
+-elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
++const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
+ {
+   { int_gpio_posedge_set_status, int_gpio_posedge_get_status, int_gpio_posedge_get_flag },
+   { int_gpio_negedge_set_status, int_gpio_negedge_get_status, int_gpio_negedge_get_flag },
+-  { int_tmr_match_set_status, int_tmr_match_get_status, int_tmr_match_get_flag }
++  { int_tmr_match_set_status, int_tmr_match_get_status, int_tmr_match_get_flag },
++  { int_uart_rx_set_status, int_uart_rx_get_status, int_uart_rx_get_flag }
+ };
+ 
+
+Modified: branches/remotefs_int/src/platform/lpc288x/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/lpc288x/platform.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/lpc288x/platform.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -28,9 +28,6 @@
+   // Initialize CPU
+   lpc288x_init();
+   
+-  // Initialize UART
+-  uart_init( CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+-  
+   // Initialize timers
+   T0CTRL = 0;
+   T1CTRL = 0;
+@@ -112,6 +109,7 @@
+ 
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+ {
++  ( void )id;
+   return uart_init( baud, databits, parity, stopbits );
+ }
+ 
+
+Modified: branches/remotefs_int/src/platform/sim/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/sim/platform.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/sim/platform.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -149,3 +149,17 @@
+   return 0;
+ }
+ 
++// ****************************************************************************
++// &quot;Dummy&quot; CPU functions
++
++
++int platform_cpu_set_global_interrupts( int status )
++{
++  return 0;
++}
++
++int platform_cpu_get_global_interrupts()
++{
++  return 0;
++}
++
+
+Modified: branches/remotefs_int/src/platform/stm32/platform_int.c
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform_int.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/stm32/platform_int.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -118,7 +118,7 @@
+ // Interrupt table
+ // Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
+ 
+-elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
++const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
+ {
+   { int_tmr_match_set_status, int_tmr_match_get_status, int_tmr_match_get_flag },
+   { int_uart_rx_set_status, int_uart_rx_get_status, int_uart_rx_get_flag }  
+
+Modified: branches/remotefs_int/src/platform/str7/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/str7/platform.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/str7/platform.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -49,9 +49,6 @@
+   // Initialize clocks
+   clock_init();
+   
+-  // Setup UART1 for operation
+-  platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+-  
+   // Initialize Timer 0 for XMODEM
+   platform_timer_op( 0, PLATFORM_TIMER_OP_SET_CLOCK, 39000 ); 
+   
+
+Modified: branches/remotefs_int/src/platform/str9/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/str9/platform.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/str9/platform.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -132,7 +132,6 @@
+     
+   // UART setup
+   platform_gpio_uart_setup();
+-  platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+ 
+   // Initialize timers
+   for( i = 0; i &lt; 4; i ++ )
+
+Modified: branches/remotefs_int/src/platform/str9/platform_int.c
+===================================================================
+--- branches/remotefs_int/src/platform/str9/platform_int.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/platform/str9/platform_int.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -236,7 +236,7 @@
+ // Interrupt table
+ // Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
+ 
+-elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
++const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
+ {
+   { int_gpio_posedge_set_status, int_gpio_posedge_get_status, int_gpio_posedge_get_flag },
+   { int_gpio_negedge_set_status, int_gpio_negedge_get_status, int_gpio_negedge_get_flag }
+
+Modified: branches/remotefs_int/src/remotefs/client.c
+===================================================================
+--- branches/remotefs_int/src/remotefs/client.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/remotefs/client.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -10,6 +10,8 @@
+ #include &quot;platform_conf.h&quot;
+ #include &quot;buf.h&quot;
+ 
++#ifdef BUILD_RFS
++
+ #if 0
+ #define RFSDEBUG        printf
+ #else
+@@ -39,7 +41,6 @@
+   while( rfsc_recv( rfsc_buffer, 1, 0 ) == 1 );
+ #endif
+ 
+-  RFSDEBUG( &quot;[RFS] before send request: %d\n&quot;, buf_get_count( BUF_ID_UART, RFS_UART_ID ) );
+   // Send request
+   if( eluarpc_get_packet_size( rfsc_buffer, &amp;temp16 ) == ELUARPC_ERR )
+   {
+@@ -217,3 +218,4 @@
+   return res;
+ }  
+ 
++#endif // #ifdef BUILD_RFS
+
+Modified: branches/remotefs_int/src/remotefs/elua_rfs.c
+===================================================================
+--- branches/remotefs_int/src/remotefs/elua_rfs.c	2010-11-17 20:55:33 UTC (rev 825)
++++ branches/remotefs_int/src/remotefs/elua_rfs.c	2010-11-20 18:11:11 UTC (rev 826)
+@@ -152,7 +152,7 @@
+   return ( u32 )hostif_write( rfs_write_fd, p, size );
+ }
+ 
+-static u32 rfs_recv( u8 *p, u32 size, u32 timeout )
++static u32 rfs_recv( u8 *p, u32 size, s32 timeout )
+ {
+   timeout = timeout;
+   return ( u32 )hostif_read( rfs_read_fd, p, size );
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000778.html">[Elua-svn] r825 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000780.html">[Elua-svn] r827 - in branches/remotefs_int/src: . platform/avr32	platform/avr32/EVK1100 platform/avr32/EVK1101 platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#779">[ date ]</a>
+              <a href="thread.html#779">[ thread ]</a>
+              <a href="subject.html#779">[ subject ]</a>
+              <a href="author.html#779">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

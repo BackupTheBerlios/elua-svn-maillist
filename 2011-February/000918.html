@@ -1,0 +1,1635 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r965 - in trunk: . src/platform/stm32 utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r965%20-%20in%20trunk%3A%20.%20src/platform/stm32%20utils&In-Reply-To=%3C20110221010122.51D2C48124B%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000917.html">
+   <LINK REL="Next"  HREF="000919.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r965 - in trunk: . src/platform/stm32 utils</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r965%20-%20in%20trunk%3A%20.%20src/platform/stm32%20utils&In-Reply-To=%3C20110221010122.51D2C48124B%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r965 - in trunk: . src/platform/stm32 utils">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Feb 21 02:01:22 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000917.html">[Elua-svn] r964 - in trunk: . utils
+</A></li>
+        <LI>Next message: <A HREF="000919.html">[Elua-svn] r966 - trunk/utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#918">[ date ]</a>
+              <a href="thread.html#918">[ thread ]</a>
+              <a href="subject.html#918">[ subject ]</a>
+              <a href="author.html#918">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-21 02:01:21 +0100 (Mon, 21 Feb 2011)
+New Revision: 965
+
+Added:
+   trunk/build_elua.lua
+   trunk/cross-lua.lua
+   trunk/src/platform/stm32/conf.lua
+   trunk/utils/mkfs.lua
+Modified:
+   trunk/mux.lua
+   trunk/rfs_server.lua
+   trunk/utils/build.lua
+Log:
+Continuing work on the build system, try 'lua build_elua.lua board=et-stm32 prog' (it only works for stm32 for now). Still a lot of WIP and not throughly tested (for example the new mkfs.lua script was not tested at all with a non-empty FS) but it does seem to work nicely. NOTE: you need to install 'lpack' for this to work (luarocks install lpack). Anybody knows of a good way
+to implement make's (or scon's ) '-jn' option (for parallel builds) in a cross-platform manner?
+
+
+
+Added: trunk/build_elua.lua
+===================================================================
+--- trunk/build_elua.lua	                        (rev 0)
++++ trunk/build_elua.lua	2011-02-21 01:01:21 UTC (rev 965)
+@@ -0,0 +1,532 @@
++local args = { ... }
++local b = require &quot;utils.build&quot;
++local mkfs = require &quot;utils.mkfs&quot;
++builder = b.new_builder()
++utils = b.utils
++sf = string.format
++
++-------------------------------------------------------------------------------
++-- Build configuration 'shortcuts'
++
++cdefs, cflags, includes, lflags, asflags, libs = {}, {}, {}, {}, {}, {}
++
++-- &quot;Normalize&quot; a name to make it a suitable C macro name
++function cnorm( name )
++  name = name:gsub( &quot;[%-%s]*&quot;, '' )
++  return name:upper()
++end
++
++-- Add a macro defition
++function addm( data )
++  table.insert( cdefs, data )
++end
++
++-- Add an include directory
++function addi( data )
++  table.insert( includes, data )
++end
++
++-- Add a compiler flag
++function addcf( data )
++  table.insert( cflags, data )
++end
++
++-- Add a linker flag
++function addlf( data )
++  table.insert( lflags, data )
++end
++
++-- Add an assembler flag
++function addaf( data )
++  table.insert( asflags, data )
++end
++
++-- Add a library
++function addlib( data )
++  table.insert( libs, data )
++end
++
++-------------------------------------------------------------------------------
++-- Build data
++
++-- List of toolchains
++local toolchain_list = 
++{
++  [ 'arm-gcc' ] = { 
++    compile = 'arm-elf-gcc', 
++    link = 'arm-elf-ld', 
++    asm = 'arm-elf-as', 
++    bin = 'arm-elf-objcopy', 
++    size = 'arm-elf-size',
++    cross_cpumode = 'little',
++    cross_lua = 'float_arm 64',
++    cross_lualong = 'int 32',
++    version = '--version'
++  },
++  [ 'arm-eabi-gcc' ] = {
++    compile = 'arm-eabi-gcc',
++    link = 'arm-eabi-ld',
++    asm = 'arm-eabi-as',
++    bin = 'arm-eabi-objcopy',
++    size = 'arm-eabi-size',
++    cross_cpumode = 'little',
++    cross_lua = 'float 64',
++    cross_lualong = 'int 32',
++    version = '--version'
++  },
++  codesourcery = { 
++    compile = 'arm-none-eabi-gcc', 
++    link = 'arm-none-eabi-ld', 
++    asm = 'arm-none-eabi-as', 
++    bin = 'arm-none-eabi-objcopy', 
++    size = 'arm-none-eabi-size',
++    cross_cpumode = 'little',
++    cross_lua = 'float 64',
++    cross_lualong = 'int 32',
++    version = '--version'
++  },
++  [ 'avr32-gcc' ] = { 
++    compile = 'avr32-gcc', 
++    link = 'avr32-ld', 
++    asm = 'avr32-as', 
++    bin = 'avr32-objcopy', 
++    size = 'avr32-size',
++    cross_cpumode = 'big',
++    cross_lua = 'float 64',
++    cross_lualong = 'int 32',
++    version = '--version'
++  },
++  [ 'i686-gcc' ] = { 
++    compile = 'i686-elf-gcc', 
++    link = 'i686-elf-ld', 
++    asm = 'nasm', 
++    bin = 'i686-elf-objcopy', 
++    size = 'i686-elf-size',
++    cross_cpumode = 'little',
++    cross_lua = 'float 64',
++    cross_lualong = 'int 32',
++    version = '--version'
++  }
++}
++
++-- Toolchain Aliases
++toolchain_list[ 'devkitarm' ] = toolchain_list[ 'arm-eabi-gcc' ]
++
++-- List of platform/CPU/toolchains combinations
++-- The first toolchain in the toolchains list is the default one
++-- (the one that will be used if none is specified)
++local platform_list = 
++{  
++  at91sam7x = { cpus = { 'AT91SAM7X256', 'AT91SAM7X512' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' } },
++  lm3s = { cpus = { 'LM3S1968', 'LM3S8962', 'LM3S6965', 'LM3S6918', 'LM3S9B92' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' } },
++  str9 = { cpus = { 'STR912FAW44' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' } },
++  i386 = { cpus = { 'I386' }, toolchains = { 'i686-gcc' } },
++  sim = { cpus = { 'LINUX' }, toolchains = { 'i686-gcc' } },
++  lpc288x = { cpus = { 'LPC2888' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' } },
++  str7 = { cpus = { 'STR711FR2' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' } },
++  stm32 = { cpus = { 'STM32F103ZE', 'STM32F103RE' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' } },
++  avr32 = { cpus = { 'AT32UC3A0512', 'AT32UC3A0128', 'AT32UC3B0256' }, toolchains = { 'avr32-gcc' } },
++  lpc24xx = { cpus = { 'LPC2468' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' } },
++  lpc17xx = { cpus = { 'LPC1768' }, toolchains = { 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' } }
++}
++
++-- List of board/CPU combinations
++local board_list = 
++{ 
++  [ 'SAM7-EX256' ]      = { 'AT91SAM7X256', 'AT91SAM7X512' },
++  [ 'EK-LM3S1968' ]     = { 'LM3S1968' },
++  [ 'EK-LM3S8962' ]     = { 'LM3S8962' },
++  [ 'EK-LM3S6965' ]     = { 'LM3S6965' },
++  [ 'EK-LM3S9B92' ]     = { 'LM3S9B92' },
++  [ 'STR9-COMSTICK' ]   = { 'STR912FAW44' },
++  [ 'STR-E912' ]        = { 'STR912FAW44' },
++  [ 'PC' ]              = { 'I386' },
++  [ 'SIM' ]             = { 'LINUX' },
++  [ 'LPC-H2888' ]       = { 'LPC2888' },
++  [ 'MOD711' ]          = { 'STR711FR2' },
++  [ 'STM3210E-EVAL' ]   = { 'STM32F103ZE' },
++  [ 'ATEVK1100' ]       = { 'AT32UC3A0512' },
++  [ 'ATEVK1101' ]       = { 'AT32UC3B0256' },
++  [ 'ET-STM32' ]        = { 'STM32F103RE' },
++  [ 'EAGLE-100' ]       = { 'LM3S6918' },
++  [ 'ELUA-PUC' ]        = { 'LPC2468' },
++  [ 'MBED' ]            = { 'LPC1768' },
++  [ 'MIZAR32' ]         = { 'AT32UC3A0128' },
++  [ 'NETDUINO' ]        = { 'AT91SAM7X512' },
++}
++
++-- Build the CPU list starting from the above list
++local cpu_list = {}
++for k, v in pairs( board_list ) do
++  local clist = v
++  for i = 1, #clist do
++    if not utils.array_element_index( cpu_list, clist[ i ] ) then      
++      table.insert( cpu_list, clist[ i ] )
++    end
++  end
++end
++
++-- ROMFS file list &quot;groups&quot;
++-- To include a file in a ROMFS build, include it in a group here (or create one
++-- if you need) and make sure the group is included on your platform's file_list
++-- definition (right after this).
++
++-- The following table will be left here just as an example
++-- eLua examples were removed from the distro since v0.8
++--[[
++local romfs = 
++{
++  bisect = { 'bisect.lua' },
++  hangman = { 'hangman.lua' },
++  lhttpd = { 'index.pht', 'lhttpd.lua', 'test.lua' },
++  led = { 'led.lua' },
++  piano = { 'piano.lua' },
++  pwmled = { 'pwmled.lua' },
++  tvbgone = { 'tvbgone.lua', 'codes.bin' },
++  hello = { 'hello.lua' },
++  info = { 'info.lua' },
++  morse = { 'morse.lua' },
++  dualpwm = { 'dualpwm.lua' },
++  adcscope = { 'adcscope.lua' },
++  adcpoll = { 'adcpoll.lua' },
++  life = { 'life.lua' },
++  logo = {'logo.lua', 'logo.bin' },
++  pong = { 'pong.lua' },
++  spaceship = { 'spaceship.lua' },
++  tetrives = { 'tetrives.lua' },
++  snake = { 'snake.lua' },
++  dataflash = { 'dataflash.lua' },
++  pachube = { 'pachube_demo.lua' },
++  inttest = { 'inttest.lua' }
++}
++--]]
++
++local romfs = {}
++
++-- List of board/romfs data combinations
++-- The following table will be left here just as an example
++-- eLua examples were removed from the distro since v0.8
++--[[
++local file_list = 
++{ 
++  [ 'SAM7-EX256' ] = { 'bisect', 'hangman' , 'led', 'piano', 'hello', 'info', 'morse' },
++  [ 'EK-LM3S1968' ]  = { 'bisect', 'hangman', 'pong', 'led', 'piano', 'pwmled', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo', 'spaceship', 'tetrives', 'snake' },
++  [ 'EK-LM3S8962' ]  = { 'lhttpd','bisect', 'led', 'pachube' },
++  [ 'EK-LM3S6965' ]  = { 'bisect', 'hangman', 'pong', 'led', 'piano', 'pwmled', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo', 'tetrives' },
++  [ 'EK-LM3S9B92' ]  = { 'bisect', 'hangman', 'led', 'pwmled', 'hello', 'info', 'adcscope','adcpoll', 'life' },
++  [ 'STR9-COMSTICK' ]  = { 'bisect', 'hangman', 'led', 'hello', 'info' },
++  [ 'STR-E912' ]  = { 'bisect', 'hangman', 'led', 'hello', 'info', 'piano', 'adcscope' },
++  [ 'PC' ]  = { 'bisect', 'hello', 'info', 'life', 'hangman' },
++  [ 'SIM' ]  = { 'bisect', 'hello', 'info', 'life', 'hangman' },
++  [ 'LPC-H2888' ]  = { 'bisect', 'hangman', 'led', 'hello', 'info' },
++  [ 'MOD711' ]  = { 'bisect', 'hangman', 'led', 'hello', 'info', 'dualpwm' },
++  [ 'STM3210E-EVAL' ]  = { 'bisect', 'hello', 'info' },
++  [ 'ATEVK1100' ]  = { 'bisect', 'hangman', 'led', 'hello', 'info', 'dataflash' },
++  [ 'ATEVK1101' ]  = { 'bisect', 'led', 'hello', 'info', 'dataflash' },
++  [ 'ET-STM32' ]  = { 't' },
++  [ 'EAGLE-100' ]  = { 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' },
++  [ 'ELUA-PUC' ]  = { 'bisect', 'hangman', 'led', 'hello', 'info', 'pwmled', 'adcscope', 'adcpoll', 'inttest' },
++  [ 'MBED' ]  = { 'bisect', 'hangman', 'hello', 'info', 'led', 'pwmled', 'dualpwm', 'life', 'adcscope', 'adcpoll' },
++  [ 'MIZAR32' ]  = { },
++  [ 'NETDUINO' ] = { },
++}
++--]]
++
++local file_list = 
++{ 
++  [ 'SAM7-EX256' ]      = {},
++  [ 'EK-LM3S1968' ]     = {},
++  [ 'EK-LM3S8962' ]     = {},
++  [ 'EK-LM3S6965' ]     = {},
++  [ 'EK-LM3S9B92' ]     = {},
++  [ 'STR9-COMSTICK' ]   = {},
++  [ 'STR-E912' ]        = {},
++  [ 'PC' ]              = {},
++  [ 'SIM' ]             = {},
++  [ 'LPC-H2888' ]       = {},
++  [ 'MOD711' ]          = {},
++  [ 'STM3210E-EVAL' ]   = {},
++  [ 'ATEVK1100' ]       = {},
++  [ 'ATEVK1101' ]       = {},
++  [ 'ET-STM32' ]        = {},
++  [ 'EAGLE-100' ]       = {},
++  [ 'ELUA-PUC' ]        = {},
++  [ 'MBED' ]            = {},
++  [ 'MIZAR32' ]         = {},
++  [ 'NETDUINO']         = {},
++}
++
++builder:add_option( 'target', 'build &quot;regular&quot; float lua or integer-only &quot;lualong&quot;', 'lua', { 'lua', 'lualong' } )
++builder:add_option( 'cpu', 'build for the specified CPU (board will be inferred, if possible)', 'auto', { cpu_list, 'auto' } )
++builder:add_option( 'allocator', 'select memory allocator', 'auto', { 'newlib', 'multiple', 'simple', 'auto' } )
++builder:add_option( 'board', 'selects board for target (cpu will be inferred)', 'auto', { utils.table_keys( board_list ), 'auto' } )
++builder:add_option( 'toolchain', 'specifies toolchain to use (auto=search for usable toolchain)', 'auto', { utils.table_keys( toolchain_list ), 'auto' } )
++builder:add_option( 'optram', 'enables Lua Tiny RAM enhancements', true )
++builder:add_option( 'boot', 'boot mode, standard will boot to shell, luarpc boots to an rpc server', 'standard', { 'standard' , 'luarpc' } )
++builder:add_option( 'romfs', 'ROMFS compilation mode', 'verbatim', { 'verbatim' , 'compress', 'compile' } )
++builder:init( args )
++builder:set_build_mode( builder.BUILD_DIR_LINEARIZED )
++
++-- Build the 'comp' target which will 'redirect' all the requests
++-- for its fields to builder:get_option
++comp = {}
++setmetatable( comp, { __index = function( t, key ) return builder:get_option( key ) end } )
++
++-- Variants: board = &lt;board&gt;
++--           cpu = &lt;cpuname&gt;
++--           board = &lt;board&gt; cpu=&lt;cpuname&gt;
++if comp.board == 'auto' and comp.cpu == 'auto' then
++  print &quot;Must specifiy board, cpu, or both&quot;
++  os.exit( -1 )
++elseif comp.board ~= 'auto' and comp.cpu ~= 'auto' then
++  -- Check if the board, cpu pair is correct
++  if utils.array_element_index( board_list[ comp.board:upper() ], comp.cpu:upper() ) == nil then
++    print( sf( &quot;Invalid CPU '%s' for board '%s'&quot; , comp.cpu, comp.board ) )
++    os.exit( -1 )
++  end
++elseif comp.board ~= 'auto' then
++  -- Find CPU
++  comp.cpu = board_list[ comp.board:upper() ][ 1 ]
++else
++  -- cpu = &lt;cputype&gt;
++  -- Find board name
++  for b, v in pairs( board_list ) do
++    if utils.array_element_index( v, comp.cpu:upper() ) then
++      comp.board = b
++      break
++    end
++  end
++  if comp.board == 'auto' then
++    print( sf( &quot;CPU '%s' not found&quot;, comp.cpu ) )
++    os.exit( -1 )
++  end
++end
++
++-- Look for the given CPU in the list of platforms
++for p, v in pairs( platform_list ) do
++  if utils.array_element_index( v.cpus, comp.cpu:upper() ) then
++    platform = p
++    break
++  end
++end
++if not platform then
++  print( &quot;Unable to find platform (this shouldn't happen, check the build script for errors)&quot; )
++  os.exit( -1 )
++end
++
++-- Check the toolchain
++if comp.toolchain ~= 'auto' then
++  if utils.array_element_index( platform_list[ platform ].toolchains, comp.toolchain ) == nil then
++    print( sf( &quot;Invalid toolchain '%s' for CPU '%s'&quot;, comp.toolchain, comp.cpu ) )
++    os.exit( -1 )
++  end
++  toolset = toolchain_list[ comp.toolchain ]
++  comp.CC = toolset.compile
++  comp.AS = toolset.compile
++else
++  -- If 'auto' try to match a working toolchain with target
++  local usable_chains = platform_list[ platform ].toolchains
++  -- Try to execute all compilers, exit when one found
++  local chain
++  for i = 1, #usable_chains do
++    local c = usable_chains[ i ]
++    local t = toolchain_list[ c ]
++    local res = os.execute( t.compile .. &quot; &quot; .. t.version .. &quot; &gt; .build.temp 2&gt;&amp;1&quot; )
++    if res == 0 then chain = c break end
++  end
++  os.remove( &quot;.build.temp&quot; )
++  if chain then
++    comp.toolchain = chain
++    comp.CC = toolchain_list[ chain ].compile
++    comp.AS = comp.CC
++    toolset = toolchain_list[ chain ]
++  else
++    print &quot;Unable to find an usable toolchain in your path.&quot;
++    print( sf( &quot;List of accepted toolchains (for %s): %s&quot;, comp.cpu, table.concat( usable_chains ) ) )
++    os.exit( -1 )
++  end
++end    
++
++-- CPU/allocator mapping (if allocator not specified)
++if comp.allocator == 'auto' then
++  if utils.array_element_index( comp.board:upper(), { 'LPC-H2888', 'ATEVK1100', 'MBED' } ) then
++    comp.allocator = 'multiple'
++  else
++    comp.allocator = 'newlib'
++  end
++end    
++
++-- Build the compilation command now
++local compcmd = ''
++if comp.romfs == 'compile' then
++  local suffix = ''
++  if utils.is_windows() then
++    suffix = '.exe'
++  end
++  -- First check for luac.cross in the current directory
++  if not utils.is_file( &quot;luac.cross&quot; .. suffix ) then
++    print &quot;The eLua cross compiler was not found.&quot;
++    print &quot;Build it by running 'lua cross-lua.lua'&quot;
++    os.exit( -1 )
++  end
++  local cmdpath = { lfs.currentdir(), sf( 'luac.cross%s -ccn %s -cce %s -o %%s -s %%s', suffix, toolset[ &quot;cross_&quot; .. comp.target:lower() ], toolset.cross_cpumode:lower() ) }
++  compcmd = table.concat( cmdpath, utils.dir_sep )
++  print( compcmd )
++elseif comp.romfs == 'compress' then
++  compcmd = 'lua luasrcdiet.lua --quiet --maximum --opt-comments --opt-whitespace --opt-emptylines --opt-eols --opt-strings --opt-numbers --opt-locals -o %s %s'
++end
++
++-- Output file
++output = 'elua_' .. comp.target .. '_' .. comp.cpu:lower()
++builder:set_output_dir( &quot;.build&quot; .. utils.dir_sep .. comp.board:lower() )
++
++-- User report
++print &quot;&quot;
++print &quot;*********************************&quot;
++print &quot;Compiling eLua ...&quot;
++print( &quot;CPU:            &quot;, comp.cpu )
++print( &quot;Board:          &quot;, comp.board )
++print( &quot;Platform:       &quot;, platform )
++print( &quot;Allocator:      &quot;, comp.allocator )
++print( &quot;Boot Mode:      &quot;, comp.boot )
++print( &quot;Target:         &quot;, comp.target  )
++print( &quot;Toolchain:      &quot;, comp.toolchain )
++print( &quot;ROMFS mode:     &quot;, comp.romfs )
++print &quot;*********************************&quot;
++print &quot;&quot;
++
++-- Build list of source files, include directories, macro definitions
++addm( &quot;ELUA_CPU=&quot; .. comp.cpu:upper() )
++addm( &quot;ELUA_BOARD=&quot; .. comp.board:upper() )
++addm( &quot;ELUA_PLATFORM=&quot; .. platform:upper() )
++addm( &quot;__BUFSIZ__=128&quot; )
++
++-- Also make the above into direct defines (to use in conditional C code)
++addm( &quot;ELUA_CPU_&quot; .. cnorm( comp.cpu ) )
++addm( &quot;ELUA_BOARD_&quot; .. cnorm( comp.board ) )
++addm( &quot;ELUA_PLATFORM_&quot; .. cnorm( platform ) )
++
++if comp.allocator == 'multiple' then
++   addm( &quot;USE_MULTIPLE_ALLOCATOR&quot; )
++elseif comp.allocator == 'simple' then
++   addm( &quot;USE_SIMPLE_ALLOCATOR&quot; )
++end
++
++if comp.boot == 'luarpc' then
++  addm( &quot;ELUA_BOOT_RPC&quot; )
++end
++
++-- Special macro definitions for the SYM target
++if platform == 'sim' then
++  addm( { &quot;ELUA_SIMULATOR&quot;, &quot;ELUA_SIM_&quot; .. cnorm( comp.cpu ) } )
++end
++
++-- Lua source files and include path
++local lua_files = ([[lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
++  lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
++  ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c lrotable.c legc.c]]):gsub( &quot;\n&quot;, &quot;&quot; )
++local lua_full_files = utils.prepend_path( lua_files, &quot;src/lua&quot; )
++
++addi( { 'inc', 'inc/newlib',  'inc/remotefs', 'src/platform', 'src/lua' } )
++
++if comp.target == 'lualong' then
++  addm( &quot;LUA_NUMBER_INTEGRAL&quot; )
++end
++
++addi( { 'src/modules', 'src/platform/' .. platform } )
++addm( &quot;LUA_OPTIMIZE_MEMORY=&quot; .. ( comp.optram and &quot;2&quot; or &quot;0&quot; ) )
++
++-- Application files
++local app_files = ([[ src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/common_tmr.c src/buf.c src/elua_adc.c src/dlmalloc.c 
++                src/salloc.c src/luarpc_elua_uart.c src/elua_int.c src/linenoise.c src/common_uart.c src/eluarpc.c ]]):gsub( &quot;\n&quot;, &quot;&quot; )
++
++-- Newlib related files
++local newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
++
++-- UIP files
++local uip_files = &quot;uip_arp.c uip.c uiplib.c dhcpc.c psock.c resolv.c&quot;
++uip_files = &quot; src/elua_uip.c &quot; .. utils.prepend_path( uip_files, &quot;src/uip&quot; )
++addi( &quot;src/uip&quot; )
++
++-- FatFs files
++app_files = app_files .. &quot;src/elua_mmc.c src/mmcfs.c src/fatfs/ff.c src/fatfs/ccsbcs.c &quot;
++addi( &quot;src/fatfs&quot; )
++
++-- Lua module files
++local module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c can.c luarpc.c bitarray.c elua.c i2c.c&quot;
++local module_files = &quot; &quot; .. utils.prepend_path( module_names, 'src/modules' )
++
++-- Remote file system files
++local rfs_names = &quot;remotefs.c client.c elua_os_io.c elua_rfs.c&quot;
++local rfs_files = &quot; &quot; .. utils.prepend_path( rfs_names, &quot;src/remotefs&quot; )
++
++-- Optimizer flags (speed or size)
++addcf( { '-Os','-fomit-frame-pointer' } )
++
++-- Toolset data (filled by each platform in part)
++tools = {}
++specific_files = ''
++
++-- We get platform-specific data by executing the platform script
++dofile( sf( &quot;src/platform/%s/conf.lua&quot;, platform ) )
++
++-- Complete file list
++local source_files = app_files .. specific_files .. newlib_files .. uip_files .. lua_full_files .. module_files .. rfs_files 
++
++-------------------------------------------------------------------------------
++-- Create compiler/linker/assembler command lines and build
++
++-- ROM file system builder
++local function make_romfs()
++  print &quot;Building ROM file system ...&quot;
++  local romdir = &quot;romfs&quot;
++  local flist = {}
++  for _, sample in pairs( file_list[ comp.board:upper() ] ) do
++    table.insert( flist, romfs[ sample ] )
++  end
++  flist = utils.linearize_array( flist )  
++  if not mkfs.mkfs( romdir, &quot;romfiles&quot;, flist, comp.romfs, compcmd ) then return -1 end
++  if utils.is_file( &quot;inc/romfiles.h&quot; ) then
++    -- Read both the old and the new file
++    local oldfile = io.open( &quot;inc/romfiles.h&quot;, &quot;rb&quot; )
++    assert( oldfile )
++    local newfile = io.open( &quot;romfiles.h&quot;, &quot;rb&quot; )
++    assert( newfile )
++    local olddata, newdata = oldfile:read( &quot;*a&quot; ), newfile:read( &quot;*a&quot; )
++    oldfile:close()
++    newfile:close()
++    -- If content is similar return '1' to builder to indicate that the target didn't really
++    -- produce a change even though it ran
++    if olddata == newdata then 
++      os.remove( &quot;romfiles.h&quot; )
++      return 1 
++    end
++    os.remove( &quot;inc/romfiles.h&quot; )
++  end
++  os.rename( &quot;romfiles.h&quot;, &quot;inc/romfiles.h&quot; )
++  return 0
++end
++
++local compcmd = builder:compile_cmd{ flags = cflags, defines = cdefs, includes = includes, compiler = toolset.compile }
++local linkcmd = builder:link_cmd{ flags = lflags, libraries = libs, linker = toolset.compile }
++local ascmd = builder:asm_cmd{ flags = asflags, defines = cdefs, includes = includes, assembler = toolset.asm }
++builder:set_compile_cmd( compcmd )
++builder:set_link_cmd( linkcmd )
++builder:set_asm_cmd( ascmd )
++builder:set_exe_extension( &quot;.elf&quot; )
++
++-- Create executable target 
++local romtarget = builder:target( &quot;inc/romfiles.h&quot;, nil, make_romfs )
++builder:make_depends( source_files, { romtarget } )
++local odeps = builder:create_compile_targets( source_files )
++local exetarget = builder:link_target( output, odeps )
++-- This is also the default target
++builder:default( builder:add_target( exetarget ) )
++
++-- Create 'prog' target
++local progtarget = builder:target( &quot;#phony:prog&quot;, { exetarget }, tools[ platform ].progfunc )
++builder:add_target( progtarget, { &quot;prog&quot; } )
++
++-- Finally build everything
++builder:build()
++
+
+Added: trunk/cross-lua.lua
+===================================================================
+--- trunk/cross-lua.lua	                        (rev 0)
++++ trunk/cross-lua.lua	2011-02-21 01:01:21 UTC (rev 965)
+@@ -0,0 +1,27 @@
++local args = { ... }
++local b = require &quot;utils.build&quot;
++local builder = b.new_builder( &quot;.build/cross-lua&quot; )
++local utils = b.utils
++local sf = string.format
++builder:init( args )
++builder:set_build_mode( builder.BUILD_DIR )
++
++local output = 'luac.cross'
++local cdefs = '-DLUA_CROSS_COMPILER'
++
++-- Lua source files and include path
++local lua_files = [[lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
++   lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
++   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c luac.c print.c lrotable.c]]
++lua_files = lua_files:gsub( &quot;\n&quot; , &quot;&quot; )
++local lua_full_files = utils.prepend_path( lua_files, &quot;src/lua&quot; )
++local local_include = &quot;-Isrc/lua -Iinc/desktop -Iinc&quot;
++
++-- Compiler/linker options
++builder:set_compile_cmd( sf( &quot;gcc -O2 %s -Wall %s -c $(FIRST) -o $(TARGET)&quot;, local_include, cdefs ) )
++builder:set_link_cmd( &quot;gcc -o $(TARGET) $(DEPENDS) -lm&quot; )
++
++-- Build everything
++builder:make_exe_target( output, lua_full_files )
++builder:build()
++
+
+Modified: trunk/mux.lua
+===================================================================
+--- trunk/mux.lua	2011-02-20 00:15:16 UTC (rev 964)
++++ trunk/mux.lua	2011-02-21 01:01:21 UTC (rev 965)
+@@ -22,15 +22,12 @@
+ local full_files = utils.prepend_path( flist, &quot;mux_src&quot; ) .. utils.prepend_path( rfs_flist, &quot;rfs_server_src&quot; ) .. &quot;src/remotefs/remotefs.c src/eluarpc.c&quot;
+ local local_include = &quot;mux_src rfs_server_src inc inc/remotefs&quot;
+ local compcmd = builder:compile_cmd{ flags = &quot;-m32 -O0 -Wall -g&quot;, defines = cdefs, includes = local_include }
+-local depcmd =  builder:dep_cmd{ flags = &quot;-m32 -O0 -Wall -g&quot;, defines = cdefs, includes = local_include }
+ local linkcmd = builder:link_cmd{ flags = &quot;-m32&quot;, libraries = socklib }
+-builder:set_dep_cmd( depcmd )
+ builder:set_compile_cmd( compcmd )
+ builder:set_link_cmd( linkcmd )
+ builder:set_exe_extension( exeprefix )
+ 
+ -- Build everyting
+-builder:make_depends( full_files )
+-local odeps = builder:create_compile_targets( full_files )
+-builder:build_c_target( &quot;mux&quot;, odeps )
++builder:make_exe_target( &quot;mux&quot;, full_files )
++builder:build()
+ 
+
+Modified: trunk/rfs_server.lua
+===================================================================
+--- trunk/rfs_server.lua	2011-02-20 00:15:16 UTC (rev 964)
++++ trunk/rfs_server.lua	2011-02-21 01:01:21 UTC (rev 965)
+@@ -2,11 +2,14 @@
+ local b = require &quot;utils.build&quot;
+ local builder = b.new_builder( &quot;.build/rfs_server&quot; )
+ local utils = b.utils
++
++-- Set builder options BEFORE calling builder:init
++builder:add_option( 'sim', 'run under the eLua simulator', false )
+ builder:init( args )
+ builder:set_build_mode( builder.BUILD_DIR_LINEARIZED )
+ 
+-sim = builder:get_arg( 'sim' )
+-sim = sim and tonumber( sim ) or 0
++local sim = builder:get_option( 'sim' )
++sim = sim and 1 or 0
+ 
+ local flist, socklib
+ local cdefs = &quot;RFS_STANDALONE_MODE&quot;
+@@ -29,15 +32,12 @@
+ local local_include = &quot;rfs_server_src inc/remotefs inc&quot;
+ local full_files = utils.prepend_path( flist, 'rfs_server_src' ) .. &quot; src/remotefs/remotefs.c src/eluarpc.c&quot;
+ local compcmd = builder:compile_cmd{ flags = &quot;-m32 -O0 -Wall -g&quot;, defines = cdefs, includes = local_include }
+-local depcmd =  builder:dep_cmd{ flags = &quot;-m32 -O0 -Wall -g&quot;, defines = cdefs, includes = local_include }
+ local linkcmd = builder:link_cmd{ flags = &quot;-m32&quot;, libraries = socklib }
+-builder:set_dep_cmd( depcmd )
+ builder:set_compile_cmd( compcmd )
+ builder:set_link_cmd( linkcmd )
+ builder:set_exe_extension( exeprefix )
+ 
+ -- Build everything
+-builder:make_depends( full_files )
+-local odeps = builder:create_compile_targets( full_files )
+-builder:build_c_target( &quot;rfs_server&quot;, odeps )
++builder:make_exe_target( &quot;rfs_server&quot;, full_files )
++builder:build()
+ 
+
+Added: trunk/src/platform/stm32/conf.lua
+===================================================================
+--- trunk/src/platform/stm32/conf.lua	                        (rev 0)
++++ trunk/src/platform/stm32/conf.lua	2011-02-21 01:01:21 UTC (rev 965)
+@@ -0,0 +1,46 @@
++-- Configuration file for the STM32 microcontroller
++
++addi( sf( 'src/platform/%s/FWLib/library/inc', platform ) )
++
++local fwlib_files = utils.get_files( &quot;src/platform/&quot; .. platform .. &quot;/FWLib/library/src&quot;, &quot;.*%.c$&quot; )
++
++specific_files = &quot;core_cm3.c system_stm32f10x.c startup_stm32f10x_hd.s platform.c stm32f10x_it.c lcd.c lua_lcd.c platform_int.c enc.c&quot;
++
++local ldscript = &quot;stm32.ld&quot;
++  
++-- Prepend with path
++specific_files = fwlib_files .. &quot; &quot; .. utils.prepend_path( specific_files, &quot;src/platform/&quot; .. platform )
++specific_files = specific_files .. &quot; src/platform/cortex_utils.s src/platform/arm_cortex_interrupts.c&quot;
++ldscript = sf( &quot;src/platform/%s/%s&quot;, platform, ldscript )
++
++addm( { &quot;FOR&quot; .. cnorm( comp.cpu ), &quot;FOR&quot; .. cnorm( comp.board ), 'gcc', 'CORTEX_M3' } )
++
++-- Standard GCC Flags
++addcf( { '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' } )
++addlf( { '-nostartfiles','-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' } )
++addaf( { '-x', 'assembler-with-cpp', '-c', '-Wall' } )
++addlib( { 'c','gcc','m' } )
++
++local target_flags = { '-mcpu=cortex-m3', '-mthumb' }
++
++-- Configure general flags for target
++addcf( { target_flags, '-mlittle-endian' } )
++addlf( { target_flags, '-Wl,-e,Reset_Handler', '-Wl,-static' } )
++addaf( target_flags )
++
++-- Toolset data
++tools.stm32 = {}
++
++-- Programming function
++tools.stm32.progfunc = function( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  print &quot;Generating binary image...&quot;
++  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
++  os.execute( sf( &quot;%s -O ihex %s %s.hex&quot;, toolset.bin, outname, output ) )
++  return 0
++end
++
++-- We use 'gcc' as the assembler
++toolset.asm = toolset.compile
++
+
+
+Property changes on: trunk/src/platform/stm32/conf.lua
+___________________________________________________________________
+Added: svn:executable
+   + *
+
+Modified: trunk/utils/build.lua
+===================================================================
+--- trunk/utils/build.lua	2011-02-20 00:15:16 UTC (rev 964)
++++ trunk/utils/build.lua	2011-02-21 01:01:21 UTC (rev 965)
+@@ -1,4 +1,5 @@
+ -- eLua build system
++
+ module( ..., package.seeall )
+ 
+ local lfs = require &quot;lfs&quot;
+@@ -55,14 +56,15 @@
+ utils.string_to_table = function( s, sep )
+   sep = sep or ' '
+   if s:sub( -1, -1 ) ~= sep then s = s .. sep end
++  s = s:gsub( sf( &quot;^%s*&quot;, sep ), &quot;&quot; )
+   local t = {}
+   local fmt = sf( &quot;(.-)%s+&quot;, sep )
+   for w in s:gmatch( fmt ) do table.insert( t, w ) end
+   return t
+ end
+ 
+--- Replace the extension of a give file name
+-utils.replace_extension = function( s, newext )
++-- Split a file name into 'path part' and 'extension part'
++utils.split_path = function( s )
+   local pos
+   for i = #s, 1, -1 do
+     if s:sub( i, i ) == &quot;.&quot; then
+@@ -70,10 +72,17 @@
+       break
+     end
+   end
+-  if pos then s = s:sub( 1, pos ) .. newext end
++  if pos then return s:sub( 1, pos - 1 ), s:sub( pos ) end
+   return s
+ end
+ 
++-- Replace the extension of a give file name
++utils.replace_extension = function( s, newext )
++  local p, e = utils.split_path( s )
++  if e then s = p .. &quot;.&quot; .. newext end
++  return s
++end
++
+ -- Return 'true' if building from Windows, false otherwise
+ utils.is_windows = function()
+   return is_windows
+@@ -81,7 +90,7 @@
+ 
+ -- Prepend each component of a 'pat'-separated string with 'prefix'
+ utils.prepend_string = function( s, prefix, pat )  
+-  if not s then return &quot;&quot; end
++  if not s or #s == 0 then return &quot;&quot; end
+   pat = pat or ' '
+   local res = ''
+   local st = utils.string_to_table( s, pat )
+@@ -112,6 +121,56 @@
+   return table.concat( paths, dir_sep )
+ end
+ 
++-- Return true if the given array contains the given element, false otherwise
++utils.array_element_index = function( arr, element )
++  for i = 1, #arr do
++    if arr[ i ] == element then return i end
++  end
++end
++
++-- Linearize an array with (possibly) embedded arrays into a simple array
++utils._linearize_array = function( arr, res )
++  if type( arr ) ~= &quot;table&quot; then return end
++  for i = 1, #arr do
++    local e = arr[ i ]
++    if type( e ) == 'table' then
++      utils._linearize_array( e, res )
++    else
++      table.insert( res, e )
++    end
++  end 
++end
++
++utils.linearize_array = function( arr )
++  local res = {}
++  utils._linearize_array( arr, res )
++  return res
++end
++
++-- Return an array with the keys of a table
++utils.table_keys = function( t )
++  local keys = {}
++  for k, _ in pairs( t ) do table.insert( keys, k ) end
++  return keys
++end
++
++-- Returns true if 'path' is a regular file, false otherwise
++utils.is_file = function( path )
++  return lfs.attributes( path, &quot;mode&quot; ) == &quot;file&quot;
++end
++
++-- Return a list of files in the given directory matching a given mask
++utils.get_files = function( path, mask )
++  local t = ''
++  for f in lfs.dir( path ) do
++    local fname = path .. dir_sep .. f
++    if lfs.attributes( fname, &quot;mode&quot; ) == &quot;file&quot; and fname:find( mask ) then
++      t = t .. ' ' .. fname
++    end
++  end
++  return t
++end
++
+ -------------------------------------------------------------------------------
+ -- Dummy 'builder': simply checks the date of a file
+ 
+@@ -144,7 +203,7 @@
+ 
+ local _target = {}
+ 
+-_target.new = function( target, dep, command )
++_target.new = function( target, dep, command, isclean )
+   local self = {}
+   setmetatable( self, { __index = _target } )
+   self.target = target
+@@ -163,6 +222,8 @@
+   end
+   self.dep = dep
+   self._force_rebuild = #dep == 0
++  self._clean_mode = isclean
++  if isclean then self.command = _target._cleaner end
+   return self
+ end
+ 
+@@ -171,11 +232,22 @@
+   self._force_rebuild = flag
+ end
+ 
++-- Function to execute in clean mode
++_target._cleaner = function( target, deps )
++  if is_phony( target ) then return 0 end
++  io.write( sf( &quot;Removing %s ... &quot;, target ) )
++  if os.remove( target ) then
++    print &quot;done.&quot;
++  else
++    print &quot;failed!&quot;
++  end
++  return 0
++end
++
+ -- Build the given target
+ _target.build = function( self )
+   local docmd = self:target_name() and lfs.attributes( self:target_name(), &quot;mode&quot; ) ~= &quot;file&quot;
+-  local depends = ''
+-  local dep = self.dep
++  local depends, dep = '', self.dep
+   -- Iterate through all dependencies, execute each one in turn
+   for i = 1, #dep do
+     local res = dep[ i ]:build()
+@@ -183,11 +255,11 @@
+     local t = dep[ i ]:target_name()
+     if t then depends = depends .. t .. &quot; &quot; end
+   end
+-  docmd = docmd or self._force_rebuild
+   -- If at least one dependency is new rebuild the target
++  docmd = docmd or self._force_rebuild or self._clean_mode
++  local keep_flag = true
+   if docmd and self.command then
+-    local cmd = self.command
+-    local code
++    local cmd, code = self.command
+     if type( cmd ) == 'string' then
+       cmd = expand_key( cmd, &quot;TARGET&quot;, self.target )
+       cmd = expand_key( cmd, &quot;DEPENDS&quot;, depends )
+@@ -196,10 +268,17 @@
+       code = os.execute( cmd )   
+     else
+       code = cmd( self.target, self.dep )
++      if code == 1 then -- this means 'mark target as 'not executed'
++        keep_flag = false
++        code = 0
++      end
+     end
+-    if code ~= 0 then return nil, &quot;Error building target &quot; .. self.target end
++    if code ~= 0 then 
++      print( &quot;Error building target&quot; )
++      os.exit( 1 ) 
++    end
+   end
+-  return docmd
++  return docmd and keep_flag
+ end
+ 
+ _target.target_name = function( self )
+@@ -211,17 +290,114 @@
+ 
+ builder = { KEEP_DIR = 0, BUILD_DIR = 1, BUILD_DIR_LINEARIZED = 2 }    
+ 
++---------------------------------------
++-- Initialization and option handling
++
+ -- Create a new builder object with the output in 'build_dir' and with the 
+ -- specified compile, dependencies and link command
+-builder.new = function( build_dir, comp_cmd, dep_cmd, link_cmd )
++builder.new = function( build_dir )
+   self = {}
+   setmetatable( self, { __index = builder } )
+   self.build_dir = build_dir or &quot;.build&quot;
+-  self.comp_cmd = comp_cmd
+-  self.dep_cmd = dep_cmd
+-  self.link_cmd = link_cmd
+   self.exe_extension = utils.is_windows() and &quot;exe&quot; or &quot;&quot;
+-  -- Create 'builds' directory if needed
++  self.clean_mode = false
++  self.options = {}
++  self.args = {}
++  self.build_mode = self.KEEP_DIR
++  self.targets = {}
++  return self
++end
++
++-- Argument validator: boolean value
++builder._bool_validator = function( v )
++  if v == '0' or v:upper() == 'FALSE' then
++    return false
++  elseif v == '1' or v:upper() == 'TRUE' then
++    return true
++  end
++end
++
++-- Argument validator: choice value
++builder._choice_validator = function( v, allowed )
++  for i = 1, #allowed do
++    if v:upper() == allowed[ i ]:upper() then return allowed[ i ] end
++  end
++end
++
++-- Argument validator: choice map (argument value maps to something)
++builder._choice_map_validator = function( v, allowed )
++  for k, value in pairs( allowed ) do
++    if v:upper() == k:upper() then return value end
++  end
++end
++
++-- Argument validator: string value (no validation)
++builder._string_validator = function( v )
++  return v
++end
++
++-- Argument printer: boolean value
++builder._bool_printer = function( o )
++  return &quot;true|false&quot;, o.default and &quot;true&quot; or &quot;false&quot;
++end
++
++-- Argument printer: choice value
++builder._choice_printer = function( o )
++  local clist, opts  = '', o.data
++  for i = 1, #opts do
++    clist = clist .. ( i ~= 1 and &quot;|&quot; or &quot;&quot; ) .. opts[ i ]
++  end
++  return clist, o.default
++end
++
++-- Argument printer: choice map printer
++builder._choice_map_printer = function( o )
++  local clist, opts, def = '', o.data
++  local i = 1
++  for k, v in pairs( opts ) do
++    clist = clist .. ( i ~= 1 and &quot;|&quot; or &quot;&quot; ) .. k
++    if o.default == v then def = k end
++    i = i + 1
++  end
++  return clist, def
++end
++
++-- Argument printer: string printer
++builder._string_printer = function( o )
++  return nil, o.default
++end
++
++-- Add an option of the specified type
++builder._add_option = function( self, optname, opttype, help, default, data )
++  local validators = 
++  { 
++    string = builder._string_validator, choice = builder._choice_validator, 
++    boolean = builder._bool_validator, choice_map = builder._choice_map_validator
++  }
++  local printers = 
++  { 
++    string = builder._string_printer, choice = builder._choice_printer, 
++    boolean = builder._bool_printer, choice_map = builder._choice_map_printer
++  }
++  if not validators[ opttype ] then
++    print( sf( &quot;Invalid option type '%s'&quot;, opttype ) )
++    os.exit( 1 )
++  end
++  table.insert( self.options, { name = optname, help = help, validator = validators[ opttype ], printer = printers[ opttype ], data = data, default = default } )
++end
++
++-- Find an option with the given name
++builder._find_option = function( self, optname )
++  for i = 1, #self.options do
++    local o = self.options[ i ]
++    if o.name:upper() == optname:upper() then return self.options[ i ] end
++  end
++end
++
++-- Helper: create the build output directory
++builder._create_outdir = function( self )
++  if self.output_dir_created then return end
++   -- Create builds directory if needed
+   local mode = lfs.attributes( self.build_dir, &quot;mode&quot; )
+   if not mode or mode ~= &quot;directory&quot; then
+     if not utils.full_mkdir( self.build_dir ) then
+@@ -229,54 +405,114 @@
+       os.exit( 1 )
+     end
+   end
+-  self.clean_mode = false
+-  self.build_mode = self.KEEP_DIR
+-  return self
++  self.output_dir_created = true
+ end
+ 
++-- 'add option' helper (automatically detects option type)
++builder.add_option = function( self, name, help, default, data )
++  local otype
++  if type( default ) == 'boolean' then
++    otype = 'boolean'
++  elseif data and type( data ) == 'table' and #data == 0 then
++    otype = 'choice_map'
++  elseif data and type( data ) == 'table' then
++    otype = 'choice'
++    data = utils.linearize_array( data )
++  elseif type( default ) == 'string' then
++    otype = 'string'
++  else
++    print( sf( &quot;Cannot detect option type for '%s'&quot;, name ) )
++    os.exit( 1 )
++  end
++  self:_add_option( name, otype, help, default, data )
++end
++
+ -- Initialize builder from the given command line
+ builder.init = function( self, args )
+-  self.args = args
+-  -- Look for '-c' first
++  -- Add the default options
++  self:add_option( &quot;build_mode&quot;, 'choose location of the object files', self.KEEP_DIR,
++                   { keep_dir = self.KEEP_DIR, build_dir = self.BUILD_DIR, build_dir_linearized = self.BUILD_DIR_LINEARIZED } )
++  self:add_option( &quot;build_dir&quot;, 'choose build directory', self.build_dir )
++  -- Apply default values to all options
++  for i = 1, #self.options do
++    local o = self.options[ i ]
++    self.args[ o.name:upper() ] = o.default
++  end
++  -- Read and interpret command line
+   for i = 1, #args do
+-    local a = args[ i ]:upper()
+-    if a == &quot;-C&quot; then
++    local a = args[ i ]
++    if a:upper() == &quot;-C&quot; then                   -- clean option (-c)
+       self.clean_mode = true  
++    elseif a:upper() == '-H' then               -- help option (-h)
++      self:_show_help()
++      os.exit( 1 )
++    elseif a:find( '=' ) then                   -- builder argument (key=value)
++      local si, ei, k, v = a:find( &quot;([^=]+)=(.*)$&quot; )
++      local opt = self:_find_option( k )
++      if not opt then
++        print( sf( &quot;Invalid option '%s'&quot;, k ) )
++        self:_show_help()
++        os.exit( 1 )
++      end
++      local optv = opt.validator( v, opt.data )
++      if optv == nil then
++        print( sf( &quot;Invalid value '%s' for option '%s'&quot;, v, k ) )
++        self:_show_help()
++        os.exit( 1 )
++      end
++      self.args[ k:upper() ] = optv
++    else                                        -- this must be the target name
++      if self.targetname ~= nil then            
++        print( sf( &quot;Invalid option '%s'&quot;, a ) )
++        os.exit( 1 )
++      end
++      self.targetname = a
+     end
+   end
+-  -- Then look for 'build_mode' spec
+-  local v = self:get_arg( 'build_mode', 'KEEP_DIR' ):upper()
+-  self.build_mode = self[ v ] or self.KEEP_DIR
++  -- Read back the default options
++  self.build_mode = self.args.BUILD_MODE
++  self.build_dir = self.args.BUILD_DIR
+ end
+ 
+--- Get the given argument or the default value if not found
+--- Arguments are given in the form 'arg=value'
+-builder.get_arg = function( self, name, default )
+-  local args = self.args
+-  name = name:upper()
+-  for i = 1, #args do
+-    local arg = args[ i ]
+-    local si, ei, k, v = arg:find( &quot;([^=]+)=(.*)$&quot; )
+-    if si and k:upper() == name then return v end
++-- Return the value of the option with the given name
++builder.get_option = function( self, optname )
++  return self.args[ optname:upper() ]
++end
++
++-- Show builder help
++builder._show_help = function( self )
++  print( &quot;Valid options:&quot; )
++  print( &quot;  -h: help (this text)&quot; )
++  print( &quot;  -c: clean target&quot; )
++  for i = 1, #self.options do
++    local o = self.options[ i ]
++    print( sf( &quot;\n  %s: %s&quot;, o.name, o.help ) )
++    local values, default = o.printer( o )
++    if values then
++      print( sf( &quot;    Possible values: %s&quot;, values ) )
++    end
++    print( sf( &quot;    Default value: %s&quot;, default ) )
+   end
+-  return default
+ end
+ 
++---------------------------------------
++-- Builder configuration
++
+ -- Set the compile command
+ builder.set_compile_cmd = function( self, cmd )
+   self.comp_cmd = cmd
+ end
+ 
+--- Set the dependencies command
+-builder.set_dep_cmd = function( self, cmd )
+-  self.dep_cmd = cmd
+-end
+-
+ -- Set the link command
+ builder.set_link_cmd = function( self, cmd )
+   self.link_cmd = cmd
+ end
+ 
++-- Set the assembler command
++builder.set_asm_cmd = function( self, cmd )
++  self.asm_cmd = cmd
++end
++
+ -- Set (actually force) the object file extension
+ builder.set_object_extension = function( self, ext )
+   self.obj_extension = ext
+@@ -292,52 +528,31 @@
+   self.clean_mode = isclean
+ end
+ 
+--- Is the builder in clean mode?
+-builder.is_cleaning = function( self )
+-  return self.clean_mode
+-end
+-
+ -- Sets the build mode
+ builder.set_build_mode = function( self, mode )
+   self.build_mode = mode
+ end
+ 
+--- Create a return a new C to object target
+-builder.c_target = function( self, target, deps, comp_cmd )
+-  return _target.new( target, deps, comp_cmd or self.comp_cmd )
+-end
+-
+--- Return the name of a dependency file name corresponding to a C source
+-builder.get_dep_filename = function( self, srcname )
+-  return utils.replace_extension( self.build_dir .. dir_sep .. linearize_fname( srcname ), &quot;d&quot; )
+-end
+-
+--- Create a return a new C dependency target
+-builder.dep_target = function( self, dep, depdeps, dep_cmd )
+-  local depname = self:get_dep_filename( dep )
+-  return _target.new( depname, depdeps, dep_cmd or self.dep_cmd )
+-end
+-
+--- Create and return a new link target
+-builder.link_target = function( self, out, dep, link_cmd )
+-  if not out:find( &quot;%.&quot; ) and self.exe_extension and #self.exe_extension &gt; 0 then
+-    out = out .. self.exe_extension
++-- Set the output directory
++builder.set_output_dir = function( self, dir )
++  if self.output_dir_created then
++    print &quot;Error: output directory already created&quot;
++    os.exit( 1 )
+   end
+-  return _target.new( out, dep, link_cmd or self.link_cmd )
++  self.build_dir = dir
++  self:_create_outdir()
+ end
+ 
+--- Create and return a new generic target
+-builder.target = function( self, dest_target, deps, cmd )
+-  return _target.new( dest_target, deps, cmd )
+-end
++---------------------------------------
++-- Command line builders
+ 
+ -- Internal helper
+ builder._generic_cmd = function( self, args )
+   local compcmd = args.compiler or &quot;gcc&quot;
+   compcmd = compcmd .. &quot; &quot;
+-  local flags = table_to_string( args.flags )
+-  local defines = table_to_string( args.defines )
+-  local includes = table_to_string( args.includes )
++  local flags = table_to_string( utils.linearize_array( args.flags ) )
++  local defines = table_to_string( utils.linearize_array( args.defines ) )
++  local includes = table_to_string( utils.linearize_array( args.includes ) )
+   local comptype = table_to_string( args.comptype ) or &quot;-c&quot;
+   compcmd = compcmd .. utils.prepend_string( defines, &quot;-D&quot; )
+   compcmd = compcmd .. utils.prepend_string( includes, &quot;-I&quot; )
+@@ -345,27 +560,63 @@
+ end
+ 
+ -- Return a compile command based on the specified args
+-
+ builder.compile_cmd = function( self, args )
+   return self:_generic_cmd( args )
+ end
+ 
+--- Return a dependency generation command based on the specified args
+-builder.dep_cmd = function( self, args )
+-  args.comptype = &quot;-E -MM&quot;
++-- Return an assembler command based on the specified args
++builder.asm_cmd = function( self, args )
++  args.compiler = args.assembler
+   return self:_generic_cmd( args )
+ end
+ 
+ -- Return a link command based on the specified args
+ builder.link_cmd = function( self, args )
+-  local flags = table_to_string( args.flags )
+-  local libraries = table_to_string( args.libraries )
++  local flags = table_to_string( utils.linearize_array( args.flags ) )
++  local libraries = table_to_string( utils.linearize_array( args.libraries ) )
+   local linkcmd = args.linker or &quot;gcc&quot;
+   linkcmd = linkcmd .. &quot; &quot; .. flags .. &quot; -o $(TARGET) $(DEPENDS)&quot;
+-  linkcmd = linkcmd .. utils.prepend_string( libraries, &quot;-l&quot; )
++  linkcmd = linkcmd .. &quot; &quot; .. utils.prepend_string( libraries, &quot;-l&quot; )
+   return linkcmd
+ end
+ 
++---------------------------------------
++-- Target handling
++
++-- Create a return a new C to object target
++builder.c_target = function( self, target, deps, comp_cmd )
++  return _target.new( target, deps, comp_cmd or self.comp_cmd, self.clean_mode )
++end
++
++-- Create a return a new ASM to object target
++builder.asm_target = function( self, target, deps, asm_cmd )
++  return _target.new( target, deps, asm_cmd or self.asm_cmd, self.clean_mode )
++end
++
++-- Return the name of a dependency file name corresponding to a C source
++builder.get_dep_filename = function( self, srcname )
++  return utils.replace_extension( self.build_dir .. dir_sep .. linearize_fname( srcname ), &quot;d&quot; )
++end
++
++-- Create a return a new C dependency target
++builder.dep_target = function( self, dep, depdeps, dep_cmd )
++  local depname = self:get_dep_filename( dep )
++  return _target.new( depname, depdeps, dep_cmd, self.clean_mode )
++end
++
++-- Create and return a new link target
++builder.link_target = function( self, out, dep, link_cmd )
++  if not out:find( &quot;%.&quot; ) and self.exe_extension and #self.exe_extension &gt; 0 then
++    out = out .. self.exe_extension
++  end
++  return _target.new( out, dep, link_cmd or self.link_cmd, self.clean_mode )
++end
++
++-- Create and return a new generic target
++builder.target = function( self, dest_target, deps, cmd )
++  return _target.new( dest_target, deps, cmd, self.clean_mode )
++end
++
+ -- Return the object name corresponding to a source file name
+ builder.obj_name = function( self, name )
+   local r = self.obj_extension
+@@ -387,12 +638,6 @@
+   end
+ end
+ 
+--- Helper: remove the target (used in clean mode)
+-builder._clean = function( target, deps )
+-  print( &quot;Removing &quot; .. target )
+-  os.remove( target )
+-end
+-
+ -- Read and interpret dependencies for each file specified in &quot;ftable&quot;
+ -- &quot;ftable&quot; is either a space-separated string with all the source files or an array
+ builder.read_depends = function( self, ftable )
+@@ -414,20 +659,22 @@
+ 
+ -- Build and interpret dependencies for the given source files
+ -- &quot;flable&quot; is either a space-separated string with all the source files or an array
+-builder.make_depends = function( self, ftable )
++builder.make_depends = function( self, ftable, deptargets )
+   if type( ftable ) == 'string' then ftable = utils.string_to_table( ftable )end
++  self:_create_outdir()
+ 
+   -- Start with initial dependency data (this might be nil when generated initially)
+   local initdep = self:read_depends( ftable )
+ 
+   -- Build dependencies for all targets
+-  local deptargets = {}
++  deptargets = deptargets or {}
+   for i = 1, #ftable do
+-    local target = self:dep_target( ftable[ i ], initdep[ ftable[ i ] ], self.clean_mode and builder._clean or nil )
+-    target:force_rebuild( self.clean_mode )
++    local isasm = ftable[ i ]:find( &quot;%.c$&quot; ) == nil
++    local cmd = isasm and self.asm_cmd or self.comp_cmd
++    local target = self:dep_target( ftable[ i ], initdep[ ftable[ i ] ], cmd:gsub( &quot;-c &quot;, &quot;-E -MM &quot; ) )
+     table.insert( deptargets, target )
+   end
+-  local t = builder:target( &quot;#phony.deps&quot;, deptargets )
++  local t = self:target( &quot;#phony:deps&quot;, deptargets )
+   t:build()
+   if self.clean_mode then return end
+ 
+@@ -435,7 +682,7 @@
+   self.dtable = self:read_depends( ftable )
+ end
+ 
+--- Create compile targets for the given sources
++-- Create and return compile targets for the given sources
+ builder.create_compile_targets = function( self, ftable, res )
+   if not self.dtable then
+     if not self.clean_mode then
+@@ -447,29 +694,67 @@
+   if type( ftable ) == 'string' then
+     ftable = utils.string_to_table( ftable )
+   end
+-
+   -- Build dependencies for all targets
+   for i = 1, #ftable do
+-    local target = self:c_target( self:obj_name( ftable[ i ] ), self.dtable and self.dtable[ ftable[ i ] ], self.clean_mode and builder._clean or nil )
+-    target:force_rebuild( self.clean_mode )
++    local target 
++    if ftable[ i ]:find( &quot;%.c$&quot; ) then
++      target = self:c_target( self:obj_name( ftable[ i ] ), self.dtable and self.dtable[ ftable[ i ] ] )
++    else
++      target = self:asm_target( self:obj_name( ftable[ i ] ), self.dtable and self.dtable[ ftable[ i ] ] )
++    end
+     table.insert( res, target )
+   end
++  return res
++end
+ 
++-- Add a target to the list of builder targets
++builder.add_target = function( self, target, alias )
++  self.targets[ target.target ] = target
++  alias = alias or {}
++  for _, v in ipairs( alias ) do
++    self.targets[ v ] = target
++  end
++  return target
++end
++
++-- Make a target the default one
++builder.default = function( self, target, alias )
++  self:add_target( target, alias )
++  self.deftarget = target.target
++end
++
++-- Build everything
++builder.build = function( self, target )
++  local t = self.targetname or self.deftarget
++  if not t then
++    print( &quot;Error: build target not specified&quot; )
++    os.exit( 1 )
++  end
++  if not self.targets[ t ] then
++    print( sf( &quot;Error: target '%s' not found&quot;, t ) )
++    os.exit( 1 )
++  end
++  self:_create_outdir()
++  local res = self.targets[ t ]:build()
++  if not res then print( sf( '%s: up to date', t ) ) end
++  print &quot;Done building targets.&quot;
+   return res
+ end
+ 
+--- Build the specified target starting from the given deps
+--- This links in regular mode and cleans in clean mode
+-builder.build_c_target = function( self, out, odeps )
+-  local t = self:link_target( out, odeps, self.clean_mode and builder._clean or nil )
+-  t:force_rebuild( self.clean_mode )
+-  t:build()
++
++-- Create dependencies, create object files, link final object
++builder.make_exe_target = function( self, target, file_list )
++  self:make_depends( file_list )
++  local odeps = self:create_compile_targets( file_list )
++  local exetarget = self:link_target( target, odeps )
++  self:default( self:add_target( exetarget ) )
++  return exetarget
+ end
+ 
+ -------------------------------------------------------------------------------
+ -- Other exported functions
+ 
+-function new_builder( build_dir, comp_cmd, dep_cmd, link_cmd )
+-  return builder.new( build_dir, comp_cmd, dep_cmd, link_cmd )
++function new_builder( build_dir )
++  return builder.new( build_dir )
+ end
+ 
+
+Added: trunk/utils/mkfs.lua
+===================================================================
+--- trunk/utils/mkfs.lua	                        (rev 0)
++++ trunk/utils/mkfs.lua	2011-02-21 01:01:21 UTC (rev 965)
+@@ -0,0 +1,140 @@
++-- A module to convert an entire directory to a C array, in the &quot;romfs&quot; format
++module( ..., package.seeall )
++require &quot;pack&quot;
++local sf = string.format
++local b = require &quot;utils.build&quot;
++local utils = b.utils
++
++local _crtline = '  '
++local _numdata = 0
++local _bytecnt = 0
++local maxlen = 30
++local outfile
++
++-- Line output function
++local function _add_data( data, outfile, moredata )
++  if moredata == nil then moredata = true end
++  _bytecnt = _bytecnt + 1
++  if moredata then
++    _crtline = _crtline .. sf( &quot;0x%02X, &quot;, data )
++  else
++    _crtline = _crtline .. sf( &quot;0x%02X&quot;, data )
++  end
++  _numdata = _numdata + 1
++  if _numdata == 16 or not moredata then
++    outfile:write( _crtline .. '\n' )
++    _crtline = '  '
++    _numdata = 0
++  end
++end
++
++-- dirname - the directory where the files are located.
++-- outname - the name of the C output
++-- flist - list of files
++-- mode - preprocess the file system:
++--   &quot;verbatim&quot; - copy the files directly to the FS as they are
++--   &quot;compile&quot; - precompile all files to Lua bytecode and then copy them
++--   &quot;compress&quot; - keep the source code, but compress it with LuaSrcDiet
++-- compcmd - the command to use for compiling if &quot;mode&quot; is &quot;compile&quot;
++-- Returns true for OK, false for error
++function mkfs( dirname, outname, flist, mode, compcmd )
++  -- Try to create the output files
++  local outfname = outname .. &quot;.h&quot;
++  outfile = io.open( outfname, &quot;wb&quot; )
++  if not outfile then
++    print &quot;Unable to create output file&quot;
++    return false
++  end
++
++  _crtline = '  '
++  _numdata = 0
++  _bytecnt = 0
++
++  -- Generate headers
++  outfile:write( &quot;// Generated by mkfs.lua\n// DO NOT MODIFY\n\n&quot; )
++  outfile:write( sf( &quot;#ifndef __%s_H__\n#define __%s_H__\n\n&quot;, outname:upper(), outname:upper() ) )
++  
++  outfile:write( sf( &quot;const unsigned char %s_fs[] = \n{\n&quot;, outname:lower() ) )
++  
++  -- Process all files
++  for _, fname in pairs( flist ) do
++    if #fname &gt; maxlen then
++      print( sf( &quot;Skipping %s (name longer than %d chars)&quot;, fname, maxlen ) )
++    else 
++      -- Get actual file name
++      local realname = dirname .. utils.dir_sep .. fname      
++      -- Ensure it actually is a file
++      if not utils.is_file( realname ) then
++        print( sf( &quot;Skipping %s ... (not found or not a regular file)&quot;, fname ) )
++      else          
++        -- Try to open and read the file
++        local crtfile = io.open( realname, &quot;rb&quot; )
++        if not crtfile then
++          outfile:close()
++          os.remove( outfname )
++          print( sf( &quot;Unable to read %s&quot;, fname ) )
++          return false
++        end
++        -- Do we need to process the file?
++        local fextpart = ''
++        if mode == &quot;compile&quot; or mode == &quot;compress&quot; then
++          local fnamepart, fextpart = utils.split_path( realname )
++          local newext = mode == &quot;compress&quot; and &quot;.lua.tmp&quot; or &quot;.lc&quot;
++          if fextpart == &quot;.lua&quot; then
++            newname = fnamepart .. newext
++            if mode == &quot;compress&quot; then
++              print( sf( &quot;Compressing %s to %s ...&quot;, realname, newname ) )
++            else
++              print( sf( &quot;Cross compiling %s to %s ...&quot;, realname, newname ) )
++            end
++            if os.execute( sf( compcmd, newname, realname ) ) ~= 0 then
++              print &quot;Cross-compilation error, aborting&quot;
++              outfile:close()
++              crtfile:close()
++              return false
++            end
++            crtfile:close()
++            crtile = io.open( newname, &quot;rb&quot; )
++            if not crtfile then
++              outfile:close()
++              os.remove( outfname )
++              print( sf( &quot;Unable to read %s&quot;, newname ) )
++              return false
++            end
++            if mode == &quot;compile&quot; then
++              fnamepart, fextpart = utils.split_path( fname )
++              fname = fnamepart + &quot;.lc&quot;
++            end
++          end
++        end
++        local filedata = crtfile:read( '*a' )
++        crtfile:close()
++        if fextpart == &quot;.lua&quot; and mode ~= &quot;verbatim&quot; then
++          os.remove( newname )
++        end
++        -- Write name, size, id, numpars
++        for i = 1, #fname do
++          _add_data( fname:byte( i ), outfile )
++        end
++        _add_data( 0, outfile ) -- ASCIIZ
++        local plen = string.pack( &quot;&lt;h&quot;, #filedata )
++        _add_data( plen[ 1 ], outfile )
++        _add_data( plen[ 2 ], outfile )
++        -- Then write the rest of the file
++        for i = 1, #filedata do
++          _add_data( filedata:byte( i ), outfile )
++        end
++        -- Report
++        print( sf( &quot;Encoded file %s (%d bytes)&quot;, fname, #filedata ) )
++      end
++    end
++  end
++    
++  -- All done, write the final &quot;0&quot; (terminator)
++  _add_data( 0, outfile, false )
++  outfile:write( &quot;};\n\n#endif\n&quot; );
++  outfile:close()
++  print( sf( &quot;Done, total size is %d bytes&quot;, _bytecnt ) )
++  return true
++end
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000917.html">[Elua-svn] r964 - in trunk: . utils
+</A></li>
+	<LI>Next message: <A HREF="000919.html">[Elua-svn] r966 - trunk/utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#918">[ date ]</a>
+              <a href="thread.html#918">[ thread ]</a>
+              <a href="subject.html#918">[ subject ]</a>
+              <a href="author.html#918">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

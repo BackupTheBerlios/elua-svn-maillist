@@ -1,0 +1,133 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] 93743f: First working hack at single channel	bit-bang I2C ...
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%2093743f%3A%20First%20working%20hack%20at%20single%20channel%0A%09bit-bang%20I2C%20...&In-Reply-To=%3C20110628065403.E6A7042527%40smtp1.rs.github.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001038.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] 93743f: First working hack at single channel	bit-bang I2C ...</H1>
+    <B>noreply at github.com</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%2093743f%3A%20First%20working%20hack%20at%20single%20channel%0A%09bit-bang%20I2C%20...&In-Reply-To=%3C20110628065403.E6A7042527%40smtp1.rs.github.com%3E"
+       TITLE="[eLua-svn] [elua/elua] 93743f: First working hack at single channel	bit-bang I2C ...">noreply at github.com
+       </A><BR>
+    <I>Tue Jun 28 08:54:03 CEST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001038.html">[eLua-svn] [elua/elua] 4dea8b: Use the AVR32 GPIO's set/clear	registers to simpli...
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1039">[ date ]</a>
+              <a href="thread.html#1039">[ thread ]</a>
+              <a href="subject.html#1039">[ subject ]</a>
+              <a href="author.html#1039">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+
+  Commit: 93743fa12ec9a268c08b86eceacc6cc51c0e04f6
+      <A HREF="https://github.com/elua/elua/commit/93743fa12ec9a268c08b86eceacc6cc51c0e04f6">https://github.com/elua/elua/commit/93743fa12ec9a268c08b86eceacc6cc51c0e04f6</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-06-27 (Mon, 27 Jun 2011)
+
+  Changed paths:
+    M src/platform/avr32/EVK1100/evk1100_conf.h
+  M src/platform/avr32/MIZAR32/mizar32_conf.h
+  M src/platform/avr32/conf.lua
+  M src/platform/avr32/conf.py
+  A src/platform/avr32/i2c.c
+  A src/platform/avr32/i2c.h
+  M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  First working hack at single channel bit-bang I2C for AVR32.
+
+To get round the inadequacies of the AVR32 &quot;TWI&quot; hardware, this implements
+I2C as a bit-banging interface, currently handling a single channel only.
+Tested on EVK1100 and Mizar32. &quot;Should work&quot; on EVK1101 if the 2-line change
+is made to evk1101_conf.h
+
+
+  Commit: 5746dfc1e01f6807711ea1477611d63cb6b340cd
+      <A HREF="https://github.com/elua/elua/commit/5746dfc1e01f6807711ea1477611d63cb6b340cd">https://github.com/elua/elua/commit/5746dfc1e01f6807711ea1477611d63cb6b340cd</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-06-27 (Mon, 27 Jun 2011)
+
+  Changed paths:
+    M src/modules/pio.c
+
+  Log Message:
+  -----------
+  Make pio.decode() present also when optram=0 (fixes bug #187)
+
+
+  Commit: ca7f6befd92461a57a77fb628a1d7efaa599619b
+      <A HREF="https://github.com/elua/elua/commit/ca7f6befd92461a57a77fb628a1d7efaa599619b">https://github.com/elua/elua/commit/ca7f6befd92461a57a77fb628a1d7efaa599619b</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-06-27 (Mon, 27 Jun 2011)
+
+  Changed paths:
+    M src/common_tmr.c
+
+  Log Message:
+  -----------
+  Avoid returning negative values from tmr.getmaxdelay(tmr.VIRT0)
+
+The return value from tmr.getmaxdelay() is always passed to
+lua_pushinteger(), which turns the top half of the unsigned numbers into
+negative values. This always used to bite getmaxdelay(tmr.VIRT0) and can bite
+tmr.gettimediff(0, small, large).
+
+Fixes bug #229 in the old tracker.
+
+
+  Commit: 0452d1e79de5f31b3e1ea35b643758f9fa3699ad
+      <A HREF="https://github.com/elua/elua/commit/0452d1e79de5f31b3e1ea35b643758f9fa3699ad">https://github.com/elua/elua/commit/0452d1e79de5f31b3e1ea35b643758f9fa3699ad</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-06-27 (Mon, 27 Jun 2011)
+
+  Changed paths:
+    M src/platform/avr32/MIZAR32/mizar32_conf.h
+
+  Log Message:
+  -----------
+  Fix code to select 120KB config for Mizar32
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/4dea8b6...0452d1e">https://github.com/elua/elua/compare/4dea8b6...0452d1e</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001038.html">[eLua-svn] [elua/elua] 4dea8b: Use the AVR32 GPIO's set/clear	registers to simpli...
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1039">[ date ]</a>
+              <a href="thread.html#1039">[ thread ]</a>
+              <a href="subject.html#1039">[ subject ]</a>
+              <a href="author.html#1039">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

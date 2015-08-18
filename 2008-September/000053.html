@@ -1,0 +1,811 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r97 - in trunk: . inc src src/modules src/platform/lm3s	src/uip
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r97%20-%20in%20trunk%3A%20.%20inc%20src%20src/modules%20src/platform/lm3s%0A%09src/uip&In-Reply-To=%3C200809222117.m8MLHjZL007423%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000052.html">
+   <LINK REL="Next"  HREF="000054.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r97 - in trunk: . inc src src/modules src/platform/lm3s	src/uip</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r97%20-%20in%20trunk%3A%20.%20inc%20src%20src/modules%20src/platform/lm3s%0A%09src/uip&In-Reply-To=%3C200809222117.m8MLHjZL007423%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r97 - in trunk: . inc src src/modules src/platform/lm3s	src/uip">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Sep 22 23:17:45 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000052.html">[Elua-svn] r96 - trunk/src/modules
+</A></li>
+        <LI>Next message: <A HREF="000054.html">[Elua-svn] r98 - in trunk: inc src src/modules src/newlib
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#53">[ date ]</a>
+              <a href="thread.html#53">[ thread ]</a>
+              <a href="subject.html#53">[ subject ]</a>
+              <a href="author.html#53">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-09-22 23:17:44 +0200 (Mon, 22 Sep 2008)
+New Revision: 97
+
+Added:
+   trunk/src/modules/net.c
+Modified:
+   trunk/SConstruct
+   trunk/inc/elua_net.h
+   trunk/inc/elua_uip.h
+   trunk/src/elua_uip.c
+   trunk/src/modules/auxmods.h
+   trunk/src/modules/term.c
+   trunk/src/platform/lm3s/platform_libs.h
+   trunk/src/uip/uip.h
+Log:
+added the 'net' module for eLua, ONLY VERY BRIEFLY TESTED. Finally, we have TCP/IP from eLua
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2008-09-21 16:15:06 UTC (rev 96)
++++ trunk/SConstruct	2008-09-22 21:17:44 UTC (rev 97)
+@@ -95,7 +95,7 @@
+   print    
+ 
+ output = 'elua_' + target + '_' + cputype.lower()
+-cdefs = '-DELUA_CPU=%s -DELUA_BOARD=%s -DELUA_PLATFORM=%s' % ( cputype, boardname, platform.upper() )
++cdefs = '-DELUA_CPU=%s -DELUA_BOARD=%s -DELUA_PLATFORM=%s -D__BUFSIZ__=128' % ( cputype, boardname, platform.upper() )
+ if allocator == 'multiple':
+   cdefs = cdefs + &quot; -DUSE_MULTIPLE_ALLOCATOR&quot;
+ 
+@@ -128,8 +128,8 @@
+ local_include = local_include + &quot; -Isrc/uip&quot;
+ 
+ # Lua module files
+-module_files = &quot;&quot;&quot; src/modules/pio.c src/modules/spi.c src/modules/tmr.c src/modules/pd.c src/modules/uart.c
+-                   src/modules/term.c src/modules/pwm.c src/modules/lpack.c src/modules/bit.c&quot;&quot;&quot;
++module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c&quot;
++module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+   
+ # Optimizer flags (speed or size)
+ #opt = &quot;-O3&quot;
+@@ -160,9 +160,10 @@
+                     OBJSUFFIX = &quot;.o&quot;, 
+                     PROGSUFFIX = &quot;.elf&quot;,
+                     ENV = os.environ )
+-comp.TargetSignatures( 'content' )
+-comp.SourceSignatures( 'MD5' )
++# comp.TargetSignatures( 'content' )
++# comp.SourceSignatures( 'MD5' )
+ Default( comp.Program( output, Split( source_files ) ) )
++Decider( 'MD5' )
+ 
+ # Programming target
+ prog = Environment( BUILDERS = { 'program' : Builder( action = Action ( tools[ platform ][ 'progfunc' ] ) ) }, ENV = os.environ )
+
+Modified: trunk/inc/elua_net.h
+===================================================================
+--- trunk/inc/elua_net.h	2008-09-21 16:15:06 UTC (rev 96)
++++ trunk/inc/elua_net.h	2008-09-22 21:17:44 UTC (rev 97)
+@@ -4,10 +4,29 @@
+ #define __ELUA_NET_H__
+ 
+ #include &quot;type.h&quot;
++#include &quot;lauxlib.h&quot;
+ 
+ // eLua network typedefs
+ typedef s16 elua_net_size;
+ 
++// eLua net error codes
++enum
++{
++  ELUA_NET_ERR_OK = 0,
++  ELUA_NET_ERR_TIMEDOUT,
++  ELUA_NET_ERR_CLOSED,
++  ELUA_NET_ERR_ABORTED,
++  ELUA_NET_ERR_OVERFLOW
++};
++
++// eLua IP address type
++typedef union
++{
++  u32     ipaddr;
++  u8      ipbytes[ 4 ];
++  u16     ipwords[ 2 ];
++} elua_net_ip;
++
+ // eLua services ports
+ #define ELUA_NET_TELNET_PORT          23
+ 
+@@ -15,13 +34,16 @@
+ #define ELUA_NET_SOCK_STREAM          0
+ #define ELUA_NET_SOCK_DGRAM           1
+ 
++// 'no lastchar' for read to char (recv)
++#define ELUA_NET_NO_LASTCHAR          ( -1 )
++
+ // eLua TCP/IP functions
+ int elua_net_socket( int type );
+-
+ int elua_net_close( int s );
+-elua_net_size elua_net_recv( int s, void* buf, elua_net_size maxsize );
++elua_net_size elua_net_recv( int s, luaL_Buffer *buf, elua_net_size maxsize, s16 readto, unsigned timer_id, u32 to_us );
+ elua_net_size elua_net_send( int s, const void* buf, elua_net_size len );
+-int elua_accept( u16 port );
++int elua_accept( u16 port, unsigned timer_id, u32 to_us, elua_net_ip* pfrom );
++int elua_net_connect( int s, elua_net_ip addr, u16 port );
+ 
+ int elua_net_get_last_err( int s );
+ int elua_net_get_telnet_socket();
+
+Modified: trunk/inc/elua_uip.h
+===================================================================
+--- trunk/inc/elua_uip.h	2008-09-21 16:15:06 UTC (rev 96)
++++ trunk/inc/elua_uip.h	2008-09-22 21:17:44 UTC (rev 97)
+@@ -14,28 +14,21 @@
+   ELUA_UIP_STATE_SEND,
+   ELUA_UIP_STATE_RECV,
+   ELUA_UIP_STATE_RECV_2,
++  ELUA_UIP_STATE_CONNECT,
+   ELUA_UIP_STATE_CLOSE
+ };
+ 
+-// eLua UIP &quot;error codes&quot;
+-enum
+-{
+-  ELUA_UIP_OK = 0,
+-  ELUA_UIP_ERR_TIMEDOUT,
+-  ELUA_UIP_ERR_CLOSED,
+-  ELUA_UIP_ERR_ABORTED,
+-  ELUA_UIP_ERR_OVERFLOW
+-};
+-
+ // eLua UIP state
+ struct elua_uip_state
+ {
+   u8                state, res;
+   char*             ptr; 
+   elua_net_size     len;
++  s16               readto;
+ };
+ 
+ struct uip_eth_addr;
++
+ // Helper functions
+ void elua_uip_appcall();
+ void elua_uip_init( const struct uip_eth_addr* paddr );
+
+Modified: trunk/src/elua_uip.c
+===================================================================
+--- trunk/src/elua_uip.c	2008-09-21 16:15:06 UTC (rev 96)
++++ trunk/src/elua_uip.c	2008-09-22 21:17:44 UTC (rev 97)
+@@ -19,7 +19,7 @@
+ extern void* uip_sappdata;
+ 
+ // Global &quot;configured&quot; flag
+-static u8 elua_uip_configured;
++static volatile u8 elua_uip_configured;
+ 
+ // *****************************************************************************
+ // Platform independenet eLua UIP &quot;main loop&quot; implementation
+@@ -182,13 +182,14 @@
+ // Utility function for TELNET: parse input buffer, skipping over
+ // TELNET specific sequences
+ // Returns the length of the buffer after processing
+-static elua_net_size elua_uip_telnet_parse_input( struct elua_uip_state* s, elua_net_size size )
++static void elua_uip_telnet_handle_input( struct elua_uip_state* s )
+ {
+-  u8* dptr = ( u8* )uip_appdata;
++  u8 *dptr = ( u8* )uip_appdata, *orig = ( u8* )s-&gt;ptr;
+   int skip;
++  elua_net_size actlen = uip_datalen();
+   
+   // Traverse the input buffer, skipping over TELNET sequences
+-  while( ( size &gt; 0 ) &amp;&amp; ( dptr &lt; ( u8* )uip_appdata + uip_datalen() ) )
++  while( ( dptr &lt; ( u8* )uip_appdata + uip_datalen() ) &amp;&amp; ( s-&gt;ptr - orig &lt; s-&gt;len ) )
+   {
+     if( *dptr != TELNET_IAC_CHAR ) // regular char, copy it to buffer
+       *s-&gt;ptr ++ = *dptr ++;
+@@ -203,14 +204,21 @@
+         if( dptr[ 1 ] == TELNET_EOF )
+         {
+           *s-&gt;ptr ++ = STD_CTRLZ_CODE;
+-          size ++;
++          actlen ++;
+         }
+         skip = 2;
+       }
+       dptr += skip;
+-      size = UMAX( 0, size - skip );
++      actlen -= skip;
+     }
+   } 
++  if( s-&gt;ptr &gt; orig )
++  {
++    if( ( s-&gt;len = s-&gt;ptr - orig ) &lt; actlen )
++      s-&gt;res = ELUA_NET_ERR_OVERFLOW;
++    uip_stop();
++    s-&gt;state = ELUA_UIP_STATE_IDLE;
++  }
+   return size;
+ }
+ 
+@@ -244,6 +252,7 @@
+ // Special handling for &quot;accept&quot;
+ volatile static u8 elua_uip_accept_request;
+ volatile static int elua_uip_accept_sock;
++volatile static elua_net_ip elua_uip_accept_remote;
+ 
+ void elua_uip_appcall()
+ {
+@@ -264,7 +273,6 @@
+ 
+   if( uip_connected() )
+   {
+-    // [TODO] handle locally initiated connections too (via uip_connect)
+ #ifdef BUILD_CON_TCP    
+     if( uip_conn-&gt;lport == HTONS( ELUA_NET_TELNET_PORT ) ) // special case: telnet server
+       elua_uip_telnet_socket = sockno;
+@@ -273,8 +281,13 @@
+     if( elua_uip_accept_request )
+     {
+       elua_uip_accept_sock = sockno;
++      elua_uip_accept_remote.ipwords[ 0 ] = uip_conn-&gt;ripaddr[ 0 ];
++      elua_uip_accept_remote.ipwords[ 1 ] = uip_conn-&gt;ripaddr[ 1 ];      
+       elua_uip_accept_request = 0;
+     }
++    else if( s-&gt;state == ELUA_UIP_STATE_CONNECT )
++      s-&gt;state = ELUA_UIP_STATE_IDLE;
++    uip_stop();
+     return;
+   }
+ 
+@@ -293,7 +306,7 @@
+   if( uip_aborted() || uip_timedout() || uip_closed() )
+   {
+     // Signal this error
+-    s-&gt;res = uip_aborted() ? ELUA_UIP_ERR_ABORTED : ( uip_timedout() ? ELUA_UIP_ERR_TIMEDOUT : ELUA_UIP_ERR_CLOSED );
++    s-&gt;res = uip_aborted() ? ELUA_NET_ERR_ABORTED : ( uip_timedout() ? ELUA_NET_ERR_TIMEDOUT : ELUA_NET_ERR_CLOSED );
+ #ifdef BUILD_CON_TCP    
+     if( sockno == elua_uip_telnet_socket )
+       elua_uip_telnet_socket = -1;      
+@@ -348,25 +361,60 @@
+   {
+     if( s-&gt;state == ELUA_UIP_STATE_RECV_2 )
+     {
+-      temp = uip_datalen();
+ #ifdef BUILD_CON_TCP      
+       if( sockno == elua_uip_telnet_socket )
+       {
+-        if( ( temp = elua_uip_telnet_parse_input( s, temp ) ) == 0 )
+-          return;
++        elua_uip_telnet_handle_input( s );
++        return;
+       }
++#endif   
++      int lastfound = 0;
++      
++      // Check overflow
++      if( s-&gt;len &lt; uip_datalen() )
++      {
++        s-&gt;res = ELUA_NET_ERR_OVERFLOW;   
++        temp = s-&gt;len;
++      }
+       else
+-#endif      
+-        memcpy( s-&gt;ptr, uip_appdata, UMIN( s-&gt;len, temp ) );
+-      s-&gt;len = UMIN( s-&gt;len, temp );  
+-      if( s-&gt;len &lt; temp )
+-        s-&gt;res = ELUA_UIP_ERR_OVERFLOW;
+-      uip_stop();
+-      s-&gt;state = ELUA_UIP_STATE_IDLE;
++        temp = uip_datalen();
++      
++      if( s-&gt;readto != ELUA_NET_NO_LASTCHAR )
++      {
++        char *tptr = ( char* )uip_appdata;
++        char *last = ( char* )uip_appdata + temp - 1;
++        luaL_Buffer *pbuf = ( luaL_Buffer* )s-&gt;ptr;
++        
++        while( tptr &lt;= last )
++        {
++          if( *tptr == s-&gt;readto )
++          {
++            lastfound = 1;
++            break;
++          }
++          if( *tptr != '\r' )
++          {
++            luaL_addchar( pbuf, *tptr );
++            s-&gt;len --;
++          }
++          tptr ++;
++        }
++      }
++      else
++      {
++        luaL_addlstring( ( luaL_Buffer* )s-&gt;ptr, ( const char* )uip_appdata, temp );        
++        s-&gt;len -= temp;
++      }
++        
++      // Do we need to read another packet?
++      if( s-&gt;len == 0 || lastfound )
++      {
++        uip_stop();
++        s-&gt;state = ELUA_UIP_STATE_IDLE;
++      }
+     }
+     else
+       uip_stop();
+-    return;
+   }
+ }
+ 
+@@ -402,6 +450,15 @@
+ 
+ #define ELUA_UIP_IS_SOCK_OK( sock ) ( elua_uip_configured &amp;&amp; sock &gt;= 0 &amp;&amp; sock &lt; UIP_CONNS )
+ 
++static void elua_prep_socket_state( volatile struct elua_uip_state *pstate, void* buf, elua_net_size len, s16 readto, u8 state )
++{  
++  pstate-&gt;ptr = ( char* )buf;
++  pstate-&gt;len = len;
++  pstate-&gt;res = ELUA_NET_ERR_OK;
++  pstate-&gt;readto = readto;
++  pstate-&gt;state = state;
++}
++
+ int elua_net_socket( int type )
+ {
+   int i;
+@@ -436,30 +493,42 @@
+     return -1;
+   if( len == 0 )
+     return 0;
+-  pstate-&gt;ptr = ( char* )buf;
+-  pstate-&gt;len = len;
+-  pstate-&gt;res = ELUA_UIP_OK;
+-  pstate-&gt;state = ELUA_UIP_STATE_SEND;  
++  elua_prep_socket_state( pstate, ( void* )buf, len, ELUA_NET_NO_LASTCHAR, ELUA_UIP_STATE_SEND );
+   platform_eth_force_interrupt();
+   while( pstate-&gt;state != ELUA_UIP_STATE_IDLE );
+   return len - pstate-&gt;len;
+ }
+ 
+-// Receive data
+-elua_net_size elua_net_recv( int s, void* buf, elua_net_size maxsize )
++// Receive datain buf, upto &quot;maxsize&quot; bytes, or upto the 'readto' character if it's not -1
++elua_net_size elua_net_recv( int s, luaL_Buffer* buf, elua_net_size maxsize, s16 readto, unsigned timer_id, u32 to_us )
+ {
+   volatile struct elua_uip_state *pstate = ( volatile struct elua_uip_state* )&amp;( uip_conns[ s ].appstate );
++  u32 tmrstart = 0;
+   
+   if( !ELUA_UIP_IS_SOCK_OK( s ) || !uip_conn_active( s ) )
+     return -1;
+   if( maxsize == 0 )
+     return 0;
+-  pstate-&gt;ptr = ( char* )buf;
+-  pstate-&gt;len = maxsize;
+-  pstate-&gt;res = ELUA_UIP_OK;  
+-  pstate-&gt;state = ELUA_UIP_STATE_RECV;
+-  while( pstate-&gt;state != ELUA_UIP_STATE_IDLE );
+-  return pstate-&gt;len;
++  elua_prep_socket_state( pstate, buf, maxsize, readto, ELUA_UIP_STATE_RECV );
++  if( to_us &gt; 0 )
++    tmrstart = platform_timer_op( timer_id, PLATFORM_TIMER_OP_START, 0 );
++  while( 1 )
++  {
++    if( pstate-&gt;state == ELUA_UIP_STATE_IDLE )
++      break;
++    if( to_us &gt; 0 &amp;&amp; platform_timer_get_diff_us( timer_id, tmrstart, platform_timer_op( timer_id, PLATFORM_TIMER_OP_READ, 0 ) ) &gt;= to_us )
++    {
++      platform_cpu_disable_interrupts();
++      if( pstate-&gt;state != ELUA_UIP_STATE_IDLE )
++      { 
++        pstate-&gt;res = ELUA_NET_ERR_TIMEDOUT;
++        pstate-&gt;state = ELUA_UIP_STATE_IDLE;
++      }
++      platform_cpu_enable_interrupts();
++      break;
++    }
++  }
++  return maxsize - pstate-&gt;len;
+ }
+ 
+ // Return the socket associated with the &quot;telnet&quot; application (or -1 if it does
+@@ -483,11 +552,10 @@
+   
+   if( !ELUA_UIP_IS_SOCK_OK( s ) || !uip_conn_active( s ) )
+     return -1;
+-  pstate-&gt;res = ELUA_UIP_OK;    
+-  pstate-&gt;state = ELUA_UIP_STATE_CLOSE;
++  elua_prep_socket_state( pstate, NULL, 0, ELUA_NET_NO_LASTCHAR, ELUA_UIP_STATE_CLOSE );
+   platform_eth_force_interrupt();
+   while( pstate-&gt;state != ELUA_UIP_STATE_IDLE );
+-  return 0;
++  return pstate-&gt;res == ELUA_NET_ERR_OK ? 0 : -1;
+ }
+ 
+ // Get last error on specific socket
+@@ -500,9 +568,11 @@
+   return pstate-&gt;res;
+ }
+ 
+-// Accept a connection on the given port, return its socket id
+-int elua_accept( u16 port )
++// Accept a connection on the given port, return its socket id (and the IP of the remote host by side effect)
++int elua_accept( u16 port, unsigned timer_id, u32 to_us, elua_net_ip* pfrom )
+ {
++  u32 tmrstart = 0;
++  
+   if( !elua_uip_configured )
+     return -1;
+ #ifdef BUILD_CON_TCP
+@@ -515,8 +585,41 @@
+   platform_cpu_enable_interrupts();
+   elua_uip_accept_sock = -1;
+   elua_uip_accept_request = 1;
+-  while( elua_uip_accept_request );
++  if( to_us &gt; 0 )
++    tmrstart = platform_timer_op( timer_id, PLATFORM_TIMER_OP_START, 0 );
++  while( 1 )
++  {
++    if( elua_uip_accept_request == 0 )
++      break;
++    if( to_us &gt; 0 &amp;&amp; platform_timer_get_diff_us( timer_id, tmrstart, platform_timer_op( timer_id, PLATFORM_TIMER_OP_READ, 0 ) ) &gt;= to_us )
++    {
++      elua_uip_accept_request = 0;
++      break;
++    }
++  }  
++  *pfrom = elua_uip_accept_remote;
+   return elua_uip_accept_sock;
+ }
+ 
++// Connect to a specified machine
++int elua_net_connect( int s, elua_net_ip addr, u16 port )
++{
++  volatile struct elua_uip_state *pstate = ( volatile struct elua_uip_state* )&amp;( uip_conns[ s ].appstate );
++  uip_ipaddr_t ipaddr;
++  
++  if( !ELUA_UIP_IS_SOCK_OK( s ) )
++    return -1;
++  // The socket should have been reserved by a previous call to &quot;elua_net_socket&quot;
++  if( !uip_conn_is_reserved( s ) )
++    return -1;
++  // Initiate the connect call  
++  uip_ipaddr( ipaddr, addr.ipbytes[ 0 ], addr.ipbytes[ 1 ], addr.ipbytes[ 2 ], addr.ipbytes[ 3 ] );
++  elua_prep_socket_state( pstate, NULL, 0, ELUA_NET_NO_LASTCHAR, ELUA_UIP_STATE_CONNECT );  
++  if( uip_connect_socket( s, &amp;ipaddr, htons( port ) ) == NULL )
++    return -1;
++  // And wait for it to finish
++  while( pstate-&gt;state != ELUA_UIP_STATE_IDLE );
++  return pstate-&gt;res == ELUA_NET_ERR_OK ? 0 : -1;
++}
++
+ #endif // #ifdef BUILD_UIP
+
+Modified: trunk/src/modules/auxmods.h
+===================================================================
+--- trunk/src/modules/auxmods.h	2008-09-21 16:15:06 UTC (rev 96)
++++ trunk/src/modules/auxmods.h	2008-09-22 21:17:44 UTC (rev 97)
+@@ -10,29 +10,32 @@
+ LUALIB_API int ( luaopen_pio )( lua_State *L );
+ 
+ #define AUXLIB_SPI      &quot;spi&quot;
+-LUALIB_API int ( luaopen_spi )( lua_State* L );
++LUALIB_API int ( luaopen_spi )( lua_State *L );
+ 
+ #define AUXLIB_TMR      &quot;tmr&quot;
+-LUALIB_API int ( luaopen_tmr )( lua_State* L );
++LUALIB_API int ( luaopen_tmr )( lua_State *L );
+ 
+ #define AUXLIB_PD       &quot;pd&quot;
+-LUALIB_API int ( luaopen_pd )( lua_State* L );
++LUALIB_API int ( luaopen_pd )( lua_State *L );
+ 
+ #define AUXLIB_UART     &quot;uart&quot;
+-LUALIB_API int ( luaopen_uart )( lua_State* L );
++LUALIB_API int ( luaopen_uart )( lua_State *L );
+ 
+ #define AUXLIB_TERM     &quot;term&quot;
+-LUALIB_API int ( luaopen_term )( lua_State* L );
++LUALIB_API int ( luaopen_term )( lua_State *L );
+ 
+ #define AUXLIB_PWM      &quot;pwm&quot;
+-LUALIB_API int ( luaopen_pwm )( lua_State* L );
++LUALIB_API int ( luaopen_pwm )( lua_State *L );
+ 
+ #define AUXLIB_PACK     &quot;pack&quot;
+-LUALIB_API int ( luaopen_pack )( lua_State* L );
++LUALIB_API int ( luaopen_pack )( lua_State *L );
+ 
+ #define AUXLIB_BIT      &quot;bit&quot;
+-LUALIB_API int ( luaopen_bit )( lua_State* L );
++LUALIB_API int ( luaopen_bit )( lua_State *L );
+ 
++#define AUXLIB_NET      &quot;net&quot;
++LUALIB_API int ( luaopen_net )( lua_State *L );
++
+ // Helper macros
+ 
+ #define MOD_CHECK_ID( mod, id )\
+
+Added: trunk/src/modules/net.c
+===================================================================
+--- trunk/src/modules/net.c	2008-09-21 16:15:06 UTC (rev 96)
++++ trunk/src/modules/net.c	2008-09-22 21:17:44 UTC (rev 97)
+@@ -0,0 +1,195 @@
++// Module for interfacing with network functions (elua_net.h)
++
++#include &quot;build.h&quot;
++#ifdef BUILD_UIP
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;auxmods.h&quot;
++#include &quot;elua_net.h&quot;
++#include &lt;stdio.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stddef.h&gt;
++
++// Lua: sock, remoteip, err = accept( port, [ timer_id, timeout ] )
++static int net_accept( lua_State *L )
++{
++  u16 port = ( u16 )luaL_checkinteger( L, 1 );
++  unsigned timer_id = 0;
++  u32 timeout = 0;
++  elua_net_ip remip;
++  int sock;
++
++  if( lua_gettop( L ) &gt;= 2 ) // check for timeout arguments
++  {
++    timer_id = ( unsigned )luaL_checkinteger( L, 2 );
++    timeout = ( u32 )luaL_checkinteger( L, 3 );
++  }  
++  lua_pushinteger( L, sock = elua_accept( port, timer_id, timeout, &amp;remip ) );
++  lua_pushinteger( L, remip.ipaddr );
++  lua_pushinteger( L, elua_net_get_last_err( sock ) );
++  return 3;
++}
++
++// Lua: sock = socket( type )
++static int net_socket( lua_State *L )
++{
++  int type = ( int )luaL_checkinteger( L, 1 );
++  
++  lua_pushinteger( L, elua_net_socket( type ) );
++  return 1;
++}
++
++// Lua: res = close( socket )
++static int net_close( lua_State* L )
++{
++  int sock = ( int )luaL_checkinteger( L, 1 );
++  
++  lua_pushinteger( L, elua_net_close( sock ) );
++  return 1;
++}
++
++// Lua: res, err = send( sock, str )
++static int net_send( lua_State* L )
++{
++  int sock = ( int )luaL_checkinteger( L, 1 );
++  const char *buf;
++  size_t len;
++    
++  luaL_checktype( L, 2, LUA_TSTRING );
++  buf = lua_tolstring( L, 2, &amp;len );
++  lua_pushinteger( L, elua_net_send( sock, buf, len ) );
++  lua_pushinteger( L, elua_net_get_last_err( sock ) );
++  return 2;  
++}
++
++// Lua: sockno, err = connect( sock, iptype, port )
++// &quot;iptype&quot; is actually an int returned by &quot;net_ipaddr&quot;
++static int net_connect( lua_State *L )
++{
++  elua_net_ip ip;
++  int sock = ( int )luaL_checkinteger( L, 1 );
++  u16 port = ( int )luaL_checkinteger( L, 3 );
++  
++  ip.ipaddr = ( u32 )luaL_checkinteger( L, 2 );
++  lua_pushinteger( L, elua_net_connect( sock, ip, port ) );
++  lua_pushinteger( L, elua_net_get_last_err( sock ) );
++  return 2;  
++}
++
++// Lua: data = ipaddr( ip0, ip1, ip2, ip3 ), or
++// Lua: data = ipaddr( &quot;ip&quot; )
++// Returns an internal representation for the given IP address
++static int net_ipaddr( lua_State *L )
++{
++  elua_net_ip ip;
++  unsigned i, temp;
++  
++  if( lua_isnumber( L, 1 ) )
++    for( i = 0; i &lt; 4; i ++ )
++    {
++      temp = luaL_checkinteger( L, i + 1 );
++      if( temp &lt; 0 || temp &gt; 255 )
++        return luaL_error( L, &quot;invalid IP adddress&quot; );
++      ip.ipbytes[ i ] = temp;
++    }
++  else
++  {
++    const char* pip = luaL_checkstring( L, 1 );
++    unsigned len, temp[ 4 ];
++    
++    if( sscanf( pip, &quot;%u.%u.%u.%u%n&quot;, temp, temp + 1, temp + 2, temp + 3, &amp;len ) != 4 || len != strlen( pip ) )
++      return luaL_error( L, &quot;invalid IP adddress&quot; );    
++    for( i = 0; i &lt; 4; i ++ )
++    {
++      if( temp[ i ] &lt; 0 || temp[ i ] &gt; 255 )
++        return luaL_error( L, &quot;invalid IP address&quot; );
++      ip.ipbytes[ i ] = ( u8 )temp[ i ];
++    }
++  }
++  lua_pushinteger( L, ip.ipaddr );
++  return 1;
++}
++
++// Lua: ip0, ip1, ip2, ip3 = getip( iptype )
++static int net_getip( lua_State *L )
++{
++  elua_net_ip ip;
++  unsigned i;  
++  
++  ip.ipaddr = ( u32 )luaL_checkinteger( L, 1 );
++  for( i = 0; i &lt; 4; i ++ )
++    lua_pushinteger( L, ip.ipbytes[ i ] );
++  return 4;
++}
++
++static luaL_Buffer net_recv_buff;
++// Lua: res, err = recv( sock, maxsize, [ timer_id, timeout ] ) or
++//      res, err = recv( sock, &quot;*l&quot;, [ timer_id, timeout ] )
++static int net_recv( lua_State *L )
++{
++  int sock = ( int )luaL_checkinteger( L, 1 );
++  elua_net_size maxsize;
++  s16 lastchar = -1;
++  unsigned timer_id = 0;
++  u32 timeout = 0;
++  
++  if( lua_isnumber( L, 2 ) ) // invocation with maxsize
++    maxsize = ( elua_net_size )luaL_checkinteger( L, 2 );
++  else // invocation with line mode
++  {
++    if( strcmp( luaL_checkstring( L, 2 ), &quot;*l&quot; ) )
++      return luaL_error( L, &quot;invalid second argument to recv&quot; );
++    lastchar = '\n';
++    maxsize = BUFSIZ;
++  }
++  if( lua_gettop( L ) &gt;= 3 ) // check for timeout arguments
++  {
++    timer_id = ( unsigned )luaL_checkinteger( L, 3 );
++    timeout = ( u32 )luaL_checkinteger( L, 4 );
++  }
++  // Initialize buffer
++  luaL_buffinit( L, &amp;net_recv_buff );
++  elua_net_recv( sock, &amp;net_recv_buff, maxsize, lastchar, timer_id, timeout );
++  luaL_pushresult( &amp;net_recv_buff );
++  lua_pushinteger( L, elua_net_get_last_err( sock ) );
++  return 2;
++}
++
++// Module function map
++static const luaL_reg net_map[] = 
++{
++  { &quot;accept&quot;, net_accept },
++  { &quot;ipaddr&quot;, net_ipaddr },
++  { &quot;getip&quot;, net_getip },
++  { &quot;connect&quot;, net_connect },
++  { &quot;socket&quot;, net_socket },
++  { &quot;close&quot;, net_close },
++  { &quot;send&quot;, net_send },
++  { &quot;recv&quot;, net_recv },
++  { NULL, NULL }
++};
++
++LUALIB_API int luaopen_net( lua_State *L )
++{
++  luaL_register( L, AUXLIB_NET, net_map );  
++
++  // Module constants  
++  lua_pushnumber( L, ELUA_NET_SOCK_STREAM );
++  lua_setfield( L, -2, &quot;SOCK_STREAM&quot; );
++  lua_pushnumber( L, ELUA_NET_SOCK_DGRAM );
++  lua_setfield( L, -2, &quot;SOCK_DGRAM&quot; );  
++  
++  return 1;
++}
++
++#else // #ifdef BUILD_UIP
++
++LUALIB_API int luaopen_net( lua_State *L )
++{
++  return 0;
++}
++
++#endif // #ifdef BUILD_UIP
+
+Modified: trunk/src/modules/term.c
+===================================================================
+--- trunk/src/modules/term.c	2008-09-21 16:15:06 UTC (rev 96)
++++ trunk/src/modules/term.c	2008-09-22 21:17:44 UTC (rev 97)
+@@ -240,8 +240,6 @@
+ LUALIB_API int luaopen_term( lua_State* L )
+ {
+ #ifdef BUILD_TERM
+-  unsigned i;
+-  
+   // Register methods
+   luaL_register( L, AUXLIB_TERM, term_map );  
+   
+
+Modified: trunk/src/platform/lm3s/platform_libs.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_libs.h	2008-09-21 16:15:06 UTC (rev 96)
++++ trunk/src/platform/lm3s/platform_libs.h	2008-09-22 21:17:44 UTC (rev 97)
+@@ -15,6 +15,7 @@
+   { AUXLIB_PWM, luaopen_pwm },\
+   { AUXLIB_PACK, luaopen_pack },\
+   { AUXLIB_BIT, luaopen_bit },\
++  { AUXLIB_NET, luaopen_net },\
+   { LUA_MATHLIBNAME, luaopen_math }
+   
+ #endif
+
+Modified: trunk/src/uip/uip.h
+===================================================================
+--- trunk/src/uip/uip.h	2008-09-21 16:15:06 UTC (rev 96)
++++ trunk/src/uip/uip.h	2008-09-22 21:17:44 UTC (rev 97)
+@@ -309,10 +309,12 @@
+                                uip_conns[conn].tcpstateflags != UIP_RESERVED )
+ 
+ /**
+- * Reserve a connection (for a later call to connect)
++ * Reserve a connection (for a later call to connect) and check if connection
++ * is reserved
+  *
+  */
+ #define uip_conn_reserve(conn) (uip_conns[conn].tcpstateflags = UIP_RESERVED)
++#define uip_conn_is_reserved(conn) (uip_conns[conn].tcpstateflags == UIP_RESERVED)
+ 
+ /**
+  * Perform periodic processing for a connection identified by a pointer
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000052.html">[Elua-svn] r96 - trunk/src/modules
+</A></li>
+	<LI>Next message: <A HREF="000054.html">[Elua-svn] r98 - in trunk: inc src src/modules src/newlib
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#53">[ date ]</a>
+              <a href="thread.html#53">[ thread ]</a>
+              <a href="subject.html#53">[ subject ]</a>
+              <a href="author.html#53">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

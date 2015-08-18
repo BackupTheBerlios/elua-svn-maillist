@@ -1,0 +1,313 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r891 - trunk/src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r891%20-%20trunk/src/platform/stm32&In-Reply-To=%3C20110120003111.AC8824804D8%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000843.html">
+   <LINK REL="Next"  HREF="000845.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r891 - trunk/src/platform/stm32</H1>
+    <B>jbsnyder at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r891%20-%20trunk/src/platform/stm32&In-Reply-To=%3C20110120003111.AC8824804D8%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r891 - trunk/src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Jan 20 01:31:11 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000843.html">[Elua-svn] r890 - branches/pre0.8/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000845.html">[Elua-svn] r892 - branches/pre0.8/src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#844">[ date ]</a>
+              <a href="thread.html#844">[ thread ]</a>
+              <a href="subject.html#844">[ subject ]</a>
+              <a href="author.html#844">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2011-01-20 01:31:11 +0100 (Thu, 20 Jan 2011)
+New Revision: 891
+
+Added:
+   trunk/src/platform/stm32/enc.c
+   trunk/src/platform/stm32/enc.h
+Modified:
+   trunk/src/platform/stm32/conf.py
+   trunk/src/platform/stm32/platform.c
+   trunk/src/platform/stm32/platform_conf.h
+Log:
+Initial support for using timer encoder functionality on STM32.
+
+Tested for eLua timer id 3 (should work for others whose channel 1 &amp; 2 pins aren't being used for other purposes).
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2011-01-19 22:35:46 UTC (rev 890)
++++ trunk/src/platform/stm32/conf.py	2011-01-20 00:31:11 UTC (rev 891)
+@@ -8,7 +8,7 @@
+ fwlib_files = &quot; &quot;.join(glob.glob(&quot;src/platform/%s/FWLib/library/src/*.c&quot; % platform))
+ #print &quot;FWLib: %s &quot; % fwlib_files 
+ 
+-specific_files = &quot;core_cm3.c system_stm32f10x.c startup_stm32f10x_hd.s platform.c stm32f10x_it.c lcd.c lua_lcd.c platform_int.c&quot;
++specific_files = &quot;core_cm3.c system_stm32f10x.c startup_stm32f10x_hd.s platform.c stm32f10x_it.c lcd.c lua_lcd.c platform_int.c enc.c&quot;
+ 
+ ldscript = &quot;stm32.ld&quot;
+   
+
+Added: trunk/src/platform/stm32/enc.c
+===================================================================
+--- trunk/src/platform/stm32/enc.c	                        (rev 0)
++++ trunk/src/platform/stm32/enc.c	2011-01-20 00:31:11 UTC (rev 891)
+@@ -0,0 +1,51 @@
++// eLua Module for STM32 timer encoder mode support
++// enc is a platform-dependent (STM32) module, that binds to Lua the basic API
++// from ST
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;lrotable.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;auxmods.h&quot;
++#include &quot;enc.h&quot;
++
++//Lua: init(id)
++static int enc_init(lua_State *L) {
++  unsigned id;
++  
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( timer, id );
++  stm32_enc_init( id );
++  return 0;
++}
++
++//Lua: set_counter(id, count)
++static int enc_set_counter(lua_State *L) {
++  unsigned id, count;
++
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( timer, id );
++  count = luaL_checkinteger( L, 2 );
++
++  stm32_enc_set_counter( id, count );
++  return 0;
++}
++
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;  
++
++// Module function map
++const LUA_REG_TYPE enc_map[] =
++{ 
++  { LSTRKEY( &quot;init&quot; ),  LFUNCVAL( enc_init ) },
++  { LSTRKEY( &quot;setcounter&quot; ),  LFUNCVAL( enc_set_counter ) },
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_enc( lua_State *L )
++{
++  LREGISTER( L, AUXLIB_ENC, enc_map );
++}  
++
+
+Added: trunk/src/platform/stm32/enc.h
+===================================================================
+--- trunk/src/platform/stm32/enc.h	                        (rev 0)
++++ trunk/src/platform/stm32/enc.h	2011-01-20 00:31:11 UTC (rev 891)
+@@ -0,0 +1,9 @@
++// STM32 encoder support
++
++#ifndef __ENC_H__
++#define __ENC_H__
++
++void stm32_enc_init( unsigned id );
++void stm32_enc_set_counter( unsigned id, unsigned count );
++
++#endif
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2011-01-19 22:35:46 UTC (rev 890)
++++ trunk/src/platform/stm32/platform.c	2011-01-20 00:31:11 UTC (rev 891)
+@@ -18,6 +18,9 @@
+ #include &quot;common.h&quot;
+ #include &quot;buf.h&quot;
+ #include &quot;utils.h&quot;
++#include &quot;lua.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ // Platform specific includes
+ #include &quot;stm32f10x.h&quot;
+@@ -699,9 +702,7 @@
+ 
+   // Configure timers
+   for( i = 0; i &lt; NUM_TIMER; i ++ )
+-  {
+     timer_set_clock( i, TIM_STARTUP_CLOCK );
+-  }
+ }
+ 
+ static u32 timer_get_clock( unsigned id )
+@@ -784,6 +785,30 @@
+ }
+ 
+ // ****************************************************************************
++// Quadrature Encoder Support (uses timers)
++// No pin configuration, many of the timers should work with default config if
++// pins aren't reconfigured for another peripheral
++
++void stm32_enc_init( unsigned id )
++{
++  TIM_TypeDef *ptimer = timer[ id ];
++
++  TIM_Cmd( ptimer, DISABLE );
++  TIM_DeInit( ptimer );
++  TIM_SetCounter( ptimer, 0 );
++  TIM_EncoderInterfaceConfig( ptimer, TIM_EncoderMode_TI12, TIM_ICPolarity_Rising, TIM_ICPolarity_Rising);
++  TIM_Cmd( ptimer, ENABLE );
++}
++
++void stm32_enc_set_counter( unsigned id, unsigned count )
++{
++  TIM_TypeDef *ptimer = timer[ id ];
++  
++  TIM_SetCounter( ptimer, ( u16 )count );
++}
++
++
++// ****************************************************************************
+ // PWMs
+ // Using Timer 8 (5 in eLua)
+ 
+@@ -1173,4 +1198,45 @@
+ 
+ #endif // ifdef BUILD_ADC
+ 
++// ****************************************************************************
++// Platform specific modules go here
+ 
++#ifdef ENABLE_ENC
++
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++extern const LUA_REG_TYPE enc_map[];
++
++const LUA_REG_TYPE platform_map[] =
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;enc&quot; ), LROVAL( enc_map ) },
++#endif
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_platform( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_register( L, PS_LIB_TABLE_NAME, platform_map );
++
++  // Setup the new tables inside platform table
++  lua_newtable( L );
++  luaL_register( L, NULL, enc_map );
++  lua_setfield( L, -2, &quot;enc&quot; );
++
++  return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
++}
++
++#else // #ifdef ENABLE_ENC
++
++LUALIB_API int luaopen_platform( lua_State *L )
++{
++  return 0;
++}
++
++#endif // #ifdef ENABLE_ENC
++
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2011-01-19 22:35:46 UTC (rev 890)
++++ trunk/src/platform/stm32/platform_conf.h	2011-01-20 00:31:11 UTC (rev 891)
+@@ -29,6 +29,7 @@
+ #define BUILD_LINENOISE
+ #define BUILD_C_INT_HANDLERS
+ #define BUILD_LUA_INT_HANDLERS
++#define ENABLE_ENC
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -50,6 +51,11 @@
+ #define LCDLINE
+ //#endif
+ 
++#ifdef ENABLE_ENC
++#define PS_LIB_TABLE_NAME &quot;stm32&quot;
++#endif
++
++
+ #ifdef BUILD_ADC
+ #define ADCLINE _ROM( AUXLIB_ADC, luaopen_adc, adc_map )
+ #else
+@@ -66,6 +72,12 @@
+ #define RPCLINE
+ #endif
+ 
++#ifdef PS_LIB_TABLE_NAME
++#define PLATLINE _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
++#else
++#define PLATLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
+@@ -83,7 +95,8 @@
+   RPCLINE\
+   LCDLINE\
+   _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
+-  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
++  PLATLINE
+ 
+ // *****************************************************************************
+ // Configuration data
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000843.html">[Elua-svn] r890 - branches/pre0.8/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000845.html">[Elua-svn] r892 - branches/pre0.8/src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#844">[ date ]</a>
+              <a href="thread.html#844">[ thread ]</a>
+              <a href="subject.html#844">[ subject ]</a>
+              <a href="author.html#844">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

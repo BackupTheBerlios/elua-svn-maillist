@@ -1,0 +1,999 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r230 - in trunk: doc src src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r230%20-%20in%20trunk%3A%20doc%20src%20src/platform/stm32&In-Reply-To=%3C200902282155.n1SLtLva025287%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000185.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r230 - in trunk: doc src src/platform/stm32</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r230%20-%20in%20trunk%3A%20doc%20src%20src/platform/stm32&In-Reply-To=%3C200902282155.n1SLtLva025287%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r230 - in trunk: doc src src/platform/stm32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Feb 28 22:55:21 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000185.html">[Elua-svn] r229 - trunk/doc/en
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#186">[ date ]</a>
+              <a href="thread.html#186">[ thread ]</a>
+              <a href="subject.html#186">[ subject ]</a>
+              <a href="author.html#186">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-02-28 22:55:20 +0100 (Sat, 28 Feb 2009)
+New Revision: 230
+
+Modified:
+   trunk/doc/style.css
+   trunk/src/platform/stm32/conf.py
+   trunk/src/platform/stm32/platform.c
+   trunk/src/platform/stm32/platform_conf.h
+   trunk/src/xmodem.c
+Log:
+added timers support for STM32 (and enabled XMODEM) plus a few more minor changes
+
+Modified: trunk/doc/style.css
+===================================================================
+--- trunk/doc/style.css	2009-02-28 05:46:39 UTC (rev 229)
++++ trunk/doc/style.css	2009-02-28 21:55:20 UTC (rev 230)
+@@ -35,7 +35,6 @@
+   margin-left: 1em;
+   margin-right: 1em;
+   overflow: auto;
+-  float: left;
+ }
+ p.info {
+   margin-left: 3em;
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2009-02-28 05:46:39 UTC (rev 229)
++++ trunk/src/platform/stm32/conf.py	2009-02-28 21:55:20 UTC (rev 230)
+@@ -24,7 +24,7 @@
+ # Toolset data
+ tools[ 'stm32' ] = {}
+ tools[ 'stm32' ][ 'cccom' ] = &quot;%s -mcpu=cortex-m3 -mthumb -mlittle-endian %s %s -ffunction-sections -fdata-sections -fno-strict-aliasing %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
+-tools[ 'stm32' ][ 'linkcom' ] = &quot;%s -mcpu=cortex-m3 -mthumb -Wl,-T -Xlinker %s -u _start -Wl,-e,Reset_Handler -Wl,-static -Wl,--gc-sections -nostartfiles -nostdlib -Wl,-Map -Xlinker project.map -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
++tools[ 'stm32' ][ 'linkcom' ] = &quot;%s -mcpu=cortex-m3 -mthumb -Wl,-T -Xlinker %s -u _start -Wl,-e,Reset_Handler -Wl,-static -Wl,--gc-sections -nostartfiles -nostdlib -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
+ tools[ 'stm32' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], local_include, cdefs )
+ 
+ # Programming function
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2009-02-28 05:46:39 UTC (rev 229)
++++ trunk/src/platform/stm32/platform.c	2009-02-28 21:55:20 UTC (rev 230)
+@@ -29,17 +29,15 @@
+ #include &quot;stm32f10x_spi.h&quot;
+ #include &quot;stm32f10x_systick.h&quot;
+ #include &quot;stm32f10x_flash.h&quot;
+-
++#include &quot;stm32f10x_conf.h&quot;
+ #include &quot;systick.h&quot;
+ 
+-#define STM32_USE_PIO
+-#define STM32_USE_USART
++// Clock data
++// IMPORTANT: if you change these, make sure to modify RCC_Configuration() too!
++#define HCLK        ( HSE_Value * 9 )
++#define PCLK1_DIV   2
++#define PCLK2_DIV   1
+ 
+-void exit(int ret)
+-{
+-  while(1);
+-}
+-
+ // ****************************************************************************
+ // Platform initialization
+ 
+@@ -49,10 +47,7 @@
+ 
+ static void timers_init();
+ static void uarts_init();
+-static void spis_init();
+ static void pios_init();
+-static void pwms_init();
+-static void eth_init();
+ 
+ int platform_init()
+ {
+@@ -65,30 +60,15 @@
+   // Enable SysTick timer.
+   SysTick_Config();
+ 
+-#ifdef STM32_USE_PIO
+   // Setup PIO
+   pios_init();
+-#endif
+ 
+-#ifdef STM32_USE_SPI
+-  // Setup SPIs
+-  //spis_init();
+-#endif
+-
+-#ifdef STM32_USE_USART
+   // Setup UARTs
+   uarts_init();
+-#endif
+-
++  
+   // Setup timers
+-  //timers_init();
++  timers_init();
+ 
+-  // Setup PWMs
+-  //pwms_init();
+-
+-  // Setup ethernet (TCP/IP)
+-  //eth_init();
+-
+   cmn_platform_init();
+ 
+   // All done
+@@ -172,8 +152,6 @@
+ *******************************************************************************/
+ static void NVIC_Configuration(void)
+ {
+-  NVIC_InitTypeDef NVIC_InitStructure;
+-
+   NVIC_DeInit();
+ 
+ #ifdef  VECT_TAB_RAM
+@@ -195,7 +173,6 @@
+ // PIO
+ // This is pretty much common code to all STM32 devices.
+ // todo: Needs updates to support different processor lines.
+-#ifdef STM32_USE_PIO
+ static GPIO_TypeDef * const pio_port[] = { GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, GPIOF, GPIOG };
+ static const u32 pio_port_clk[]        = { RCC_APB2Periph_GPIOA, RCC_APB2Periph_GPIOB, RCC_APB2Periph_GPIOC, RCC_APB2Periph_GPIOD, RCC_APB2Periph_GPIOE, RCC_APB2Periph_GPIOF, RCC_APB2Periph_GPIOG };
+ 
+@@ -291,86 +268,17 @@
+   }
+   return retval;
+ }
+-#endif
+ 
+-#ifdef STM32_USE_SPI
+ // ****************************************************************************
+-// SPI
+-// TODO: Just about everything.
+-
+-static const u32 spi_base[] = { SSI0_BASE, SSI1_BASE };
+-static const u32 spi_sysctl[] = { SYSCTL_PERIPH_SSI0, SYSCTL_PERIPH_SSI1 };
+-static const u32 spi_gpio_base[] = { GPIO_PORTA_BASE | GPIO_PORTE_BASE };
+-static const u8 spi_gpio_pins[] = { GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
+-                                    GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 };
+-//                                  SSIxClk      SSIxFss      SSIxRx       SSIxTx
+-static const u8 spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_0 };
+-#define SPIS_COUNT 		1
+-
+-static void spis_init()
+-{
+-  unsigned i;
+-
+-  for( i = 0; i &lt; SPIS_COUNT; i ++ )
+-  {
+-    SysCtlPeripheralEnable(spi_sysctl[ i ]);
+-  }
+-}
+-
+-int platform_spi_exists( unsigned id )
+-{
+-  return id &lt; SPIS_COUNT;
+-}
+-
+-u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
+-{
+-  unsigned protocol;
+-
+-  if( cpol == 0 )
+-    protocol = cpha ? SSI_FRF_MOTO_MODE_1 : SSI_FRF_MOTO_MODE_0;
+-  else
+-    protocol = cpha ? SSI_FRF_MOTO_MODE_3 : SSI_FRF_MOTO_MODE_2;
+-  mode = mode == PLATFORM_SPI_MASTER ? SSI_MODE_MASTER : SSI_MODE_SLAVE;
+-  SSIDisable( spi_base[ id ] );
+-
+-  GPIOPinTypeSSI( spi_gpio_base[ id ], spi_gpio_pins[ id ] );
+-
+-  // FIXME: not sure this is always &quot;right&quot;
+-  GPIOPadConfigSet(spi_gpio_base[ id ], spi_gpio_clk_pin[ id ], GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
+-
+-  SSIConfigSetExpClk( spi_base[ id ], SysCtlClockGet(), protocol, mode, clock, databits );
+-  SSIEnable( spi_base[ id ] );
+-  return clock;
+-}
+-
+-spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
+-{
+-  SSIDataPut( spi_base[ id ], data );
+-  SSIDataGet( spi_base[ id ], &amp;data );
+-  return data;
+-}
+-
+-void platform_spi_select( unsigned id, int is_select )
+-{
+-  // This platform doesn't have a hardware SS pin, so there's nothing to do here
+-  id = id;
+-  is_select = is_select;
+-}
+-#endif
+-
+-#ifdef STM32_USE_USART
+-// ****************************************************************************
+ // UART
+ // TODO: Support timeouts.
+ 
+ // All possible STM32 uarts defs
+-static USART_TypeDef * usart[] =          { USART1, USART2, USART3, UART4 };
+-static GPIO_TypeDef * usart_gpio_port[] = { GPIOA, GPIOA, GPIOB, GPIOC };
+-static const u16 usart_gpio_tx_pin[] = { GPIO_Pin_9, GPIO_Pin_2, GPIO_Pin_10, GPIO_Pin_10 };
+-static const u16 usart_gpio_rx_pin[] = { GPIO_Pin_10, GPIO_Pin_3, GPIO_Pin_11, GPIO_Pin_11 };
+-//static const u32 uart_sysctl[] = { SYSCTL_PERIPH_UART0, SYSCTL_PERIPH_UART1, SYSCTL_PERIPH_UART2 };
+-//static const u32 uart_gpio_base[] = { _BASE, GPIO_PORTD_BASE, GPIO_PORTG_BASE };
+-//static const u8 uart_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_0 | GPIO_PIN_1 };
++static USART_TypeDef *const usart[] =          { USART1, USART2, USART3, UART4, UART5 };
++static GPIO_TypeDef *const usart_gpio_rx_port[] = { GPIOA, GPIOA, GPIOB, GPIOC, GPIOD };
++static GPIO_TypeDef *const usart_gpio_tx_port[] = { GPIOA, GPIOA, GPIOB, GPIOC, GPIOC };
++static const u16 usart_gpio_rx_pin[] = { GPIO_Pin_10, GPIO_Pin_3, GPIO_Pin_11, GPIO_Pin_11, GPIO_Pin_2 };
++static const u16 usart_gpio_tx_pin[] = { GPIO_Pin_9, GPIO_Pin_2, GPIO_Pin_10, GPIO_Pin_10, GPIO_Pin_12 };
+ 
+ static void usart_init(u32 id, USART_InitTypeDef * initVals)
+ {
+@@ -381,12 +289,12 @@
+   GPIO_InitStructure.GPIO_Pin = usart_gpio_tx_pin[id];
+   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+-  GPIO_Init(usart_gpio_port[id], &amp;GPIO_InitStructure);
++  GPIO_Init(usart_gpio_tx_port[id], &amp;GPIO_InitStructure);
+ 
+   /* Configure USART Rx Pin as input floating */
+   GPIO_InitStructure.GPIO_Pin = usart_gpio_rx_pin[id];
+   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+-  GPIO_Init(usart_gpio_port[id], &amp;GPIO_InitStructure);
++  GPIO_Init(usart_gpio_rx_port[id], &amp;GPIO_InitStructure);
+ 
+   /* Configure USART */
+   USART_Init(usart[id], initVals);
+@@ -395,7 +303,7 @@
+   //USART_ITConfig(usart[id], USART_IT_RXNE, ENABLE);
+   //USART_ITConfig(usart[id], USART_IT_TXE, ENABLE);
+ 
+-  /* Enable the USART1 */
++  /* Enable USART */
+   USART_Cmd(usart[id], ENABLE);
+ }
+ 
+@@ -409,7 +317,7 @@
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4, ENABLE);
+ 
+-  // Configure the U(S)ART for 115,200, 8-N-1 operation.
++  // Configure the U(S)ART
+ 
+   USART_InitStructure.USART_BaudRate = CON_UART_SPEED;
+   USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+@@ -498,86 +406,90 @@
+   while(USART_GetFlagStatus(usart[id], USART_FLAG_RXNE) == RESET);
+   return USART_ReceiveData(usart[id]);
+ }
+-#endif
+ 
+-#ifdef STM32_USE_TIMERS
+ // ****************************************************************************
+ // Timers
+ 
+-// All possible LM3S timers defs
+-static TIM_TypeDef * timer[] = { TIM2, TIM3, TIM4, TIM5};
++// We leave out TIM6/TIM for now, as they are dedicated
++static TIM_TypeDef * const timer[] = { TIM1, TIM2, TIM3, TIM4, TIM5, TIM8 };
++#define TIM_GET_BASE_CLK( id ) ( ( id ) == 0 || ( id ) == 5 ? ( HCLK / PCLK2_DIV ) : ( HCLK / PCLK1_DIV ) )
++#define TIM_STARTUP_CLOCK       50000
+ 
+ static void timers_init()
+ {
+-#if 0
++  TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+   unsigned i;
+ 
++  // Enable clocks.
++  RCC_APB2PeriphClockCmd( RCC_APB2Periph_TIM1, ENABLE );  
++  RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM2, ENABLE );
++  RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM3, ENABLE );
++  RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM4, ENABLE );
++  RCC_APB1PeriphClockCmd( RCC_APB1Periph_TIM5, ENABLE );
++  RCC_APB2PeriphClockCmd( RCC_APB2Periph_TIM8, ENABLE );  
++
++  // Configure timers
+   for( i = 0; i &lt; NUM_TIMER; i ++ )
+   {
+-	SysCtlPeripheralEnable(timer_sysctl[ i ]);
+-    TimerConfigure(timer_base[ i ], TIMER_CFG_32_BIT_PER);
+-    TimerEnable(timer_base[ i ], TIMER_A);
++    TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
++    TIM_TimeBaseStructure.TIM_Prescaler = TIM_GET_BASE_CLK( i ) / TIM_STARTUP_CLOCK;
++    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
++    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
++    TIM_TimeBaseStructure.TIM_RepetitionCounter = 0x0000;
++    TIM_TimeBaseInit( timer[ i ], &amp;TIM_TimeBaseStructure );
++    TIM_Cmd( timer[ i ], ENABLE );
+   }
+-#endif
+ }
+ 
+-static u32 platform_timer_get_clock(unsigned id)
++static u32 timer_get_clock( unsigned id )
+ {
+-  RCC_ClocksTypeDef Clocks;
++  TIM_TypeDef* ptimer = timer[ id ];
+ 
+-  RCC_GetClocksFreq(&amp;Clocks);
+-
+-  return Clocks.PCLK1_Frequency / (TIM_GetPrescaler(timer[id]) + 1)
++  return TIM_GET_BASE_CLK( id ) / ( TIM_GetPrescaler( ptimer ) + 1 );
+ }
+ 
+-static u32 platform_timer_set_clock(unsigned id, u32 clock)
++static u32 timer_set_clock( unsigned id, u32 clock )
+ {
+-  RCC_ClocksTypeDef Clocks;
+-  u32 pclk, clkdiv;
+-  u64 tmp;
+-
+-  RCC_GetClocksFreq(&amp;Clocks);
+-
+-  pclk   = Clocks.PCLK1_Frequency; // Get peripheral bus clock frequency.
+-  tmp    = ((u64)pclk &lt;&lt; 16) / clock; // Convert to u32.16 fixed point and calculate prescaler divisor
+-  clkdiv = ((tmp &amp; 0x8000) ? (tmp + 0x10000) : tmp) &gt;&gt; 16;  // Round up or down and convert back to u32.0
+-  if (clkdiv &gt; 0x10000)  // Saturate to u16 (+1 for a clkdiv value of 1 is a reg value of 0)
+-      clkdiv = 0x10000;
+-
+-  TIM_PrescalerConfig(timer[id], clkdiv - 1, TIM_PSCReloadMode_Immediate); // Update timer prescaler immediately
+-
+-  return pclk / clkdiv; // Return actual clock rate used.
++  TIM_TypeDef *ptimer = timer[ id ];
++  u16 pre;
++  
++  pre = TIM_GET_BASE_CLK( id ) / clock;
++  TIM_PrescalerConfig( ptimer, pre, TIM_PSCReloadMode_Immediate );
++  return TIM_GET_BASE_CLK( id ) / pre;
+ }
+ 
+ void platform_s_timer_delay( unsigned id, u32 delay_us )
+ {
++  TIM_TypeDef *ptimer = timer[ id ];
++  volatile unsigned dummy;
+   timer_data_type final;
+-  u32 base = timer_base[ id ];
+ 
+-  final = 0xFFFFFFFF - ( ( ( u64 )delay_us * SysCtlClockGet() ) / 1000000 );
+-  TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
+-  while( TimerValueGet( base, TIMER_A ) &gt; final );
++  final = ( ( u64 )delay_us * timer_get_clock( id ) ) / 1000000;
++  TIM_SetCounter( ptimer, 0 );
++  for( dummy = 0; dummy &lt; 200; dummy ++ );
++  while( TIM_GetCounter( ptimer ) &lt; final );
+ }
+ 
+ u32 platform_s_timer_op( unsigned id, int op, u32 data )
+ {
+   u32 res = 0;
+-  u32 base = timer_base[ id ];
++  TIM_TypeDef *ptimer = timer[ id ];
++  volatile unsigned dummy;
+ 
+   data = data;
+   switch( op )
+   {
+     case PLATFORM_TIMER_OP_START:
+-      res = 0xFFFFFFFF;
+-      TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
++      TIM_SetCounter( ptimer, 0 );
++      for( dummy = 0; dummy &lt; 200; dummy ++ );
+       break;
+ 
+     case PLATFORM_TIMER_OP_READ:
+-      res = TimerValueGet( base, TIMER_A );
++      res = TIM_GetCounter( ptimer );
+       break;
+ 
+     case PLATFORM_TIMER_OP_GET_MAX_DELAY:
+-      res = platform_timer_get_diff_us( id, 0, 0xFFFFFFFF );
++      res = platform_timer_get_diff_us( id, 0, 0xFFFF );
+       break;
+ 
+     case PLATFORM_TIMER_OP_GET_MIN_DELAY:
+@@ -585,122 +497,16 @@
+       break;
+ 
+     case PLATFORM_TIMER_OP_SET_CLOCK:
+-    case PLATFORM_TIMER_OP_GET_CLOCK:
+-      res = SysCtlClockGet();
++      res = timer_set_clock( id, data );
+       break;
+ 
+-  }
+-  return res;
+-}
+-#else
+-u32 platform_s_timer_op( unsigned id, int op, u32 data )
+-{
+-  return 0;
+-}
+-#endif
+-
+-#ifdef STM32_USE_PWM
+-// ****************************************************************************
+-// PWMs
+-// TODO: Everything.
+-
+-#define PLATFORM_NUM_PWMS               6
+-
+-// SYSCTL div data and actual div factors
+-const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
+-const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
+-// Port/pin information for all channels
+-const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
+-const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1 };
+-// PWM generators
+-const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2 };
+-// PWM outputs
+-const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_OUT_4, PWM_OUT_5 };
+-
+-static void pwms_init()
+-{
+-  SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM );
+-  SysCtlPWMClockSet( SYSCTL_PWMDIV_1 );
+-}
+-
+-// Helper function: return the PWM clock
+-static u32 platform_pwm_get_clock()
+-{
+-  unsigned i;
+-  u32 clk;
+-
+-  clk = SysCtlPWMClockGet();
+-  for( i = 0; i &lt; sizeof( pwm_div_ctl ) / sizeof( u32 ); i ++ )
+-    if( clk == pwm_div_ctl[ i ] )
++    case PLATFORM_TIMER_OP_GET_CLOCK:
++      res = timer_get_clock( id );
+       break;
+-  return SysCtlClockGet() / pwm_div_data[ i ];
+-}
+ 
+-// Helper function: set the PWM clock
+-static u32 platform_pwm_set_clock( u32 clock )
+-{
+-  unsigned i, min_i;
+-  u32 sysclk;
+-
+-  sysclk = SysCtlClockGet();
+-  for( i = min_i = 0; i &lt; sizeof( pwm_div_data ) / sizeof( u8 ); i ++ )
+-    if( ABSDIFF( clock, sysclk / pwm_div_data[ i ] ) &lt; ABSDIFF( clock, sysclk / pwm_div_data[ min_i ] ) )
+-      min_i = i;
+-  SysCtlPWMClockSet( pwm_div_ctl[ min_i ] );
+-  return sysclk / pwm_div_data[ min_i ];
+-}
+-
+-int platform_pwm_exists( unsigned id )
+-{
+-  return id &lt; PLATFORM_NUM_PWMS;
+-}
+-
+-u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
+-{
+-  u32 pwmclk = platform_pwm_get_clock();
+-  u32 period;
+-
+-  // Set pin as PWM
+-  GPIOPinTypePWM( pwm_ports[ id ], pwm_pins[ id ] );
+-  // Compute period
+-  period = pwmclk / frequency;
+-  // Set the period
+-  PWMGenConfigure( PWM_BASE, pwm_gens[ id &gt;&gt; 1 ], PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC );
+-  PWMGenPeriodSet( PWM_BASE, pwm_gens[ id &gt;&gt; 1 ], period );
+-  // Set duty cycle
+-  PWMPulseWidthSet( PWM_BASE, pwm_outs[ id ], ( period * duty ) / 100 );
+-  // Return actual frequency
+-  return pwmclk / period;
+-}
+-
+-u32 platform_pwm_op( unsigned id, int op, u32 data )
+-{
+-  u32 res = 0;
+-
+-  switch( op )
+-  {
+-    case PLATFORM_PWM_OP_SET_CLOCK:
+-      res = platform_pwm_set_clock( data );
+-      break;
+-
+-    case PLATFORM_PWM_OP_GET_CLOCK:
+-      res = platform_pwm_get_clock();
+-      break;
+-
+-    case PLATFORM_PWM_OP_START:
+-      PWMOutputState( PWM_BASE, 1 &lt;&lt; id, true );
+-      PWMGenEnable( PWM_BASE, pwm_gens[ id &gt;&gt; 1 ] );
+-      break;
+-
+-    case PLATFORM_PWM_OP_STOP:
+-      PWMOutputState( PWM_BASE, 1 &lt;&lt; id, false );
+-      PWMGenDisable( PWM_BASE, pwm_gens[ id &gt;&gt; 1 ] );
+-      break;
+   }
+-
+   return res;
+ }
+-#endif
+ 
+ // *****************************************************************************
+ // CPU specific functions
+@@ -717,169 +523,6 @@
+ 
+ u32 platform_s_cpu_get_frequency()
+ {
+-  RCC_ClocksTypeDef clocks;
+-
+-  RCC_GetClocksFreq(&amp;clocks);
+-
+-  return clocks.HCLK_Frequency;
++  return HCLK;
+ }
+ 
+-u32 platform_pclk1_get_frequency()
+-{
+-  RCC_ClocksTypeDef clocks;
+-
+-  RCC_GetClocksFreq(&amp;clocks);
+-
+-  return clocks.PCLK1_Frequency;
+-}
+-
+-u32 platform_pclk2_get_frequency()
+-{
+-  RCC_ClocksTypeDef clocks;
+-
+-  RCC_GetClocksFreq(&amp;clocks);
+-
+-  return clocks.PCLK2_Frequency;
+-}
+-
+-// ****************************************************************************
+-// Ethernet functions
+-
+-static void eth_init()
+-{
+-#ifdef BUILD_UIP
+-  u32 user0, user1, temp;
+-  static struct uip_eth_addr sTempAddr;
+-
+-  // Enable and reset the controller
+-  SysCtlPeripheralEnable( SYSCTL_PERIPH_ETH );
+-  SysCtlPeripheralReset( SYSCTL_PERIPH_ETH );
+-
+-  // Enable Ethernet LEDs
+-  GPIODirModeSet( GPIO_PORTF_BASE, GPIO_PIN_2 | GPIO_PIN_3, GPIO_DIR_MODE_HW );
+-  GPIOPadConfigSet( GPIO_PORTF_BASE, GPIO_PIN_2 | GPIO_PIN_3, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
+-
+-  // Configure SysTick for a periodic interrupt.
+-  SysTickPeriodSet(SysCtlClockGet() / SYSTICKHZ);
+-  SysTickEnable();
+-  SysTickIntEnable();
+-
+-  // Intialize the Ethernet Controller and disable all Ethernet Controller interrupt sources.
+-  EthernetIntDisable(ETH_BASE, (ETH_INT_PHY | ETH_INT_MDIO | ETH_INT_RXER |
+-                     ETH_INT_RXOF | ETH_INT_TX | ETH_INT_TXER | ETH_INT_RX));
+-  temp = EthernetIntStatus(ETH_BASE, false);
+-  EthernetIntClear(ETH_BASE, temp);
+-
+-  // Initialize the Ethernet Controller for operation.
+-  EthernetInitExpClk(ETH_BASE, SysCtlClockGet());
+-
+-  // Configure the Ethernet Controller for normal operation.
+-  // - Full Duplex
+-  // - TX CRC Auto Generation
+-  // - TX Padding Enabled
+-  EthernetConfigSet(ETH_BASE, (ETH_CFG_TX_DPLXEN | ETH_CFG_TX_CRCEN |
+-                               ETH_CFG_TX_PADEN));
+-
+-  // Enable the Ethernet Controller.
+-  EthernetEnable(ETH_BASE);
+-
+-  // Enable the Ethernet interrupt.
+-  IntEnable(INT_ETH);
+-
+-  // Enable the Ethernet RX Packet interrupt source.
+-  EthernetIntEnable(ETH_BASE, ETH_INT_RX);
+-
+-  // Enable all processor interrupts.
+-  IntMasterEnable();
+-
+-  // Configure the hardware MAC address for Ethernet Controller filtering of
+-  // incoming packets.
+-  //
+-  // For the Ethernet Eval Kits, the MAC address will be stored in the
+-  // non-volatile USER0 and USER1 registers.  These registers can be read
+-  // using the FlashUserGet function, as illustrated below.
+-  FlashUserGet(&amp;user0, &amp;user1);
+-
+-  // Convert the 24/24 split MAC address from NV ram into a 32/16 split MAC
+-  // address needed to program the hardware registers, then program the MAC
+-  // address into the Ethernet Controller registers.
+-  sTempAddr.addr[0] = ((user0 &gt;&gt;  0) &amp; 0xff);
+-  sTempAddr.addr[1] = ((user0 &gt;&gt;  8) &amp; 0xff);
+-  sTempAddr.addr[2] = ((user0 &gt;&gt; 16) &amp; 0xff);
+-  sTempAddr.addr[3] = ((user1 &gt;&gt;  0) &amp; 0xff);
+-  sTempAddr.addr[4] = ((user1 &gt;&gt;  8) &amp; 0xff);
+-  sTempAddr.addr[5] = ((user1 &gt;&gt; 16) &amp; 0xff);
+-
+-  // Program the hardware with it's MAC address (for filtering).
+-  EthernetMACAddrSet(ETH_BASE, (unsigned char *)&amp;sTempAddr);
+-
+-  // Initialize the eLua uIP layer
+-  elua_uip_init( &amp;sTempAddr );
+-#endif
+-}
+-
+-#ifdef BUILD_UIP
+-static int eth_timer_fired;
+-
+-void platform_eth_send_packet( const void* src, u32 size )
+-{
+-  EthernetPacketPut( ETH_BASE, uip_buf, uip_len );
+-}
+-
+-u32 platform_eth_get_packet_nb( void* buf, u32 maxlen )
+-{
+-  return EthernetPacketGetNonBlocking( ETH_BASE, uip_buf, sizeof( uip_buf ) );
+-}
+-
+-void platform_eth_force_interrupt()
+-{
+-  HWREG( NVIC_SW_TRIG) |= INT_ETH - 16;
+-}
+-
+-u32 platform_eth_get_elapsed_time()
+-{
+-  if( eth_timer_fired )
+-  {
+-    eth_timer_fired = 0;
+-    return SYSTICKMS;
+-  }
+-  else
+-    return 0;
+-}
+-
+-#if 0
+-void SysTickHandler(void)
+-{
+-  // Indicate that a SysTick interrupt has occurred.
+-  eth_timer_fired = 1;
+-
+-  // Generate a fake Ethernet interrupt.  This will perform the actual work
+-  // of incrementing the timers and taking the appropriate actions.
+-  platform_eth_force_interrupt();
+-}
+-#endif
+-
+-void EthernetIntHandler()
+-{
+-  u32 temp;
+-
+-  // Read and Clear the interrupt.
+-  temp = EthernetIntStatus( ETH_BASE, false );
+-  EthernetIntClear( ETH_BASE, temp );
+-
+-  // Call the UIP main loop
+-  elua_uip_mainloop();
+-}
+-
+-#else  // #ifdef ELUA_UIP
+-
+-#if 0
+-void SysTickHandler()
+-{
+-}
+-#endif
+-
+-void EthernetIntHandler()
+-{
+-}
+-#endif // #ifdef ELUA_UIP
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2009-02-28 05:46:39 UTC (rev 229)
++++ trunk/src/platform/stm32/platform_conf.h	2009-02-28 21:55:20 UTC (rev 230)
+@@ -6,11 +6,12 @@
+ #include &quot;auxmods.h&quot;
+ #include &quot;type.h&quot;
+ #include &quot;stacks.h&quot;
++#include &quot;stm32f10x_lib.h&quot;
+ 
+ // *****************************************************************************
+ // Define here what components you want for this platform
+ 
+-//#define BUILD_XMODEM
++#define BUILD_XMODEM
+ #define BUILD_SHELL
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+@@ -50,6 +51,7 @@
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+   LCDLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 
+@@ -87,8 +89,8 @@
+ // Number of resources (0 if not available/not implemented)
+ #define NUM_PIO               7
+ #define NUM_SPI               0
+-#define NUM_UART              4
+-#define NUM_TIMER             0
++#define NUM_UART              5
++#define NUM_TIMER             6
+ #define NUM_PWM               0
+ #define NUM_ADC               0
+ 
+@@ -102,7 +104,7 @@
+ // #define PIO_PINS_PER_PORT (n) if each port has the same number of pins, or
+ // #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array
+ // Use #define PIO_PINS_PER_PORT 0 if this isn't needed
+-#define PIO_PIN_ARRAY         { 16, 16, 16, 16, 16, 16, 16 }
++#define PIO_PINS_PER_PORT     16
+ 
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+@@ -110,61 +112,5 @@
+ #define MEM_START_ADDRESS     { ( void* )end }
+ #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ) }
+ 
+-// *****************************************************************************
+-// CPU constants that should be exposed to the eLua &quot;cpu&quot; module
+-
+-#include &quot;stm32f10x_gpio.h&quot;
+-
+-#if 0
+-#define PLATFORM_CPU_CONSTANTS\
+-  _C( INT_GPIOA ),\
+-  _C( INT_GPIOB ),\
+-  _C( INT_GPIOC ),\
+-  _C( INT_GPIOD ),\
+-  _C( INT_GPIOE ),\
+-  _C( INT_UART0 ),\
+-  _C( INT_UART1 ),\
+-  _C( INT_SSI0 ),\
+-  _C( INT_I2C0 ),\
+-  _C( INT_PWM_FAULT ),\
+-  _C( INT_PWM0 ),\
+-  _C( INT_PWM1 ),\
+-  _C( INT_PWM2 ),\
+-  _C( INT_QEI0 ),\
+-  _C( INT_ADC0 ),\
+-  _C( INT_ADC1 ),\
+-  _C( INT_ADC2 ),\
+-  _C( INT_ADC3 ),\
+-  _C( INT_WATCHDOG ),\
+-  _C( INT_TIMER0A ),\
+-  _C( INT_TIMER0B ),\
+-  _C( INT_TIMER1A ),\
+-  _C( INT_TIMER1B ),\
+-  _C( INT_TIMER2A ),\
+-  _C( INT_TIMER2B ),\
+-  _C( INT_COMP0 ),\
+-  _C( INT_COMP1 ),\
+-  _C( INT_COMP2 ),\
+-  _C( INT_SYSCTL ),\
+-  _C( INT_FLASH ),\
+-  _C( INT_GPIOF ),\
+-  _C( INT_GPIOG ),\
+-  _C( INT_GPIOH ),\
+-  _C( INT_UART2 ),\
+-  _C( INT_SSI1 ),\
+-  _C( INT_TIMER3A ),\
+-  _C( INT_TIMER3B ),\
+-  _C( INT_I2C1 ),\
+-  _C( INT_QEI1 ),\
+-  _C( INT_CAN0 ),\
+-  _C( INT_CAN1 ),\
+-  _C( INT_CAN2 ),\
+-  _C( INT_ETH ),\
+-  _C( INT_HIBERNATE ),\
+-  _C( INT_USB0 ),\
+-  _C( INT_PWM3 ),\
+-  _C( INT_UDMA ),\
+-  _C( INT_UDMAERR )
+-#endif
+-
+ #endif // #ifndef __PLATFORM_CONF_H__
++
+
+Modified: trunk/src/xmodem.c
+===================================================================
+--- trunk/src/xmodem.c	2009-02-28 05:46:39 UTC (rev 229)
++++ trunk/src/xmodem.c	2009-02-28 21:55:20 UTC (rev 230)
+@@ -38,23 +38,23 @@
+ #include &quot;platform_conf.h&quot;
+ #ifdef BUILD_XMODEM
+ 
+-#define PACKET_SIZE    128
++#define PXM_ACKET_SIZE    128
+ static p_xm_send_func xmodem_out_func;
+ static p_xm_recv_func xmodem_in_func;
+ 
+ // Line control codes
+-#define SOH  0x01
+-#define ACK  0x06
+-#define NAK  0x15
+-#define CAN  0x18
+-#define EOT  0x04
++#define XM_SOH  0x01
++#define XM_ACK  0x06
++#define XM_NAK  0x15
++#define XM_CAN  0x18
++#define XM_EOT  0x04
+ 
+ // Arguments to xmodem_flush
+ #define XMODEM_FLUSH_ONLY       0
+-#define XMODEM_FLUSH_AND_CAN    1
++#define XMODEM_FLUSH_AND_XM_CAN    1
+ 
+ // Delay in &quot;flush packet&quot; mode
+-#define XMODEM_PACKET_DELAY     10000UL
++#define XMODEM_PXM_ACKET_DELAY     10000UL
+ 
+ void xmodem_init( p_xm_send_func send_func, p_xm_recv_func recv_func )
+ {
+@@ -65,12 +65,12 @@
+ // Utility function: flush the receive buffer
+ static void xmodem_flush( int how )
+ {
+-  while( xmodem_in_func( XMODEM_PACKET_DELAY ) != -1 );
+-  if( how == XMODEM_FLUSH_AND_CAN )
++  while( xmodem_in_func( XMODEM_PXM_ACKET_DELAY ) != -1 );
++  if( how == XMODEM_FLUSH_AND_XM_CAN )
+   {
+-    xmodem_out_func( CAN );
+-    xmodem_out_func( CAN );
+-    xmodem_out_func( CAN );
++    xmodem_out_func( XM_CAN );
++    xmodem_out_func( XM_CAN );
++    xmodem_out_func( XM_CAN );
+   }
+ }
+ 
+@@ -82,7 +82,7 @@
+   int ch;
+   
+   // Read packet
+-  for( j = 0; j &lt; PACKET_SIZE + 4; j ++ )
++  for( j = 0; j &lt; PXM_ACKET_SIZE + 4; j ++ )
+   {
+     if( ( ch = xmodem_in_func( XMODEM_TIMEOUT ) ) == -1 )
+       goto err;
+@@ -95,7 +95,7 @@
+   if( *pbuf ++ != ( unsigned char )~blocknum )
+     goto err;
+   // Check CRC
+-  for( size = chk = 0; size &lt; PACKET_SIZE; size++, pbuf ++ ) 
++  for( size = chk = 0; size &lt; PXM_ACKET_SIZE; size++, pbuf ++ ) 
+   {
+     chk = chk ^ *pbuf &lt;&lt; 8;
+     for( j = 0; j &lt; 8; j ++ ) 
+@@ -114,7 +114,7 @@
+   return 1;
+   
+ err:
+-  xmodem_out_func( NAK );
++  xmodem_out_func( XM_NAK );
+   return 0;
+ }
+ 
+@@ -124,7 +124,7 @@
+ long xmodem_receive( char **dest )
+ {
+   int starting = 1, ch;
+-  unsigned char packnum = 1, buf[ PACKET_SIZE + 4 ];
++  unsigned char packnum = 1, buf[ PXM_ACKET_SIZE + 4 ];
+   unsigned retries = XMODEM_RETRY_LIMIT;
+   u32 limit = XMODEM_INITIAL_BUFFER_SIZE, size = 0;
+   void *p;
+@@ -133,19 +133,19 @@
+   {
+     if( starting )
+       xmodem_out_func( 'C' );
+-    if( ( ( ch = xmodem_in_func( XMODEM_TIMEOUT ) ) == -1 ) || ( ch != SOH &amp;&amp; ch != EOT &amp;&amp; ch != CAN ) )
++    if( ( ( ch = xmodem_in_func( XMODEM_TIMEOUT ) ) == -1 ) || ( ch != XM_SOH &amp;&amp; ch != XM_EOT &amp;&amp; ch != XM_CAN ) )
+       continue;
+-    if( ch == EOT ) 
++    if( ch == XM_EOT ) 
+     {
+       // End of transmission
+-      xmodem_out_func( ACK );
++      xmodem_out_func( XM_ACK );
+       xmodem_flush( XMODEM_FLUSH_ONLY );
+       return size;
+     }
+-    else if( ch == CAN )
++    else if( ch == XM_CAN )
+     {
+       // The remote part ended the transmission
+-      xmodem_out_func( ACK );
++      xmodem_out_func( XM_ACK );
+       xmodem_flush( XMODEM_FLUSH_ONLY );
+       return XMODEM_ERROR_REMOTECANCEL;      
+     }
+@@ -159,25 +159,25 @@
+     packnum ++;
+       
+     // Got a valid packet
+-    if( size + PACKET_SIZE &gt; limit )
++    if( size + PXM_ACKET_SIZE &gt; limit )
+     {
+       limit += XMODEM_INCREMENT_AMMOUNT;
+       if( ( p = realloc( *dest, limit ) ) == NULL )
+       {
+         // Not enough memory, force cancel and return
+-        xmodem_flush( XMODEM_FLUSH_AND_CAN );
++        xmodem_flush( XMODEM_FLUSH_AND_XM_CAN );
+         return XMODEM_ERROR_OUTOFMEM;
+       }
+       *dest = ( char* )p;
+     }    
+     // Acknowledge and consume packet
+-    xmodem_out_func( ACK );
+-    memcpy( *dest + size, buf + 2, PACKET_SIZE );
+-    size += PACKET_SIZE;
++    xmodem_out_func( XM_ACK );
++    memcpy( *dest + size, buf + 2, PXM_ACKET_SIZE );
++    size += PXM_ACKET_SIZE;
+   }
+   
+   // Exceeded retry count
+-  xmodem_flush( XMODEM_FLUSH_AND_CAN );
++  xmodem_flush( XMODEM_FLUSH_AND_XM_CAN );
+   return XMODEM_ERROR_RETRYEXCEED;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000185.html">[Elua-svn] r229 - trunk/doc/en
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#186">[ date ]</a>
+              <a href="thread.html#186">[ thread ]</a>
+              <a href="subject.html#186">[ subject ]</a>
+              <a href="author.html#186">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

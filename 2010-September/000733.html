@@ -1,0 +1,312 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r780 - in trunk: . romfs src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r780%20-%20in%20trunk%3A%20.%20romfs%20src/platform/lm3s&In-Reply-To=%3C20100905182028.03E0348104F%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000732.html">
+   <LINK REL="Next"  HREF="000734.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r780 - in trunk: . romfs src/platform/lm3s</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r780%20-%20in%20trunk%3A%20.%20romfs%20src/platform/lm3s&In-Reply-To=%3C20100905182028.03E0348104F%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r780 - in trunk: . romfs src/platform/lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Sep  5 20:20:27 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000732.html">[Elua-svn] r779 - in trunk: . romfs
+</A></li>
+        <LI>Next message: <A HREF="000734.html">[Elua-svn] r781 - in branches/ints: inc src src/modules	src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#733">[ date ]</a>
+              <a href="thread.html#733">[ thread ]</a>
+              <a href="subject.html#733">[ subject ]</a>
+              <a href="author.html#733">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-09-05 20:20:27 +0200 (Sun, 05 Sep 2010)
+New Revision: 780
+
+Modified:
+   trunk/SConstruct
+   trunk/romfs/led.lua
+   trunk/romfs/morse.lua
+   trunk/romfs/piano.lua
+   trunk/romfs/pwmled.lua
+   trunk/romfs/tetrives.lua
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/platform_conf.h
+   trunk/src/platform/lm3s/rit128x96x4.c
+Log:
+patch for EK-LM3S1968 from Tiziano Trevisan
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-09-02 15:19:34 UTC (rev 779)
++++ trunk/SConstruct	2010-09-05 18:20:27 UTC (rev 780)
+@@ -68,7 +68,7 @@
+ # (the one that will be used if none is specified)
+ platform_list = {  
+   'at91sam7x' : { 'cpus' : [ 'AT91SAM7X256', 'AT91SAM7X512' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+-  'lm3s' : { 'cpus' : [ 'LM3S8962', 'LM3S6965', 'LM3S6918', 'LM3S9B92' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
++  'lm3s' : { 'cpus' : [ 'LM3S1968', 'LM3S8962', 'LM3S6965', 'LM3S6918', 'LM3S9B92' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'str9' : { 'cpus' : [ 'STR912FAW44' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'i386' : { 'cpus' : [ 'I386' ], 'toolchains' : [ 'i686-gcc' ] },
+   'sim' : { 'cpus' : [ 'LINUX' ], 'toolchains' : [ 'i686-gcc' ] },
+@@ -82,6 +82,7 @@
+ 
+ # List of board/CPU combinations
+ board_list = { 'SAM7-EX256' : [ 'AT91SAM7X256', 'AT91SAM7X512' ],
++               'EK-LM3S1968' : [ 'LM3S1968' ],
+                'EK-LM3S8962' : [ 'LM3S8962' ],
+                'EK-LM3S6965' : [ 'LM3S6965' ],
+                'EK-LM3S9B92' : [ 'LM3S9B92' ],
+@@ -132,6 +133,7 @@
+ 
+ # List of board/romfs data combinations
+ file_list = { 'SAM7-EX256' : [ 'bisect', 'hangman' , 'led', 'piano', 'hello', 'info', 'morse' ],
++              'EK-LM3S1968' : [ 'bisect', 'hangman', 'pong', 'led', 'piano', 'pwmled', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo', 'spaceship', 'tetrives', 'snake' ],
+               'EK-LM3S8962' : [ 'lhttpd','bisect', 'led', 'pachube' ],
+               'EK-LM3S6965' : [ 'bisect', 'hangman', 'pong', 'led', 'piano', 'pwmled', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo', 'tetrives' ],
+               'EK-LM3S9B92' : [ 'bisect', 'hangman', 'led', 'pwmled', 'hello', 'info', 'adcscope','adcpoll', 'life' ],
+
+Modified: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2010-09-02 15:19:34 UTC (rev 779)
++++ trunk/romfs/led.lua	2010-09-05 18:20:27 UTC (rev 780)
+@@ -3,6 +3,8 @@
+ local uartid, invert, ledpin = 0, false
+ if pd.board() == &quot;SAM7-EX256&quot; then
+   ledpin = pio.PB_20
++elseif pd.board() == &quot;EK-LM3S1968&quot; then
++  ledpin = pio.PG_2
+ elseif pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+   ledpin = pio.PF_0
+ elseif pd.board() == &quot;EAGLE-100&quot; then
+
+Modified: trunk/romfs/morse.lua
+===================================================================
+--- trunk/romfs/morse.lua	2010-09-02 15:19:34 UTC (rev 779)
++++ trunk/romfs/morse.lua	2010-09-05 18:20:27 UTC (rev 780)
+@@ -5,7 +5,9 @@
+ -------------------------------------------------------------------------------
+ 
+ local pwmid, tmrid, ledpin
+-if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
++if pd.board() == &quot;EK-LM3S1968&quot; then
++  pwmid, tmrid, ledpin = 2, 1, pio.PG_2
++elseif pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+   pwmid, tmrid, ledpin = 1, 1, pio.PF_0
+ elseif pd.board() == &quot;EAGLE-100&quot; then
+   wmid, tmrid, ledpin = 1, 1, pio.PE_1
+
+Modified: trunk/romfs/piano.lua
+===================================================================
+--- trunk/romfs/piano.lua	2010-09-02 15:19:34 UTC (rev 779)
++++ trunk/romfs/piano.lua	2010-09-05 18:20:27 UTC (rev 780)
+@@ -9,6 +9,8 @@
+   
+ if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; or pd.board() == &quot;EAGLE-100&quot; then
+   pwmid, tmrid = 1, 1
++elseif pd.board() == &quot;EK-LM3S1968&quot; then
++  pwmid, tmrid = 2, 1
+ elseif pd.board() == &quot;SAM7-EX256&quot; then
+   pwmid, tmrid = 0, 1
+   tmr.setclock( 1, 1000000 )
+
+Modified: trunk/romfs/pwmled.lua
+===================================================================
+--- trunk/romfs/pwmled.lua	2010-09-02 15:19:34 UTC (rev 779)
++++ trunk/romfs/pwmled.lua	2010-09-05 18:20:27 UTC (rev 780)
+@@ -1,7 +1,7 @@
+ -- Control LED intensity with PWM
+ 
+ local pwmid, tmrid, ledpin
+-if pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' or pd.board() == 'ET-STM32' or pd.board() == 'EAGLE-100' then
++if pd.board() == 'EK-LM3S1968' or pd.board() == 'EK-LM3S8962' or pd.board() == 'EK-LM3S6965' or pd.board() == 'ET-STM32' or pd.board() == 'EAGLE-100' then
+   pwmid, tmrid = 0, 1
+   pwm.setclock( pwmid, 25000000 )
+ elseif pd.board() == 'ELUA-PUC' then
+
+Modified: trunk/romfs/tetrives.lua
+===================================================================
+--- trunk/romfs/tetrives.lua	2010-09-02 15:19:34 UTC (rev 779)
++++ trunk/romfs/tetrives.lua	2010-09-05 18:20:27 UTC (rev 780)
+@@ -29,6 +29,13 @@
+   game_map[ i ] = {}
+ end
+ 
++local pwmid
++if pd.board() == &quot;EK-LM3S1968&quot; then
++  pwmid = 2
++else
++  pwmid = 1
++end
++
+ -- Initial information
+ local platform = require( pd.board() )
+ lm3s.disp.init( 1000000 )
+@@ -84,9 +91,9 @@
+ end
+ 
+ function sound()                       -- This function beeps
+-  pwm.start( 1 )
++  pwm.start( pwmid )
+   tmr.delay( 0, 20000 )
+-  pwm.stop( 1 )
++  pwm.stop( pwmid )
+ end
+ 
+ function print_data()                  -- This function writes the score and level on screen
+@@ -331,8 +338,8 @@
+   end
+   level = 1                            -- This statements sets the level and score from the beginning
+   score = 0
+-  pwm.setclock( 1, 25000000 )          -- This statements sets the PWM for the sound function
+-  pwm.setup( 1, 1000, 70 )
++  pwm.setclock( pwmid, 25000000 )      -- This statements sets the PWM for the sound function
++  pwm.setup( pwmid, 1000, 70 )
+   draw_walls()
+   next_piece = math.random(7)
+   scan_piece ( next_piece )
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2010-09-02 15:19:34 UTC (rev 779)
++++ trunk/src/platform/lm3s/conf.py	2010-09-05 18:20:27 UTC (rev 780)
+@@ -1,7 +1,7 @@
+ # Configuration file for the LM3S microcontroller
+ specific_files = &quot;startup_gcc.c platform.c uart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c&quot;
+ 
+-if comp[ 'board' ] == 'EK-LM3S6965' or comp[ 'board' ] == 'EK-LM3S8962':
++if comp[ 'board' ] == 'EK-LM3S1968' or comp[ 'board' ] == 'EK-LM3S6965' or comp[ 'board' ] == 'EK-LM3S8962':
+   specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
+   comp.Append(CPPDEFINES = 'ENABLE_DISP')
+ 
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2010-09-02 15:19:34 UTC (rev 779)
++++ trunk/src/platform/lm3s/platform.c	2010-09-05 18:20:27 UTC (rev 780)
+@@ -446,15 +446,20 @@
+ const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
+ const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
+ // Port/pin information for all channels
+-#ifdef FORLM3S6965
++#if defined(FORLM3S1968)
++  const static u32 pwm_ports[] =  { GPIO_PORTG_BASE, GPIO_PORTD_BASE, GPIO_PORTH_BASE, GPIO_PORTH_BASE, GPIO_PORTF_BASE, GPIO_PORTF_BASE };
++  const static u8 pwm_pins[] = { GPIO_PIN_2, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3 };
++#elif defined(FORLM3S6965)
+   const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTD_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
+-#elif FORLM3S9B92
++  const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1 };
++#elif defined(FORLM3S9B92)
+   const static u32 pwm_ports[] =  { GPIO_PORTD_BASE, GPIO_PORTD_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
++  const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1 };
+   // GPIOPCTL probably needs modification to do PWM for 2&amp;3, Digital Function 2
+ #else
+   const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
++  const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1 };
+ #endif
+-const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1 };
+ 
+ // PWM generators
+ #ifdef FORLM3S9B92
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2010-09-02 15:19:34 UTC (rev 779)
++++ trunk/src/platform/lm3s/platform_conf.h	2010-09-05 18:20:27 UTC (rev 780)
+@@ -17,9 +17,11 @@
+ #define BUILD_ROMFS
+ #define BUILD_MMCFS
+ #define BUILD_TERM
+-#define BUILD_UIP
++#ifndef FORLM3S1968
++  #define BUILD_UIP
+ //#define BUILD_DHCPC
+-#define BUILD_DNS
++  #define BUILD_DNS
++#endif  
+ #define BUILD_CON_GENERIC
+ #define BUILD_ADC
+ #define BUILD_RPC
+@@ -127,7 +129,9 @@
+ #define VTMR_FREQ_HZ          4
+ 
+ // Number of resources (0 if not available/not implemented)
+-#ifdef FORLM3S9B92
++#if defined(FORLM3S1968)
++  #define NUM_PIO             8
++#elif defined(FORLM3S9B92)
+   #define NUM_PIO             7
+ #else
+   #define NUM_PIO             7
+@@ -201,7 +205,9 @@
+ // #define PIO_PINS_PER_PORT (n) if each port has the same number of pins, or
+ // #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array
+ // Use #define PIO_PINS_PER_PORT 0 if this isn't needed
+-#ifdef FORLM3S9B92
++#if defined(FORLM3S1968)
++  #define PIO_PIN_ARRAY         { 8, 8, 8, 4, 4, 8, 8, 4}
++#elif defined(FORLM3S9B92)
+   #define PIO_PIN_ARRAY         { 8, 8, 8, 8, 8, 6, 8, 8, 8 }
+ #else
+   #define PIO_PIN_ARRAY         { 8, 8, 8, 8, 4, 4, 2 }
+
+Modified: trunk/src/platform/lm3s/rit128x96x4.c
+===================================================================
+--- trunk/src/platform/lm3s/rit128x96x4.c	2010-09-02 15:19:34 UTC (rev 779)
++++ trunk/src/platform/lm3s/rit128x96x4.c	2010-09-05 18:20:27 UTC (rev 780)
+@@ -49,7 +49,12 @@
+ //
+ //*****************************************************************************
+ 
+-#ifdef FORLM3S6965
++#if defined(FORLM3S1968)
++  #define SYSCTL_PERIPH_GPIO_OLEDDC   SYSCTL_PERIPH_GPIOH
++  #define GPIO_OLEDDC_BASE            GPIO_PORTH_BASE
++  #define GPIO_OLEDDC_PIN             GPIO_PIN_2
++  #define GPIO_OLEDEN_PIN             GPIO_PIN_3
++#elif defined(FORLM3S6965)
+   #define SYSCTL_PERIPH_GPIO_OLEDDC   SYSCTL_PERIPH_GPIOC
+   #define GPIO_OLEDDC_BASE            GPIO_PORTC_BASE
+   #define GPIO_OLEDDC_PIN             GPIO_PIN_7
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000732.html">[Elua-svn] r779 - in trunk: . romfs
+</A></li>
+	<LI>Next message: <A HREF="000734.html">[Elua-svn] r781 - in branches/ints: inc src src/modules	src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#733">[ date ]</a>
+              <a href="thread.html#733">[ thread ]</a>
+              <a href="subject.html#733">[ subject ]</a>
+              <a href="author.html#733">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

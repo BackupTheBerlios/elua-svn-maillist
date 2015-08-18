@@ -1,0 +1,294 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r967 - in trunk: . src/platform/avr32 utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r967%20-%20in%20trunk%3A%20.%20src/platform/avr32%20utils&In-Reply-To=%3C20110221132248.25B85481264%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000919.html">
+   <LINK REL="Next"  HREF="000921.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r967 - in trunk: . src/platform/avr32 utils</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r967%20-%20in%20trunk%3A%20.%20src/platform/avr32%20utils&In-Reply-To=%3C20110221132248.25B85481264%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r967 - in trunk: . src/platform/avr32 utils">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Feb 21 14:22:47 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000919.html">[Elua-svn] r966 - trunk/utils
+</A></li>
+        <LI>Next message: <A HREF="000921.html">[Elua-svn] r968 - in trunk: . src/platform/avr32 src/platform/stm32	utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#920">[ date ]</a>
+              <a href="thread.html#920">[ thread ]</a>
+              <a href="subject.html#920">[ subject ]</a>
+              <a href="author.html#920">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-21 14:22:47 +0100 (Mon, 21 Feb 2011)
+New Revision: 967
+
+Added:
+   trunk/src/platform/avr32/conf.lua
+Modified:
+   trunk/build_elua.lua
+   trunk/utils/build.lua
+Log:
+- avr32 platform now uses the Lua build system (lua build_elua.lua board=mizar32|atevk1100|atevk1101)
+- added support for per-backend targets. avr32 now has a 'burn' target (besides the regular 'prog') that can be used to build the image and burn it to the board (lua build_elua.lua board=atevk1100 burn). It is created in 'conf.lua'
+- other fixes and improvements to the build system
+
+
+
+Modified: trunk/build_elua.lua
+===================================================================
+--- trunk/build_elua.lua	2011-02-21 07:57:44 UTC (rev 966)
++++ trunk/build_elua.lua	2011-02-21 13:22:47 UTC (rev 967)
+@@ -331,10 +331,9 @@
+   for i = 1, #usable_chains do
+     local c = usable_chains[ i ]
+     local t = toolchain_list[ c ]
+-    local res = os.execute( t.compile .. &quot; &quot; .. t.version .. &quot; &gt; .build.temp 2&gt;&amp;1&quot; )
++    local res = utils.check_command( t.compile .. &quot; &quot; .. t.version )
+     if res == 0 then chain = c break end
+   end
+-  os.remove( &quot;.build.temp&quot; )
+   if chain then
+     comp.toolchain = chain
+     comp.CC = toolchain_list[ chain ].compile
+@@ -507,26 +506,32 @@
+   return 0
+ end
+ 
+-local compcmd = builder:compile_cmd{ flags = cflags, defines = cdefs, includes = includes, compiler = toolset.compile }
+-local linkcmd = builder:link_cmd{ flags = lflags, libraries = libs, linker = toolset.compile }
+-local ascmd = builder:asm_cmd{ flags = asflags, defines = cdefs, includes = includes, assembler = toolset.asm }
++-- Command lines for the tools (compiler, linker, assembler)
++compcmd = builder:compile_cmd{ flags = cflags, defines = cdefs, includes = includes, compiler = toolset.compile }
++linkcmd = builder:link_cmd{ flags = lflags, libraries = libs, linker = toolset.compile }
++ascmd = builder:asm_cmd{ flags = asflags, defines = cdefs, includes = includes, assembler = toolset.asm }
+ builder:set_compile_cmd( compcmd )
+ builder:set_link_cmd( linkcmd )
+ builder:set_asm_cmd( ascmd )
+ builder:set_exe_extension( &quot;.elf&quot; )
+ 
+ -- Create executable target 
+-local romtarget = builder:target( &quot;inc/romfiles.h&quot;, nil, make_romfs )
++romtarget = builder:target( &quot;inc/romfiles.h&quot;, nil, make_romfs )
+ builder:make_depends( source_files, { romtarget } )
+-local odeps = builder:create_compile_targets( source_files )
+-local exetarget = builder:link_target( output, odeps )
++odeps = builder:create_compile_targets( source_files )
++exetarget = builder:link_target( output, odeps )
+ -- This is also the default target
+-builder:default( builder:add_target( exetarget ) )
++builder:default( builder:add_target( exetarget, 'build eLua executable' ) )
+ 
+ -- Create 'prog' target
+-local progtarget = builder:target( &quot;#phony:prog&quot;, { exetarget }, tools[ platform ].progfunc )
+-builder:add_target( progtarget, { &quot;prog&quot; } )
++progtarget = builder:target( &quot;#phony:prog&quot;, { exetarget }, tools[ platform ].progfunc )
++builder:add_target( progtarget, &quot;build eLua firmware image&quot;, { &quot;prog&quot; } )
+ 
++-- If the backend needs to do more processing before the build starts, do it now
++if tools[ platform ].pre_build then
++  tools[ platform ].pre_build()
++end
++
+ -- Finally build everything
+ builder:build()
+ 
+
+Added: trunk/src/platform/avr32/conf.lua
+===================================================================
+--- trunk/src/platform/avr32/conf.lua	                        (rev 0)
++++ trunk/src/platform/avr32/conf.lua	2011-02-21 13:22:47 UTC (rev 967)
+@@ -0,0 +1,87 @@
++-- Configuration file for the AVR32 microcontrollers
++
++specific_files = &quot;crt0.s trampoline.s platform.c exception.s intc.c pm.c flashc.c pm_conf_clocks.c usart.c gpio.c tc.c spi.c platform_int.c&quot;
++addm( &quot;FORAVR32&quot; )
++
++-- See board.h for possible BOARD values.
++if comp.board:upper()  == &quot;ATEVK1100&quot; then
++  specific_files = specific_files .. &quot; sdramc.c&quot;
++  addm( 'BOARD=1' )
++elseif comp.board:upper()  == &quot;ATEVK1101&quot; then
++  addm( 'BOARD=2' )
++elseif comp.board:upper()  == &quot;MIZAR32&quot; then
++  specific_files = specific_files .. &quot; sdramc.c&quot;
++  addm( 'BOARD=98' )
++else
++  print( sf( &quot;Invalid board for %s platform (%s)&quot;, platform, comp.board ) )
++  os.exit( -1 )
++end
++
++-- Prepend with path
++specific_files = utils.prepend_path( specific_files, &quot;src/platform/&quot; .. platform )
++local ldscript = sf( &quot;src/platform/%s/%s.ld&quot;, platform, comp.cpu:lower() )
++
++-- Standard GCC Flags
++addcf( { '-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall' } )
++addlf( { '-nostartfiles','-nostdlib','-Wl,--gc-sections','-Wl,--allow-multiple-definition','-Wl,--relax','-Wl,--direct-data','-T', ldscript } )
++addaf( { '-x','assembler-with-cpp' } )
++addlib( { 'c','gcc','m' } )
++
++-- Target-specific flags
++addcf( sf( '-mpart=%s', comp.cpu:sub( 5 ):lower() ) )
++addaf( sf( '-mpart=%s', comp.cpu:sub( 5 ):lower() ) )
++addlf( '-Wl,-e,crt0' )
++
++-- Toolset data
++tools.avr32 = {}
++
++-- Programming function
++tools.avr32.progfunc = function( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  print &quot;Generating binary image...&quot;
++  os.execute( sf( &quot;%s -O ihex %s %s.hex&quot;, toolset.bin, outname, output ) )
++  return 0
++
++  -- print &quot;Programming...&quot;
++  -- os.system( &quot;batchisp -hardware usb -device %s -operation erase f memory flash blankcheck loadbuffer %s program verify start reset 0&quot; % ( comp[ 'cpu' ].lower(), output + &quot;.hex&quot; ) )
++end
++
++-- Image burn function (DFU)
++local function burnfunc( target, deps )
++  print &quot;Burning image to target ...&quot;
++  local fname = output .. &quot;.hex&quot;
++  local cmd = ''
++  local res
++  if utils.is_windows() then -- use batchisp in Windows
++    res = os.execute( sf( &quot;batchisp -hardware usb -device %s -operation erase f memory flash blankcheck loadbuffer %s program verify start reset 0&quot;, comp.cpu:lower(), fname ) )
++  else -- use &quot;dfu-programmer&quot; in Windows
++    res = utils.check_command( &quot;dfu-programmer at32uc3a0512 version&quot; )
++    if res ~= 0 then
++      print &quot;Cannot find 'dfu-programmer', install it first&quot;
++      return -1
++    end
++    local basecmd = &quot;dfu-programmer &quot; .. comp.cpu:lower()
++    print( basecmd .. &quot; erase&quot; )
++    res = os.execute( basecmd .. &quot; erase&quot; )
++    if res == 0 then
++      print( basecmd .. &quot; flash &quot; .. fname )
++      res = os.execute( basecmd .. &quot; flash &quot; .. fname )
++      if res == 0 then
++        print( basecmd .. &quot; start&quot; )
++        os.execute( basecmd .. &quot; start&quot; )
++      end
++    end
++  end
++  return res == 0 and 0 or -1
++end
++
++-- Add a 'burn' target before the build starts
++tools.avr32.pre_build = function()
++  local burntarget = builder:target( &quot;#phony:burn&quot;, { progtarget }, burnfunc )
++  burntarget:force_rebuild( true )
++  builder:add_target( burntarget, &quot;burn image to AVR32 board using the DFU bootloader&quot;, { &quot;burn&quot; } )
++end
++
++-- We use 'gcc' as the assembler
++toolset.asm = toolset.compile
++
+
+Modified: trunk/utils/build.lua
+===================================================================
+--- trunk/utils/build.lua	2011-02-21 07:57:44 UTC (rev 966)
++++ trunk/utils/build.lua	2011-02-21 13:22:47 UTC (rev 967)
+@@ -171,6 +171,13 @@
+   return t
+ end
+ 
++-- Check if the given command can be executed properly
++utils.check_command = function( cmd )
++  local res = os.execute( cmd .. &quot; &gt; .build.temp 2&gt;&amp;1&quot; )
++  os.remove( &quot;.build.temp&quot; )
++  return res
++end
++
+ -------------------------------------------------------------------------------
+ -- Dummy 'builder': simply checks the date of a file
+ 
+@@ -708,19 +715,19 @@
+ end
+ 
+ -- Add a target to the list of builder targets
+-builder.add_target = function( self, target, alias )
+-  self.targets[ target.target ] = target
++builder.add_target = function( self, target, help, alias )
++  self.targets[ target.target ] = { target = target, help = help }
+   alias = alias or {}
+   for _, v in ipairs( alias ) do
+-    self.targets[ v ] = target
++    self.targets[ v ] = { target = target, help = help }
+   end
+   return target
+ end
+ 
+ -- Make a target the default one
+-builder.default = function( self, target, alias )
+-  self:add_target( target, alias )
++builder.default = function( self, target )
+   self.deftarget = target.target
++  self.targets.default = { target = target, help = &quot;default target&quot; }
+ end
+ 
+ -- Build everything
+@@ -732,10 +739,19 @@
+   end
+   if not self.targets[ t ] then
+     print( sf( &quot;Error: target '%s' not found&quot;, t ) )
++    print( &quot;Available targets: &quot; )
++    for k, v in pairs( self.targets ) do
++      if not is_phony( k ) then 
++        print( sf( &quot;  %s - %s&quot;, k, v.help or &quot;(no help available)&quot; ) )
++      end
++    end
++    if self.deftarget and not is_phony( self.deftarget ) then
++      print( sf( &quot;Default target is '%s'&quot;, self.deftarget ) )
++    end
+     os.exit( 1 )
+   end
+   self:_create_outdir()
+-  local res = self.targets[ t ]:build()
++  local res = self.targets[ t ].target:build()
+   if not res then print( sf( '%s: up to date', t ) ) end
+   print &quot;Done building targets.&quot;
+   return res
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000919.html">[Elua-svn] r966 - trunk/utils
+</A></li>
+	<LI>Next message: <A HREF="000921.html">[Elua-svn] r968 - in trunk: . src/platform/avr32 src/platform/stm32	utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#920">[ date ]</a>
+              <a href="thread.html#920">[ thread ]</a>
+              <a href="subject.html#920">[ subject ]</a>
+              <a href="author.html#920">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

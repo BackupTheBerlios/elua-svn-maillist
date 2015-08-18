@@ -1,0 +1,660 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r76 - in trunk: . docs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r76%20-%20in%20trunk%3A%20.%20docs&In-Reply-To=%3C200809021055.m82AtbdQ004597%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000030.html">
+   <LINK REL="Next"  HREF="000033.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r76 - in trunk: . docs</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r76%20-%20in%20trunk%3A%20.%20docs&In-Reply-To=%3C200809021055.m82AtbdQ004597%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r76 - in trunk: . docs">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Sep  2 12:55:37 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000030.html">[Elua-svn] r75 - in trunk: romfs src src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000033.html">[Elua-svn] r77 - trunk/inc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#32">[ date ]</a>
+              <a href="thread.html#32">[ thread ]</a>
+              <a href="subject.html#32">[ subject ]</a>
+              <a href="author.html#32">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-09-02 12:55:35 +0200 (Tue, 02 Sep 2008)
+New Revision: 76
+
+Added:
+   trunk/docs/generic_modules.txt
+Modified:
+   trunk/CHANGELOG
+   trunk/LICENSE
+   trunk/docs/adding_a_new_platform.txt
+   trunk/docs/building.txt
+   trunk/docs/platform_interface.txt
+   trunk/docs/platform_modules.txt
+   trunk/docs/terminal_support.txt
+   trunk/docs/the_rom_file_system.txt
+Log:
+documentation updated. phew :)
+
+Modified: trunk/CHANGELOG
+===================================================================
+--- trunk/CHANGELOG	2008-09-01 20:32:43 UTC (rev 75)
++++ trunk/CHANGELOG	2008-09-02 10:55:35 UTC (rev 76)
+@@ -1,3 +1,20 @@
++02.09.2008 Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdanm at users.berlios.de</A>&gt;
++
++  * Official release 0.4
++  * Added support for LPC2888 (preliminary)
++  * Added support for multiple memory spaces (this can be used to
++    take advantage of both the internal CPU RAM and external RAM chips
++    on board that have external RAM)
++  * Added PWM module
++  * Added &quot;pack&quot; (binary data packing/unpacking) and &quot;bit&quot; (binary
++    operatinos) modules
++  * New samples: TV-B-Gone, piano, pwmled (all based on the new PWM module)
++  * Build system updated, easier to use, now it knows how to handle &quot;boards&quot; 
++    as well as CPUs
++  * Modified the existing platform modules to take less RAM and to report an
++    error when an unavailable resource is requested
++  * Project documentation updated
++
+ 09.08.2008 Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdanm at users.berlios.de</A>&gt;
+            Frederic Thomas &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">frthomas at users.berlios.de</A>&gt;
+ 
+
+Modified: trunk/LICENSE
+===================================================================
+--- trunk/LICENSE	2008-09-01 20:32:43 UTC (rev 75)
++++ trunk/LICENSE	2008-09-02 10:55:35 UTC (rev 76)
+@@ -4,6 +4,15 @@
+ The XMODEM code is adapted from the Procyon AVR library, which is released
+ under GPL.
+ 
++The &quot;pack&quot; module is adapted from the &quot;lpack&quot; module by Luiz Henrique de 
++Figueiredo and it's placed in the public domain.
++
++The &quot;bit&quot; module is adapted from the &quot;bitlib&quot; library by Reuben Thomas which
++is distributed under a MIT license.
++
++The multiple memory allocator (dlmalloc) is written by Doug Lea and it's
++placed on the public domain.
++
+ The rest of the code is licensed under GPL, listed below.
+ 
+ ================================================================================
+
+Modified: trunk/docs/adding_a_new_platform.txt
+===================================================================
+--- trunk/docs/adding_a_new_platform.txt	2008-09-01 20:32:43 UTC (rev 75)
++++ trunk/docs/adding_a_new_platform.txt	2008-09-02 10:55:35 UTC (rev 76)
+@@ -31,7 +31,12 @@
+ for foo, follow these steps:
+ 
+ 1. create the src/platform/foo directory
+-2. change the main build script (SConstruct) to include your new platform
++2. modify the SConstruct file from the base directory to make it aware of your
++   new CPU, platform and board(s). A &quot;board&quot; translates into a simple macro
++   definition at compile time, and makes it easy to adapt your platform code for
++   different situations. For example, you might have 2 boards with the same CPU,
++   but different I/O pin assignments. By checking the value of the &quot;ELUA_BOARD&quot;
++   macro in your code you can adapt it for each board.
+ 3. you need at least 4 files (besides your platform specific files) in the 
+    src/platform/foo directory:
+ 
+@@ -45,7 +50,7 @@
+ 
+ 4. implement the platform interface functions (see &quot;platform interface.txt&quot;). By
+    convention, they should be implemented in a file called &quot;platform.c&quot;. Note that
+-   SConstruct defines a C macro (-D&lt;cputype&gt;) for your platform so you code can
+-   do #ifdef &lt;cputype&gt; ...
++   SConstruct defines 3 macros that might prove useful: ELUA_CPU, ELUA_PLATFORM
++   and ELUA_BOARD. 
+   
+ 5. That's it! Build (see &quot;building.txt&quot;) and enjoy!
+
+Modified: trunk/docs/building.txt
+===================================================================
+--- trunk/docs/building.txt	2008-09-01 20:32:43 UTC (rev 75)
++++ trunk/docs/building.txt	2008-09-02 10:55:35 UTC (rev 76)
+@@ -5,8 +5,7 @@
+ 
+ Before you start, you might want to check if the list of platform modules and 
+ eLua components are set according to your needs. See docs/platform_modules.txt 
+-and docs/elua_components.txt for details. By default, all the relevant
+-modules and components for a given target are included in the build.
++and docs/elua_components.txt for details. 
+ 
+ Building eLua
+ ================================================================================
+@@ -52,8 +51,6 @@
+ |============|=====================|======================|====================|
+ | Cortex-M3  |    arm-elf-gcc      |     arm-elf-gcc      |     arm-elf-gcc    |
+ |============|=====================|======================|====================|
+-| STR9       |    arm-elf-gcc      |     arm-elf-gcc      |     arm-elf-gcc    |
+-================================================================================
+ 
+ If your toolchain uses different names, you have to modify the &quot;conf.py&quot; file
+ from src/platform/[your platform].
+@@ -62,17 +59,42 @@
+ invoke scons:
+ 
+ $ scons [target=lua | lualong] 
+-  [cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | lm3s6965]
++  [cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | 
++        lm3s6965 | lpc2888 ]
++  [board=ek-lm3s8962 | ek-lm3s6965 | str9-comstick | sam7-ex256 | lpc-h2888 | 
++        pc]
+   [cpumode=arm | thumb] 
++  [allocator = newlib | multiple]
+   [prog]
++
++Your build target is specified by two paramters: cpu and board. &quot;cpu&quot; gives the
++name of your CPU, and &quot;board&quot; the name of the board. A board can be associated
++with more than one CPU. This allows the build system to be very flexible. You 
++can use these two options together or separately, as shown below:
++
++- cpu=name: build for the specified CPU. A board name will be assigned by the
++  build system automatically.
++- board=name: build for the specified board. The CPU name will be inferred by 
++  the build system automatically.
++- cpu=name board=name: build for the specified board and CPU.
++
++For board/CPU assignment look at the beginning of the SConstruct file from the 
++base directory, it's self-explanatory.
++
++The other options are as follows:
+   
+ - target=lua | lualong: specify if you want to build full Lua (with floating 
+   point support) or integer only Lua (lualong). The default is &quot;lua&quot;.
+-- cpu=at91sam7x256 | at91sam7x512 | i386 | str912fw44 | lm3s8962 | lm3s6965: 
+-  specify what CPU to build for. The default is AT91SAM7X256.
+ - cpumode=arm | thumb: for ARM target (not Cortex) this specifies the
+   compilation mode. Its default value is 'thumb' for AT91SAM7X targets and
+-  'arm' for STR9 targets.
++  'arm' for STR9 and LPC2888 targets.
++- allocator = newlib | multiple: choose between the default newlib allocator
++  (newlib) and the multiple memory spaces allocator (multiple). You should
++  use the 'multiple' allocator only if you need to support multiple memory 
++  spaces, as it's larger that the default Newlib allocator (newlib). For more
++  information about this reffer to platform_interface.txt. The default value
++  is 'newlib' for all CPUs except 'lpc2888', since my lpc-h2888 comes with
++  external SDRAM memory and thus it's an ideal target for 'multiple'.
+ - prog: by default, the above 'scons' command will build only the 'elf' file.
+   Specify &quot;prog&quot; to build also the platform-specific programming file where
+   appropriate (for example, on a AT91SAM7X256 this results in a .bin file that
+@@ -86,3 +108,26 @@
+ after you change the list of modules/components to build for your target (see 
+ section &quot;prerequisites&quot; of this document), as scons seems to &quot;overlook&quot; the 
+ changes to these files on some occasions.
++
++A few examples:
++
++$ scons cpu=at91sam7x256
++
++Build eLua for the AT91SAM7X256 CPU. The board name is detected as sam7-ex256.
++
++$ scons board=sam7-ex256
++
++Build eLua for the SAM7-EX256 board. The CPU is detected as AT91SAM7X256.
++
++$ scons board=sam7-ex256 cpu=at91sam7x512
++
++Build eLua for the SAM7-EX256 board, but &quot;overwrite&quot; the default CPU. This is 
++useful when you'd like to see how the specified board would behave with a 
++different CPU (in the case of the SAM7-EX256 board it's possible to switch the
++on-board AT91SAM7X256 CPU for an AT91SAM7X512 which has the same pinout but 
++comes with more Flash/RAM memory).
++
++$ scons cpu=lpc2888 prog 
++
++Build eLua for the lpc2888 CPU. The board name is detected as LPC-H2888. Also,
++the bin file required for target programming is generated.
+
+Added: trunk/docs/generic_modules.txt
+===================================================================
+--- trunk/docs/generic_modules.txt	2008-09-01 20:32:43 UTC (rev 75)
++++ trunk/docs/generic_modules.txt	2008-09-02 10:55:35 UTC (rev 76)
+@@ -0,0 +1,100 @@
++(NOTE: view this file with a monospaced font)
++
++eLua generic modules
++================================================================================
++
++Before you read this file, please make sure that you read and understood the 
++theory from &quot;platform_modules.txt&quot; (at least the first part which describes
++the platform modules implementation). The generic modules use the exact same
++mechanism. In fact, the only difference between them is that the generic modules
++are exactly what their name implies: generic. They don't depend on the platform
++interface, so they don't need specific support for each platform, but they still
++behave identically on all platforms. They are selected by the same mechanism
++used by the platform modules (platform_libs.h). Following is a list of these 
++modules and their exported functions.
++
++The &quot;term&quot; module
++================================================================================
++The &quot;term&quot; component (see terminal_support.txt) exports its functions to Lua via 
++the &quot;term&quot; module. The methods of the &quot;term&quot; module are presented below.
++
++term.clrscr(): clear the screen
++
++term.clreol(): clear from the current cursor position to the end of the line 
++
++term.gotoxy( x, y ): position the cursor at the given coordinates
++
++term.up( delta ): move the cursor up &quot;delta&quot; lines
++
++term.down( delta ): move the cursor down &quot;delta&quot; lines
++
++term.left( delta ): move the cursor left &quot;delta&quot; lines
++
++term.right( delta ): move the cursor right &quot;delta&quot; lines
++
++Lines = term.lines(): returns the number of lines
++
++Cols = term.cols(): returns the number of columns
++
++term.put( c1, c2, ... ): writes the specified character(s) to the terminal
++
++term.putstr( s1, s2, ... ): writes the specified string(s) to the terminal
++
++Cx = term.cursorx(): return the cursor X position
++
++Cy = term.cursory(): return the cursor Y position
++
++c = term.getch( term.WAIT | term.NOWAIT ): returns a char read from the 
++  terminal. If term.WAIT is specified the function will wait for a character to
++  be ready, with term.NOWAIT it returns -1 if no char is available or the char
++  code if a char is available. The return of getch can be checked against the
++  char codes defined in inc/term.h, by appending &quot;term.&quot; to the constant name 
++  (for example: term.KC_UP, term.KC_LEFT, term.KC_ESC ... )
++
++The &quot;pack&quot; module
++================================================================================
++Pack allows packing/unpacking of binary data. For example, it allows one to save 
++a specific data type (for example a 16-bit integer) from Lua to a file and then 
++read it back to a Lua variable without having to worry about the different
++physical representations of a Lua number and a 16-bit integer. It's originally
++written by Luiz Henrique de Figueiredo, one of the &quot;fathers&quot; of Lua.
++It exports just two methods (&quot;pack&quot; and &quot;unpack&quot;), but it uses some format
++specifiers for the pack/unpack operations that take a while to get used to. For
++more information download the original distribution and check its documentation
++and examples (<A HREF="http://www.tecgraf.pub-rio.br/~lhf/ftp/lua/~lpack">http://www.tecgraf.pub-rio.br/~lhf/ftp/lua/~lpack</A>).
++
++The &quot;bit&quot; module
++================================================================================
++As Lua doesn't have built-in operators for bit operations (and, or, xor, not)
++they are provided by this module. It's based on &quot;bitlib&quot; by Reuben Thomas and
++was slightly adapted and augmented for eLua.
++
++Res = bit.bnot( value ): unary negation
++
++Res = bit.band( v1, v2, ... ): binary &quot;and&quot;
++
++Res = bit.bor( v1, v2, ... ): binary &quot;or&quot;
++
++Res = bit.bxor( v1, v2, ... ): binary &quot;exclusive or&quot;
++
++Res = bit.lshift( value, pos ): shift &quot;value&quot; left &quot;pos&quot; positions.
++
++Res = bit.rshift( value, pos ): shift &quot;value&quot; right &quot;pos&quot; positions. The sign is
++  not propagated.
++
++Res = bit.arshift( value, pos ): shift &quot;value&quot; right &quot;pos&quot; positions. The sign
++  is propagated (&quot;arithmetic shift&quot;).
++
++Res = bit.bit( bitno ): a shortcut for bit.lshift( 1, bitno )
++
++Res1, Res2, ... = bit.set( bitno, v1, v2, ... ): set the bit at position &quot;bitno&quot;
++  in v1, v2, ... to 1.
++
++Res1, Res2, ... = bit.clear( bitno, v1, v2, ... ): set the bit at position 
++  &quot;bitno&quot;in v1, v2, ... to 0.
++
++Res = bit.isset( value, bitno ): returns true if bit at position &quot;bitno&quot; in 
++  &quot;value&quot; is 1, false otherwise.
++
++Res = bit.isclear( value, bitno ): returns true if bit at position &quot;bitno&quot; in
++  &quot;value&quot; is 0, false otherwise.
+
+Modified: trunk/docs/platform_interface.txt
+===================================================================
+--- trunk/docs/platform_interface.txt	2008-09-01 20:32:43 UTC (rev 75)
++++ trunk/docs/platform_interface.txt	2008-09-02 10:55:35 UTC (rev 76)
+@@ -28,15 +28,23 @@
+ 
+ ================================================================================
+ 
+-void* platform_get_first_free_ram();
+-void* platform_get_last_free_ram();
++void* platform_get_first_free_ram( unsigned id );
++void* platform_get_last_free_ram( unsigned id );
+ 
+ TYPE: REQUIRED
+ USED BY MODULE: N/A
+ 
+ PURPOSE: returns the first and the last free RAM address; the space between them 
+-will be used for the system heap. The space must be CONTIGUOUS; currently the 
+-implementation does now allow for &quot;holes&quot; in the RAM memory space. 
++will be used for the system heap. 'id' is a memory space identifier. This can be
++used if there is more than one RAM memory available in the system, and their
++address ranges do not overlap. For example, one can have a CPU with internal RAM 
++(a very common case) but also an external RAM chip. In this case there are two 
++memory spaces, the first one being the internal RAM and the other one the 
++external RAM. While each of them in part is contiguous, they are generally not
++contigous to each other in the system address space, so they must be treated as
++two separate address spaces. If the multiple allocator (see building.txt) is
++used you can define as many memory spaces as you wish in your system, the 
++allocator will make sure to use all of them.
+ If the system RAM exists in a single memory space (for example the internal RAM 
+ on the MCU) the CPU's stack pointer should be set at the end of the RAM at 
+ startup. Thus, the first free ram will start right after the data/bss sections, 
+@@ -45,11 +53,14 @@
+ and the heap will stop if asked to grow &quot;over&quot; the stack.
+ If the MCU has both internal RAM and external RAM, a simple arrangement is to 
+ place the CPU stack at the end of the internal RAM and the heap in the external 
+-memory (which is generally much larger than the MCU's internal memory).
++memory (which is generally much larger than the MCU's internal memory). Another
++arrangement is to use the multiple allocator and the memory space id as 
++described above.
+ 
+ ================================================================================
+ 
+ int platform_pio_has_port( unsigned port );
++const char* platform_pio_get_prefix( unsigned port );
+ int platform_pio_has_pin( unsigned port, unsigned pin );
+ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op );
+ 
+@@ -61,6 +72,9 @@
+ these virtual ports to physical ports, it will ask the platform if a port is 
+ physically present (via platform_pio_has_port) and also if a bit (a &quot;pin&quot;) in 
+ the port is physically present (via platform_pio_has_pin). 
++platform_pio_get_prefix gets a port number and return the &quot;port name&quot; as defined
++in the device datasheet. Some devices use PA0, PA1, others simply P0, P1. This
++is what this function is expected to return.
+ The platform_pio_op function is the one that does the actual work with the PIO
+ subsystem. It receives an operation id (&quot;op&quot;) as well as a mask (&quot;pinmask&quot;) to 
+ which the operation applies. The possible operations are shown in the 'enum' 
+@@ -75,6 +89,9 @@
+   PLATFORM_IO_PIN_GET,                      // Get value of pin
+   PLATFORM_IO_PIN_DIR_INPUT,                // Configure pin(s) as input
+   PLATFORM_IO_PIN_DIR_OUTPUT,               // Configure pin(s) as output
++  PLATFORM_IO_PIN_PULLUP,                   // Enable pullups on the pin(s)
++  PLATFORM_IO_PIN_PULLDOWN,                 // Enable pulldowns on the pin(s)
++  PLATFORM_IO_PIN_NOPULL,                   // Disable all pulls on the pin(s)
+   // Port operations
+   PLATFORM_IO_PORT_SET_VALUE,               // Set port value
+   PLATFORM_IO_PORT_GET_VALUE,               // Get port value
+@@ -168,14 +185,40 @@
+ 
+ ================================================================================
+ 
+-const char* platform_pd_get_platform_name();
+-const char* platform_pd_get_cpu_name();
+ u32         platform_pd_get_cpu_frequency();
+ 
+ TYPE: optional
+ USED BY MODULE: pd
+ 
+-PURPOSE: platform data. These functions are used to identify the platform on
+-which eLua is running. platform_pd_get_platform_name() returns a string for the
+-platform name, platform_pd_get_cpu_name() returns a string for the cpu name, and
+-platform_pd_get_cpu_frequency() returns the platform's CPU frequency in Hz.
++PURPOSE: platform data. This function is part of the &quot;pd&quot; module that is used to
++identify the platform on which eLua runs. Its purpose is to return the platform's 
++CPU frequency in Hz.
++
++================================================================================
++
++int platform_pwm_exists( unsigned id );
++u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty );
++u32 platform_pwm_op( unsigned id, int op, u32 data );
++
++TYPE: optional
++USED BY MODULE: pwm
++
++PURPOSE: PWM operations. eLua defines 16 &quot;virtual&quot; PWM blocks. The function
++platform_pwm_exists() gets an identifier from 0 to 15 and returns 1 if the PWM
++block with the given identifier exists on the target machinem, 0 otherwise.
++platform_pwm_setup() is called to configure the SPI interface with the given 
++frequency and duty cycle (the duty cycle is a number from 0 to 100 representing
++the duty cycle in percents). 
++Finally, platform_pwm_op() implements PWM specific operations. They are all
++defined in an enum from inc/platform.h, shown below:
++
++(BEGIN inc/platform.h)
++// PWM operations
++enum
++{
++  PLATFORM_PWM_OP_START,                // Start the PWM block
++  PLATFORM_PWM_OP_STOP,                 // Stop the PWM block
++  PLATFORM_PWM_OP_SET_CLOCK,            // Set the base clock of the PWM block
++  PLATFORM_PWM_OP_GET_CLOCK             // Get the base clock of the PWM block
++};
++(END inc/platform.h) 
+
+Modified: trunk/docs/platform_modules.txt
+===================================================================
+--- trunk/docs/platform_modules.txt	2008-09-01 20:32:43 UTC (rev 75)
++++ trunk/docs/platform_modules.txt	2008-09-02 10:55:35 UTC (rev 76)
+@@ -3,12 +3,14 @@
+ eLua platform modules
+ ================================================================================
+ 
++(NOTE: after reading this, check also the &quot;generic_modules.txt&quot; file to
++learn about the generic (not platform specific) modules from eLua).
++
+ In order to make eLua usable on different platform, eLua provides a number of 
+ &quot;platform modules&quot; that link the language with the hardware platform. They're 
+ mainly tied up with the platform peripherals (PIO, UART, SPI and others). 
+-Currently only the PIO module is implemented by eLua, but much more will be 
+-added as the project evolves. They are loaded when Lua starts (just like the
+-&quot;standard&quot; modules like os, math, string).
++They are loaded when Lua starts (just like the &quot;standard&quot; modules like os, math,
++string).
+ 
+ All the platform modules have two parts: the generic part (the one that is
+ exposed directly to Lua and it's supposed to be platform independent) and the
+@@ -64,18 +66,13 @@
+ optional. If there are no modules that use them in one platform, then you don't
+ need to define them at all for that platform, not even as &quot;bogus&quot; functions.
+ 
+-NOTE: this mechanism is not used only for the platform modules, but also for 
+-other modules in eLua. For an examples see src/terminal_support.txt in which the
+-&quot;term&quot; is presented, and it can be enabled in the exact same way as a platform
+-module, even though it's not connected to the platform interface.
+-
+ ================================================================================
+ === The PIO module
+ ================================================================================
+ 
+ The PIO module lets Lua access the programmable input/output (PIO) pins of the
+ microcontroller. It exposes symbolic name for ports (pio.PA, pio.PB, ... pio.PF)
+-and symbolic names for port pins (pio.PA0, pio.PA1, ... pio.PB30, ...). Also,
++and symbolic names for port pins (pio.PA_0, pio.PA_1, ... pio.PB_30, ...). Also,
+ it exposes functions to access both ports and pins:
+ 
+ pio.setpin( value, Pin1, Pin2 ... ): set the value to all the pins in the list 
+@@ -83,10 +80,10 @@
+   
+ pio.set( Pin1, Pin2, ... ): set the value of all the pins in the list to 1.
+ 
+-pio.clear( Pin1, Pin2, ... ): set the value of all the pins in the list to 0.
+-
+ Val1, Val2, ... = pio.get( Pin1, Pin2, ... ): reads one or more pins and returns
+   their values (0 or 1).
++
++pio.clear( Pin1, Pin2, ... ): set the value of all the pins in the list to 0.
+   
+ pio.input( Pin1, Pin2, ... ): set the specified pin(s) as input(s).
+ 
+@@ -102,6 +99,21 @@
+ 
+ pio.port_output( Port1, Port2, ... ): set the specified port(s) as output(s).
+ 
++pio.pullup( Pin1, Pin2, ... ): enable internal pullups on the specified pins.
++Note that some CPUs might not provide this feature.
++
++pio.pulldown( Pin1, Pin2, ... ): enable internal pulldowns on the specified
++pins. Note that some CPUs might not provide this feature.
++
++pio.nopull( Pin1, Pin2, ... ): disable the pullups/pulldowns on the specified
++pins. Note that some CPUs might not provide this feature.
++
++Port = pio.port( code ): return the physical port number associated with the
++given code. For example, &quot;pio.port( pio.P0_20 )&quot; will return 0.
++
++Pin = pio.pin( code ): return the physical port number associated with the
++given code. For example, &quot;pio.pin( pio.P0_20 )&quot; will return 20.
++
+ ================================================================================
+ === The SPI module
+ ================================================================================
+@@ -181,10 +193,32 @@
+ === The platform data module
+ ================================================================================
+ 
+-it allows Lua to identify the platform on which it runs.
++It allows Lua to identify the platform on which it runs.
+ 
+ Platform = pd.platform(): returns the platform name (f.e. LM3S)
+ 
+ Cpu = pd.cpu(): returns the CPU name (f.e. LM3S8962)
+ 
++Board = pd.board(): returns the CPU board (f.e. EK-LM3S8962)
++
+ Clock = pd.clock(): returns the platform CPU clock.
++
++================================================================================
++=== The PWM module
++================================================================================
++
++It allows Lua to use the PWM blocks on the target CPU.
++
++Data = pwm.setup( id, frequency, duty ): sets the PWM block 'id' to generate the
++  specified frequency with the specified duty cycle (duty is an integer number
++  from 0 to 100, specifying the duty cycle in percents). It returns the actual
++  frequency set on the PWM block.
++
++pwm.start( id ): start the PWM block 'id'.
++
++pwm.stop( id ): stop the PWM block 'id'.
++
++Data = pwm.setclock( id, clock ): set the base clock of the PWM block 'id' to
++  the given clock. In returns the actual clock set on the PWM block.
++
++Data = pwm.getclock( id ): returns the base clock of the PWM block 'id'.
+
+Modified: trunk/docs/terminal_support.txt
+===================================================================
+--- trunk/docs/terminal_support.txt	2008-09-01 20:32:43 UTC (rev 75)
++++ trunk/docs/terminal_support.txt	2008-09-02 10:55:35 UTC (rev 76)
+@@ -62,41 +62,5 @@
+ minimal, as writing an &quot;ANSI emulation&quot; for your terminal device is not hard.
+ For an example, see src/main.c, where these functions are implemented for an
+ UART connection with a terminal emulator program running on PC.
+-
+-&quot;term&quot; functions
+-================================================================================
+-The &quot;term&quot; component exports its functions to Lua via the &quot;term&quot; module. The 
+-methods of the &quot;term&quot; module are presented below.
+-
+-term.clrscr(): clear the screen
+-
+-term.clreol(): clear from the current cursor position to the end of the line 
+-
+-term.gotoxy( x, y ): position the cursor at the given coordinates
+-
+-term.up( delta ): move the cursor up &quot;delta&quot; lines
+-
+-term.down( delta ): move the cursor down &quot;delta&quot; lines
+-
+-term.left( delta ): move the cursor left &quot;delta&quot; lines
+-
+-term.right( delta ): move the cursor right &quot;delta&quot; lines
+-
+-Lines = term.lines(): returns the number of lines
+-
+-Cols = term.cols(): returns the number of columns
+-
+-term.put( c1, c2, ... ): writes the specified character(s) to the terminal
+-
+-term.putstr( s1, s2, ... ): writes the specified string(s) to the terminal
+-
+-Cx = term.cursorx(): return the cursor X position
+-
+-Cy = term.cursory(): return the cursor Y position
+-
+-c = term.getch( term.WAIT | term.NOWAIT ): returns a char read from the 
+-  terminal. If term.WAIT is specified the function will wait for a character to
+-  be ready, with term.NOWAIT it returns -1 if no char is available or the char
+-  code if a char is available. The return of getch can be checked against the
+-  char codes defined in inc/term.h, by appending &quot;term.&quot; to the constant name 
+-  (for example: term.KC_UP, term.KC_LEFT, term.KC_ESC ... )
++To see what functions are exported to eLua by the &quot;term&quot; module reffer to the
++&quot;generic_modules.txt&quot; file from the docs/ directory.
+
+Modified: trunk/docs/the_rom_file_system.txt
+===================================================================
+--- trunk/docs/the_rom_file_system.txt	2008-09-01 20:32:43 UTC (rev 75)
++++ trunk/docs/the_rom_file_system.txt	2008-09-02 10:55:35 UTC (rev 76)
+@@ -10,9 +10,9 @@
+ built. For the seame reason, you can't add/delete files after the image is built.
+ To use this file system:
+ 
+-- copy all the files you need to the files/ directory.
++- copy all the files you need to the romfs/ directory.
+ - Build eLua (docs/building.txt). As part of the build process, &quot;mkfs.py&quot; will
+-  be called, which will read the contents of the &quot;files/&quot; directory and will
++  be called, which will read the contents of the &quot;romfs/&quot; directory and will
+   output a file that contains a binary description of the file system.
+ - burn your image to the target
+ - from your code, whenever you want to access a file, prefix its name with
+@@ -32,5 +32,5 @@
+ 
+ The maximum file name of a ROMFS file is 14 characters, including the dot
+ between the file name and its extension. Make sure that the file names from
+-files/ follow this rule.
++romfs/ follow this rule.
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000030.html">[Elua-svn] r75 - in trunk: romfs src src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000033.html">[Elua-svn] r77 - trunk/inc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#32">[ date ]</a>
+              <a href="thread.html#32">[ thread ]</a>
+              <a href="subject.html#32">[ subject ]</a>
+              <a href="author.html#32">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

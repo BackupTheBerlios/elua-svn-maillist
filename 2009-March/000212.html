@@ -1,0 +1,239 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r256 - in trunk: romfs src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r256%20-%20in%20trunk%3A%20romfs%20src/modules&In-Reply-To=%3C200903122106.n2CL6EpY009085%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000211.html">
+   <LINK REL="Next"  HREF="000213.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r256 - in trunk: romfs src/modules</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r256%20-%20in%20trunk%3A%20romfs%20src/modules&In-Reply-To=%3C200903122106.n2CL6EpY009085%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r256 - in trunk: romfs src/modules">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Thu Mar 12 22:06:14 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000211.html">[Elua-svn] r255 - in trunk/doc: . en wb
+</A></li>
+        <LI>Next message: <A HREF="000213.html">[Elua-svn] r257 - in trunk/doc: . en wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#212">[ date ]</a>
+              <a href="thread.html#212">[ thread ]</a>
+              <a href="subject.html#212">[ subject ]</a>
+              <a href="author.html#212">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2009-03-12 22:06:14 +0100 (Thu, 12 Mar 2009)
+New Revision: 256
+
+Modified:
+   trunk/romfs/LM3S.lua
+   trunk/romfs/led.lua
+   trunk/romfs/morse.lua
+   trunk/romfs/pong.lua
+   trunk/romfs/tvbgone.lua
+   trunk/src/modules/auxmods.h
+Log:
+gpio module renamed (back) to pio
+romfs Lua examples refactored to work with pio module
+examples were _not_ tested after renaming gpio to pio (but should be ok) 
+
+
+
+Modified: trunk/romfs/LM3S.lua
+===================================================================
+--- trunk/romfs/LM3S.lua	2009-03-12 14:47:08 UTC (rev 255)
++++ trunk/romfs/LM3S.lua	2009-03-12 21:06:14 UTC (rev 256)
+@@ -1,4 +1,4 @@
+-local gpio = gpio
++local pio = pio
+   
+ module(...)
+ 
+@@ -8,12 +8,12 @@
+ BTN_RIGHT   = &quot;PE_3&quot;
+ BTN_SELECT  = &quot;PF_1&quot;
+ btnpressed = function( button )
+-  return ( gpio[ button ] == 0 )
++  return ( pio[ button ] == 0 )
+ end
+ 
+ LED_1 = &quot;PF_0&quot;
+ 
+-gpio.PE_0_3_DIR, gpio.PF_1_DIR = gpio.INPUT, gpio.INPUT
+-gpio.PE_0_3_PULL, gpio.PF_1_PULL = gpio.PULLUP, gpio.PULLUP
+-gpio.PF_0_DIR = gpio.OUTPUT
++pio.PE_0_3_DIR, pio.PF_1_DIR = pio.INPUT, pio.INPUT
++pio.PE_0_3_PULL, pio.PF_1_PULL = pio.PULLUP, pio.PULLUP
++pio.PF_0_DIR = pio.OUTPUT
+ 
+
+Modified: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2009-03-12 14:47:08 UTC (rev 255)
++++ trunk/romfs/led.lua	2009-03-12 21:06:14 UTC (rev 256)
+@@ -23,13 +23,13 @@
+ end
+ 
+ function cycle()
+-  if not invert then gpio[ ledpin ] = 1 else gpio[ ledpin ] = 0 end
++  if not invert then pio[ ledpin ] = 1 else pio[ ledpin ] = 0 end
+   tmr.delay( 0, 500000 )
+-  if not invert then gpio[ ledpin ] = 0 else gpio[ ledpin ] = 1 end
++  if not invert then pio[ ledpin ] = 0 else pio[ ledpin ] = 1 end
+   tmr.delay( 0, 500000 )
+ end
+ 
+-gpio.dir[ ledpin ] = gpio.OUTPUT
++pio.dir[ ledpin ] = pio.OUTPUT
+ print( &quot;Hello from eLua on &quot; .. pd.cpu() )
+ print &quot;Watch your LED blinking :)&quot;
+ print &quot;Press any key to end this demo.\n&quot;
+
+Modified: trunk/romfs/morse.lua
+===================================================================
+--- trunk/romfs/morse.lua	2009-03-12 14:47:08 UTC (rev 255)
++++ trunk/romfs/morse.lua	2009-03-12 21:06:14 UTC (rev 256)
+@@ -57,11 +57,11 @@
+   if m == ' ' then
+     tmr.delay(tmrid, 2 * dotDelay)
+   else
+-    gpio[ledpin] = 1
++    pio[ledpin] = 1
+     pwm.start(pwmid)
+     tmr.delay(tmrid, m == '.' and dotDelay or 3 * dotDelay)
+     pwm.stop(pwmid)
+-    gpio[ledpin] = 0
++    pio[ledpin] = 0
+     tmr.delay(tmrid, dotDelay)
+   end
+ end
+@@ -91,7 +91,7 @@
+ end
+ 
+ ------------ Main Program ------------
+-gpio.dir[ledpin] = gpio.OUTPUT
++pio.dir[ledpin] = pio.OUTPUT
+ pwm.setup( pwmid, playFreq, 50 )
+ 
+ while true do
+
+Modified: trunk/romfs/pong.lua
+===================================================================
+--- trunk/romfs/pong.lua	2009-03-12 14:47:08 UTC (rev 255)
++++ trunk/romfs/pong.lua	2009-03-12 21:06:14 UTC (rev 256)
+@@ -1,8 +1,3 @@
+---[[ To Do
+-  External Loop to play again, w/ UI msg
+-  Function lm3s_init will become a separate module, require()d here
+---]]
+-
+ require(&quot;LM3S&quot;)
+ 
+ function drawPaddle( y, color )
+
+Modified: trunk/romfs/tvbgone.lua
+===================================================================
+--- trunk/romfs/tvbgone.lua	2009-03-12 14:47:08 UTC (rev 255)
++++ trunk/romfs/tvbgone.lua	2009-03-12 21:06:14 UTC (rev 256)
+@@ -19,9 +19,9 @@
+ end
+ 
+ -- Setup PIO
+-gpio.dir[ led ] = gpio.OUTPUT
+-gpio.dir[ startpin ], gpio.dir[ exitpin  ] = gpio.INPUT, gpio.INPUT
+-gpio.pull[ startpin  ], gpio.pull[ exitpin ] = gpio.PULLUP, gpio.PULLUP
++pio.dir[ led ] = pio.OUTPUT
++pio.dir[ startpin ], pio.dir[ exitpin  ] = pio.INPUT, pio.INPUT
++pio.pull[ startpin  ], pio.pull[ exitpin ] = pio.PULLUP, pio.PULLUP
+ 
+ -- Local variables
+ local _, fstr, freq, timesstr, ontime, offtime, runme
+@@ -30,14 +30,14 @@
+ collectgarbage( &quot;stop&quot; )
+ runme = true
+ while runme do
+-  while gpio[ startpin ] == 1 do 
+-    if gpio[ exitpin ] == 0 then
++  while pio[ startpin ] == 1 do 
++    if pio[ exitpin ] == 0 then
+       runme = false 
+       break 
+     end
+   end
+   if not runme then break end
+-  gpio[ led ] = 1
++  pio[ led ] = 1
+   codes:seek( &quot;set&quot;, 0 )
+   while true do
+     fstr = codes:read( 4 )
+@@ -53,7 +53,7 @@
+       pwm.stop( pwmid )
+       if offtime == 0 then break end
+       tmr.delay( tmrid, offtime * 10 )
+-      if gpio[ exitpin ] == 0 then
++      if pio[ exitpin ] == 0 then
+         runme = false
+         break 
+       end          
+@@ -61,7 +61,7 @@
+     if not runme then break end
+     tmr.delay( tmrid, 250000 )
+   end
+-  gpio[ led ] = 0
++  pio[ led ] = 0
+   if not runme then break end  
+   tmr.delay( tmrid, 500000 )
+ end
+
+Modified: trunk/src/modules/auxmods.h
+===================================================================
+--- trunk/src/modules/auxmods.h	2009-03-12 14:47:08 UTC (rev 255)
++++ trunk/src/modules/auxmods.h	2009-03-12 21:06:14 UTC (rev 256)
+@@ -6,7 +6,7 @@
+ 
+ #include &quot;lua.h&quot;
+ 
+-#define AUXLIB_PIO      &quot;gpio&quot;
++#define AUXLIB_PIO      &quot;pio&quot;
+ LUALIB_API int ( luaopen_pio )( lua_State *L );
+ 
+ #define AUXLIB_SPI      &quot;spi&quot;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000211.html">[Elua-svn] r255 - in trunk/doc: . en wb
+</A></li>
+	<LI>Next message: <A HREF="000213.html">[Elua-svn] r257 - in trunk/doc: . en wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#212">[ date ]</a>
+              <a href="thread.html#212">[ thread ]</a>
+              <a href="subject.html#212">[ subject ]</a>
+              <a href="author.html#212">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

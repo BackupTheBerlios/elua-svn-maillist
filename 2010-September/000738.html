@@ -1,0 +1,359 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r785 - in branches/ints: inc romfs src/modules	src/platform/lpc24xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r785%20-%20in%20branches/ints%3A%20inc%20romfs%20src/modules%0A%09src/platform/lpc24xx&In-Reply-To=%3C20100908202537.A87D2481062%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000737.html">
+   <LINK REL="Next"  HREF="000739.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r785 - in branches/ints: inc romfs src/modules	src/platform/lpc24xx</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r785%20-%20in%20branches/ints%3A%20inc%20romfs%20src/modules%0A%09src/platform/lpc24xx&In-Reply-To=%3C20100908202537.A87D2481062%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r785 - in branches/ints: inc romfs src/modules	src/platform/lpc24xx">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Sep  8 22:25:37 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000737.html">[Elua-svn] r784 - in branches/ints: . inc romfs src src/modules	src/platform/lpc24xx
+</A></li>
+        <LI>Next message: <A HREF="000739.html">[Elua-svn] r786 - in branches/ints: inc romfs src src/modules	src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#738">[ date ]</a>
+              <a href="thread.html#738">[ thread ]</a>
+              <a href="subject.html#738">[ subject ]</a>
+              <a href="author.html#738">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-09-08 22:25:37 +0200 (Wed, 08 Sep 2010)
+New Revision: 785
+
+Modified:
+   branches/ints/inc/elua_int.h
+   branches/ints/inc/platform.h
+   branches/ints/romfs/inttest.lua
+   branches/ints/src/modules/pio.c
+   branches/ints/src/platform/lpc24xx/platform.c
+   branches/ints/src/platform/lpc24xx/platform_conf.h
+Log:
+interrupt interface updates
+
+Modified: branches/ints/inc/elua_int.h
+===================================================================
+--- branches/ints/inc/elua_int.h	2010-09-06 23:56:59 UTC (rev 784)
++++ branches/ints/inc/elua_int.h	2010-09-08 20:25:37 UTC (rev 785)
+@@ -6,7 +6,9 @@
+ #include &quot;type.h&quot;
+ 
+ typedef u8 elua_int_id;
+-typedef u8 elua_int_resnum;
++// The resource number is a 16-bit integer because it must be able to hold a 
++// port/pin combination coded as specified in platform.h 
++typedef u16 elua_int_resnum;
+ 
+ #define ELUA_INT_EMPTY_SLOT             0
+ #define ELUA_INT_FIRST_ID               1
+
+Modified: branches/ints/inc/platform.h
+===================================================================
+--- branches/ints/inc/platform.h	2010-09-06 23:56:59 UTC (rev 784)
++++ branches/ints/inc/platform.h	2010-09-08 20:25:37 UTC (rev 785)
+@@ -188,8 +188,6 @@
+ 
+ #define PLATFORM_CPU_DISABLE            0
+ #define PLATFORM_CPU_ENABLE             1
+-#define PLATFORM_CPU_DISABLED           0
+-#define PLATFORM_CPU_ENABLED            1
+ 
+ int platform_cpu_set_global_interrupts( int status );
+ int platform_cpu_get_global_interrupts();
+
+Modified: branches/ints/romfs/inttest.lua
+===================================================================
+--- branches/ints/romfs/inttest.lua	2010-09-06 23:56:59 UTC (rev 784)
++++ branches/ints/romfs/inttest.lua	2010-09-08 20:25:37 UTC (rev 785)
+@@ -1,9 +1,11 @@
+ local function handler( id, resnum )
+   print( string.format( &quot;Got interrupt with id %d and resnum %d&quot;, id, resnum ) )
++  local port, pin = pio.decode( resnum )
++  print( string.format( &quot;Port is %d, pin is %d&quot;, port, pin ) )
+ end
+ 
+ cpu.set_int_handler( handler )
+-cpu.sei( cpu.INT_GPIO0_NEGEDGE, pio.P0_0 )
++cpu.sei( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )
+ local tmrid = 0
+ while true do
+   print &quot;Outside interrupt&quot; 
+
+Modified: branches/ints/src/modules/pio.c
+===================================================================
+--- branches/ints/src/modules/pio.c	2010-09-06 23:56:59 UTC (rev 784)
++++ branches/ints/src/modules/pio.c	2010-09-08 20:25:37 UTC (rev 785)
+@@ -305,7 +305,19 @@
+   }
+ }
+ 
+-// ****************************************************************************
++// *****************************************************************************
++// The 'decode' functions returns a port/pin pair from a platform code
++
++static int pio_decode( lua_State *L )
++{
++  int code = ( int )luaL_checkinteger( L, 1 );
++  
++  lua_pushinteger( L, PLATFORM_IO_GET_PORT( code ) );
++  lua_pushinteger( L, PLATFORM_IO_GET_PIN( code ) );
++  return 2;
++}
++
++// *****************************************************************************
+ // Pin function map
+ 
+ #define MIN_OPT_LEVEL 2
+@@ -337,6 +349,7 @@
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;pin&quot; ), LROVAL( pio_pin_map ) },
+   { LSTRKEY( &quot;port&quot; ), LROVAL( pio_port_map ) },
++  { LSTRKEY( &quot;decode&quot; ), LFUNCVAL( pio_decode ) },  
+   { LSTRKEY( &quot;INPUT&quot; ), LNUMVAL( PIO_DIR_INPUT ) },
+   { LSTRKEY( &quot;OUTPUT&quot; ), LNUMVAL( PIO_DIR_OUTPUT ) },
+   { LSTRKEY( &quot;PULLUP&quot; ), LNUMVAL( PLATFORM_IO_PIN_PULLUP ) },
+
+Modified: branches/ints/src/platform/lpc24xx/platform.c
+===================================================================
+--- branches/ints/src/platform/lpc24xx/platform.c	2010-09-06 23:56:59 UTC (rev 784)
++++ branches/ints/src/platform/lpc24xx/platform.c	2010-09-08 20:25:37 UTC (rev 785)
+@@ -24,42 +24,32 @@
+ // *****************************************************************************
+ // These interrupt handlers are the link to elua_int.c
+ 
++static PREG const posedge_status[] = { ( PREG )&amp;IO0_INT_STAT_R, ( PREG )&amp;IO2_INT_STAT_R };
++static PREG const negedge_status[] = { ( PREG )&amp;IO0_INT_STAT_F, ( PREG )&amp;IO2_INT_STAT_F };
++static PREG const intclr_regs[] = { ( PREG )&amp;IO0_INT_CLR, ( PREG )&amp;IO2_INT_CLR };
++
+ static void __attribute__((optimize(0))) __attribute__((interrupt (&quot;IRQ&quot;))) eint3_int_handler()
+ {
+   elua_int_id id = ELUA_INT_INVALID_INTERRUPT;
+-  elua_int_resnum resnum = 0;
++  pio_code resnum = 0;
++  int pidx, pin;
+   
+   EXTINT |= 1 &lt;&lt; 3; // clear interrupt
+   // Look for interrupt source
+   // In can only be GPIO0/GPIO2, as the EXT interrupts are not (yet) used
+-  if( IO_INT_STAT &amp; 1 )
++  pidx = ( IO_INT_STAT &amp; 1 ) ? 0 : 1;
++  if( *posedge_status[ pidx ] )
+   {
+-    if( IO0_INT_STAT_R )
+-    {
+-      id = INT_GPIO0_POSEDGE;
+-      resnum = intlog2( IO0_INT_STAT_R );
+-    }
+-    else
+-    {
+-      id = INT_GPIO0_NEGEDGE;
+-      resnum = intlog2( IO0_INT_STAT_F );
+-    }
+-    IO0_INT_CLR = 1 &lt;&lt; resnum;
++    id = INT_GPIO_POSEDGE;
++    pin = intlog2( *posedge_status[ pidx ] );
+   }
+   else
+   {
+-    if( IO2_INT_STAT_R )
+-    {
+-      id = INT_GPIO2_POSEDGE;
+-      resnum = intlog2( IO2_INT_STAT_R );
+-    }
+-    else
+-    {
+-      id = INT_GPIO2_NEGEDGE;
+-      resnum = intlog2( IO2_INT_STAT_F );
+-    }  
+-    IO2_INT_CLR = 1 &lt;&lt; resnum;
++    id = INT_GPIO_NEGEDGE;
++    pin = intlog2( *negedge_status[ pidx ] );
+   }
++  resnum = PLATFORM_IO_ENCODE( pidx * 2, pin, PLATFORM_IO_ENC_PIN );   
++  *intclr_regs[ pidx ] = 1 &lt;&lt; pin;
+   
+   // Queue interrupt
+   elua_int_add( id, resnum );
+@@ -470,10 +460,8 @@
+ extern void disable_ints();
+ extern u32 get_int_status();
+ 
+-static PREG const IO0INTR = ( PREG )&amp;IO0_INT_EN_R; 
+-static PREG const IO0INTF = ( PREG )&amp;IO0_INT_EN_F;
+-static PREG const IO2INTR = ( PREG )&amp;IO2_INT_EN_R;
+-static PREG const IO2INTF = ( PREG )&amp;IO2_INT_EN_F;
++static PREG const posedge_regs[] = { ( PREG )&amp;IO0_INT_EN_R, NULL, ( PREG )&amp;IO2_INT_EN_R };
++static PREG const negedge_regs[] = { ( PREG )&amp;IO0_INT_EN_F, NULL, ( PREG )&amp;IO0_INT_EN_F };
+ 
+ int platform_cpu_set_global_interrupts( int status )
+ {
+@@ -483,67 +471,54 @@
+     enable_ints();
+   else
+     disable_ints();
+-  return ( crt_status &amp; INTERRUPT_ENABLED_MASK ) == 0 ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
++  return ( crt_status &amp; INTERRUPT_ENABLED_MASK ) != 0;
+ }
+ 
+ int platform_cpu_get_global_interrupts()
+ {
+-  return ( get_int_status() &amp; INTERRUPT_ENABLED_MASK ) == 0 ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
++  return ( get_int_status() &amp; INTERRUPT_ENABLED_MASK ) != 0;
+ }
+ 
+ // Helper: return the status of a specific interrupt (enabled/disabled)
+ static int platform_cpuh_get_int_status( elua_int_id id, elua_int_resnum resnum )
+ {
+-  switch( id )
++  int port, pin;
++  
++  if( id == INT_GPIO_POSEDGE || id == INT_GPIO_NEGEDGE )
+   {
+-    case INT_GPIO0_POSEDGE:
+-      return ( *IO0INTR &amp; ( 1 &lt;&lt; resnum ) ) ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
+-      
+-    case INT_GPIO0_NEGEDGE:
+-      return ( *IO0INTF &amp; ( 1 &lt;&lt; resnum ) ) ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
+-      
+-    case INT_GPIO2_POSEDGE:
+-      return ( *IO2INTR &amp; ( 1 &lt;&lt; resnum ) ) ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
+-      
+-    case INT_GPIO2_NEGEDGE:
+-      return ( *IO2INTF &amp; ( 1 &lt;&lt; resnum ) ) ? PLATFORM_CPU_ENABLED : PLATFORM_CPU_DISABLED;
+-  }
+-  return PLATFORM_CPU_DISABLED;
++    port = PLATFORM_IO_GET_PORT( resnum ); 
++    pin = PLATFORM_IO_GET_PIN( resnum ); 
++    if( id == INT_GPIO_POSEDGE )
++      return *posedge_regs[ port ] &amp; ( 1 &lt;&lt; pin );
++    else
++      return *negedge_regs[ port ] &amp; ( 1 &lt;&lt; pin );        
++  } 
++  return 0;
+ }
+ 
+ int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status )
+ {
+   int crt_status = platform_cpuh_get_int_status( id, resnum );
+-
+-  switch( id )
++  int port, pin;
++  
++  if( id == INT_GPIO_POSEDGE || id == INT_GPIO_NEGEDGE )
+   {
+-    case INT_GPIO0_POSEDGE:
++    port = PLATFORM_IO_GET_PORT( resnum ); 
++    pin = PLATFORM_IO_GET_PIN( resnum ); 
++    if( id == INT_GPIO_POSEDGE )
++    {
+       if( status == PLATFORM_CPU_ENABLE )
+-        *IO0INTR |= 1 &lt;&lt; resnum;
++        *posedge_regs[ port ] |= 1 &lt;&lt; pin;
+       else
+-        *IO0INTR &amp;= ~( 1 &lt;&lt; resnum );        
+-      break;
+-      
+-    case INT_GPIO0_NEGEDGE:
++        *posedge_regs[ port ] &amp;= ~( 1 &lt;&lt; pin );       
++    }
++    else
++    {
+       if( status == PLATFORM_CPU_ENABLE )
+-        *IO0INTF |= 1 &lt;&lt; resnum;
++        *negedge_regs[ port ] |= 1 &lt;&lt; pin;
+       else
+-        *IO0INTF &amp;= ~( 1 &lt;&lt; resnum );        
+-      break;
+-      
+-    case INT_GPIO2_POSEDGE:
+-      if( status == PLATFORM_CPU_ENABLE )
+-        *IO2INTR |= 1 &lt;&lt; resnum;
+-      else
+-        *IO2INTR &amp;= ~( 1 &lt;&lt; resnum );       
+-      break;
+-      
+-    case INT_GPIO2_NEGEDGE:
+-      if( status == PLATFORM_CPU_ENABLE )
+-        *IO2INTF |= 1 &lt;&lt; resnum;
+-      else
+-        *IO2INTF &amp;= ~( 1 &lt;&lt; resnum );         
+-      break;
++        *negedge_regs[ port ] &amp;= ~( 1 &lt;&lt; pin );         
++    }    
+   }
+   return crt_status;
+ }
+
+Modified: branches/ints/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- branches/ints/src/platform/lpc24xx/platform_conf.h	2010-09-06 23:56:59 UTC (rev 784)
++++ branches/ints/src/platform/lpc24xx/platform_conf.h	2010-09-08 20:25:37 UTC (rev 785)
+@@ -110,10 +110,8 @@
+ // Interrupt list
+ enum
+ {
+-  INT_GPIO0_POSEDGE = ELUA_INT_FIRST_ID,
+-  INT_GPIO0_NEGEDGE,
+-  INT_GPIO2_POSEDGE,
+-  INT_GPIO2_NEGEDGE
++  INT_GPIO_POSEDGE = ELUA_INT_FIRST_ID,
++  INT_GPIO_NEGEDGE,
+ };
+ 
+ #define PLATFORM_CPU_CONSTANTS\
+@@ -128,10 +126,8 @@
+  _C( IO_PINSEL8 ),\
+  _C( IO_PINSEL9 ),\
+  _C( IO_PINSEL10 ),\
+- _C( INT_GPIO0_POSEDGE ),\
+- _C( INT_GPIO0_NEGEDGE ),\
+- _C( INT_GPIO2_POSEDGE ),\
+- _C( INT_GPIO2_NEGEDGE )
++ _C( INT_GPIO_POSEDGE ),\
++ _C( INT_GPIO_NEGEDGE )
+  
+ #endif // #ifndef __PLATFORM_CONF_H__
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000737.html">[Elua-svn] r784 - in branches/ints: . inc romfs src src/modules	src/platform/lpc24xx
+</A></li>
+	<LI>Next message: <A HREF="000739.html">[Elua-svn] r786 - in branches/ints: inc romfs src src/modules	src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#738">[ date ]</a>
+              <a href="thread.html#738">[ thread ]</a>
+              <a href="subject.html#738">[ subject ]</a>
+              <a href="author.html#738">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

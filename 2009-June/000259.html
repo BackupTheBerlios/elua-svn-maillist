@@ -1,0 +1,182 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r303 - in branches/luarpc: . src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r303%20-%20in%20branches/luarpc%3A%20.%20src/platform/stm32&In-Reply-To=%3C200906171736.n5HHaNeL000624%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000258.html">
+   <LINK REL="Next"  HREF="000260.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r303 - in branches/luarpc: . src/platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r303%20-%20in%20branches/luarpc%3A%20.%20src/platform/stm32&In-Reply-To=%3C200906171736.n5HHaNeL000624%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r303 - in branches/luarpc: . src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Jun 17 19:36:23 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000258.html">[Elua-svn] r302 - in branches/luarpc: . src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000260.html">[Elua-svn] r304 - in branches/luarpc: . inc src/lua src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#259">[ date ]</a>
+              <a href="thread.html#259">[ thread ]</a>
+              <a href="subject.html#259">[ subject ]</a>
+              <a href="author.html#259">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-17 19:36:22 +0200 (Wed, 17 Jun 2009)
+New Revision: 303
+
+Modified:
+   branches/luarpc/src/platform/stm32/platform.c
+   branches/luarpc/test-rpc.lua
+Log:
+Fixed bug where re-use of interrupt vector configuration struct caused UART
+interrupt disable.
+
+As it stands, this should now work pretty well as long as buffers are in place
+on the target.  Perhaps some additional synchronous checks should be added so
+that the server is expected to acknowledge the command type (indicating that
+pending operations are clear, and it will have enough captive polling ability
+to avoid losing chars).  This could also be useful for situations where one
+end may support more commands than the other, preventing a client from
+spitting out a full command if the server doesn't support it?
+
+Modified: branches/luarpc/src/platform/stm32/platform.c
+===================================================================
+--- branches/luarpc/src/platform/stm32/platform.c	2009-06-17 17:19:38 UTC (rev 302)
++++ branches/luarpc/src/platform/stm32/platform.c	2009-06-17 17:36:22 UTC (rev 303)
+@@ -159,11 +159,13 @@
+ * Output         : None
+ * Return         : None
+ *******************************************************************************/
++/* This struct is used for later reconfiguration of ADC interrupt */
++NVIC_InitTypeDef nvic_init_structure_adc;
+ 
+-NVIC_InitTypeDef nvic_init_structure;
+-
+ static void NVIC_Configuration(void)
+ {
++  NVIC_InitTypeDef nvic_init_structure;
++  
+   NVIC_DeInit();
+ 
+ #ifdef  VECT_TAB_RAM
+@@ -181,11 +183,11 @@
+   NVIC_SystemHandlerPriorityConfig(SystemHandler_SysTick, 0, 0);
+ 
+ #ifdef BUILD_ADC  
+-  nvic_init_structure.NVIC_IRQChannel = DMA1_Channel1_IRQChannel; 
+-  nvic_init_structure.NVIC_IRQChannelPreemptionPriority = 1; 
+-  nvic_init_structure.NVIC_IRQChannelSubPriority = 3; 
+-  nvic_init_structure.NVIC_IRQChannelCmd = DISABLE; 
+-  NVIC_Init(&amp;nvic_init_structure);
++  nvic_init_structure_adc.NVIC_IRQChannel = DMA1_Channel1_IRQChannel; 
++  nvic_init_structure_adc.NVIC_IRQChannelPreemptionPriority = 1; 
++  nvic_init_structure_adc.NVIC_IRQChannelSubPriority = 3; 
++  nvic_init_structure_adc.NVIC_IRQChannelCmd = DISABLE; 
++  NVIC_Init(&amp;nvic_init_structure_adc);
+ #endif
+ 
+ #if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+@@ -782,8 +784,8 @@
+     ADC_ExternalTrigConvCmd( adc[ d-&gt;seq_id ], DISABLE );
+     
+     // Also ensure that DMA interrupt won't fire ( this shouldn't really be necessary )
+-    nvic_init_structure.NVIC_IRQChannelCmd = DISABLE; 
+-    NVIC_Init(&amp;nvic_init_structure);
++    nvic_init_structure_adc.NVIC_IRQChannelCmd = DISABLE; 
++    NVIC_Init(&amp;nvic_init_structure_adc);
+     
+     d-&gt;running = 0;
+   }
+@@ -994,8 +996,8 @@
+     
+     DMA_ClearITPendingBit( DMA1_IT_TC1 );
+ 
+-    nvic_init_structure.NVIC_IRQChannelCmd = ENABLE; 
+-    NVIC_Init(&amp;nvic_init_structure);
++    nvic_init_structure_adc.NVIC_IRQChannelCmd = ENABLE; 
++    NVIC_Init(&amp;nvic_init_structure_adc);
+ 
+     if( d-&gt;clocked == 1 )
+       ADC_ExternalTrigConvCmd( adc[ d-&gt;seq_id ], ENABLE );
+
+Modified: branches/luarpc/test-rpc.lua
+===================================================================
+--- branches/luarpc/test-rpc.lua	2009-06-17 17:19:38 UTC (rev 302)
++++ branches/luarpc/test-rpc.lua	2009-06-17 17:36:22 UTC (rev 303)
+@@ -32,18 +32,19 @@
+ slave.collectgarbage(&quot;collect&quot;)
+ print(slave.collectgarbage(&quot;count&quot;))
+ 
+--- adc = slave.adc
+--- 
+--- adc.setblocking(0,1)
+--- adc.setclock(0, 10 ,2)
+--- 
+--- adc.sample(0,128)
+--- while 1 do
+--- 	retsamp = adc.getsample(0)
+--- 	if not (retsamp == nil) then
+--- 		print(retsamp)
+--- 	else
+--- 		print(slave.collectgarbage(&quot;count&quot;))
+--- 		adc.sample(0,128)
+--- 	end
+--- end
+\ No newline at end of file
++adc = slave.adc
++
++adc.setblocking(0,1)
++adc.setclock(0, 10 ,2)
++
++adc.sample(0,128)
++print(slave.collectgarbage(&quot;count&quot;))
++while 1 do
++	retsamp = adc.getsample(0)
++	if not (retsamp == nil) then
++		print(retsamp)
++	else
++		print(slave.collectgarbage(&quot;count&quot;))
++		adc.sample(0,128)
++	end
++end
+\ No newline at end of file
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000258.html">[Elua-svn] r302 - in branches/luarpc: . src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000260.html">[Elua-svn] r304 - in branches/luarpc: . inc src/lua src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#259">[ date ]</a>
+              <a href="thread.html#259">[ thread ]</a>
+              <a href="subject.html#259">[ subject ]</a>
+              <a href="author.html#259">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

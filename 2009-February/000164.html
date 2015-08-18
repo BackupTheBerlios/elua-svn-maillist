@@ -1,0 +1,355 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r208 - in trunk: . romfs src/modules src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r208%20-%20in%20trunk%3A%20.%20romfs%20src/modules%20src/platform/lm3s&In-Reply-To=%3C200902202141.n1KLfVJ5026007%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000163.html">
+   <LINK REL="Next"  HREF="000165.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r208 - in trunk: . romfs src/modules src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r208%20-%20in%20trunk%3A%20.%20romfs%20src/modules%20src/platform/lm3s&In-Reply-To=%3C200902202141.n1KLfVJ5026007%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r208 - in trunk: . romfs src/modules src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Feb 20 22:41:31 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000163.html">[Elua-svn] r207 - in trunk/doc: . en wb wb_img
+</A></li>
+        <LI>Next message: <A HREF="000165.html">[Elua-svn] r209 - in trunk/doc: . en wb wb_img	wb_img/index_en_files wb_img/index_en_files/news_data	wb_img/index_en_files/wb_bar_en_data	wb_img/index_en_files/wb_title_en_data	wb_img/index_en_files/wb_tree_en_data
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#164">[ date ]</a>
+              <a href="thread.html#164">[ thread ]</a>
+              <a href="subject.html#164">[ subject ]</a>
+              <a href="author.html#164">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-02-20 22:41:30 +0100 (Fri, 20 Feb 2009)
+New Revision: 208
+
+Modified:
+   trunk/SConstruct
+   trunk/romfs/adcscope.lua
+   trunk/src/modules/adc.c
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/lm3s.ld
+Log:
+ADC updates &amp; EABI Compiler Support for LM3S
+
+ADC:
+- getsamples split into getsamples and getsample.  getsamples always returns a
+  table of results.  getsample returns single values (if available).
+
+EABI compiler support:
+- added a parameter to SConstruct called cprefix, which allows one to define a
+  prefix other than the arm-elf used by some platforms.  Currently the only
+  platform that does anything with this parameter is LM3S, conf.py scripts can
+  be updated to handle the default toolchain prefix, and accommodate alternate
+  ones if needed.
+- Added sections to lm3s.ld (originally committed by Jesus Alvarez) to handle
+  linking properly for arm-eabi targets.
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-02-20 14:48:13 UTC (rev 207)
++++ trunk/SConstruct	2009-02-20 21:41:30 UTC (rev 208)
+@@ -3,6 +3,7 @@
+ cputype = ARGUMENTS.get( 'cpu', '' ).upper()
+ allocator = ARGUMENTS.get( 'allocator', '' ).lower()
+ boardname = ARGUMENTS.get( 'board' , '').upper()
++cprefix = ARGUMENTS.get( 'cprefix', '')
+ optram = int( ARGUMENTS.get( 'optram', '1' ) )
+ 
+ # ROMFS file list
+
+Modified: trunk/romfs/adcscope.lua
+===================================================================
+--- trunk/romfs/adcscope.lua	2009-02-20 14:48:13 UTC (rev 207)
++++ trunk/romfs/adcscope.lua	2009-02-20 21:41:30 UTC (rev 208)
+@@ -1,4 +1,3 @@
+-
+ adcchannels = {0, 1, 2, 3}
+ adcsmoothing = {4, 16, 32, 64}
+ 
+@@ -18,26 +17,30 @@
+ 
+ local adcvals = {}
+ local ctr = 0
++local key, stime, etime, dtime
++local sample = adc.sample
++local getsample = adc.getsample
++local tread = tmr.read
++local i, v
+ 
++tmr.start(0)
++
+ while true do
+-  local key, stime, etime, dtime
+-  local sample = adc.sample
+-  local getsamples = adc.getsamples
+   ctr = ctr + 1
+   
+-  stime = tmr.start(0)
++  stime = tread(0)
+   for i, v in ipairs(adcchannels) do
+     sample(v)
+-    adcvals[i] = getsamples(v,1)
++    adcvals[i] = getsample(v)
+   end
+-  etime = tmr.read(0)
++  etime = tread(0)
+   dtime = tmr.diff(0,etime,stime)
+   
+   if ( ctr == 100 ) then
+     ctr = 0
+     term.gotoxy(1,4)
+     for i, v in ipairs(adcchannels) do
+-      term.putstr(string.format(&quot;ADC%d (%03d): %04d\n&quot;,v,adcsmoothing[i],adcvals[i]))
++      term.putstr(string.format(&quot;ADC%d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
+       term.gotoxy(1,i+4)
+     end
+     term.putstr(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
+
+Modified: trunk/src/modules/adc.c
+===================================================================
+--- trunk/src/modules/adc.c	2009-02-20 14:48:13 UTC (rev 207)
++++ trunk/src/modules/adc.c	2009-02-20 21:41:30 UTC (rev 208)
+@@ -137,47 +137,62 @@
+ }
+ 
+ 
+-// Lua: getsamples( id, count )
+-static int adc_get_samples( lua_State* L )
++// Lua: val = getsample( id )
++static int adc_get_sample( lua_State* L )
+ {
+-  unsigned id, i, count;
+-  int total = lua_gettop( L );
+-  u16 nsamps;
++  unsigned id;
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( adc, id );
+-  nsamps = adc_samples_available( id );
+   
+-  if ( total == 2 )
+-    count = luaL_checkinteger( L, 2 );
+-  else
+-    count = nsamps;
+-    
+-  if ( count == 0 ) { count = nsamps; } // count = 0 means grab all samples
+-  
++  // Wait for pending sampling events to finish (if blocking)
+   adc_wait_pending( id );
+   
+-  if ( nsamps &gt; 0 &amp;&amp; nsamps &gt;= count )
++  // If we have at least one sample, return it
++  if ( adc_samples_available( id ) &gt;= 1 )
+   {
+-    if ( nsamps == 1 || count == 1 )
+-    {
+-      lua_pushinteger( L, adc_get_processed_sample( id ) );
+-    }
+-    else
+-    {
+-      lua_createtable( L, count, 0 );
+-      for( i = 0; i &lt; count; i ++ )
+-      {
+-        lua_pushinteger( L, adc_get_processed_sample( id ) );
+-        lua_rawseti( L, -2, i+1 );
+-      }
+-    }
++    lua_pushinteger( L, adc_get_processed_sample( id ) );
+     return 1;
+   }
+   return 0;
+ }
+ 
+ 
++// Lua: table_of_vals = getsamples( id, [count] )
++static int adc_get_samples( lua_State* L )
++{
++  unsigned id, i;
++  u16 bcnt, count = 0;
++  
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( adc, id );
++
++  if ( lua_isnumber(L, 2) == 1 )
++    count = ( u16 )lua_tointeger(L, 2);
++
++  // Wait for any pending operations to finish (if blocking)
++  adc_wait_pending( id );
++  
++  bcnt = adc_samples_available( id );
++  
++  // If count is zero, grab all samples
++  if ( count == 0 )
++    count = bcnt;
++  
++  // Don't pull more samples than are available
++  if ( count &gt; bcnt )
++    count = bcnt;
++  
++  lua_createtable( L, count, 0 );
++  for( i = 1; i &lt;= count; i ++ )
++  {
++    lua_pushinteger( L, adc_get_processed_sample( id ) );
++    lua_rawseti( L, -2, i );
++  }
++  return 1;
++}
++
++
+ // Module function map
+ #define MIN_OPT_LEVEL 2
+ #include &quot;lrodefs.h&quot;
+@@ -191,6 +206,7 @@
+   { LSTRKEY( &quot;getsmoothing&quot; ), LFUNCVAL( adc_get_smoothing ) },
+   { LSTRKEY( &quot;burst&quot; ), LFUNCVAL( adc_burst ) },
+   { LSTRKEY( &quot;flush&quot; ), LFUNCVAL( adc_flush ) },
++  { LSTRKEY( &quot;getsample&quot; ), LFUNCVAL( adc_get_sample ) },
+   { LSTRKEY( &quot;getsamples&quot; ), LFUNCVAL( adc_get_samples ) },
+   { LNILKEY, LNILVAL }
+ };
+@@ -200,4 +216,4 @@
+   LREGISTER( L, AUXLIB_ADC, adc_map );
+ }
+ 
+-#endif
+\ No newline at end of file
++#endif
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2009-02-20 14:48:13 UTC (rev 207)
++++ trunk/src/platform/lm3s/conf.py	2009-02-20 21:41:30 UTC (rev 208)
+@@ -1,30 +1,40 @@
+ # Configuration file for the LM3S microcontroller
+ 
+-specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c rit128x96x4.c disp.c adc.c&quot;
++specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c&quot;
++
++if boardname == 'EK-LM3S6965' or boardname == 'EL-LM3S8962':
++  specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
++
+ ldscript = &quot;lm3s.ld&quot;
+-  
++
++# Use default toolchain prefix if one isn't provided
++if cprefix == '':
++  cprefix= &quot;arm-elf-&quot;
++else:
++  cprefix = cprefix + '-'
++
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+-if cputype == 'LM3S8962':
+-  cdefs = cdefs + &quot; -DFORLM3S8962&quot;
+-else:
+-  cdefs = cdefs + &quot; -DFORLM3S6965&quot;
++cdefs = cdefs + &quot; -DFOR&quot; + cputype + &quot; -Dgcc&quot;
+ 
+-cdefs = cdefs + &quot; -Dgcc&quot;
+-
+ # Toolset data
+ tools[ 'lm3s' ] = {}
+-tools[ 'lm3s' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=cortex-m3 -mthumb  %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
+-tools[ 'lm3s' ][ 'linkcom' ] = &quot;arm-elf-gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
+-tools[ 'lm3s' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++tools[ 'lm3s' ][ 'cccom' ] = cprefix + &quot;gcc -mcpu=cortex-m3 -mthumb  %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( opt, local_include, cdefs )
+ 
++if cprefix == 'arm-elf-':
++  tools[ 'lm3s' ][ 'linkcom' ] = cprefix + &quot;gcc -nostartfiles -nostdlib -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( ldscript, local_libs )
++else:
++  tools[ 'lm3s' ][ 'linkcom' ] = cprefix + &quot;gcc -mthumb -mcpu=cortex-m3 -nostartfiles -T %s -Wl,--gc-sections -Wl,-e,ResetISR -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lm %s&quot; % ( ldscript, local_libs )
++
++tools[ 'lm3s' ][ 'ascom' ] = cprefix + &quot;gcc -x assembler-with-cpp %s -mcpu=cortex-m3 -mthumb %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++
+ # Programming function
+ def progfunc_lm3s( target, source, env ):
+   outname = output + &quot;.elf&quot;
+-  os.system( &quot;arm-elf-size %s&quot; % outname )
++  os.system( cprefix + &quot;size %s&quot; % outname )
+   print &quot;Generating binary image...&quot;
+-  os.system( &quot;arm-elf-objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
+-  
++  os.system( cprefix + &quot;objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
++
+ tools[ 'lm3s' ][ 'progfunc' ] = progfunc_lm3s
+
+Modified: trunk/src/platform/lm3s/lm3s.ld
+===================================================================
+--- trunk/src/platform/lm3s/lm3s.ld	2009-02-20 14:48:13 UTC (rev 207)
++++ trunk/src/platform/lm3s/lm3s.ld	2009-02-20 21:41:30 UTC (rev 208)
+@@ -22,7 +22,9 @@
+         *(.gnu.linkonce.r.*)
+         . = ALIGN(4);
+         _etext = .;
+-        PROVIDE(etext = .);        
++        PROVIDE(etext = .);   
++     		_fini = . ;
++				*(.fini)
+ 
+     } &gt;flash
+ 
+@@ -36,7 +38,19 @@
+         . = ALIGN(4);
+         _edata = .;
+     } &gt;sram
+-
++		
++		.ARM.extab :
++		{
++		    *(.ARM.extab*)
++		} &gt;sram
++		
++		__exidx_start = .;
++		.ARM.exidx :
++		{
++		    *(.ARM.exidx*)
++		} &gt;sram
++		__exidx_end = .;
++		
+     .bss (NOLOAD) : {
+         _bss = .;
+         *(.bss .bss.*)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000163.html">[Elua-svn] r207 - in trunk/doc: . en wb wb_img
+</A></li>
+	<LI>Next message: <A HREF="000165.html">[Elua-svn] r209 - in trunk/doc: . en wb wb_img	wb_img/index_en_files wb_img/index_en_files/news_data	wb_img/index_en_files/wb_bar_en_data	wb_img/index_en_files/wb_title_en_data	wb_img/index_en_files/wb_tree_en_data
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#164">[ date ]</a>
+              <a href="thread.html#164">[ thread ]</a>
+              <a href="subject.html#164">[ subject ]</a>
+              <a href="author.html#164">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

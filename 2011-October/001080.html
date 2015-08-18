@@ -1,0 +1,916 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] c027a5: Allow &quot;disp&quot; modules to compile when	optram=0
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20c027a5%3A%20Allow%20%22disp%22%20modules%20to%20compile%20when%0A%09optram%3D0&In-Reply-To=%3C20111006235952.B9AA7428E5%40smtp1.rs.github.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001079.html">
+   <LINK REL="Next"  HREF="001081.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] c027a5: Allow &quot;disp&quot; modules to compile when	optram=0</H1>
+    <B>noreply at github.com</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20c027a5%3A%20Allow%20%22disp%22%20modules%20to%20compile%20when%0A%09optram%3D0&In-Reply-To=%3C20111006235952.B9AA7428E5%40smtp1.rs.github.com%3E"
+       TITLE="[eLua-svn] [elua/elua] c027a5: Allow &quot;disp&quot; modules to compile when	optram=0">noreply at github.com
+       </A><BR>
+    <I>Fri Oct  7 01:59:52 CEST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001079.html">[eLua-svn] [elua/elua] 4b6096: Sort out declarations of ADC commons	and platform-...
+</A></li>
+        <LI>Next message: <A HREF="001081.html">[eLua-svn] [elua/elua] 3ec7d8: Merge branch 'master' into	newrpc_merge
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1080">[ date ]</a>
+              <a href="thread.html#1080">[ thread ]</a>
+              <a href="subject.html#1080">[ subject ]</a>
+              <a href="author.html#1080">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/newrpc_merge
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+
+  Commit: c027a5929391550d25e8a6c5edc0de8e46d30708
+      <A HREF="https://github.com/elua/elua/commit/c027a5929391550d25e8a6c5edc0de8e46d30708">https://github.com/elua/elua/commit/c027a5929391550d25e8a6c5edc0de8e46d30708</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-23 (Sat, 23 Jul 2011)
+
+  Changed paths:
+    M src/modules/auxmods.h
+
+  Log Message:
+  -----------
+  Allow &quot;disp&quot; modules to compile when optram=0
+
+The AUXLIB_DISP macro is only used when optram=0.
+This change lets the avr32 and str9 platform-specific modules compile
+also under optram=0.
+
+
+  Commit: c39d55feb8d2f147972bdb84bb366724a0bb5376
+      <A HREF="https://github.com/elua/elua/commit/c39d55feb8d2f147972bdb84bb366724a0bb5376">https://github.com/elua/elua/commit/c39d55feb8d2f147972bdb84bb366724a0bb5376</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-23 (Sat, 23 Jul 2011)
+
+  Changed paths:
+    M src/modules/auxmods.h
+
+  Log Message:
+  -----------
+  Revert &quot;Allow &quot;disp&quot; modules to compile when optram=0&quot;
+
+This reverts commit c027a5929391550d25e8a6c5edc0de8e46d30708.
+
+
+  Commit: 007eada8db81e19e22973d16b2088797537f9004
+      <A HREF="https://github.com/elua/elua/commit/007eada8db81e19e22973d16b2088797537f9004">https://github.com/elua/elua/commit/007eada8db81e19e22973d16b2088797537f9004</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-23 (Sat, 23 Jul 2011)
+
+  Changed paths:
+    M src/platform/avr32/disp.c
+  M src/platform/lm3s/disp.c
+  M src/platform/str9/str9_pio.c
+
+  Log Message:
+  -----------
+  Remove bogus &quot;luaopen_disp()&quot; functions that are never called
+
+Three modules had a bogus luaopen_disp() function that was never called.
+In reality, each platform.c only uses the extern disp_map[] (or str9_pio_map[])
+and does the right thing with it in luaopen_platform().
+
+This also removes a bug (AUXLIB_DISP undefined), which prevented avr32
+and str9 from compiling when optram=0
+
+
+  Commit: 158ce167ca7706b9122b3d1f78be697112ee995d
+      <A HREF="https://github.com/elua/elua/commit/158ce167ca7706b9122b3d1f78be697112ee995d">https://github.com/elua/elua/commit/158ce167ca7706b9122b3d1f78be697112ee995d</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-23 (Sat, 23 Jul 2011)
+
+  Changed paths:
+    M doc/eluadoc/arch_platform_adc.lua
+  M doc/eluadoc/refman_gen_adc.lua
+  M inc/platform.h
+  M src/common.c
+  M src/elua_adc.c
+  M src/modules/adc.c
+  M src/platform/avr32/platform.c
+  M src/platform/lm3s/platform.c
+  M src/platform/lpc17xx/platform.c
+  M src/platform/lpc24xx/platform.c
+  M src/platform/stm32/platform.c
+  M src/platform/str9/platform.c
+
+  Log Message:
+  -----------
+  Split platform_adc_op() into six separate functions
+
+Previously, you called platform_adc_op(id, OPERATION, u32 arg) to achieve
+six unrelated functions with different arg types and return values:
+
+GET_MAXVAL takes nothing and returns an ADC conversion value
+SET_SMOOTHING takes a power-of-two filter length and returns nothing
+SET_BLOCKING takes a boolean and returns nothing
+IS_DONE takes nothing and returns a boolean
+SET_TIMER takes a timer ID and returns nothing
+SET_CLOCK takes a frequency in Hz and returns a frequency in Hz.
+
+This changes these to six independent functions, each with the right
+parameters and return values.
+
+This also makes the documentation more comprehensible, saves 26 bytes of
+executable code and should be very slightly faster.
+
+
+  Commit: fe95291cddcf12d4bd94ffaeb612e7e5da6d97c3
+      <A HREF="https://github.com/elua/elua/commit/fe95291cddcf12d4bd94ffaeb612e7e5da6d97c3">https://github.com/elua/elua/commit/fe95291cddcf12d4bd94ffaeb612e7e5da6d97c3</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-23 (Sat, 23 Jul 2011)
+
+  Changed paths:
+    M doc/eluadoc.lua
+  R doc/eluadoc/refman_ps_mizar32_disp.lua
+  A doc/eluadoc/refman_ps_mizar32_lcd.lua
+  M src/platform/avr32/MIZAR32/mizar32_conf.h
+  M src/platform/avr32/conf.lua
+  M src/platform/avr32/conf.py
+  R src/platform/avr32/disp.c
+  R src/platform/avr32/disp.h
+  A src/platform/avr32/lcd.c
+  A src/platform/avr32/lcd.h
+  M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  First full version of Mizar32 LCD module driver.
+
+
+  Commit: 778eaf38be6812b8af41c7ba324d9aa1a7e18801
+      <A HREF="https://github.com/elua/elua/commit/778eaf38be6812b8af41c7ba324d9aa1a7e18801">https://github.com/elua/elua/commit/778eaf38be6812b8af41c7ba324d9aa1a7e18801</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-23 (Sat, 23 Jul 2011)
+
+  Changed paths:
+    M src/platform/avr32/EVK1101/evk1101_conf.h
+  M src/platform/avr32/i2c.h
+  M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  Fix broken EVK1101 build and enable PWM and ADC on it.
+
+ADC/PWM pin configuration taken from the circuit diagram
+but not tested on real hardware.
+
+
+  Commit: 713cdfdd85fbab688079c0ce5e06eca862ac8c9d
+      <A HREF="https://github.com/elua/elua/commit/713cdfdd85fbab688079c0ce5e06eca862ac8c9d">https://github.com/elua/elua/commit/713cdfdd85fbab688079c0ce5e06eca862ac8c9d</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-23 (Sat, 23 Jul 2011)
+
+  Changed paths:
+    M src/platform/avr32/MIZAR32/mizar32_conf.h
+
+  Log Message:
+  -----------
+  Fix a missed name change from &quot;disp&quot; to &quot;lcd&quot;
+
+
+  Commit: a6b5f865d5a7a3162d5b5fc3d56bb4e5a415f2b9
+      <A HREF="https://github.com/elua/elua/commit/a6b5f865d5a7a3162d5b5fc3d56bb4e5a415f2b9">https://github.com/elua/elua/commit/a6b5f865d5a7a3162d5b5fc3d56bb4e5a415f2b9</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-24 (Sun, 24 Jul 2011)
+
+  Changed paths:
+    M doc/eluadoc/refman_gen_net.lua
+
+  Log Message:
+  -----------
+  Document the units of net timeouts (microseconds).
+
+Also remove superfluous text (you can't specify a timeout without giving a
+timer ID parameter because it comes after it).
+
+
+  Commit: a3170a953d45cb43e5027c72c90d2042f5287418
+      <A HREF="https://github.com/elua/elua/commit/a3170a953d45cb43e5027c72c90d2042f5287418">https://github.com/elua/elua/commit/a3170a953d45cb43e5027c72c90d2042f5287418</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-24 (Sun, 24 Jul 2011)
+
+  Changed paths:
+    M src/uip/dhcpc.c
+  M src/uip/psock.c
+  M src/uip/psock.h
+  M src/uip/pt.h
+  M src/uip/resolv.c
+  M src/uip/uip-fw.c
+  M src/uip/uip-fw.h
+  M src/uip/uip-neighbor.c
+  M src/uip/uip.c
+  M src/uip/uip.h
+  M src/uip/uip_arp.c
+  M src/uip/uiplib.c
+
+  Log Message:
+  -----------
+  Replace tabs by spaces in uip code
+
+
+  Commit: 06fa2552511609f869341cb9f98a638767292246
+      <A HREF="https://github.com/elua/elua/commit/06fa2552511609f869341cb9f98a638767292246">https://github.com/elua/elua/commit/06fa2552511609f869341cb9f98a638767292246</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-07-25 (Mon, 25 Jul 2011)
+
+  Changed paths:
+    M inc/desktop/platform_conf.h
+
+  Log Message:
+  -----------
+  add os module for desktop builds of Lua including LuaRPC binary
+
+
+  Commit: 5868fa6c87014f5e682a58ff730cda7d5b628055
+      <A HREF="https://github.com/elua/elua/commit/5868fa6c87014f5e682a58ff730cda7d5b628055">https://github.com/elua/elua/commit/5868fa6c87014f5e682a58ff730cda7d5b628055</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-28 (Thu, 28 Jul 2011)
+
+  Changed paths:
+    M inc/desktop/platform_conf.h
+
+  Log Message:
+  -----------
+  Merge branch 'master' of github.com:elua/elua
+
+
+  Commit: 8f520abd160b10e0ed5f336e0fc7703e809f4341
+      <A HREF="https://github.com/elua/elua/commit/8f520abd160b10e0ed5f336e0fc7703e809f4341">https://github.com/elua/elua/commit/8f520abd160b10e0ed5f336e0fc7703e809f4341</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-07-28 (Thu, 28 Jul 2011)
+
+  Changed paths:
+    M doc/eluadoc/refman_gen_i2c.lua
+
+  Log Message:
+  -----------
+  Fix typo in I2C refman
+
+
+  Commit: 57e222185b4ecbe0fdc71aa48192dbd67af783dd
+      <A HREF="https://github.com/elua/elua/commit/57e222185b4ecbe0fdc71aa48192dbd67af783dd">https://github.com/elua/elua/commit/57e222185b4ecbe0fdc71aa48192dbd67af783dd</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-07-29 (Fri, 29 Jul 2011)
+
+  Changed paths:
+    M .gitignore
+
+  Log Message:
+  -----------
+  added the cross compiler to the list of files ignored by git
+
+
+  Commit: 8b50aca94551ba3fdd58f33087c36277991fa821
+      <A HREF="https://github.com/elua/elua/commit/8b50aca94551ba3fdd58f33087c36277991fa821">https://github.com/elua/elua/commit/8b50aca94551ba3fdd58f33087c36277991fa821</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-08-01 (Mon, 01 Aug 2011)
+
+  Changed paths:
+    M src/platform/stm32/platform.c
+  M src/platform/stm32/platform_conf.h
+  M src/platform/stm32/platform_int.c
+
+  Log Message:
+  -----------
+  initial attempt at timer int support on stm32
+
+
+  Commit: e71f6eb1eac94bfda7e7fc9dffd8e48ef9a41d6a
+      <A HREF="https://github.com/elua/elua/commit/e71f6eb1eac94bfda7e7fc9dffd8e48ef9a41d6a">https://github.com/elua/elua/commit/e71f6eb1eac94bfda7e7fc9dffd8e48ef9a41d6a</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-08-01 (Mon, 01 Aug 2011)
+
+  Changed paths:
+    M src/platform/stm32/platform.c
+  M src/platform/stm32/platform_int.c
+
+  Log Message:
+  -----------
+  basic working timer interrupts
+
+
+  Commit: 09b70330d6e2bef14d97a7d38c09588f56383c3a
+      <A HREF="https://github.com/elua/elua/commit/09b70330d6e2bef14d97a7d38c09588f56383c3a">https://github.com/elua/elua/commit/09b70330d6e2bef14d97a7d38c09588f56383c3a</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-08-01 (Mon, 01 Aug 2011)
+
+  Changed paths:
+    M src/modules/tmr.c
+
+  Log Message:
+  -----------
+  fix case where intervals that are too long don't get reported
+
+
+  Commit: e64f9ef3bbee4ecaa61df0cb61d52005e34a7182
+      <A HREF="https://github.com/elua/elua/commit/e64f9ef3bbee4ecaa61df0cb61d52005e34a7182">https://github.com/elua/elua/commit/e64f9ef3bbee4ecaa61df0cb61d52005e34a7182</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-08-01 (Mon, 01 Aug 2011)
+
+  Changed paths:
+    M .gitignore
+
+  Log Message:
+  -----------
+  Merge branch 'master' of github.com:elua/elua
+
+
+  Commit: ee759a1c4b4d61e8512aa5a87e9c9d8df4e86d70
+      <A HREF="https://github.com/elua/elua/commit/ee759a1c4b4d61e8512aa5a87e9c9d8df4e86d70">https://github.com/elua/elua/commit/ee759a1c4b4d61e8512aa5a87e9c9d8df4e86d70</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-08-01 (Mon, 01 Aug 2011)
+
+  Changed paths:
+    M src/platform/stm32/platform.c
+  M src/platform/stm32/platform_int.c
+
+  Log Message:
+  -----------
+  fix typo in cyclic interrupt handling on stm32, don't enable interrupt by default.. require sei
+
+
+  Commit: 1c1a59851de08200adfccafbd9c3f4c3d8b03dd6
+      <A HREF="https://github.com/elua/elua/commit/1c1a59851de08200adfccafbd9c3f4c3d8b03dd6">https://github.com/elua/elua/commit/1c1a59851de08200adfccafbd9c3f4c3d8b03dd6</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-08-02 (Tue, 02 Aug 2011)
+
+  Changed paths:
+    M doc/eluadoc/arch_platform_pwm.lua
+  M inc/platform.h
+  M src/modules/pwm.c
+  M src/platform/at91sam7x/platform.c
+  M src/platform/avr32/platform.c
+  M src/platform/lm3s/platform.c
+  M src/platform/lpc17xx/platform.c
+  M src/platform/lpc24xx/platform.c
+  M src/platform/stm32/platform.c
+  M src/platform/str7/platform.c
+  M src/platform/str9/platform.c
+
+  Log Message:
+  -----------
+  Split platform_pwm_op(id, op[, data]) into four distinct functions
+
+platform_pwm_op( id, op, data ) did four unrelated tasks, switching on the
+&quot;op&quot; parameter:
+op==PLATFORM_PWM_OP_SET_CLOCK took a frequency and returned a frequency
+op==PLATFORM_PWM_OP_GET_CLOCK took nothing returned a frequency
+op==PLATFORM_PWM_OP_START and _STOP both took nothing and returned nothing
+
+this patch replaces it with:
+clock = platform_pwm_set_clock( id, clock)
+clock = platform_pwm_get_clock( id )
+platform_pwm_start( id ) and
+platform_pwm_stop( id )
+
+with resulting clarity in the documentation and smaller, faster code.
+
+This does not affect the Lau interface.
+
+
+  Commit: ade99720cd01d2f0606a1aecd72e87c99c892e47
+      <A HREF="https://github.com/elua/elua/commit/ade99720cd01d2f0606a1aecd72e87c99c892e47">https://github.com/elua/elua/commit/ade99720cd01d2f0606a1aecd72e87c99c892e47</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-08-02 (Tue, 02 Aug 2011)
+
+  Changed paths:
+    M .gitignore
+  M src/modules/tmr.c
+  M src/platform/stm32/platform.c
+  M src/platform/stm32/platform_conf.h
+  M src/platform/stm32/platform_int.c
+
+  Log Message:
+  -----------
+  Merge branch 'master' of github.com:elua/elua
+
+
+  Commit: 22f08c454d65eb25832f73103d965659641dc207
+      <A HREF="https://github.com/elua/elua/commit/22f08c454d65eb25832f73103d965659641dc207">https://github.com/elua/elua/commit/22f08c454d65eb25832f73103d965659641dc207</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-09-13 (Tue, 13 Sep 2011)
+
+  Changed paths:
+    M doc/eluadoc/arch_platform_pwm.lua
+
+  Log Message:
+  -----------
+  Fix markup in PWM documentation
+
+
+  Commit: 5d5443d67e3d1bca29a4a1b17c90c190beacd4d7
+      <A HREF="https://github.com/elua/elua/commit/5d5443d67e3d1bca29a4a1b17c90c190beacd4d7">https://github.com/elua/elua/commit/5d5443d67e3d1bca29a4a1b17c90c190beacd4d7</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-09-22 (Thu, 22 Sep 2011)
+
+  Changed paths:
+    M src/platform/avr32/i2c.c
+
+  Log Message:
+  -----------
+  Implement STOP and repeated START condition setup times from I2C spec.
+
+The code for the bitbanger, taken from wikipedia, in turn taken from
+<A HREF="http://www.nctutwt.net/wiki/doku.php?id=wiki:summer2010:i2c">http://www.nctutwt.net/wiki/doku.php?id=wiki:summer2010:i2c</A>
+does a STOP condition by raising SCL and immediately raising SDA, but
+in the I2C spec, there is a minimum STOP setup time of 4ms between these
+transitions (I2C spec, doc UM10204, table 6/figure 27, pp.37-38).
+
+Similarly, a repeated START has a setup time of minimum 4.7us between
+SCL going high and SDA going low, which the code did not contain.
+
+This patch inserts these delays to conform better to the I2C spec,
+even though all tested devices &quot;seemed to work&quot; without them.
+
+
+  Commit: 30b4f7a6dd3b67c37f55f859bfcff38ef64f4a16
+      <A HREF="https://github.com/elua/elua/commit/30b4f7a6dd3b67c37f55f859bfcff38ef64f4a16">https://github.com/elua/elua/commit/30b4f7a6dd3b67c37f55f859bfcff38ef64f4a16</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-09-22 (Thu, 22 Sep 2011)
+
+  Changed paths:
+    M src/platform/avr32/i2c.c
+
+  Log Message:
+  -----------
+  Insert setup delay for repeated START condition (missed from last commit)
+
+
+  Commit: f6783e40cefa370adf1d58ef94583f2a6c924b30
+      <A HREF="https://github.com/elua/elua/commit/f6783e40cefa370adf1d58ef94583f2a6c924b30">https://github.com/elua/elua/commit/f6783e40cefa370adf1d58ef94583f2a6c924b30</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-09-23 (Fri, 23 Sep 2011)
+
+  Changed paths:
+    M src/lua/lmathlib.c
+
+  Log Message:
+  -----------
+  Add math.floor() and math.ceil() identity functions to integral mathlib
+
+In integer math, floor() and ceil() give the same value, but
+having them included in the integer library as functions that return
+their argument allows you more easily to write code that works unchanged
+in both integer and floating point versions of Lua.
+
+
+  Commit: 99f696451c87be41c6888e05768eb9fcf268fce7
+      <A HREF="https://github.com/elua/elua/commit/99f696451c87be41c6888e05768eb9fcf268fce7">https://github.com/elua/elua/commit/99f696451c87be41c6888e05768eb9fcf268fce7</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-09-25 (Sun, 25 Sep 2011)
+
+  Changed paths:
+    M src/platform/avr32/MIZAR32/mizar32_conf.h
+
+  Log Message:
+  -----------
+  Add BUILD_LUA_INT_HANDLERS to Mizar32 default build
+
+
+  Commit: a05c209ab2e14e7879f8f5f49064f5b87fa7367e
+      <A HREF="https://github.com/elua/elua/commit/a05c209ab2e14e7879f8f5f49064f5b87fa7367e">https://github.com/elua/elua/commit/a05c209ab2e14e7879f8f5f49064f5b87fa7367e</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-09-27 (Tue, 27 Sep 2011)
+
+  Changed paths:
+    M doc/eluadoc.lua
+  R doc/eluadoc/refman_ps_str9_rtc.lua
+
+  Log Message:
+  -----------
+  Remove documentation for non-existent str9.rtc module
+
+
+  Commit: f048bece4bd21810b6766e9ccbe3406e59062626
+      <A HREF="https://github.com/elua/elua/commit/f048bece4bd21810b6766e9ccbe3406e59062626">https://github.com/elua/elua/commit/f048bece4bd21810b6766e9ccbe3406e59062626</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-09-28 (Wed, 28 Sep 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  Change LCD I2C slave addresses to 7C-7F
+
+The old slave addresses, F2, F3, F6, F7 are reserved for 10-bit
+I2C addressing.  This changes them to values that are least likely
+to conflist with other devices: 7C-7F are registered to two LCD display
+devices.
+
+
+  Commit: a9c7041af7adc32bb30d12b33b83cd7cc0845eec
+      <A HREF="https://github.com/elua/elua/commit/a9c7041af7adc32bb30d12b33b83cd7cc0845eec">https://github.com/elua/elua/commit/a9c7041af7adc32bb30d12b33b83cd7cc0845eec</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-10-02 (Sun, 02 Oct 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  Use new hard reset command to reset LCD module.
+
+We just changed LCD command 0 from a no-op to a speciall-recognized
+hardware reset. This is essential because the LCD controller's reset line
+is not connected to the AVR32's reset line, so if the AVR32 is reset,
+the LCD is left in an unknown, possible unusable, state.
+
+
+  Commit: 2c7d3a37437d4e87530dd6ea3db80f8641ced450
+      <A HREF="https://github.com/elua/elua/commit/2c7d3a37437d4e87530dd6ea3db80f8641ced450">https://github.com/elua/elua/commit/2c7d3a37437d4e87530dd6ea3db80f8641ced450</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-10-02 (Sun, 02 Oct 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  Increase LCD I2C bus frequency to fit with new LCD module firmware.
+
+The new firmware can run at up to 68kHz, so increase the I2C bus speed
+to 60000Hz
+
+
+  Commit: 121a70b8b11ebab38964ac92d0ff4b46b374e814
+      <A HREF="https://github.com/elua/elua/commit/121a70b8b11ebab38964ac92d0ff4b46b374e814">https://github.com/elua/elua/commit/121a70b8b11ebab38964ac92d0ff4b46b374e814</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-10-02 (Sun, 02 Oct 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+  M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  New firmware works with no delays and max speed of 50000Hz
+
+The new LCD firmware doesn't need the caller to wait after each command:
+it stretches the clock instead. Actually, it works at 68kHz too, but
+there is a non-working range from 55 to 66kHz.
+We set it to 50000Hz to have reliable operation and allow for clock drift.
+
+
+  Commit: 60d62078b7048e1f5f59f95dbaaa63e180749362
+      <A HREF="https://github.com/elua/elua/commit/60d62078b7048e1f5f59f95dbaaa63e180749362">https://github.com/elua/elua/commit/60d62078b7048e1f5f59f95dbaaa63e180749362</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-10-03 (Mon, 03 Oct 2011)
+
+  Changed paths:
+    M build_elua.lua
+  M utils/build.lua
+
+  Log Message:
+  -----------
+  Remove separate dependency step from Lua build system
+
+The separate dependency generation step from the Lua build system
+was not needed, now the dependencies are generated at the same time
+as the object files.
+
+
+  Commit: 8839e93c16ded79e06d8a980752cc2f7e3bcc119
+      <A HREF="https://github.com/elua/elua/commit/8839e93c16ded79e06d8a980752cc2f7e3bcc119">https://github.com/elua/elua/commit/8839e93c16ded79e06d8a980752cc2f7e3bcc119</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-10-03 (Mon, 03 Oct 2011)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+  M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  Merge branch 'master' of github.com:elua/elua
+
+
+  Commit: fa335c481e972e38e7267f2997ed062d9e1ff957
+      <A HREF="https://github.com/elua/elua/commit/fa335c481e972e38e7267f2997ed062d9e1ff957">https://github.com/elua/elua/commit/fa335c481e972e38e7267f2997ed062d9e1ff957</A>
+  Author: Pablo Cossutta &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">pay at dearriba.com</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M src/uip/lc-switch.h
+
+  Log Message:
+  -----------
+  lc-switch.h has typo in head protection macros
+
+Another think: the LC-SWITCH.C has this two lines that are wrong:
+
+Of course its a typo on the second one.
+
+<A HREF="http://article.gmane.org/gmane.network.uip.user/15">http://article.gmane.org/gmane.network.uip.user/15</A>
+
+
+  Commit: 2d484e1eadf3fe7c5feba43800745eca3b20ad75
+      <A HREF="https://github.com/elua/elua/commit/2d484e1eadf3fe7c5feba43800745eca3b20ad75">https://github.com/elua/elua/commit/2d484e1eadf3fe7c5feba43800745eca3b20ad75</A>
+  Author: Till Harbaum &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">lists at harbaum.org</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M src/uip/uip.c
+
+  Log Message:
+  -----------
+  Fix missing UDP stats for sent/received packets
+
+i just saw that the stats taking in uip is missing entries for udp
+receive and
+transmit.
+
+To fix this insert a UIP_STAT after the udp_found label:
+
+ udp_found:
+ +  UIP_STAT(++uip_stat.udp.recv);
+
+ And a UIP_STAT before the goto ip_send_nolen instruction:
+
+ +  UIP_STAT(++uip_stat.udp.sent);
+   goto ip_send_nolen;
+
+
+  Commit: 7fbfc2c229faa471c48eb75e4216d6261f705861
+      <A HREF="https://github.com/elua/elua/commit/7fbfc2c229faa471c48eb75e4216d6261f705861">https://github.com/elua/elua/commit/7fbfc2c229faa471c48eb75e4216d6261f705861</A>
+  Author: Jack Elston &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">elstonj at colorado.edu</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M src/uip/uip.c
+
+  Log Message:
+  -----------
+  UDP packet data pointed at wrong location
+
+I have been working on implementing a port to the atmel
+ATMega128 and I have noticed that sending UDP packets does not
+work (the transferred data is always 0).
+
+A look into the code reveals that in uip.c, the address of
+uip_appdata gets set incorrectly.
+
+Somewhere around line 1159 the code needs to be changed:
+
+--- uip_appdata = &amp;uip_buf[UIP_LLH_LEN + UIP_IPTCPH_LEN];
++++ uip_appdata = &amp;uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+
+<A HREF="http://article.gmane.org/gmane.network.uip.user/68">http://article.gmane.org/gmane.network.uip.user/68</A>
+
+
+  Commit: c388c3f3b30e762e148819f946df75de09947218
+      <A HREF="https://github.com/elua/elua/commit/c388c3f3b30e762e148819f946df75de09947218">https://github.com/elua/elua/commit/c388c3f3b30e762e148819f946df75de09947218</A>
+  Author: Andrew Ruder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">andy at aeruder.net</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M src/uip/uip.c
+
+  Log Message:
+  -----------
+  TCP polling code can send stale/duplicate data
+
+Here's the content of the patch (so it can be more easily
+discussed if need be).  What basically happens is uip_len and
+uip_slen never get reset to 0 when calling the poll handler.
+Here's an example of how things go wrong:
+
+Let's say you get some new incoming data (uip_newdata()), your
+application handler processes the new data and sends something
+out (thus setting uip_slen).  Back in the main loop again, you
+poll a connection.  uip_slen is still set from the last send and
+if your poll handler doesn't send out something new, uip ends up
+just sending out the exact same data on the now polled
+connection.  In every other applicable case, uip_len and
+uip_slen get reset, but for whatever reason this one just got
+missed...
+
+<A HREF="http://article.gmane.org/gmane.network.uip.user/1312">http://article.gmane.org/gmane.network.uip.user/1312</A>
+
+
+  Commit: eeab1025e2cb5b761fc4bab642317179b9164bda
+      <A HREF="https://github.com/elua/elua/commit/eeab1025e2cb5b761fc4bab642317179b9164bda">https://github.com/elua/elua/commit/eeab1025e2cb5b761fc4bab642317179b9164bda</A>
+  Author: Raimondas Sasnauskas &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">raimondas.sasnauskas at cs.rwth-aachen.de</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M src/uip/uip.c
+
+  Log Message:
+  -----------
+  Lost SYNACK causes connection reset
+
+==================
+From: Raimondas Sasnauskas &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">raimondas.sasnauskas at cs.rwth-aachen.de</A>&gt;
+Date: Sun, Sep 20, 2009 at 1:29 PM
+Subject: Re: RE: Re: RE: Re: Re: RE: Bug (?) in uip TCP/IP stack: lost SYNACK causes connection reset
+
+OK, here I'm proposing the following patch (see git diff attached).
+
+Again the problem we face here is the subsequent SYN arriving in
+UIP_SYN_RCVD state after the SYNACK packet was lost.  First, to avoid
+other issues,  suggest to reset any _active_ connection where a SYN
+arrives in a state != UIP_SYN_RCVD.
+
+==================
+
+This is a combination of the patch submitted by Raimondas Sasnauskas and
+the patch applied by Oliver Schmidt to Contiki
+
+===================
+Original bug report
+===================
+
+ From: Raimondas Sasnauskas
+       &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">raimondas.sasnauskas at cs.rwth-aachen.de</A>&gt;
+ Subject: Bug (?) in uip TCP/IP stack: lost SYNACK causes
+          connection reset
+ Date: 2009-09-02 19:07:51 GMT
+
+ Hi all,
+
+ I've found the following issue in the TCP (UIP_ACTIVE_OPEN)
+ connection establishment phase leading to connection failure.
+ This happens whe the SYNACK packet gets lost during the TCP
+ 3-way handshake.
+
+ Client: SYN
+ Server: SYNACK (this packet gets lost)
+ Client: SYN (retransmission)
+ Server: ACK (&lt;-- server thinks it's data?)
+ Client: RESET (correct, no SYNACK received yet)
+ Server: ABORT (got reset, aborting connection)
+
+ I do not have a patch/workaround yet, but I think that
+ correctly handling incoming TCP_SYN packets in UIP_SYN_RCVD
+ state would fix this issue.
+
+ <A HREF="http://article.gmane.org/gmane.network.uip.user/1506">http://article.gmane.org/gmane.network.uip.user/1506</A>
+
+
+  Commit: 6a1e683a8f80a1c4cf4b1161b23139825a65d8b7
+      <A HREF="https://github.com/elua/elua/commit/6a1e683a8f80a1c4cf4b1161b23139825a65d8b7">https://github.com/elua/elua/commit/6a1e683a8f80a1c4cf4b1161b23139825a65d8b7</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M doc/en/arch_tcpip.html
+
+  Log Message:
+  -----------
+  Fix typo in TCP/IP arch doc
+
+
+  Commit: 210cd6f21af66abc20efcfc8e91f60a60a8389c0
+      <A HREF="https://github.com/elua/elua/commit/210cd6f21af66abc20efcfc8e91f60a60a8389c0">https://github.com/elua/elua/commit/210cd6f21af66abc20efcfc8e91f60a60a8389c0</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-10-04 (Tue, 04 Oct 2011)
+
+  Changed paths:
+    M doc/en/arch_con_term.html
+
+  Log Message:
+  -----------
+  Fix typo in Console/Terminal arch doc
+
+
+  Commit: fb312d828c60c977bb2f8e9392ef4ff799b8917e
+      <A HREF="https://github.com/elua/elua/commit/fb312d828c60c977bb2f8e9392ef4ff799b8917e">https://github.com/elua/elua/commit/fb312d828c60c977bb2f8e9392ef4ff799b8917e</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-10-06 (Thu, 06 Oct 2011)
+
+  Changed paths:
+    M .gitignore
+  M build_elua.lua
+  M doc/eluadoc.lua
+  M doc/eluadoc/arch_platform_adc.lua
+  M doc/eluadoc/arch_platform_pwm.lua
+  M doc/eluadoc/refman_gen_adc.lua
+  M doc/eluadoc/refman_gen_i2c.lua
+  M doc/eluadoc/refman_gen_net.lua
+  R doc/eluadoc/refman_ps_mizar32_disp.lua
+  A doc/eluadoc/refman_ps_mizar32_lcd.lua
+  R doc/eluadoc/refman_ps_str9_rtc.lua
+  M doc/en/arch_con_term.html
+  M doc/en/arch_tcpip.html
+  M inc/desktop/platform_conf.h
+  M inc/platform.h
+  M src/common.c
+  M src/elua_adc.c
+  M src/lua/lmathlib.c
+  M src/modules/adc.c
+  M src/modules/pwm.c
+  M src/modules/tmr.c
+  M src/platform/at91sam7x/platform.c
+  M src/platform/avr32/EVK1101/evk1101_conf.h
+  M src/platform/avr32/MIZAR32/mizar32_conf.h
+  M src/platform/avr32/conf.lua
+  M src/platform/avr32/conf.py
+  R src/platform/avr32/disp.c
+  R src/platform/avr32/disp.h
+  M src/platform/avr32/i2c.c
+  M src/platform/avr32/i2c.h
+  A src/platform/avr32/lcd.c
+  A src/platform/avr32/lcd.h
+  M src/platform/avr32/platform.c
+  M src/platform/lm3s/disp.c
+  M src/platform/lm3s/platform.c
+  M src/platform/lpc17xx/platform.c
+  M src/platform/lpc24xx/platform.c
+  M src/platform/stm32/platform.c
+  M src/platform/stm32/platform_conf.h
+  M src/platform/stm32/platform_int.c
+  M src/platform/str7/platform.c
+  M src/platform/str9/platform.c
+  M src/platform/str9/str9_pio.c
+  M src/uip/dhcpc.c
+  M src/uip/lc-switch.h
+  M src/uip/psock.c
+  M src/uip/psock.h
+  M src/uip/pt.h
+  M src/uip/resolv.c
+  M src/uip/uip-fw.c
+  M src/uip/uip-fw.h
+  M src/uip/uip-neighbor.c
+  M src/uip/uip.c
+  M src/uip/uip.h
+  M src/uip/uip_arp.c
+  M src/uip/uiplib.c
+  M utils/build.lua
+
+  Log Message:
+  -----------
+  Merge branch 'master' into newrpc_merge
+
+
+  Commit: f400a45c2f813db5041f3b172f5ca7f7a7383c00
+      <A HREF="https://github.com/elua/elua/commit/f400a45c2f813db5041f3b172f5ca7f7a7383c00">https://github.com/elua/elua/commit/f400a45c2f813db5041f3b172f5ca7f7a7383c00</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-10-06 (Thu, 06 Oct 2011)
+
+  Changed paths:
+    M src/modules/luarpc.c
+
+  Log Message:
+  -----------
+  make adispatch compatible with new model for readable function
+
+
+  Commit: cc1cda9109bbbc60a50d0be0dec04f7154b06463
+      <A HREF="https://github.com/elua/elua/commit/cc1cda9109bbbc60a50d0be0dec04f7154b06463">https://github.com/elua/elua/commit/cc1cda9109bbbc60a50d0be0dec04f7154b06463</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-10-06 (Thu, 06 Oct 2011)
+
+  Changed paths:
+    M inc/luarpc_rpc.h
+  M src/luarpc_desktop_serial.c
+  M src/luarpc_elua_uart.c
+  M src/modules/luarpc.c
+
+  Log Message:
+  -----------
+  remove some unneeded API extensions, cleanup
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/81a3f6a...cc1cda9">https://github.com/elua/elua/compare/81a3f6a...cc1cda9</A>
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001079.html">[eLua-svn] [elua/elua] 4b6096: Sort out declarations of ADC commons	and platform-...
+</A></li>
+	<LI>Next message: <A HREF="001081.html">[eLua-svn] [elua/elua] 3ec7d8: Merge branch 'master' into	newrpc_merge
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1080">[ date ]</a>
+              <a href="thread.html#1080">[ thread ]</a>
+              <a href="subject.html#1080">[ subject ]</a>
+              <a href="author.html#1080">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

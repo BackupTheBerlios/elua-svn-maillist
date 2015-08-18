@@ -1,0 +1,277 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r302 - in branches/luarpc: . src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r302%20-%20in%20branches/luarpc%3A%20.%20src/platform/stm32&In-Reply-To=%3C200906171719.n5HHJe9W011129%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000257.html">
+   <LINK REL="Next"  HREF="000259.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r302 - in branches/luarpc: . src/platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r302%20-%20in%20branches/luarpc%3A%20.%20src/platform/stm32&In-Reply-To=%3C200906171719.n5HHJe9W011129%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r302 - in branches/luarpc: . src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Jun 17 19:19:40 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000257.html">[Elua-svn] r301 - in branches/luarpc: . inc src src/lua src/modules	src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000259.html">[Elua-svn] r303 - in branches/luarpc: . src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#258">[ date ]</a>
+              <a href="thread.html#258">[ thread ]</a>
+              <a href="subject.html#258">[ subject ]</a>
+              <a href="author.html#258">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-17 19:19:38 +0200 (Wed, 17 Jun 2009)
+New Revision: 302
+
+Modified:
+   branches/luarpc/src/platform/stm32/platform.c
+   branches/luarpc/src/platform/stm32/platform_conf.h
+   branches/luarpc/src/platform/stm32/stm32f10x_it.c
+   branches/luarpc/test-rpc.lua
+Log:
+Enable console buffering on STM32, so that we don't have to block for
+asynchronous events like assignment.  Basic tests now seem to pass.
+
+Using the ADC at the same time as the buffer seems to be causing some
+contention wherein the connection will lock up.  I suspect the problem is that
+both the UART and ADC are trying to use the buffer facility at the same time
+and there needs to be some locking there... ?
+
+Modified: branches/luarpc/src/platform/stm32/platform.c
+===================================================================
+--- branches/luarpc/src/platform/stm32/platform.c	2009-06-16 23:24:43 UTC (rev 301)
++++ branches/luarpc/src/platform/stm32/platform.c	2009-06-17 17:19:38 UTC (rev 302)
+@@ -187,6 +187,14 @@
+   nvic_init_structure.NVIC_IRQChannelCmd = DISABLE; 
+   NVIC_Init(&amp;nvic_init_structure);
+ #endif
++
++#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
++  /* Enable the USART1 Interrupt */
++  nvic_init_structure.NVIC_IRQChannel = USART1_IRQChannel;
++  nvic_init_structure.NVIC_IRQChannelSubPriority = 0;
++  nvic_init_structure.NVIC_IRQChannelCmd = ENABLE;
++  NVIC_Init(&amp;nvic_init_structure);
++#endif
+ }
+ 
+ // ****************************************************************************
+@@ -466,6 +474,22 @@
+ static const u16 usart_gpio_rx_pin[] = { GPIO_Pin_10, GPIO_Pin_3, GPIO_Pin_11, GPIO_Pin_11, GPIO_Pin_2 };
+ static const u16 usart_gpio_tx_pin[] = { GPIO_Pin_9, GPIO_Pin_2, GPIO_Pin_10, GPIO_Pin_10, GPIO_Pin_12 };
+ 
++#ifdef BUF_ENABLE_UART
++void USART1_IRQHandler(void)
++{
++  int c;
++
++  if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
++  {
++    /* Read one byte from the receive data register */
++    c = USART_ReceiveData(USART1);
++    buf_write( BUF_ID_UART, CON_UART_ID, ( t_buf_data* )&amp;c );
++  }
++}
++#endif
++
++
++
+ static void usart_init(u32 id, USART_InitTypeDef * initVals)
+ {
+   /* Configure USART IO */
+@@ -484,10 +508,12 @@
+ 
+   /* Configure USART */
+   USART_Init(usart[id], initVals);
+-
++  
++#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+   /* Enable USART1 Receive and Transmit interrupts */
+-  //USART_ITConfig(usart[id], USART_IT_RXNE, ENABLE);
++  USART_ITConfig(usart[id], USART_IT_RXNE, ENABLE);
+   //USART_ITConfig(usart[id], USART_IT_TXE, ENABLE);
++#endif
+ 
+   /* Enable USART */
+   USART_Cmd(usart[id], ENABLE);
+@@ -504,7 +530,6 @@
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4, ENABLE);
+ 
+   // Configure the U(S)ART
+-
+   USART_InitStructure.USART_BaudRate = CON_UART_SPEED;
+   USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+   USART_InitStructure.USART_StopBits = USART_StopBits_1;
+@@ -512,7 +537,12 @@
+   USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+   USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+ 
++#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
++  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, BUF_DSIZE_U8 );
++#endif
++
+   usart_init(CON_UART_ID, &amp;USART_InitStructure);
++
+ }
+ 
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+
+Modified: branches/luarpc/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/luarpc/src/platform/stm32/platform_conf.h	2009-06-16 23:24:43 UTC (rev 301)
++++ branches/luarpc/src/platform/stm32/platform_conf.h	2009-06-17 17:19:38 UTC (rev 302)
+@@ -96,6 +96,10 @@
+ #define NUM_PWM               0
+ #define NUM_ADC               16
+ 
++// Enable RX buffering on UART
++#define BUF_ENABLE_UART
++#define CON_BUF_SIZE          BUF_SIZE_128
++
+ // ADC Configuration Params
+ #define ADC_BIT_RESOLUTION    12
+ #define BUF_ENABLE_ADC
+
+Modified: branches/luarpc/src/platform/stm32/stm32f10x_it.c
+===================================================================
+--- branches/luarpc/src/platform/stm32/stm32f10x_it.c	2009-06-16 23:24:43 UTC (rev 301)
++++ branches/luarpc/src/platform/stm32/stm32f10x_it.c	2009-06-17 17:19:38 UTC (rev 302)
+@@ -387,7 +387,9 @@
+ * Output         : None
+ * Return         : None
+ *******************************************************************************/
+-extern void USB_LP_CAN_RX0_IRQHandler(void);
++void USB_LP_CAN_RX0_IRQHandler(void)
++{
++}
+ 
+ /*******************************************************************************
+ * Function Name  : CAN_RX1_IRQHandler
+@@ -574,10 +576,9 @@
+ * Output         : None
+ * Return         : None
+ *******************************************************************************/
+-void USART1_IRQHandler(void)
+-{
+-}
++extern void USART1_IRQHandler(void);
+ 
++
+ /*******************************************************************************
+ * Function Name  : USART2_IRQHandler
+ * Description    : This function handles USART2 global interrupt request.
+
+Modified: branches/luarpc/test-rpc.lua
+===================================================================
+--- branches/luarpc/test-rpc.lua	2009-06-16 23:24:43 UTC (rev 301)
++++ branches/luarpc/test-rpc.lua	2009-06-17 17:19:38 UTC (rev 302)
+@@ -7,35 +7,43 @@
+ slave,err = rpc.connect (&quot;/dev/tty.usbserial-ftCYPMYJ&quot;);
+ --slave,err = rpc.connect (&quot;/dev/ttys0&quot;);
+ 
+-function mirror( input )
+-	return input
+-end
++function mirror( input ) return input end
++function squareval(x) return x^2 end
++test_local = {1, 2, 3, 3.143, &quot;234&quot;}
++test_local.sval = 23
+ 
+-print(slave.tostring(3.1))
+-
+ slave.mirror = mirror
+ 
+-for i=1,100000 do math.sqrt(i) end
++-- reflect parameters off mirror
++-- also requires that function serialization works
+ assert(slave.mirror(42) == 42, &quot;integer return failed&quot;)
++assert(slave.mirror(&quot;this is a test!&quot;) == &quot;this is a test!&quot;, &quot;string return failed&quot;)
++assert(string.dump(slave.mirror(squareval)) == string.dump(squareval), &quot;function return failed&quot;)
++assert(slave.mirror(true) == true, &quot;bool return failed&quot;)
+ 
+-print(slave.mirror(42))
++slave.test = test_local
+ 
+--- print(slave.mirror:get())
++-- get remote table
++assert(slave.test:get(), &quot;couldn't get remote table&quot;)
+ 
++
++-- check that we can get entry on remote table
++assert(test_local.sval == slave.test:get().sval, &quot;table field not equivalent&quot;)
++slave.collectgarbage(&quot;collect&quot;)
+ print(slave.collectgarbage(&quot;count&quot;))
+ 
+-adc = slave.adc
+-
+-adc.setblocking(0,1)
+-adc.setclock(0, 10 ,2)
+-
+-adc.sample(0,128)
+-while 1 do
+-	retsamp = adc.getsample(0)
+-	if not (retsamp == nil) then
+-		print(retsamp)
+-	else
+-		print(slave.collectgarbage(&quot;count&quot;))
+-		adc.sample(0,128)
+-	end
+-end
+\ No newline at end of file
++-- adc = slave.adc
++-- 
++-- adc.setblocking(0,1)
++-- adc.setclock(0, 10 ,2)
++-- 
++-- adc.sample(0,128)
++-- while 1 do
++-- 	retsamp = adc.getsample(0)
++-- 	if not (retsamp == nil) then
++-- 		print(retsamp)
++-- 	else
++-- 		print(slave.collectgarbage(&quot;count&quot;))
++-- 		adc.sample(0,128)
++-- 	end
++-- end
+\ No newline at end of file
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000257.html">[Elua-svn] r301 - in branches/luarpc: . inc src src/lua src/modules	src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000259.html">[Elua-svn] r303 - in branches/luarpc: . src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#258">[ date ]</a>
+              <a href="thread.html#258">[ thread ]</a>
+              <a href="subject.html#258">[ subject ]</a>
+              <a href="author.html#258">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

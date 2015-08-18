@@ -1,0 +1,365 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r961 - trunk/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r961%20-%20trunk/doc/en&In-Reply-To=%3C20110207210307.80B47480D17%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000913.html">
+   <LINK REL="Next"  HREF="000915.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r961 - trunk/doc/en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r961%20-%20trunk/doc/en&In-Reply-To=%3C20110207210307.80B47480D17%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r961 - trunk/doc/en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Feb  7 22:03:07 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000913.html">[Elua-svn] r960 - in trunk: doc/en inc
+</A></li>
+        <LI>Next message: <A HREF="000915.html">[Elua-svn] r962 - trunk/inc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#914">[ date ]</a>
+              <a href="thread.html#914">[ thread ]</a>
+              <a href="subject.html#914">[ subject ]</a>
+              <a href="author.html#914">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-07 22:03:07 +0100 (Mon, 07 Feb 2011)
+New Revision: 961
+
+Modified:
+   trunk/doc/en/arch_con_term.html
+   trunk/doc/en/arch_ltr.html
+   trunk/doc/en/arch_newport.html
+   trunk/doc/en/installing_avr32.txt
+Log:
+integrated Mike's documentation patches
+
+Modified: trunk/doc/en/arch_con_term.html
+===================================================================
+--- trunk/doc/en/arch_con_term.html	2011-02-07 20:47:11 UTC (rev 960)
++++ trunk/doc/en/arch_con_term.html	2011-02-07 21:03:07 UTC (rev 961)
+@@ -1,22 +1,22 @@
+ $$HEADER$$
+ &lt;h3&gt;eLua consoles and terminals&lt;/h3&gt;
+-&lt;p&gt;In &lt;b&gt;eLua&lt;/b&gt;, a &lt;b&gt;console&lt;/b&gt; and a &lt;b&gt;terminal&lt;/b&gt; serve two related, but different purposes:&lt;/p&gt;
++&lt;p&gt;In &lt;b&gt;eLua&lt;/b&gt;, a &lt;b&gt;console&lt;/b&gt; and a &lt;b&gt;terminal&lt;/b&gt; serve two related but different purposes:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;the &lt;b&gt;console&lt;/b&gt; takes care of basic user input/output. They come in two flavours: serial consoles and TCP/IP consoles (note that the two can't coexist at the same time).&lt;/li&gt;
+-  &lt;li&gt;the &lt;b&gt;terminal&lt;/b&gt; enhances the console in order to take advantage of ANSI terminals and their advanced control functions, like explicit cursor positioning, clear screen and others. At this
+-  time, terminals work only over serial connections, not over TCP/IP (like consoles).&lt;/li&gt;
++  &lt;li&gt;the &lt;b&gt;terminal&lt;/b&gt; enhances the console in order to take advantage of ANSI terminals and their advanced control functions like explicit cursor positioning, clear screen, and others. At this
++  time, terminals work only over serial connections and not over TCP/IP (like consoles).&lt;/li&gt;
+ &lt;/ul&gt;
+ &lt;p&gt;Both components can be enabled and disabled as needed (they don't rely on each other). See &lt;a href=&quot;building.html&quot;&gt;building eLua&lt;/a&gt; for details on how to enable and disable components.&lt;/p&gt;
+ &lt;h2&gt;Serial consoles&lt;/h2&gt;
+ &lt;p&gt;The serial console input/output is handled by a generic layer (&lt;i&gt;src/newlib/genstd.c&lt;/i&gt;) that can be used to easily adapt the console subsystem to a variety of input/output devices. 
+-  It needs just two functions, one for displaying characters and another one for receiving input with timeout:&lt;/p&gt;
++  It needs just two functions, one for displaying characters and another one for receiving input with a timeout:&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;// Send/receive function types
+ typedef void ( *p_std_send_char )( int fd, char c );
+ typedef int ( *p_std_get_char )( s32 to );
+ &lt;/code&gt;&lt;/pre&gt;
+-&lt;p&gt;(the &lt;b&gt;send&lt;/b&gt; faction gets an additional &lt;b&gt;fd&lt;/b&gt; parameter that you can use to  differentiate between the standard C stdout and stderr output streams).&lt;/p&gt;
+-&lt;p&gt;To set them, use &lt;b&gt;std_set_send_func&lt;/b&gt; and &lt;b&gt;std_set_get_func&lt;/b&gt;, both defined in &lt;i&gt;inc/newlib/getstd.h&lt;/i&gt;. Usually they are called from &lt;i&gt;src/common.c&lt;/i&gt; and configured to work
+-  over UART by default:&lt;/p&gt;
++&lt;p&gt;(the &lt;b&gt;send&lt;/b&gt; function gets an additional &lt;b&gt;fd&lt;/b&gt; parameter that you can use to  differentiate between the standard C stdout and stderr output streams).&lt;/p&gt;
++&lt;p&gt;To set them, use &lt;b&gt;std_set_send_func&lt;/b&gt; and &lt;b&gt;std_set_get_func&lt;/b&gt;, both are defined in &lt;i&gt;inc/newlib/getstd.h&lt;/i&gt;. Usually they are called from &lt;i&gt;src/common.c&lt;/i&gt; and configured to work
++  over the UART by default:&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;// *****************************************************************************
+ // std functions and platform initialization
+ 
+@@ -38,7 +38,7 @@
+   std_set_get_func( uart_recv );  
+ }
+ &lt;/code&gt;&lt;/pre&gt;
+-&lt;p&gt;If you need another type of serial console device (for example a dedicated console running over a SPI connection) just call &lt;i&gt;std_set_send_func/std_set_get_func&lt;/i&gt; with the appropriate 
++&lt;p&gt;If you need another type of serial console device (for example, a dedicated console running over a SPI connection) just call &lt;i&gt;std_set_send_func/std_set_get_func&lt;/i&gt; with the appropriate 
+   function pointers.&lt;/p&gt;
+ &lt;p&gt;To enable serial consoles, define the &lt;b&gt;BUILD_CON_GENERIC&lt;/b&gt; macro in your platform's &lt;b&gt;platform_conf.h&lt;/b&gt; file.&lt;/p&gt;
+ &lt;h2&gt;TCP/IP consoles&lt;/h2&gt;
+
+Modified: trunk/doc/en/arch_ltr.html
+===================================================================
+--- trunk/doc/en/arch_ltr.html	2011-02-07 20:47:11 UTC (rev 960)
++++ trunk/doc/en/arch_ltr.html	2011-02-07 21:03:07 UTC (rev 961)
+@@ -9,12 +9,12 @@
+   mainly a result of registering many different modules to Lua. Each time you register a module (via luaL_register) you create a new table and populate 
+   it with the module's methods. But a table is a read/write datatype, so luaL_register is quite inefficient if you don't plan to do any write operations 
+   on that table later (adding new elements or manipulating existing ones). I found that I almost never have to do any such operations on a module's 
+-  table after it was created, I just query it for its elements. So, from the perspective of someone worried about memory usage, I'd rather have a 
++  table after it was created. I just query it for its elements. So, from the perspective of someone worried about memory usage, I'd rather have a 
+   different type of table in this case, one that wouldn't need any RAM at all, since it would be read only, so it could reside entirely in ROM.&lt;/p&gt;
+   &lt;p&gt;There's one more thing related to this context: Lua's functions. While Lua does have the concept of C functions, they still require data structures 
+   that need to be allocated (see lua_pushcclosure in lapi.c for details), as they can have upvalues or environments. Once again, this isn't something I 
+-  use often with eLua. Most of the times my functions (especially the ones exported by a C module) are very simple, and they don't need upvalues or 
+-  environments at all. In conclusion, having a &quot;simpler&quot; function type would improve memory usage.
++  use often with eLua. Most of the time my functions (especially the ones exported by a C module) are very simple, and they don't need upvalues or 
++  environments at all. In conclusion, having a &quot;simpler&quot; function type that improves memory usage.
+ &lt;/p&gt;
+ &lt;h2&gt;Details&lt;/h2&gt;
+ &lt;p&gt;The patch adds two new data types to Lua. Both or them are based on the lightuserdata type already found in Lua, and they share the same basic 
+@@ -31,17 +31,17 @@
+   &lt;li&gt;rotables can only contain values of type &quot;lightfunction&quot;, lua_Number or pointers to other rotables.&lt;/li&gt;
+   &lt;li&gt;you can't add/delete/modify elements from rotables (obviously). However, rotables will honour the &quot;__newindex&quot; metamethod.&lt;/li&gt;
+   &lt;li&gt;you can use rotables as metatables for both &quot;regular&quot; tables and for Lua types (via debug.setmetatable)&lt;/li&gt;
+-  &lt;li&gt;a rotable can have another rotable (or tself) as a metatable&lt;/li&gt;
++  &lt;li&gt;a rotable can have another rotable (or itself) as a metatable&lt;/li&gt;
+   &lt;li&gt;you can iterate over rotables with pairs/ipairs/next just as you do with &quot;regular&quot; tables.&lt;/li&gt;
+ &lt;/ul&gt;&lt;/li&gt;&lt;/ol&gt;
+-&lt;p&gt;Just as with lightuserdata, you can only create lightfunctions and rotables from C code, never from Lua itself.&lt;/p&gt;
++&lt;p&gt;Just as with lightuserdata, you can only create lightfunctions and rotables from C code and never from Lua itself.&lt;/p&gt;
+ &lt;h2&gt;Testing&lt;/h2&gt;
+ &lt;p&gt;I tested my patch with the (&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://lua-users.org/lists/lua-l/2006-03/msg00723.html">http://lua-users.org/lists/lua-l/2006-03/msg00723.html</A>&quot;&gt;Lua 5.1 test suite&lt;/a&gt;). The test suite 
+   was an excellent testing tool. I thought I had the patch ready until I found the test suite and ran it. After another week of work, I had something 
+   that could be called functional :)&lt;/p&gt;
+ &lt;p&gt;I tested everything via &quot;make generic&quot;, which is how I always build Lua for my embedded environments. This means (among other things) that I didn't 
+ test pipes and dynamic module loading, although I don't see why they wouldn't work.&lt;/p&gt;
+-&lt;p&gt;I never tested the patch in a multithreaded environment with more threads running different lua_States. I never even used regular Lua like this, 
++&lt;p&gt;I never tested the patch in a multithreaded environment with threads running different lua_States. I never even used regular Lua like this, 
+ so I can't make assumptions about how my patch would behave in a multithreaded environment. It doesn't use any global or static variables, but you 
+ might encounter other problems with it.&lt;/p&gt;
+ &lt;h2&gt;Results&lt;/h2&gt;
+@@ -93,15 +93,15 @@
+ &lt;/tbody&gt;
+ &lt;/table&gt;
+ 
+-&lt;p&gt;As you can see, the differences are significant, and (more important) it doesn't matter how many modules you load in &lt;b&gt;eLua&lt;/b&gt;, the RAM consumption
++&lt;p&gt;As you can see, the differences are significant, and (more importantly) it doesn't matter how many modules you load in &lt;b&gt;eLua&lt;/b&gt;, the RAM consumption
+    doesn't modify.&lt;/p&gt;
+ &lt;p&gt;Currently, there aren't any performane measurements related to LTR. It's clear from the implementation that the patch slows down the virtual machine, 
+    but a precise performance penalty figure is not known. Experience suggests that the performance penalty is minimal, and it certainly can't be observed 
+    with &quot;regular&quot; (non-computationally intensive) Lua programs.&lt;/p&gt;
+ &lt;h2&gt;How to enable LTR&lt;/h2&gt;
+ &lt;p&gt;Enabling LTR is very easy: all you need to do is specify the &lt;b&gt;optram=1&lt;/b&gt; as a parameter to scons when building &lt;b&gt;eLua&lt;/b&gt;, as explained
+-   &lt;a href=&quot;building.html&quot;&gt;here&lt;/a&gt;. You don't even to specify this explicitly, as LTR is enabled by default for all &lt;b&gt;eLua&lt;/b&gt; targets.&lt;/p&gt;
+-&lt;p&gt;When &lt;b&gt;optram&lt;/b&gt; is 0, LTR is not active. In this mode the patch just tries to keep the modified version as close as possible to the unpatched version 
++   &lt;a href=&quot;building.html&quot;&gt;here&lt;/a&gt;. You don't even need to specify this explicitly, as LTR is enabled by default for all &lt;b&gt;eLua&lt;/b&gt; targets.&lt;/p&gt;
++&lt;p&gt;When &lt;b&gt;optram&lt;/b&gt; is 0, LTR is not active. In this mode, the patch just tries to keep the modified version as close as possible to the unpatched version 
+   in terms of speed and functionality. You might want to use this if you want full Lua compatibility (although this is rarely an issue in practice),
+   or need to overcome the read-only limitations of rotables (but check &lt;a href=&quot;faq.html#rotables&quot;&gt;this&lt;/a&gt; first). If your program behaves weird and you
+   suspect that LTR might be the cause of your problems, recompiling with &lt;b&gt;optram=0&lt;/b&gt; is a quick way to eliminate or confirm your suspicions.&lt;/p&gt;
+@@ -177,7 +177,7 @@
+   absolutely nothing when &lt;b&gt;optram=1&lt;/b&gt;. You can see more examples of this in any module from &lt;i&gt;src/modules&lt;/i&gt;, and you're encouraged to do so,
+   as this is only a very basic example; &lt;i&gt;src/modules&lt;/i&gt; contains real life examples that can serve as a good basis for a new module.&lt;/p&gt;
+ &lt;p&gt;As you know by now, rotables can have metatables, and also you can set a rotable as a metatable for a regular table. If a rotable must have a 
+-  metatable, it needs a &quot;__metatable&quot; field to point to its metatable (which is also a rotable, not necessarily another rotable) and the usual 
++  metatable, then it needs a &quot;__metatable&quot; field to point to its metatable (which is also a rotable, not necessarily another rotable) and the usual 
+   metatable functions. For example, let's make our &lt;b&gt;mod&lt;/b&gt; rotable its own metatable and declare an &lt;b&gt;__index&lt;/b&gt; function. Moreover, let's do 
+   this for both &lt;b&gt;optram=0&lt;/b&gt; and &lt;b&gt;optram=1&lt;/b&gt;.&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;static int mod_mt_index( lua_State *L ) 
+@@ -222,12 +222,12 @@
+   placement (generally you'd declare stext at the beginning of .text definition and etext and the end of .text definition, see for example 
+   &lt;i&gt;src/lua/at91sam7x256/flash256.lds&lt;/i&gt;). These are needed by the patch to differentiate between a regular table and a rotable (although this is likely
+   to change in a future version of the patch.&lt;/li&gt;
+-  &lt;li&gt;&lt;span class=&quot;warning&quot;&gt;remember to declare all you rotable's definition array as 'const'!!&lt;/span&gt; Forgetting to do so will not only increase 
+-  memory usage, it will also make the patch not functional, because of the way it recognizes rotables (see above).&lt;/li&gt;
++  &lt;li&gt;&lt;span class=&quot;warning&quot;&gt;remember to declare all your rotable's definition array as 'const'!!&lt;/span&gt; Forgetting to do so will not only increase 
++  memory usage, it will also make the patch nonfunctional, because of the way it recognizes rotables (see above).&lt;/li&gt;
+ &lt;/ul&gt;
+ &lt;a name=&quot;config&quot; /&gt;&lt;h2&gt;LTR and module configuration at build time&lt;/h2&gt;
+-&lt;p&gt;With unpatched Lua, you can specify what modules to be part of the Lua image by modifying &lt;i&gt;src/lua/linit.c&lt;/i&gt;. In the particular case of &lt;b&gt;eLua&lt;/b&gt;
+-  one had to declare a list of the modules that must be compiled in &lt;i&gt;src/platform/&lt;name&gt;/platform_conf.h&lt;/i&gt; like this:&lt;/p&gt;
++&lt;p&gt;With unpatched Lua, you can specify what modules to be part of the Lua image by modifying &lt;i&gt;src/lua/linit.c&lt;/i&gt;. In the particular case of &lt;b&gt;eLua&lt;/b&gt;,
++  one has to declare a list of the modules that must be compiled in &lt;i&gt;src/platform/&lt;name&gt;/platform_conf.h&lt;/i&gt; like this:&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;#define LUA_PLATFORM_LIBS\
+   { AUXLIB_PIO, luaopen_pio },\
+   { AUXLIB_TMR, luaopen_tmr },\
+@@ -239,7 +239,7 @@
+   { AUXLIB_BIT, luaopen_bit },\
+   { LUA_MATHLIBNAME, luaopen_math }
+ &lt;/code&gt;&lt;/pre&gt;
+-  &lt;p&gt;Things are a bit more complex with LTR, but not by much. The list of modules that must be compiled is declared via a preprocessor macro in 
++  &lt;p&gt;Things are a bit more complex with LTR but not by much. The list of modules that must be compiled is declared via a preprocessor macro in 
+   &lt;i&gt;src/platform/&lt;name&gt;/platform_conf.h&lt;/i&gt; and it looks like this:&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;#define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+@@ -252,7 +252,7 @@
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )&lt;/code&gt;&lt;/pre&gt;
+ &lt;p&gt;(&lt;b&gt;IMPORTANT NOTE&lt;/b&gt;: the fact that there are no commas between two different _ROM declarations (as seen above) is NOT an error; 
+-  on the contrary, this is very much intended. Try using commas and you'll get in trouble very soon :) ).&lt;/p&gt;
++  on the contrary, this is intentional. Try using commas and you'll get in trouble very soon :) ).&lt;/p&gt;
+ &lt;p&gt;Note the 3rd parameter of the &lt;b&gt;_ROM&lt;/b&gt; macro, which is the name of the definition array for the (ro)table. That's it. The code in linit.c will take 
+   care of everything else, including initializing the list of modules in LUA_PLATFORM_LIBS_ROM with regular tables instead of rotables at &lt;b&gt;optram=0&lt;/b&gt; 
+   (to maintain compatibility with regular Lua). You can also have a list of modules that you want to use with regular tables no matter what the 
+
+Modified: trunk/doc/en/arch_newport.html
+===================================================================
+--- trunk/doc/en/arch_newport.html	2011-02-07 20:47:11 UTC (rev 960)
++++ trunk/doc/en/arch_newport.html	2011-02-07 21:03:07 UTC (rev 961)
+@@ -1,6 +1,6 @@
+ $$HEADER$$
+ &lt;h3&gt;Porting eLua&lt;/h3&gt;
+-&lt;p&gt;So, you realized how cool &lt;b&gt;eLua&lt;/b&gt; is :), and you'd like to give it a try. Unfortunately, &lt;b&gt;eLua&lt;/b&gt; doesn't have a port on your CPU or board of choice.
++&lt;p&gt;So, you realized how cool &lt;b&gt;eLua&lt;/b&gt; is :), and you'd like to give it a try. Unfortunately, &lt;b&gt;eLua&lt;/b&gt; doesn't have a port for your CPU or board of choice.
+   The solution is simple: write the port yourself. This might seem as a daunting task at first, but it's actually easier than it sounds. &lt;b&gt;eLua&lt;/b&gt; was
+   designed to make the task of implementing new ports as easy and intuitive as possible. This section gives an overview of the porting process. It's not
+   an exhaustive guide, but it should be enough to point you in the right direction. Before diving into this, it's highly recommended that you take a look
+@@ -9,7 +9,7 @@
+ &lt;p&gt;Before starting to work on the port, make sure that:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;your CPU has enough resources to run &lt;b&gt;eLua&lt;/b&gt;. A very rough estimation (based on ARM Thumb code only) is that you'd need at least 256k
+-  of program memory and 32k of RAM for a complete &lt;b&gt;eLua&lt;/b&gt; image, and 128k of program memory for a basic image. It's possible to run &lt;b&gt;eLua&lt;/b&gt; in
++  of program memory and 32k of RAM for a complete &lt;b&gt;eLua&lt;/b&gt; image, and 128k of program memory for a basic image. It's possible to run &lt;b&gt;eLua&lt;/b&gt; with
+   less than 32k of RAM (especially when &lt;a href=&quot;arch_ltr.html&quot;&gt;LTR&lt;/a&gt; is enabled), but you'll probably run out of memory fast.
+   64k of RAM (or more) is recommended.&lt;/li&gt;
+   &lt;li&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://sourceware.org/newlib">http://sourceware.org/newlib</A>&quot;&gt;Newlib&lt;/a&gt; is available for your CPU. &lt;b&gt;eLua&lt;/b&gt; depends on Newlib currently
+@@ -18,13 +18,13 @@
+   &lt;a href=&quot;arch_ltr.html&quot;&gt;LTR&lt;/a&gt; needs a C99 C compiler (or at least a partially C99 compliant C compiler than supports C99-style union initialization). 
+   &lt;/li&gt;
+   &lt;li&gt;you have a platform library (it usually comes from the CPU manufacturer) that you can use to implement (at least part of) the platform interface.
+-  It's also highly recommended to gain at least a basic understanding of your platform, it will help a lot while writing the port.&lt;/li&gt;
++  It's also highly recommended to gain at least a basic understanding of your platform. It will help a lot while writing the port.&lt;/li&gt;
+ &lt;/ul&gt;
+-&lt;p&gt;If all of the above are true, you should continue reading this document to bring your port to life. If not, we're sorry, but (at least at this point)
++&lt;p&gt;If all of the above is true, you should continue reading this document to bring your port to life. If not, we're sorry, but (at least at this point)
+ &lt;b&gt;eLua&lt;/b&gt; can't be ported to your CPU. If, on the other hand, you're good to go, please take a bit of time and read 
+   &lt;a href=&quot;arch_overview.html#platforms&quot;&gt;this section&lt;/a&gt; first, as it details the structure of a port and might simplify your work quite a bit.&lt;/p&gt;
+ &lt;a name=&quot;newboard&quot; /&gt;&lt;h3&gt;Adding a new board&lt;/h3&gt;
+-&lt;p&gt;If all you need is to add a new board that uses a CPU already supported by &lt;b&gt;eLua&lt;/b&gt; (check &lt;a href=&quot;status.html&quot;&gt;here&lt;/a&gt; for a complete list), it's
++&lt;p&gt;If all you need is to add a new board that uses a CPU that's already supported by &lt;b&gt;eLua&lt;/b&gt; (check &lt;a href=&quot;status.html&quot;&gt;here&lt;/a&gt; for a complete list), then it's
+ fairly easy to accomplish this:&lt;/p&gt;
+ &lt;ol&gt;
+   &lt;li&gt;choose a good name for your board :)&lt;/li&gt;
+@@ -45,7 +45,7 @@
+               ...............................
+             }&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+   &lt;li&gt;if your board has external memory, you'll probably want to use the &quot;multiple&quot; allocator by default to take advantage of that (see &lt;a href=&quot;building.html&quot;&gt;building&lt;/a&gt;)
+-  for details. If so, you need to modify the CPU/allocator mapping code from &lt;b&gt;SConstruct&lt;/b&gt;:
++  for details. If so, you need to modify the CPU/allocator mapping code in &lt;b&gt;SConstruct&lt;/b&gt;:
+ &lt;pre&gt;&lt;code&gt;# CPU/allocator mapping (if allocator not specified)
+ if allocator == '':
+   if &lt;b&gt;boardname == 'LPC-H2888'&lt;/b&gt; or &lt;b&gt;boardname == 'ATEVK1100'&lt;/b&gt;:
+@@ -60,7 +60,7 @@
+   &lt;/li&gt;
+   &lt;li&gt;customize the &lt;b&gt;eLua&lt;/b&gt; image for this new board. You can use the variable &lt;b&gt;boardname&lt;/b&gt; in &lt;b&gt;conf.py&lt;/b&gt; to define new preprocessor macros specifically for your board
+   (that you can use later in &lt;b&gt;platform_conf.h&lt;/b&gt;, for example), or to include or exclude certain files from the build, or change the build flags and so on. An example taken from 
+-  the &lt;b&gt;lm3s&lt;/b&gt; port is given below (part of &lt;b&gt;conf.py&lt;/b&gt;):
++  the &lt;b&gt;lm3s&lt;/b&gt; port is shown below (part of &lt;b&gt;conf.py&lt;/b&gt;):
+ &lt;pre&gt;&lt;code&gt;if boardname == 'EK-LM3S6965' or boardname == 'EK-LM3S8962':
+   specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
+   cdefs = cdefs + &quot; -DENABLE_DISP&quot;
+@@ -79,7 +79,7 @@
+ &lt;p&gt;If you want to add a new CPU to &lt;b&gt;eLua&lt;/b&gt; and the new CPU happens to be supported by a platform on which &lt;b&gt;eLua&lt;/b&gt; already runs (see &lt;a href=&quot;status.html&quot;&gt;here&lt;/a&gt; for a full
+ list), your task is still quite easy. Follow the steps below:&lt;/p&gt;
+ &lt;ol&gt;
+-  &lt;li&gt;edit &lt;b&gt;SConstruct&lt;/b&gt; and add your new CPU to the &lt;b&gt;platform_list&lt;/b&gt; dictionary. Use the &quot;official&quot; name of the CPU (as it appears in its datasheet). An example is given below:
++  &lt;li&gt;edit &lt;b&gt;SConstruct&lt;/b&gt; and add your new CPU to the &lt;b&gt;platform_list&lt;/b&gt; dictionary. Use the &quot;official&quot; name of the CPU (as it appears in its datasheet). An example is shown below:
+ &lt;pre&gt;&lt;code&gt;# List of platform/CPU/toolchains combinations
+ # The first toolchain in the toolchains list is the default one
+ # (the one that will be used if none is specified)
+@@ -94,7 +94,7 @@
+   your new board.&lt;/li&gt;
+   &lt;li&gt;customize the &lt;b&gt;eLua&lt;/b&gt; image for this new CPU. You can use the variable &lt;b&gt;cputype&lt;/b&gt; in &lt;b&gt;conf.py&lt;/b&gt; to define new preprocessor macros specifically for your CPU
+   (that you can use later in &lt;b&gt;platform_conf.h&lt;/b&gt;, for example), or to include or exclude certain files from the build, or change the build flags and so on. An example taken from 
+-  the &lt;b&gt;at91sam7x&lt;/b&gt; port is given below (part of &lt;b&gt;conf.py&lt;/b&gt;):
++  the &lt;b&gt;at91sam7x&lt;/b&gt; port is shown below (part of &lt;b&gt;conf.py&lt;/b&gt;):
+ &lt;pre&gt;&lt;code&gt;if cputype == 'AT91SAM7X256':
+   ldscript = &quot;flash256.lds&quot;
+   cdefs = cdefs + &quot; -Dat91sam7x256&quot;
+
+Modified: trunk/doc/en/installing_avr32.txt
+===================================================================
+--- trunk/doc/en/installing_avr32.txt	2011-02-07 20:47:11 UTC (rev 960)
++++ trunk/doc/en/installing_avr32.txt	2011-02-07 21:03:07 UTC (rev 961)
+@@ -1,12 +1,12 @@
+ // $$HEADER$$
+ Installing eLua on the AVR32 CPUs from Atmel
+ --------------------------------------------
+-<A HREF="http://www.atmel.com/products/AVR32/[AVR32">http://www.atmel.com/products/AVR32/[AVR32</A>] is a family of high performance 32-bit CPUs from &quot;<A HREF="http://www.atmel.com[Atmel">http://www.atmel.com[Atmel</A>].
+-They were built as direct competitors for the various ARM core implementation of the market, and offer very good
+-performance (91 MIPS @ 66MHz) and power efficieny (1.3mW/MHz). Atmel claims that their AVR32 core outperforms ARMv5 
++<A HREF="http://www.atmel.com/products/AVR32/[AVR32">http://www.atmel.com/products/AVR32/[AVR32</A>] is a family of high performance 32-bit CPUs from <A HREF="http://www.atmel.com[Atmel">http://www.atmel.com[Atmel</A>].
++They were built as direct competitors for the various ARM core implementation on the market, and offer very good
++performance (91 MIPS @ 66MHz) and power efficiency (1.3mW/MHz). Atmel claims that their AVR32 core outperforms ARMv5 
+ (in ARM and Thumb mode) in terms of both performance and code size. It's a proprietary architecture (so it's only implemented by Atmel), 
+ yet it has a very good support package, and an open source toolchain based on GCC, which made it an ideal candidate for the first 
+-non-ARM (and also the first big endian) eLua target. Atmel also sells a number of development boards based on their AVR23 CPUs. 
++non-ARM (and also the first big-endian) eLua target. Atmel also sells a number of development boards based on their AVR23 CPUs. 
+ The one used for eLua is the _ATEVK1100 board built around the _AT32UC3A0512 AVR32 MCU (512k internal Flash/64k internal ARM).
+ It's a very powerful board, featuring (among other things) an external 32 MByte SDRAM memory, which is more than enough to run lots and
+ lots of eLua programs.
+@@ -18,18 +18,18 @@
+ -------------
+ Before you'll be able to use eLua on the AT32UC3A0512 CPU, make sure that:
+ 
+-* you're using Linux or Windows. It's easier to install and use Atmel's programming software on Windows, so use Windows version if you want to save
++* you're using Linux or Windows. It's easier to install and use Atmel's programming software on Windows, so use the Windows version if you want to save
+   yourself from quite a bit of hassle.
+-* you installed Atmel's <A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886[FLIP">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886[FLIP</A> programming software], which is what you need
+-  in order to burn your eLua&lt; image. Installation in easy under Windows (you just need to run a setup package), but quite tricky under Linux. 
+-  The next paragraph outlines the procedure for installing FLIP in Linux.
+-* you already have your eLua image for the AT32UC3A0512 CPU (link:building.html[built] or link:downloads.html[downloaded]). Note that unlike other 
+-  platforms the ATEVK1100 needs a .hex file for programming, not a .bin.
++* you've installed Atmel's <A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886[FLIP">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886[FLIP</A> programming software], which is what you will need
++  in order to burn your eLua image. Installation in easy under Windows (you just need to run a setup package), but it's quite tricky under Linux. 
++  The next paragraph outlines the procedure for installing FLIP on Linux.
++* you have your eLua image for the AT32UC3A0512 CPU (link:building.html[built] or link:downloads.html[downloaded]). Note that unlike other 
++  platforms, the ATEVK1100 needs a .hex file for programming and not a .bin.
+ 
+ Installing FLIP in Ubuntu Linux
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ [[buildnote]]
+-IMPORTANT: The instructions below are somewhat hard to put in practice and reports suggests that they don't work well on all Ubuntu versions.
++IMPORTANT: The instructions below are somewhat hard to put into practice and reports suggest that they don't work well on all Ubuntu versions.
+ For updated (and simpler) instructions on how to make FLIP work under Linux and for alternative Linux programming software check
+ <A HREF="http://code.google.com/p/mizar32/wiki/FlashingFirmware[the">http://code.google.com/p/mizar32/wiki/FlashingFirmware[the</A> Mizar32 wiki page].
+ 
+@@ -67,8 +67,8 @@
+ -------------------------------------------------
+ 
+ 5. you need to edit a binary file this time (_/usr/local/flip.3.2.1/libatlibusbdfu.so_). This happens because FLIP comes compiled for RedHat 
+-   by default and Ubuntu some different system paths. See <A HREF="http://www.avrfreaks.net/index.php?name=PNphpBB2&amp;amp;file=viewtopic&amp;amp;t=56562[this">http://www.avrfreaks.net/index.php?name=PNphpBB2&amp;file=viewtopic&amp;t=56562[this</A> topic]
+-   for full details. All you have to do is change all the */sys/bus/usb* strings inside _libatlibusbdfu.so&lt;_ to */dev/bus/usb*.
++   by default and Ubuntu has different system paths. See <A HREF="http://www.avrfreaks.net/index.php?name=PNphpBB2&amp;amp;file=viewtopic&amp;amp;t=56562[this">http://www.avrfreaks.net/index.php?name=PNphpBB2&amp;file=viewtopic&amp;t=56562[this</A> topic]
++   for full details. All you have to do is change all the */sys/bus/usb* strings inside _libatlibusbdfu.so_ to */dev/bus/usb*.
+ 
+ 6. add the FLIP directory to your PATH:
+ +
+@@ -87,7 +87,7 @@
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ After you installed FLIP and added it to your $PATH, burning the eLua image should be quite easy:
+ 
+-* connect your ATEVK1100 board with the PC using an USB cable
++* connect your ATEVK1100 board with the PC using an USB cable.
+ * put your board in DFU mode (this is required for FLIP interaction). To do this:
+ +
+   1. press *on* the on-board joystick and keep it pressed
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000913.html">[Elua-svn] r960 - in trunk: doc/en inc
+</A></li>
+	<LI>Next message: <A HREF="000915.html">[Elua-svn] r962 - trunk/inc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#914">[ date ]</a>
+              <a href="thread.html#914">[ thread ]</a>
+              <a href="subject.html#914">[ subject ]</a>
+              <a href="author.html#914">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

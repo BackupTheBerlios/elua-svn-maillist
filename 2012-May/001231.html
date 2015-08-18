@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] d54659: RAM optimizations: pseudo RO strings, functions in...
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2012-May/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20d54659%3A%20RAM%20optimizations%3A%20pseudo%20RO%20strings%2C%0A%20functions%20in...&In-Reply-To=%3C4faae587c9901_64aa1156ae81612ea%40sh3.rs.github.com.mail%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001232.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] d54659: RAM optimizations: pseudo RO strings, functions in...</H1>
+    <B>GitHub</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20d54659%3A%20RAM%20optimizations%3A%20pseudo%20RO%20strings%2C%0A%20functions%20in...&In-Reply-To=%3C4faae587c9901_64aa1156ae81612ea%40sh3.rs.github.com.mail%3E"
+       TITLE="[eLua-svn] [elua/elua] d54659: RAM optimizations: pseudo RO strings, functions in...">noreply at github.com
+       </A><BR>
+    <I>Wed May  9 23:45:43 CEST 2012</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001232.html">[eLua-svn] [elua/elua] 2658f7: Fixed timer counting direction on	all platforms
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1231">[ date ]</a>
+              <a href="thread.html#1231">[ thread ]</a>
+              <a href="subject.html#1231">[ subject ]</a>
+              <a href="author.html#1231">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+  Commit: d54659b5723bcd2b1e3900362398c72c18a9aa0b
+      <A HREF="https://github.com/elua/elua/commit/d54659b5723bcd2b1e3900362398c72c18a9aa0b">https://github.com/elua/elua/commit/d54659b5723bcd2b1e3900362398c72c18a9aa0b</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2012-05-09 (Wed, 09 May 2012)
+
+  Changed paths:
+    M inc/newlib/devman.h
+    M inc/romfs.h
+    M mkfs.py
+    M src/lua/lapi.c
+    M src/lua/lauxlib.c
+    M src/lua/lbaselib.c
+    M src/lua/ldump.c
+    M src/lua/lfunc.c
+    M src/lua/lfunc.h
+    M src/lua/lgc.c
+    M src/lua/lgc.h
+    M src/lua/lobject.h
+    M src/lua/lrotable.c
+    M src/lua/lstring.c
+    M src/lua/lstring.h
+    M src/lua/lua.h
+    M src/lua/lundump.c
+    M src/lua/lzio.c
+    M src/lua/lzio.h
+    M src/mmcfs.c
+    M src/newlib/devman.c
+    M src/newlib/genstd.c
+    M src/newlib/stdtcp.c
+    M src/remotefs/elua_rfs.c
+    M src/romfs.c
+    M src/semifs.c
+    M utils/mkfs.lua
+
+  Log Message:
+  -----------
+  RAM optimizations: pseudo RO strings, functions in Flash
+
+This patch adds more RAM optimizations to eLua:
+
+- direct file memory mapping: files in ROMFS will be read directly from Flash,
+  without allocating any additional buffers. This doesn't help with RAM
+  consumption in itself, but enables the set of optimizations below.
+
+- pseudo read-only strings. These are still TStrings, but the actual string
+  content can point directly to Flash. Original Lua strings are kept in
+  TStrings structures (lobject.h):
+
+  typedef union TString {
+    L_Umaxalign dummy;  /* ensures maximum alignment for strings */
+    struct {
+      CommonHeader;
+      lu_byte reserved;
+      unsigned int hash;
+      size_t len;
+    } tsv;
+  } TString;
+
+  The actual string content comes right after the union TString above.
+  Pseudo RO strings have the same header, but instead of having the string
+  content after TString, they have a pointer that points to the actual
+  string content (which should exist in a RO memory (Flash) that is directly
+  accesbile from the MCU bus (like its internal Flash memory)). lua_newlstr
+  detects automatically if it should create a regular string or a pseudo RO
+  string by checking if the string pointer comes from the Flash region of the
+  MCU. This optimization works for both precompiled (.lc) files that exist in
+  ROMFS and for internal Lua strings (C code).
+
+- functions in Flash: for precompiled (.lc) files that exist in ROMFS, the code
+  of the functions and a part of the debug information will be read directly
+  from Flash.
+
+- ROMFS was changed to support files that are larger than 2**16 bytes and it
+  aligns all its files to an offset which is a multiple of 4 in order to prevent
+  data alignment issues with precompiled Lua code.
+
+- the Lua bytecode dumper was changed to align all the instructions in a Lua
+  function and a part of the debug information to an offset which is a multiple
+  of 4. This might slightly increase the size of the precompiled Lua file.
+
+These changes were succesfully checked against the Lua 5.1 test suite.
+These changes were tested in eLua on LM3S and AVR32.
+
+
+
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001232.html">[eLua-svn] [elua/elua] 2658f7: Fixed timer counting direction on	all platforms
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1231">[ date ]</a>
+              <a href="thread.html#1231">[ thread ]</a>
+              <a href="subject.html#1231">[ subject ]</a>
+              <a href="author.html#1231">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

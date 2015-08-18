@@ -1,0 +1,982 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r816 - in branches/remotefs_int: doc/en inc src	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r816%20-%20in%20branches/remotefs_int%3A%20doc/en%20inc%20src%0A%09src/platform/at91sam7x%20src/platform/avr32%20src/platform/i386%0A%09src/platform/lm3s%20src/platform/lpc17xx%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/sim%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9&In-Reply-To=%3C20101111234737.CA794480AEA%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000768.html">
+   <LINK REL="Next"  HREF="000770.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r816 - in branches/remotefs_int: doc/en inc src	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r816%20-%20in%20branches/remotefs_int%3A%20doc/en%20inc%20src%0A%09src/platform/at91sam7x%20src/platform/avr32%20src/platform/i386%0A%09src/platform/lm3s%20src/platform/lpc17xx%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/sim%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9&In-Reply-To=%3C20101111234737.CA794480AEA%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r816 - in branches/remotefs_int: doc/en inc src	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Nov 12 00:47:37 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000768.html">[Elua-svn] r815 - in branches/remotefs_int: . inc rfs_server src	src/remotefs
+</A></li>
+        <LI>Next message: <A HREF="000770.html">[Elua-svn] r817 - in branches/remotefs_int: . mux rfs_server
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#769">[ date ]</a>
+              <a href="thread.html#769">[ thread ]</a>
+              <a href="subject.html#769">[ subject ]</a>
+              <a href="author.html#769">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-12 00:47:37 +0100 (Fri, 12 Nov 2010)
+New Revision: 816
+
+Added:
+   branches/remotefs_int/src/platform/stm32/platform_int.c
+Modified:
+   branches/remotefs_int/doc/en/arch_ints.txt
+   branches/remotefs_int/inc/validate.h
+   branches/remotefs_int/src/buf.c
+   branches/remotefs_int/src/common.c
+   branches/remotefs_int/src/common_tmr.c
+   branches/remotefs_int/src/common_uart.c
+   branches/remotefs_int/src/platform/at91sam7x/platform.c
+   branches/remotefs_int/src/platform/avr32/platform.c
+   branches/remotefs_int/src/platform/i386/platform.c
+   branches/remotefs_int/src/platform/lm3s/platform.c
+   branches/remotefs_int/src/platform/lpc17xx/platform.c
+   branches/remotefs_int/src/platform/lpc24xx/platform.c
+   branches/remotefs_int/src/platform/lpc288x/platform.c
+   branches/remotefs_int/src/platform/sim/platform.c
+   branches/remotefs_int/src/platform/stm32/conf.py
+   branches/remotefs_int/src/platform/stm32/platform.c
+   branches/remotefs_int/src/platform/stm32/platform_conf.h
+   branches/remotefs_int/src/platform/stm32/stm32f10x_it.c
+   branches/remotefs_int/src/platform/str7/platform.c
+   branches/remotefs_int/src/platform/str9/platform.c
+Log:
+WIP for proper UART buffering implementation and virtual UARTs; interrupt documentation updated; fixed a few small bugs on the interrupt common code (src/common.c)
+
+Modified: branches/remotefs_int/doc/en/arch_ints.txt
+===================================================================
+--- branches/remotefs_int/doc/en/arch_ints.txt	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/doc/en/arch_ints.txt	2010-11-11 23:47:37 UTC (rev 816)
+@@ -67,6 +67,43 @@
+ _platform_int.c_ should implement a function named *platform_int_init* (defined in _inc/platform.h_) that must initialize all the required hardware and the internal data structures of
+ the interrupt subsystem. This function should be called from *platform_init*.
+ 
++5. *Implement the interrupt handlers*
+++
++There are two simple requirements for the interrupt handlers: clear the hardware interrupt flag (if needed) and call *cmn_int_handler* (_src/common.c_) to connect the handler with the
++eLua interrupt code. An example is given below:
+++
++[subs=&quot;quotes&quot;]
++-------------------------------
++// EINT3 (INT_GPIO) interrupt handler
++static void int_handler_eint3()
++{
++  elua_int_id id = ELUA_INT_INVALID_INTERRUPT;
++  pio_code resnum = 0;
++  int pidx, pin;
++  
++  EXTINT |= 1 &lt;&lt; EINT3_BIT; // clear interrupt
++  // Look for interrupt source
++  // In can only be GPIO0/GPIO2, as the EXT interrupts are not (yet) used
++  pidx = ( IO_INT_STAT &amp; 1 ) ? 0 : 1;
++  if( *posedge_status[ pidx ] )
++  {
++    id = INT_GPIO_POSEDGE;
++    pin = intlog2( *posedge_status[ pidx ] );
++  }
++  else
++  {
++    id = INT_GPIO_NEGEDGE;
++    pin = intlog2( *negedge_status[ pidx ] );
++  }
++  resnum = PLATFORM_IO_ENCODE( pidx * 2, pin, PLATFORM_IO_ENC_PIN );   
++ [bblue]** *intclr_regs[ pidx ] = 1 &lt;&lt; pin**;
++  
++  // Run the interrupt through eLua
++  [bblue]**cmn_int_handler( id, resnum )**;
++  VICVectAddr = 0; // ACK interrupt    
++}
++-------------------------------
++
+ That's it. If you followed all these steps correctly, your platform should be fully able to support interrupt handlers (as described link:inthandlers.html[here]). Check the *lpc24xx*
+ platform implementation (_src/platform/lpc24xx_) for a full example.
+ 
+@@ -93,7 +130,8 @@
+ ^|  Name              ^| Meaning                                    
+ | INT_GPIO_POSEDGE    | Interrupt on a positive edge on a GPIO pin 
+ | INT_GPIO_NEGEDGE    | Interrupt on a negative edge on a GPIO pin 
+-| INT_TMR_MATCH       | Interrupt on timer match                   
++| INT_TMR_MATCH       | Interrupt on timer match
++| INT_UART_RX         | Interrupt on UART character received                            
+ |===================================================================
+ 
+ // $$FOOTER$$
+
+Modified: branches/remotefs_int/inc/validate.h
+===================================================================
+--- branches/remotefs_int/inc/validate.h	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/inc/validate.h	2010-11-11 23:47:37 UTC (rev 816)
+@@ -66,5 +66,15 @@
+   #error &quot;Virtual UARTs need buffering support, enable BUF_ENABLE_UART&quot;  
+   #endif
+ #endif
++
++// CON_BUF_SIZE needs BUF_ENABLE_UART and CON_UART_ID
++#if defined( CON_BUF_SIZE )
++  #if !defined( BUF_ENABLE_UART )
++  #error &quot;Console buffering needs BUF_ENABLE_UART&quot;
++  #endif
++  #if !defined( CON_UART_ID )
++  #error &quot;Console buffering needs CON_UART_ID defined to the UART ID of the console device&quot;
++  #endif
++#endif
+   
+ #endif // #ifndef __VALIDATE_H__
+
+Modified: branches/remotefs_int/src/buf.c
+===================================================================
+--- branches/remotefs_int/src/buf.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/buf.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -1,23 +1,31 @@
+ // eLua &quot;char device&quot; buffering system
+ 
+ #include &quot;platform_conf.h&quot;
++#include &lt;stdio.h&gt;
+ 
+ #if defined( BUF_ENABLE_UART ) || defined( BUF_ENABLE_ADC )
+ #define BUF_ENABLE
+ #endif
+ 
++#ifdef BUILD_SERMUX
++#define NUM_TOTAL_UART  ( NUM_UART + SERMUX_NUM_VUART )
++#else
++#define NUM_TOTAL_UART  ( NUM_UART )
++#endif
++
+ #ifdef BUF_ENABLE
+ 
+ #include &quot;buf.h&quot;
+ #include &quot;type.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;utils.h&quot;
++#include &quot;sermux.h&quot;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+ 
+ // [TODO]? Following code might need a C99 compiler (for 0-sized arrays)
+ #ifdef BUF_ENABLE_UART
+-  static buf_desc buf_desc_uart[ NUM_UART ];
++  static buf_desc buf_desc_uart[ NUM_TOTAL_UART ];
+ #else
+   static buf_desc buf_desc_uart[ 0 ];
+ #endif
+@@ -33,7 +41,7 @@
+ static const buf_desc* buf_desc_array[ BUF_ID_TOTAL ] = 
+ {
+   buf_desc_uart,
+-  buf_desc_adc,
++  buf_desc_adc
+ };
+ 
+ // Helper macros
+@@ -48,6 +56,21 @@
+ #define READ16( p )     p
+ #define WRITE16( p, x ) p = x
+ 
++// Helper: check 'resnum' (for virtual UARTs)
++// UART resource ID translation to buffer ID translation (for serial multiplexer support)
++#ifdef BUILD_SERMUX
++static unsigned bufh_check_resnum( unsigned resid, unsigned resnum )
++{
++  if( resid == BUF_ID_UART &amp;&amp; resnum &gt;= SERVICE_ID_FIRST )
++    return resnum - SERVICE_ID_FIRST + NUM_UART;
++  else
++    return resnum;
++}
++#define BUF_CHECK_RESNUM( resid, resnum ) resnum = bufh_check_resnum( resid, resnum )    
++#else
++#define BUF_CHECK_RESNUM( resid, resnum )
++#endif
++
+ // Initialize the buffer of the specified resource
+ // resid - resource ID (BUF_ID_UART ...)
+ // resnum - resource number (0, 1, 2...)
+@@ -57,6 +80,7 @@
+ // Returns 1 on success, 0 on failure
+ int buf_set( unsigned resid, unsigned resnum, u8 logsize, u8 logdsize )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+   
+   pbuf-&gt;logdsize = logdsize;
+@@ -76,6 +100,7 @@
+ // Marks buffer as empty
+ void buf_flush( unsigned resid, unsigned resnum )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+   
+   pbuf-&gt;rptr = pbuf-&gt;wptr = pbuf-&gt;count = 0;
+@@ -89,17 +114,21 @@
+ // [TODO] maybe add a buffer overflow flag
+ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+   const char* s = ( const char* )data;
+   char* d = ( char* )( pbuf-&gt;buf + pbuf-&gt;wptr );
+   
++  if( pbuf-&gt;logsize == BUF_SIZE_NONE )
++    return PLATFORM_ERR;    
++  if( pbuf-&gt;count &gt; BUF_REALSIZE( pbuf ) )
++  {
++    fprintf( stderr, &quot;[ERROR] Buffer overflow on resid=%d, resnum=%d!\n&quot;, resid, resnum );
++    return PLATFORM_ERR; 
++  }
+   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
+   
+   BUF_MOD_INCR( pbuf, wptr );
+-  
+-  if( pbuf-&gt;count == BUF_REALSIZE( pbuf ) )
+-    BUF_MOD_INCR( pbuf, rptr );
+-  else
+     pbuf-&gt;count ++;
+     
+   return PLATFORM_OK;
+@@ -110,6 +139,7 @@
+ // resnum - resource number (0, 1, 2...)
+ int buf_is_enabled( unsigned resid, unsigned resnum )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+     
+   return pbuf-&gt;logsize != BUF_SIZE_NONE;
+@@ -118,14 +148,16 @@
+ // Return the size of the buffer in number
+ unsigned buf_get_size( unsigned resid, unsigned resnum )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+     
+-  return BUF_REALSIZE( pbuf );
++  return pbuf-&gt;logsize == BUF_SIZE_NONE ? 0 : BUF_REALSIZE( pbuf );
+ }
+ 
+ // Return the size of the data in the buffer
+ unsigned buf_get_count( unsigned resid, unsigned resnum )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+   
+   return READ16( pbuf-&gt;count );  
+@@ -140,21 +172,22 @@
+ //   PLATFORM_UNDERFLOW on buffer empty
+ int buf_read( unsigned resid, unsigned resnum, t_buf_data *data )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
++
+   int old_status;
+-  
+-  if( READ16( pbuf-&gt;count ) == 0 )
+-    return PLATFORM_UNDERFLOW;
+-
+   const char* s = ( const char* )( pbuf-&gt;buf + pbuf-&gt;rptr );
+   char* d = ( char* )data;
+   
++  if( pbuf-&gt;logsize == BUF_SIZE_NONE || READ16( pbuf-&gt;count ) == 0 )
++    return PLATFORM_UNDERFLOW;
++ 
+   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
+ 
+   old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+   pbuf-&gt;count --;
++  platform_cpu_set_global_interrupts( old_status );
+   BUF_MOD_INCR( pbuf, rptr );
+-  platform_cpu_set_global_interrupts( old_status );
+   
+   return PLATFORM_OK;
+ }
+
+Modified: branches/remotefs_int/src/common.c
+===================================================================
+--- branches/remotefs_int/src/common.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/common.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -140,7 +140,7 @@
+ 
+ void cmn_platform_init()
+ {
+-#ifdef BUILD_LUA_INT_HANDLERS
++#ifdef BUILD_INT_HANDLERS
+   platform_int_init();
+ #endif
+ 
+@@ -157,6 +157,20 @@
+   // Initialize terminal
+   term_init( TERM_LINES, TERM_COLS, term_out, term_in, term_translate );
+ #endif
++
++#ifdef BUILD_SERMUX
++  // Set buffers for all virtual UARTs
++  unsigned i;
++  unsigned bufsizes [] = SERMUX_BUFFER_SIZES;
++
++  for( i = 0; i &lt; sizeof( bufsizes ) / sizeof( unsigned ); i ++ )
++    buf_set( BUF_ID_UART, i + SERVICE_ID_FIRST, bufsizes[ i ], BUF_DSIZE_U8 );
++#endif
++
++#if defined( CON_BUF_SIZE ) &amp;&amp; ( CON_UART_ID &lt; SERMUX_SERVICE_ID_FIRST )
++  // Set console buffer if the console is on a physical UART
++  platform_uart_set_buffer( CON_UART_ID, intlog2( CON_BUF_SIZE ) );
++#endif
+ }
+ 
+ // ****************************************************************************
+
+Modified: branches/remotefs_int/src/common_tmr.c
+===================================================================
+--- branches/remotefs_int/src/common_tmr.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/common_tmr.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -237,7 +237,7 @@
+ #ifdef BUILD_INT_HANDLERS
+ int platform_timer_set_match_int( unsigned id, u32 period_us, int type )
+ {
+-#if VTMR_NUM_TIMERS &gt; 0
++#if VTMR_NUM_TIMERS &gt; 0 &amp;&amp; defined( CMN_TIMER_INT_SUPPORT )
+   if( TIMER_IS_VIRTUAL( id ) )
+     return vtmr_set_match_int( id, period_us, type );
+   else
+@@ -247,7 +247,7 @@
+ 
+ int cmn_tmr_int_set_status( elua_int_resnum resnum, int status )
+ {
+-#if VTMR_NUM_TIMERS &gt; 0
++#if VTMR_NUM_TIMERS &gt; 00 &amp;&amp; defined( CMN_TIMER_INT_SUPPORT )
+   if( TIMER_IS_VIRTUAL( resnum ) )
+     return vtmr_int_set_status( resnum, status );
+ #endif
+@@ -259,7 +259,7 @@
+ 
+ int cmn_tmr_int_get_status( elua_int_resnum resnum )
+ {
+-#if VTMR_NUM_TIMERS &gt; 0
++#if VTMR_NUM_TIMERS &gt; 00 &amp;&amp; defined( CMN_TIMER_INT_SUPPORT )
+   if( TIMER_IS_VIRTUAL( resnum ) )
+     return vtmr_int_get_status( resnum );
+ #endif
+@@ -271,7 +271,7 @@
+ 
+ int cmn_tmr_int_get_flag( elua_int_resnum resnum, int clear )
+ {
+-#if VTMR_NUM_TIMERS &gt; 0
++#if VTMR_NUM_TIMERS &gt; 00 &amp;&amp; defined( CMN_TIMER_INT_SUPPORT )
+   if( TIMER_IS_VIRTUAL( resnum ) )
+     return vtmr_int_get_flag( resnum, clear );
+ #endif
+
+Modified: branches/remotefs_int/src/common_uart.c
+===================================================================
+--- branches/remotefs_int/src/common_uart.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/common_uart.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -5,6 +5,7 @@
+ #include &quot;platform_conf.h&quot;
+ #include &quot;buf.h&quot;
+ #include &quot;elua_int.h&quot;
++#include &quot;sermux.h&quot;
+ 
+ // ****************************************************************************
+ // UART functions
+@@ -121,7 +122,7 @@
+ static void cmn_uart_rx_handler( elua_int_resnum resnum )
+ {
+   if( buf_is_enabled( BUF_ID_UART, resnum ) )
+-    cmn_rx_handler( resnum, platform_s_uart_recv( ressnum, 0 ) );
++    cmn_rx_handler( resnum, platform_s_uart_recv( resnum, 0 ) );
+   
+   // Chain to previous handler
+   if( prev_uart_rx_handler != NULL )
+@@ -151,7 +152,7 @@
+       return PLATFORM_ERR;
+     // Setup our C handler
+     if( elua_int_get_c_handler( INT_UART_RX ) != cmn_uart_rx_handler )
+-      prev_uart_rx_handler = elua_int_set_c_handler( cmn_uart_rx_handler );      
++      prev_uart_rx_handler = elua_int_set_c_handler( INT_UART_RX, cmn_uart_rx_handler );      
+   }
+   return PLATFORM_OK;
+ #else
+
+Modified: branches/remotefs_int/src/platform/at91sam7x/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/at91sam7x/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/at91sam7x/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -260,7 +260,7 @@
+   return baud;
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+   AT91S_USART* base = id == 0 ? AT91C_BASE_US0 : AT91C_BASE_US1;  
+   
+
+Modified: branches/remotefs_int/src/platform/avr32/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/avr32/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/avr32/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -439,7 +439,7 @@
+   return baud;
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+   volatile avr32_usart_t *pusart = ( volatile avr32_usart_t* )uart_base_addr[ id ];  
+   
+
+Modified: branches/remotefs_int/src/platform/i386/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/i386/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/i386/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -146,7 +146,7 @@
+   return 0;
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+ }
+ 
+
+Modified: branches/remotefs_int/src/platform/lm3s/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/lm3s/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/lm3s/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -359,7 +359,7 @@
+   return baud;
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+   MAP_UARTCharPut( uart_base[ id ], data );
+ }
+
+Modified: branches/remotefs_int/src/platform/lpc17xx/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/lpc17xx/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/lpc17xx/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -212,7 +212,7 @@
+   return baud; // FIXME: find a way to actually get baud
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+   UART_Send(uart[ id ], &amp;data, 1, BLOCKING);
+ }
+
+Modified: branches/remotefs_int/src/platform/lpc24xx/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/lpc24xx/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/lpc24xx/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -381,7 +381,7 @@
+   return ( Fpclk_UART &gt;&gt; 4 ) / temp;
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+   PREG UxTHR = ( PREG )uart_thr[ id ];
+   PREG UxLSR = ( PREG )uart_lsr[ id ];
+
+Modified: branches/remotefs_int/src/platform/lpc288x/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/lpc288x/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/lpc288x/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -115,7 +115,7 @@
+   return uart_init( baud, databits, parity, stopbits );
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+   uart_write( data );
+ }
+
+Modified: branches/remotefs_int/src/platform/sim/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/sim/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/sim/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -128,7 +128,7 @@
+   return 0;
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+ }
+ 
+
+Modified: branches/remotefs_int/src/platform/stm32/conf.py
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/conf.py	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/stm32/conf.py	2010-11-11 23:47:37 UTC (rev 816)
+@@ -8,7 +8,7 @@
+ fwlib_files = &quot; &quot;.join(glob.glob(&quot;src/platform/%s/FWLib/library/src/*.c&quot; % platform))
+ #print &quot;FWLib: %s &quot; % fwlib_files 
+ 
+-specific_files = &quot;core_cm3.c system_stm32f10x.c startup_stm32f10x_hd.s platform.c stm32f10x_it.c lcd.c lua_lcd.c&quot;
++specific_files = &quot;core_cm3.c system_stm32f10x.c startup_stm32f10x_hd.s platform.c stm32f10x_it.c lcd.c lua_lcd.c platform_int.c&quot;
+ 
+ ldscript = &quot;stm32.ld&quot;
+   
+
+Modified: branches/remotefs_int/src/platform/stm32/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/stm32/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -149,19 +149,6 @@
+   nvic_init_structure_adc.NVIC_IRQChannelCmd = DISABLE; 
+   NVIC_Init(&amp;nvic_init_structure_adc);
+ #endif
+-
+-#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+-  /* Enable the USART1 Interrupt */
+-  // [TODO]: this is hardcoded, and it shouldn't be
+-  nvic_init_structure.NVIC_IRQChannel = USART3_IRQn;
+-  nvic_init_structure.NVIC_IRQChannelSubPriority = 0;
+-  nvic_init_structure.NVIC_IRQChannelCmd = ENABLE;
+-  NVIC_Init(&amp;nvic_init_structure);
+-  nvic_init_structure.NVIC_IRQChannel = USART1_IRQn;
+-  nvic_init_structure.NVIC_IRQChannelSubPriority = 0;
+-  nvic_init_structure.NVIC_IRQChannelCmd = ENABLE;
+-  NVIC_Init(&amp;nvic_init_structure);
+-#endif
+ }
+ 
+ // ****************************************************************************
+@@ -535,43 +522,12 @@
+ // TODO: Support timeouts.
+ 
+ // All possible STM32 uarts defs
+-static USART_TypeDef *const usart[] =          { USART1, USART2, USART3, UART4, UART5 };
++USART_TypeDef *const stm32_usart[] =          { USART1, USART2, USART3, UART4, UART5 };
+ static GPIO_TypeDef *const usart_gpio_rx_port[] = { GPIOA, GPIOA, GPIOB, GPIOC, GPIOD };
+ static GPIO_TypeDef *const usart_gpio_tx_port[] = { GPIOA, GPIOA, GPIOB, GPIOC, GPIOC };
+ static const u16 usart_gpio_rx_pin[] = { GPIO_Pin_10, GPIO_Pin_3, GPIO_Pin_11, GPIO_Pin_11, GPIO_Pin_2 };
+ static const u16 usart_gpio_tx_pin[] = { GPIO_Pin_9, GPIO_Pin_2, GPIO_Pin_10, GPIO_Pin_10, GPIO_Pin_12 };
+ 
+-#ifdef BUF_ENABLE_UART
+-static void all_usart_irqhandler( int usart_id )
+-{
+-  int c;
+-
+-  if( USART_GetITStatus( usart[ usart_id ], USART_IT_RXNE ) != RESET )
+-  {
+-    /* Read one byte from the receive data register */
+-    c = USART_ReceiveData( usart[ usart_id ] );
+-    buf_write( BUF_ID_UART, usart_id, ( t_buf_data* )&amp;c );
+-  }
+-}
+-
+-void USART1_IRQHandler( void )
+-{
+-  all_usart_irqhandler( 0 );
+-}
+-
+-void USART2_IRQHandler(void)
+-{
+-  all_usart_irqhandler( 1 );
+-}
+-
+-void USART3_IRQHandler(void)
+-{
+-  all_usart_irqhandler( 2 );
+-}
+-#endif
+-
+-
+-
+ static void usart_init(u32 id, USART_InitTypeDef * initVals)
+ {
+   /* Configure USART IO */
+@@ -589,16 +545,10 @@
+   GPIO_Init(usart_gpio_rx_port[id], &amp;GPIO_InitStructure);
+ 
+   /* Configure USART */
+-  USART_Init(usart[id], initVals);
+-  
+-#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+-  /* Enable USART1 Receive and Transmit interrupts */
+-  USART_ITConfig(usart[id], USART_IT_RXNE, ENABLE);
+-  //USART_ITConfig(usart[id], USART_IT_TXE, ENABLE);
+-#endif
++  USART_Init(stm32_usart[id], initVals);
+ 
+   /* Enable USART */
+-  USART_Cmd(usart[id], ENABLE);
++  USART_Cmd(stm32_usart[id], ENABLE);
+ }
+ 
+ static void uarts_init()
+@@ -620,10 +570,6 @@
+   USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+   USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+ 
+-#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+-  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, BUF_DSIZE_U8 );
+-#endif
+-
+   usart_init(CON_UART_ID, &amp;USART_InitStructure);
+ 
+ }
+@@ -684,26 +630,26 @@
+   return TRUE;
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+-  while(USART_GetFlagStatus(usart[id], USART_FLAG_TXE) == RESET)
++  while(USART_GetFlagStatus(stm32_usart[id], USART_FLAG_TXE) == RESET)
+   {
+   }
+-  USART_SendData(usart[id], data);
++  USART_SendData(stm32_usart[id], data);
+ }
+ 
+ int platform_s_uart_recv( unsigned id, s32 timeout )
+ {
+   if( timeout == 0 )
+   {
+-    if (USART_GetFlagStatus(usart[id], USART_FLAG_RXNE) == RESET)
++    if (USART_GetFlagStatus(stm32_usart[id], USART_FLAG_RXNE) == RESET)
+       return -1;
+     else
+-      return USART_ReceiveData(usart[id]);
++      return USART_ReceiveData(stm32_usart[id]);
+   }
+   // Receive char blocking
+-  while(USART_GetFlagStatus(usart[id], USART_FLAG_RXNE) == RESET);
+-  return USART_ReceiveData(usart[id]);
++  while(USART_GetFlagStatus(stm32_usart[id], USART_FLAG_RXNE) == RESET);
++  return USART_ReceiveData(stm32_usart[id]);
+ }
+ 
+ // ****************************************************************************
+@@ -819,6 +765,10 @@
+   return res;
+ }
+ 
++int platform_s_timer_set_match_int( unsigned id, u32 period_us, int type )
++{
++  return PLATFORM_TIMER_INT_INVALID_ID;
++}
+ 
+ // ****************************************************************************
+ // PWMs
+
+Modified: branches/remotefs_int/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform_conf.h	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/stm32/platform_conf.h	2010-11-11 23:47:37 UTC (rev 816)
+@@ -7,6 +7,7 @@
+ #include &quot;type.h&quot;
+ #include &quot;stacks.h&quot;
+ #include &quot;stm32f10x.h&quot;
++#include &quot;elua_int.h&quot;
+ 
+ // *****************************************************************************
+ // Define here what components you want for this platform
+@@ -24,6 +25,8 @@
+ #define BUILD_RPC
+ //#define BUILD_RFS
+ //#define BUILD_CON_TCP
++#define BUILD_C_INT_HANDLERS
++#define BUILD_LUA_INT_HANDLERS
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -139,9 +142,6 @@
+ #define RPC_TIMER_ID          CON_TIMER_ID
+ #define RPC_UART_SPEED        CON_UART_SPEED
+ 
+-
+-
+-
+ // MMCFS Support (FatFs on SD/MMC)
+ // For STM32F103RET6 - PA5 = CLK, PA6 = MISO, PA7 = MOSI, PA8 = CS
+ #define MMCFS_TICK_HZ                10
+@@ -175,5 +175,16 @@
+ #define MEM_START_ADDRESS     { ( void* )end }
+ #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ) }
+ 
++// Interrupt queue size
++#define PLATFORM_INT_QUEUE_LOG_SIZE 5
++
++// Interrupt list
++#define INT_TMR_MATCH         ELUA_INT_FIRST_ID
++#define INT_UART_RX           ( ELUA_INT_FIRST_ID + 1 )
++#define INT_ELUA_LAST         INT_UART_RX
++
++#define PLATFORM_CPU_CONSTANTS\
++  _C( INT_TMR_MATCH ),\
++  _C( INT_UART_RX )
++
+ #endif // #ifndef __PLATFORM_CONF_H__
+-
+
+Added: branches/remotefs_int/src/platform/stm32/platform_int.c
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform_int.c	                        (rev 0)
++++ branches/remotefs_int/src/platform/stm32/platform_int.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -0,0 +1,125 @@
++// STM32 interrupt support
++
++// Generic headers
++#include &quot;platform.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;elua_int.h&quot;
++#include &quot;common.h&quot;
++
++// Platform-specific headers
++#include &quot;stm32f10x.h&quot;
++
++// ****************************************************************************
++// Interrupt handlers
++
++extern USART_TypeDef *const stm32_usart[];
++
++static void all_usart_irqhandler( int resnum )
++{
++  USART_ClearITPendingBit( stm32_usart[ resnum ], USART_IT_RXNE );
++  cmn_int_handler( INT_UART_RX, resnum );
++}
++
++void USART1_IRQHandler()
++{
++  all_usart_irqhandler( 0 );
++}
++
++void USART2_IRQHandler()
++{
++  all_usart_irqhandler( 1 );
++}
++
++void USART3_IRQHandler()
++{
++  all_usart_irqhandler( 2 );
++}
++
++void UART4_IRQHandler()
++{
++  all_usart_irqhandler( 3 );
++}
++
++void UART5_IRQHandler()
++{
++  all_usart_irqhandler( 4 );
++}
++
++// ****************************************************************************
++// Interrupt: INT_TMR_MATCH
++
++static int int_tmr_match_set_status( elua_int_resnum resnum, int status )
++{
++  return PLATFORM_INT_NOT_HANDLED;
++}
++
++static int int_tmr_match_get_status( elua_int_resnum resnum )
++{
++  return PLATFORM_INT_NOT_HANDLED;
++}
++
++static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
++{
++  return PLATFORM_INT_NOT_HANDLED;
++}
++
++// ****************************************************************************
++// Interrupt: INT_UART_RX
++
++static int int_uart_rx_get_status( elua_int_resnum resnum )
++{
++  return USART_GetITStatus( stm32_usart[ resnum ], USART_IT_RXNE ) == SET ? 1 : 0;
++}
++
++static int int_uart_rx_set_status( elua_int_resnum resnum, int status )
++{
++  int prev = int_uart_rx_get_status( resnum );
++  USART_ITConfig( stm32_usart[ resnum ], USART_IT_RXNE, status == PLATFORM_CPU_ENABLE ? ENABLE : DISABLE );
++  return prev;
++}
++
++static int int_uart_rx_get_flag( elua_int_resnum resnum, int clear )
++{
++  int status = USART_GetFlagStatus( stm32_usart[ resnum ], USART_FLAG_RXNE ) == SET ? 1 : 0;
++  if( clear )
++    USART_ClearFlag( stm32_usart[ resnum ], USART_FLAG_RXNE );
++  return status;
++}
++
++// ****************************************************************************
++// Initialize interrupt subsystem
++
++// UART IRQ table
++#if defined( STM32F10X_LD )
++static const u8 uart_irq_table[] = { USART1_IRQn, USART2_IRQn };
++#elseif defined( STM32F10X_MD )
++static const u8 uart_irq_table[] = { USART1_IRQn, USART2_IRQn, USART3_IRQn };
++#else // high density devices
++static const u8 uart_irq_table[] = { USART1_IRQn, USART2_IRQn, USART3_IRQn, UART4_IRQn, UART5_IRQn };
++#endif
++
++void platform_int_init()
++{
++  NVIC_InitTypeDef nvic_init_structure;
++  unsigned i;
++  
++  // Enable all USART interrupts in the NVIC
++
++  nvic_init_structure.NVIC_IRQChannelSubPriority = 2;
++  nvic_init_structure.NVIC_IRQChannelCmd = ENABLE;  
++  for( i = 0; i &lt; sizeof( uart_irq_table ) / sizeof( u8 ); i ++ )
++  {
++    nvic_init_structure.NVIC_IRQChannel = uart_irq_table[ i ];
++    NVIC_Init( &amp;nvic_init_structure );
++  }  
++}
++
++// ****************************************************************************
++// Interrupt table
++// Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
++
++elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
++{
++  { int_tmr_match_set_status, int_tmr_match_get_status, int_tmr_match_get_flag },
++  { int_uart_rx_set_status, int_uart_rx_get_status, int_uart_rx_get_flag }  
++};
+
+Modified: branches/remotefs_int/src/platform/stm32/stm32f10x_it.c
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/stm32f10x_it.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/stm32/stm32f10x_it.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -51,7 +51,7 @@
+ #if 0
+ int fputc(int ch, FILE *f)
+ {
+-   platform_uart_send(0, ch);
++   platform_s_uart_send(0, ch);
+    return ch;
+ }
+ #endif
+@@ -121,10 +121,10 @@
+ /* Go to infinite loop when Memory Manage exception occurs */
+ while (1)
+ {
+-  platform_uart_send(0, ' ');
+-  platform_uart_send(0, 'M');
+-  platform_uart_send(0, 'M');
+-  platform_uart_send(0, '!');
++  platform_s_uart_send(0, ' ');
++  platform_s_uart_send(0, 'M');
++  platform_s_uart_send(0, 'M');
++  platform_s_uart_send(0, '!');
+ }
+ }
+ 
+@@ -138,10 +138,10 @@
+ /* Go to infinite loop when Bus Fault exception occurs */
+ while (1)
+ {
+-  platform_uart_send(0, ' ');
+-  platform_uart_send(0, 'B');
+-  platform_uart_send(0, 'F');
+-  platform_uart_send(0, '!');
++  platform_s_uart_send(0, ' ');
++  platform_s_uart_send(0, 'B');
++  platform_s_uart_send(0, 'F');
++  platform_s_uart_send(0, '!');
+ }
+ }
+ 
+@@ -155,10 +155,10 @@
+ /* Go to infinite loop when Usage Fault exception occurs */
+ while (1)
+ {
+-  platform_uart_send(0, ' ');
+-  platform_uart_send(0, 'U');
+-  platform_uart_send(0, 'F');
+-  platform_uart_send(0, '!');
++  platform_s_uart_send(0, ' ');
++  platform_s_uart_send(0, 'U');
++  platform_s_uart_send(0, 'F');
++  platform_s_uart_send(0, '!');
+ }
+ }
+ 
+
+Modified: branches/remotefs_int/src/platform/str7/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/str7/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/str7/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -176,7 +176,7 @@
+   return baud;
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+   UART_TypeDef* pport = ( UART_TypeDef* )uart_periph[ id ];
+   
+
+Modified: branches/remotefs_int/src/platform/str9/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/str9/platform.c	2010-11-11 16:35:12 UTC (rev 815)
++++ branches/remotefs_int/src/platform/str9/platform.c	2010-11-11 23:47:37 UTC (rev 816)
+@@ -262,7 +262,7 @@
+   return baud;
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+   UART_TypeDef* p_uart = ( UART_TypeDef* )uarts[ id ];
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000768.html">[Elua-svn] r815 - in branches/remotefs_int: . inc rfs_server src	src/remotefs
+</A></li>
+	<LI>Next message: <A HREF="000770.html">[Elua-svn] r817 - in branches/remotefs_int: . mux rfs_server
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#769">[ date ]</a>
+              <a href="thread.html#769">[ thread ]</a>
+              <a href="subject.html#769">[ subject ]</a>
+              <a href="author.html#769">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

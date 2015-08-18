@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r557 - trunk/src
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r557%20-%20trunk/src&In-Reply-To=%3C200911251920.nAPJK4SW028962%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000512.html">
+   <LINK REL="Next"  HREF="000514.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r557 - trunk/src</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r557%20-%20trunk/src&In-Reply-To=%3C200911251920.nAPJK4SW028962%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r557 - trunk/src">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Wed Nov 25 20:20:04 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000512.html">[Elua-svn] r556 - trunk/doc/images
+</A></li>
+        <LI>Next message: <A HREF="000514.html">[Elua-svn] r558 - trunk/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#513">[ date ]</a>
+              <a href="thread.html#513">[ thread ]</a>
+              <a href="subject.html#513">[ subject ]</a>
+              <a href="author.html#513">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2009-11-25 20:20:03 +0100 (Wed, 25 Nov 2009)
+New Revision: 557
+
+Modified:
+   trunk/src/shell.c
+Log:
+cat shell cmd now supports multiple arguments
+cat (or type) prints file contents one after another, just like Linux cat
+command line lenght is currently limited, not too long (can be extended if needed)
+
+
+
+Modified: trunk/src/shell.c
+===================================================================
+--- trunk/src/shell.c	2009-11-25 04:13:27 UTC (rev 556)
++++ trunk/src/shell.c	2009-11-25 19:20:03 UTC (rev 557)
+@@ -195,24 +195,29 @@
+ {
+   FILE *fp;
+   int c;
++  char *p;
+ 
+ // *args has an appended space. Replace it with the string terminator.
+-  *(strchr( args, ' ' )) = 0;
+-
++//  *(strchr( args, ' ' )) = 0;
+   if ( *args )
+-    if( ( fp = fopen( args , &quot;rb&quot; ) ) != NULL ) {
+-      c = fgetc( fp );
+-      while( c != EOF ) {
+-        printf(&quot;%c&quot;, (char) c );  
++    while ( *args ) {
++      p = strchr( args, ' ' );
++      *p = 0;
++      if( ( fp = fopen( args , &quot;rb&quot; ) ) != NULL ) {
+         c = fgetc( fp );
++        while( c != EOF ) {
++          printf(&quot;%c&quot;, (char) c );  
++          c = fgetc( fp );
++        }
++        fclose ( fp );
+       }
+-      fclose ( fp );
+-    }
+-    else
+-      printf( &quot;File %s not found\n&quot;, args );
++      else
++        printf( &quot;File %s not found\n&quot;, args );
++      args = p + 1;
++    }      
+   else
+-    printf( &quot;Usage: cat (or type) &lt;filename&gt;\n&quot; );
+-}  
++      printf( &quot;Usage: cat (or type) &lt;filename&gt;\n&quot; );
++}    
+ 
+ 
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000512.html">[Elua-svn] r556 - trunk/doc/images
+</A></li>
+	<LI>Next message: <A HREF="000514.html">[Elua-svn] r558 - trunk/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#513">[ date ]</a>
+              <a href="thread.html#513">[ thread ]</a>
+              <a href="subject.html#513">[ subject ]</a>
+              <a href="author.html#513">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

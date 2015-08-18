@@ -1,0 +1,273 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r619 - in branches/pre0.7/doc: . eluadoc en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r619%20-%20in%20branches/pre0.7/doc%3A%20.%20eluadoc%20en&In-Reply-To=%3C200912272301.nBRN1Mpg000409%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000574.html">
+   <LINK REL="Next"  HREF="000576.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r619 - in branches/pre0.7/doc: . eluadoc en</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r619%20-%20in%20branches/pre0.7/doc%3A%20.%20eluadoc%20en&In-Reply-To=%3C200912272301.nBRN1Mpg000409%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r619 - in branches/pre0.7/doc: . eluadoc en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Dec 28 00:01:22 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000574.html">[Elua-svn] r618 - in branches/pre0.7: doc/en src src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000576.html">[Elua-svn] r620 - in branches/pre0.7: . src/lua src/modules	src/platform/sim src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#575">[ date ]</a>
+              <a href="thread.html#575">[ thread ]</a>
+              <a href="subject.html#575">[ subject ]</a>
+              <a href="author.html#575">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-12-28 00:01:21 +0100 (Mon, 28 Dec 2009)
+New Revision: 619
+
+Added:
+   branches/pre0.7/doc/eluadoc/refman_gen_elua.lua
+   branches/pre0.7/doc/en/elua_egc.html
+Modified:
+   branches/pre0.7/doc/docdata.lua
+   branches/pre0.7/doc/eluadoc.lua
+   branches/pre0.7/doc/en/building.html
+   branches/pre0.7/doc/en/comunity.html
+   branches/pre0.7/doc/en/faq.html
+   branches/pre0.7/doc/en/news.html
+Log:
+- Added runtime configuration of the EGC patch
+- Added the &quot;elua&quot; module for interfacing with the core eLua system. For now, it only contains a function (egc_setup) that configures the EGC patch.
+- Added documentation for the EGC patch, the new eLua module and the runtime configuration of the EGC patch
+- Updated the FAQ to include a reference to the EGC patch
+- Updated the news page with a link to the new EGC documentation
+- Updated the community page to reflect the fact that Robert Jakabosky ported his EGC patch to eLua
+
+
+
+Modified: branches/pre0.7/doc/docdata.lua
+===================================================================
+--- branches/pre0.7/doc/docdata.lua	2009-12-26 16:24:04 UTC (rev 618)
++++ branches/pre0.7/doc/docdata.lua	2009-12-27 23:01:21 UTC (rev 619)
+@@ -109,6 +109,7 @@
+           { { &quot;The shell&quot;, &quot;O Shell&quot; }, &quot;using.html#shell&quot; },
+           { &quot;Cross-compiling&quot;, &quot;using.html#cross&quot; },
+           { &quot;LuaRPC&quot;, &quot;using.html#rpc&quot; },
++          { &quot;eLua and EGC&quot;, &quot;elua_egc.html&quot; },
+         },
+       },
+       { { &quot;Building eLua&quot;, &quot;Build de eLua&quot; }, &quot;building.html&quot;,
+
+Added: branches/pre0.7/doc/eluadoc/refman_gen_elua.lua
+===================================================================
+--- branches/pre0.7/doc/eluadoc/refman_gen_elua.lua	2009-12-26 16:24:04 UTC (rev 618)
++++ branches/pre0.7/doc/eluadoc/refman_gen_elua.lua	2009-12-27 23:01:21 UTC (rev 619)
+@@ -0,0 +1,28 @@
++-- eLua reference manual - elua module
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - elua module&quot;,
++
++  -- Menu name
++  menu_name = &quot;elua&quot;,
++
++  -- Overview
++  overview = [[This module is an interface to the core system and services of eLua. Some functions from this module can change the runtime behaviour of eLua, which in turn can lead to instability or unexpected program behaviour. $Use this module with care$.]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;#elua.egc_setup#( mode, [memlimit] )&quot;,
++      desc = &quot;Change the emergency garbage collector operation mode and memory limit (see @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">elua_egc.html at here</A>@ for details).&quot;,
++      args = 
++      {
++        &quot;$mode$ - the EGC operation mode. Can be either $elua.EGC_NOT_ACTIVE$, $elua.EGC_ON_ALLOC_FAILURE$, $elua.EGC_ON_MEM_LIMIT$, $elua.EGC_ALWAYS$ or a combination between the last 3 modes in this list (they can be combined both with bitwise OR operations, using the @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">refman_gen_bit.html at bit</A>@ module, or simply by adding them).&quot;,
++        &quot;$memlimit$ - required only when $elua.EGC_ON_MEM_LIMIT$ is specified in $mode$, specifies the EGC upper memory limit.&quot;
++      },
++    },
++  },
++}
++
+
+Modified: branches/pre0.7/doc/eluadoc.lua
+===================================================================
+--- branches/pre0.7/doc/eluadoc.lua	2009-12-26 16:24:04 UTC (rev 618)
++++ branches/pre0.7/doc/eluadoc.lua	2009-12-27 23:01:21 UTC (rev 619)
+@@ -15,7 +15,7 @@
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+-  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot;, &quot;can&quot;, &quot;rpc&quot; },
++  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot;, &quot;can&quot;, &quot;rpc&quot;, &quot;elua&quot; },
+   refman_ps_lm3s = { &quot;disp&quot; }
+ }
+ 
+
+Modified: branches/pre0.7/doc/en/building.html
+===================================================================
+--- branches/pre0.7/doc/en/building.html	2009-12-26 16:24:04 UTC (rev 618)
++++ branches/pre0.7/doc/en/building.html	2009-12-27 23:01:21 UTC (rev 619)
+@@ -304,6 +304,11 @@
+ &lt;/td&gt;
+ &lt;td&gt;If the &lt;a href=&quot;refman_gen_rpc.html&quot;&gt;rpc module&lt;/a&gt; is enabled and boot mode is set to luarpc, this selects which timer will be used with the uart selected with RPC_UART_ID.&lt;/td&gt;
+ &lt;/tr&gt;
++&lt;tr&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;EGC_INITIAL_MODE&lt;br /&gt;EGC_INITIAL_MEMLIMIT&lt;/td&gt;
++&lt;td&gt;&lt;b&gt;(version 0.7 or above)&lt;/b&gt; Configure the default (compile time) operation mode and memory limit of the emergency garbage collector (see &lt;a href=&quot;elua_egc.html&quot;&gt;here&lt;/a&gt; for details 
++about the EGC patch). If not specified, &lt;b&gt;EGC_INITIAL_MODE&lt;/b&gt; defaults to &lt;b&gt;EGC_NOT_ACTIVE&lt;/b&gt; (emergency garbage collector disabled) and &lt;b&gt;EGC_INITIAL_MEMLIMIT&lt;/b&gt; defaults to 0.&lt;/td&gt;
++&lt;/tr&gt;
+ &lt;/tbody&gt;
+ &lt;/table&gt;
+ &lt;p&gt;The rest of the static configuration data parameters are meant
+
+Modified: branches/pre0.7/doc/en/comunity.html
+===================================================================
+--- branches/pre0.7/doc/en/comunity.html	2009-12-26 16:24:04 UTC (rev 618)
++++ branches/pre0.7/doc/en/comunity.html	2009-12-27 23:01:21 UTC (rev 619)
+@@ -20,13 +20,14 @@
+ ordered non-exhaustive list of contributors:&lt;/p&gt;
+ &lt;ul&gt;
+  &lt;li&gt;Everson Denis and Fl&#225;vio Nogueira - Portuguese translation for the site &amp; doc&lt;/li&gt;
++ &lt;li&gt;Robert Jakabosky - for porting his excellent emergency garbage collector patch to &lt;b&gt;eLua&lt;/b&gt;&lt;/li&gt;
+  &lt;li&gt;Fr&#233;deric Thomas - Site hosting, LM3S enhancements&lt;/li&gt;
+  &lt;li&gt;Jesus Alvarez - Initial SD/MMC card support&lt;/li&gt;
+  &lt;li&gt;James Snyder - ADC, CAN, LuaRPC (&lt;a href=&quot;<A HREF="http://q12.org/lua/index.html">http://q12.org/lua/index.html</A>&quot;&gt;originaly by Russell Smith&lt;/a&gt;), sd/mmc, testing, planning, ...&lt;/li&gt;
+  &lt;li&gt;Mike Panetta - STM32 port&lt;/li&gt;
+  &lt;li&gt;Pedro Bittencourt - RIT OLED display support, testing ...&lt;/li&gt;
+  &lt;li&gt;Raul Nunes - The fundamental support from &lt;a href=&quot;<A HREF="http://www.puc-rio.br">http://www.puc-rio.br</A>&quot;&gt;PUC-Rio&lt;/a&gt;.&lt;/li&gt;
+- &lt;li&gt;Roberto Ierusalimschy, Luiz Henrique Figueiredo, Waldemar Celles - for &lt;a href=&quot;<A HREF="http://www.lua.org">http://www.lua.org</A>&quot;&gt;Lua&lt;/a&gt; (!!! :)&lt;/li&gt;
++ &lt;li&gt;Roberto Ierusalimschy, Luiz Henrique Figueiredo, Waldemar Celles - for &lt;a href=&quot;<A HREF="http://www.lua.org">http://www.lua.org</A>&quot;&gt;Lua&lt;/a&gt; :)&lt;/li&gt;
+  &lt;li&gt;T&#233;o Benjamin, Ives Cunha, Rafael Barmak - Pong, TetrIves, SpaceShip games and &lt;a href=&quot;<A HREF="http://www.giga.puc-rio.br/site/embedded/manfredo">http://www.giga.puc-rio.br/site/embedded/manfredo</A>&quot;&gt;Manfredo&lt;/a&gt;, a GPS guided robot, powered by eLua.&lt;/li&gt;
+  &lt;li&gt;The whole community of users on our eLua list at &lt;a href=&quot;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-dev">https://lists.berlios.de/mailman/listinfo/elua-dev</A>&quot;&gt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-dev&lt;/a">https://lists.berlios.de/mailman/listinfo/elua-dev&lt;/a</A>&gt;&lt;/li&gt;
+ &lt;/ul&gt;
+@@ -35,8 +36,7 @@
+ Alberto Fabiano, Andr&#233; Carregal, &#194;ngelo Santos, Asko Kauppi, Carlos Eduardo Deodoro,
+ Cosmin Filip, Dean Hall, Diego Sueiro, Eduardo von Ristow, Fabio Pereira,
+ Giovani Balduino, Guilherme Sanchez Pacheco, John Hind, Luiz de Barros, Marcelo T&#237;io,
+-Marco Meggiolaro, Ralph Hempel, Robert Jakabosky, Vagner Nascimento,
+-Yuri Takhteyev, ....
++Marco Meggiolaro, Ralph Hempel, Vagner Nascimento, Yuri Takhteyev, ....
+ &lt;/a&gt;
+ 
+ $$FOOTER$$
+
+Added: branches/pre0.7/doc/en/elua_egc.html
+===================================================================
+--- branches/pre0.7/doc/en/elua_egc.html	2009-12-26 16:24:04 UTC (rev 618)
++++ branches/pre0.7/doc/en/elua_egc.html	2009-12-27 23:01:21 UTC (rev 619)
+@@ -0,0 +1,38 @@
++$$HEADER$$
++&lt;h3&gt;Using the EGC patch with eLua&lt;/h3&gt;
++&lt;p&gt;The EGC (Emergency Garbage Collector) patch is a patch written originally for Lua by Robert Jakabosky, who was kind enough to port it to &lt;b&gt;eLua&lt;/b&gt;. You can find the author's detailed
++description of the patch &lt;a href=&quot;<A HREF="http://lua-users.org/wiki/EmergencyGarbageCollector">http://lua-users.org/wiki/EmergencyGarbageCollector</A>&quot;&gt;here&lt;/a&gt;. In short, what it does is that it lets you run a garbage collection cycle in Lua in a low memory
++situation, from inside Lua's memory allocation function (something that the current version of Lua can't do out of the box). By forcing a garbage collection cycle, Lua can reclaim memory that's
++not in use anymore, thus making more memory available for your program. The downside is reduced execution speed, as a direct result of running the gargabe collector when needed. For some
++applications, reducing the execution speed to fit the application in memory might be acceptable, and for other applications it might not. As usual, it all depends on your application. As a generic
++guideline, if your application isn't concerned with realtime processing, you should be fine with sacrifing execution speed to get more memory in many real life scenarios.&lt;/p&gt;
++&lt;p&gt;In &lt;b&gt;eLua&lt;/b&gt;, the EGC patch can be configured to run in 4 different modes:&lt;/p&gt;
++&lt;ol&gt;
++&lt;li&gt;&lt;b&gt;disabled&lt;/b&gt;: EGC inactive, no collection cycle will be forced in low memory situations.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;run on allocation failure&lt;/b&gt;: try to allocate a new block of memory, and run the garbage collector if the allocation fails. If the allocation fails even after running the garbage
++collector, the allocator will return with error. &lt;/li&gt;
++&lt;li&gt;&lt;b&gt;run on memory limit&lt;/b&gt;: run the garbage collector when the memory used by the Lua script goes beyond an upper limit. If the upper limit can't be satisfied even after running
++the garbage collector, the allocator will return with error.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;run before each allocation&lt;/b&gt;: run the garbage collector before each memory allocation. If the allocation fails even after running the garbage collector, the allocator will
++return with error. This mode is very efficient with regards to memory savings, but it's also the slowest.&lt;/li&gt;
++&lt;/ol&gt;
++&lt;p&gt;&lt;b&gt;eLua&lt;/b&gt; lets you use any of the above modes, or combine modes 2-4 above as needed. The C code API for EGC interfacing is defined in &lt;i&gt;src/lua/legc.h&lt;/i&gt;, shown partially below:&lt;/p&gt;
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;// EGC operations modes
++#define EGC_NOT_ACTIVE        0   // EGC disabled
++#define EGC_ON_ALLOC_FAILURE  1   // run EGC on allocation failure
++#define EGC_ON_MEM_LIMIT      2   // run EGC when an upper memory limit is hit
++#define EGC_ALWAYS            4   // always run EGC before an allocation
++
++void legc_set_mode(lua_State *L, int mode, unsigned limit);&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;p&gt;To set the EGC operation mode, call &lt;i&gt;legc_set_mode&lt;/i&gt; above with 3 parameters:&lt;/p&gt;
++&lt;ul&gt;
++&lt;li&gt;&lt;b&gt;L&lt;/b&gt;: a pointer to a Lua state structure.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;mode&lt;/b&gt;: EGC operation mode, as described by the &lt;b&gt;#define&lt;/b&gt; section above. You can specifiy a single mode, or a bitwise OR combination between &lt;b&gt;EGC_ON_ALLOC_FAILURE&lt;/b&gt;,
++&lt;b&gt;EGC_ON_MEM_LIMIT&lt;/b&gt; and &lt;b&gt;EGC_ALWAYS&lt;/b&gt;.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;memlimit&lt;/b&gt;: the upper memory limit used by the &lt;b&gt;EGC_ON_MEM_LIMIT&lt;/b&gt; mode. Must be higher than 0 for this mode to run properly, can be 0 for any other mode.&lt;/li&gt;
++&lt;/ul&gt;
++
++&lt;p&gt;The functionality of this C function is mirrored by the &lt;b&gt;elua&lt;/b&gt; generic module &lt;b&gt;egc_setup&lt;/b&gt; function, see &lt;a href=&quot;refman_gen_elua.html#elua.egc_setup&quot;&gt;here&lt;/a&gt; for more details. 
++Also, see &lt;a href=&quot;building.html#static&quot;&gt;here&lt;/a&gt; for details on how to configure the default (compile time) EGC behaviour.&lt;/p&gt;
++$$FOOTER$$
++
+
+Modified: branches/pre0.7/doc/en/faq.html
+===================================================================
+--- branches/pre0.7/doc/en/faq.html	2009-12-26 16:24:04 UTC (rev 618)
++++ branches/pre0.7/doc/en/faq.html	2009-12-27 23:01:21 UTC (rev 619)
+@@ -136,6 +136,8 @@
+   &lt;a href=&quot;<A HREF="http://www.lua.org/manual/5.1/manual.html#5.5">http://www.lua.org/manual/5.1/manual.html#5.5</A>&quot;&gt;table.concat&lt;/a&gt; to make a string from your table.&lt;/li&gt;
+   &lt;li&gt;&lt;b&gt;control Lua's garbage collection manually&lt;/b&gt;: if you're still running out of memory, try calling &lt;i&gt;collectgarbage('collect')&lt;/i&gt; from your code, 
+   which will force a garbage collection and thus might free some memory.&lt;/li&gt;
++  &lt;li&gt;&lt;b&gt;use the emergency garbage collector (EGC)&lt;/b&gt;: starting with version 0.7, &lt;b&gt;eLua&lt;/b&gt; integrates Robert Jakabosky's excellent Emergency Garbage Collector
++  (EGC) patch. It can help a lot with low memory problems. See &lt;a href=&quot;elua_egc.html&quot;&gt;here&lt;/a&gt; for details on how to use the EGC patch in &lt;b&gt;eLua&lt;/b&gt;.&lt;/li&gt;
+ &lt;/ul&gt;
+ 
+ &lt;a name=&quot;rotables&quot; /&gt;&lt;h2&gt;I enabled the LTR patch, but now all my module tables (math, io, string, spi and so on) are read only. Do I have to
+
+Modified: branches/pre0.7/doc/en/news.html
+===================================================================
+--- branches/pre0.7/doc/en/news.html	2009-12-26 16:24:04 UTC (rev 618)
++++ branches/pre0.7/doc/en/news.html	2009-12-27 23:01:21 UTC (rev 619)
+@@ -3,12 +3,12 @@
+ &lt;h3&gt;eLua Project News&lt;/h3&gt;
+ 
+ &lt;h2&gt;?? ????? 20??&lt;/h2&gt;
+-&lt;p&gt;Version 0.7 is released. The main changes are described below:&lt;/p&gt;
++&lt;p&gt;Version 0.7 is released. Here's the changelog:&lt;/p&gt;
+ &lt;ul&gt;
+-  &lt;li&gt;Added the &lt;a href=&quot;<A HREF="http://lua-users.org/wiki/EmergencyGarbageCollector">http://lua-users.org/wiki/EmergencyGarbageCollector</A>&quot;&gt;Lua EGC&lt;/a&gt; (Emergency Garbage Collection) patch&lt;/li&gt;
++  &lt;li&gt;Added Robert Jakabosky's EGC (Emergency Garbage Collector) patch to &lt;b&gt;eLua&lt;/b&gt; (see &lt;a href=&quot;elua_egc.html&quot;&gt;here&lt;/a&gt; for details)&lt;/li&gt;
+   &lt;li&gt;???? Added generic and portable SD/MMC Card FAT File System support&lt;/li&gt;
+   &lt;li&gt;Added &lt;a href=&quot;<A HREF="http://fanplastic.org/2009/05/11/lua-rpc/">http://fanplastic.org/2009/05/11/lua-rpc/</A>&quot;&gt;LuaRPC&lt;/a&gt; support (remote procedure calls in the embedded world)&lt;/li&gt;
+-  &lt;li&gt;New eLua shell cat/type command, lists text file contents&lt;/li&gt;
++  &lt;li&gt;New &lt;b&gt;eLua&lt;/b&gt; shell cat/type command, lists text file contents&lt;/li&gt;
+   &lt;li&gt;Added support for &lt;a href=&quot;<A HREF="http://www.olimex.com/dev/str-e912.html">http://www.olimex.com/dev/str-e912.html</A>&quot;&gt;Olimex STR-E912&lt;/a&gt; board, ST Electronics STR912FW44X MCU&lt;/li&gt;
+   &lt;li&gt;Added support for the &lt;a href=&quot;<A HREF="http://www.giga.puc-rio.br/site/embedded/eluademoboard">http://www.giga.puc-rio.br/site/embedded/eluademoboard</A>&quot;&gt;PUC-Rio  eLua&lt;/a&gt; board, NXP LPC2468 MCU&lt;/li&gt;
+   &lt;li&gt;Compiling &lt;b&gt;eLua&lt;/b&gt; under Windows is now officialy supported, tutorial added &lt;a href=&quot;build_win.html&quot;&gt;here&lt;/a&gt;&lt;/li&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000574.html">[Elua-svn] r618 - in branches/pre0.7: doc/en src src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000576.html">[Elua-svn] r620 - in branches/pre0.7: . src/lua src/modules	src/platform/sim src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#575">[ date ]</a>
+              <a href="thread.html#575">[ thread ]</a>
+              <a href="subject.html#575">[ subject ]</a>
+              <a href="author.html#575">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

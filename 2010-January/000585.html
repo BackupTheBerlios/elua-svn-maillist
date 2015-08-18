@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r629 - branches/pre0.7/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r629%20-%20branches/pre0.7/doc/en&In-Reply-To=%3C201001120233.o0C2XGrK027025%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000584.html">
+   <LINK REL="Next"  HREF="000586.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r629 - branches/pre0.7/doc/en</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r629%20-%20branches/pre0.7/doc/en&In-Reply-To=%3C201001120233.o0C2XGrK027025%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r629 - branches/pre0.7/doc/en">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Jan 12 03:33:16 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000584.html">[Elua-svn] r628 - branches/pre0.7/doc/images
+</A></li>
+        <LI>Next message: <A HREF="000586.html">[Elua-svn] r630 - in branches/pre0.7/doc: eluadoc en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#585">[ date ]</a>
+              <a href="thread.html#585">[ thread ]</a>
+              <a href="subject.html#585">[ subject ]</a>
+              <a href="author.html#585">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-01-12 03:33:16 +0100 (Tue, 12 Jan 2010)
+New Revision: 629
+
+Modified:
+   branches/pre0.7/doc/en/fatfs.html
+Log:
+Started adding more detail to the FAT fs page.
+
+Modified: branches/pre0.7/doc/en/fatfs.html
+===================================================================
+--- branches/pre0.7/doc/en/fatfs.html	2010-01-12 02:33:05 UTC (rev 628)
++++ branches/pre0.7/doc/en/fatfs.html	2010-01-12 02:33:16 UTC (rev 629)
+@@ -1,13 +1,20 @@
+ $$HEADER$$
+ &lt;h3&gt;The FAT file system&lt;/h3&gt;
+ &lt;p&gt;The FAT file system implementation in &lt;b&gt;eLua&lt;/b&gt; uses Elm Chan's excellent FatFS package, available &lt;a href=&quot;<A HREF="http://elm-chan.org/fsw/ff/00index_e.html">http://elm-chan.org/fsw/ff/00index_e.html</A>&quot;&gt;here&lt;/a&gt;. It can handle FAT12, FAT16
+-and FAT32 file systems in read/write mode, and it packs a lot of functionality in a low footprint. &lt;b&gt;eLua&lt;/b&gt; adds a platform abstraction layer on top of FatFS which makes it very easy to
+-port the FAT file system implementation between different &lt;b&gt;eLua&lt;/b&gt; targets. Since most SD/MMC cards can be accessed using the very common SPI interface, and since &lt;b&gt;eLua&lt;/b&gt; already provides
++and FAT32 file systems in read/write mode, and it packs a lot of functionality in a low footprint.  Like the ROM filesystem it is integrated with the C library, so similar POSIX file manipulation will work in addition to accessing the filesystem via the Lua &lt;b&gt;io&lt;/b&gt; module. &lt;b&gt;eLua&lt;/b&gt; adds a platform abstraction layer on top of FatFS which makes it very easy to
++port the FAT file system implementation between different &lt;b&gt;eLua&lt;/b&gt; targets.  Since most SD/MMC cards can be accessed using the very common SPI interface, and since &lt;b&gt;eLua&lt;/b&gt; already provides
+ a &lt;a href=&quot;arch_platform_spi.html&quot;&gt;SPI platform interface&lt;/a&gt;, porting the FAT file system to an &lt;b&gt;eLua&lt;/b&gt; board is a fairly simple process.&lt;/p&gt;
+ &lt;p&gt;To use the FAT file system on your &lt;b&gt;elua&lt;/b&gt; board (that has the proper hardware to access SD/MMC cards), first make sure that there is a working implementation of the 
+-&lt;a href=&quot;arch_platform_spi.html&quot;&gt;eLua SPI platform interface&lt;/a&gt; on your platform (as currently &lt;b&gt;eLua&lt;/b&gt; can access SD/MMC cards only via SPI). Then you need to enable the FAT file system module 
+-in your &lt;b&gt;eLua&lt;/b&gt; binary image, as decribed in the &lt;a href=&quot;building.html&quot;&gt;building page&lt;/a&gt;. To open a file on the SD/MMC card, all you need to do is to prefix its name with &lt;i&gt;/mmc/&lt;/i&gt;, like this:&lt;/p&gt; 
++&lt;a href=&quot;arch_platform_spi.html&quot;&gt;eLua SPI platform interface&lt;/a&gt; on your platform (as currently &lt;b&gt;eLua&lt;/b&gt; can access SD/MMC cards only via SPI). Then you need to enable the FAT file system module (MMCFS)
++in your &lt;b&gt;eLua&lt;/b&gt; binary image, as described on the &lt;a href=&quot;building.html&quot;&gt;building page&lt;/a&gt;.&lt;/p&gt;
++&lt;h2&gt;Using the FAT file system&lt;/h2&gt;
++&lt;p&gt;To use the FAT filesystem with an SD or MMC card, first ensure that the card has been properly formatted as a FAT filesystem (many come preformatted with this file system).&lt;/p&gt;
++&lt;p&gt;Next, connect the card to your board such that the SD card's DAT3/CS PIN is connected to the CS pin you selected in the building section. In addition, for the selected SPI port, the controller's SPI DO pin should be connected the the card's CMD/DI pin, the SPI DI pin should be connected to the card's DAT0/DO pin, and the SPI SCLK should connect to the cards CLK pin.  For more more information, see Elm Chan's page on &lt;a href=&quot;<A HREF="http://elm-chan.org/docs/mmc/mmc_e.html">http://elm-chan.org/docs/mmc/mmc_e.html</A>&quot;&gt;SD/MMC with SPI&lt;/a&gt;.&lt;/p&gt;
++
++&lt;p&gt;Once configured, connected, and &lt;b&gt;eLua&lt;/b&gt; has started up, you are ready to work with the files on your card. To open a file on the SD/MMC card, all you need to do is to prefix its name with &lt;i&gt;/mmc/&lt;/i&gt;, like this:&lt;/p&gt; 
+ &lt;p&gt;&lt;pre&gt;&lt;code&gt;# lua /mmc/info.lua &lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;p&gt;Similarly, if you wanted to access a text file &lt;b&gt;a.txt&lt;/b&gt; from your card, you could use fopen like this:&lt;/p&gt;
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;f = fopen( &quot;/mmc/a.txt&quot;, &quot;rb&quot; )&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
+ $$FOOTER$$
+ 
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000584.html">[Elua-svn] r628 - branches/pre0.7/doc/images
+</A></li>
+	<LI>Next message: <A HREF="000586.html">[Elua-svn] r630 - in branches/pre0.7/doc: eluadoc en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#585">[ date ]</a>
+              <a href="thread.html#585">[ thread ]</a>
+              <a href="subject.html#585">[ subject ]</a>
+              <a href="author.html#585">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r700 - in trunk: . romfs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r700%20-%20in%20trunk%3A%20.%20romfs&In-Reply-To=%3C201002031232.o13CWKMo029446%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000652.html">
+   <LINK REL="Next"  HREF="000654.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r700 - in trunk: . romfs</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r700%20-%20in%20trunk%3A%20.%20romfs&In-Reply-To=%3C201002031232.o13CWKMo029446%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r700 - in trunk: . romfs">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Wed Feb  3 13:32:20 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000652.html">[Elua-svn] r699 - trunk/rfs_server
+</A></li>
+        <LI>Next message: <A HREF="000654.html">[Elua-svn] r701 - trunk/src/serial
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#653">[ date ]</a>
+              <a href="thread.html#653">[ thread ]</a>
+              <a href="subject.html#653">[ subject ]</a>
+              <a href="author.html#653">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2010-02-03 13:32:18 +0100 (Wed, 03 Feb 2010)
+New Revision: 700
+
+Modified:
+   trunk/SConstruct
+   trunk/romfs/EK-LM3S8962.lua
+   trunk/romfs/spaceship.lua
+   trunk/romfs/tetrives.lua
+Log:
+- Fixed LM3S games and aux modules
+- Updated lm3s games versions merged with trunk
+- Tetrives game added to default LM3S8962 build on SConstruct
+  
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-02-02 14:56:40 UTC (rev 699)
++++ trunk/SConstruct	2010-02-03 12:32:18 UTC (rev 700)
+@@ -114,7 +114,6 @@
+ romfs = { 'bisect' : [ 'bisect.lua' ],
+           'hangman' : [ 'hangman.lua' ],
+           'lhttpd' : [ 'index.pht', 'lhttpd.lua', 'test.lua' ],
+-          'pong' : [ 'pong.lua' ],
+           'led' : [ 'led.lua' ],
+           'piano' : [ 'piano.lua' ],
+           'pwmled' : [ 'pwmled.lua' ],
+@@ -127,6 +126,7 @@
+           'adcpoll' : [ 'adcpoll.lua' ],
+           'life' : [ 'life.lua' ],
+           'logo' : ['logo.lua', 'logo.bin' ],
++          'pong' : [ 'pong.lua' ],
+           'spaceship' : [ 'spaceship.lua' ],
+           'tetrives' : [ 'tetrives.lua' ],
+           'snake' : [ 'snake.lua' ]
+@@ -134,7 +134,7 @@
+ 
+ # List of board/romfs data combinations
+ file_list = { 'SAM7-EX256' : [ 'bisect', 'hangman' , 'led', 'piano', 'hello', 'info', 'morse' ],
+-              'EK-LM3S8962' : [ 'bisect', 'hangman', 'pong', 'led', 'piano', 'pwmled', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo' ],
++              'EK-LM3S8962' : [ 'bisect', 'hangman', 'pong', 'led', 'piano', 'pwmled', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo', 'tetrives' ],
+               'EK-LM3S6965' : [ 'bisect', 'hangman', 'pong', 'led', 'piano', 'pwmled', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo' ],
+               'EK-LM3S9B92' : [ 'bisect', 'hangman', 'led', 'pwmled', 'hello', 'info', 'adcscope','adcpoll', 'life' ],
+               'STR9-COMSTICK' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+
+Modified: trunk/romfs/EK-LM3S8962.lua
+===================================================================
+--- trunk/romfs/EK-LM3S8962.lua	2010-02-02 14:56:40 UTC (rev 699)
++++ trunk/romfs/EK-LM3S8962.lua	2010-02-03 12:32:18 UTC (rev 700)
+@@ -30,7 +30,7 @@
+ 
+ -- Associate the RIT OLED display device supported by the builtin module lm3s with
+ -- a disp name/device offered here
+-disp = lm3s.disp
++-- disp = lm3s.disp
+ 
+ pio.pin.setdir( pio.INPUT, BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT )
+ pio.pin.setpull( pio.PULLUP, BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_SELECT )
+
+Modified: trunk/romfs/spaceship.lua
+===================================================================
+--- trunk/romfs/spaceship.lua	2010-02-02 14:56:40 UTC (rev 699)
++++ trunk/romfs/spaceship.lua	2010-02-03 12:32:18 UTC (rev 700)
+@@ -219,8 +219,8 @@
+ lm3s.disp.init( 1000000 )
+ 
+ -- Initial information
+-lm3s.disp.print( &quot;eLua SpaceShip&quot;, 10, 40, 11 )
+-lm3s.disp.print( &quot;Press SELECT&quot;, 10, 70, 11 )
++lm3s.disp.print( &quot;eLua SpaceShip&quot;, 10, 10, 11 )
++lm3s.disp.print( &quot;Press SELECT --&gt;&quot;, 10, 40, 11 )
+ local seed = 0
+ while not buttonClicked( kit.BTN_SELECT ) do
+ 	seed = seed + 1
+
+Modified: trunk/romfs/tetrives.lua
+===================================================================
+--- trunk/romfs/tetrives.lua	2010-02-02 14:56:40 UTC (rev 699)
++++ trunk/romfs/tetrives.lua	2010-02-03 12:32:18 UTC (rev 700)
+@@ -33,8 +33,8 @@
+ local platform = require( pd.board() )
+ lm3s.disp.init( 1000000 )
+ 
+-lm3s.disp.print( &quot;Tetrives&quot;, 30, 30, 11 )
+-lm3s.disp.print( &quot;Press SELECT&quot;, 30, 60, 11 )
++lm3s.disp.print( &quot;eLua Tetrives&quot;, 30, 10, 11 )
++lm3s.disp.print( &quot;Press SELECT --&gt;&quot;, 30, 40, 11 )
+ while platform.btn_pressed( platform.BTN_SELECT ) == false do
+   seed = seed + 1
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000652.html">[Elua-svn] r699 - trunk/rfs_server
+</A></li>
+	<LI>Next message: <A HREF="000654.html">[Elua-svn] r701 - trunk/src/serial
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#653">[ date ]</a>
+              <a href="thread.html#653">[ thread ]</a>
+              <a href="subject.html#653">[ subject ]</a>
+              <a href="author.html#653">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

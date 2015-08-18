@@ -1,0 +1,201 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r914 - in branches/pre0.8: . doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r914%20-%20in%20branches/pre0.8%3A%20.%20doc/en&In-Reply-To=%3C20110130192653.E6B44481350%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000866.html">
+   <LINK REL="Next"  HREF="000868.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r914 - in branches/pre0.8: . doc/en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r914%20-%20in%20branches/pre0.8%3A%20.%20doc/en&In-Reply-To=%3C20110130192653.E6B44481350%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r914 - in branches/pre0.8: . doc/en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Jan 30 20:26:53 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000866.html">[Elua-svn] r913 - branches/pre0.8/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000868.html">[Elua-svn] r915 - branches/pre0.8/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#867">[ date ]</a>
+              <a href="thread.html#867">[ thread ]</a>
+              <a href="subject.html#867">[ subject ]</a>
+              <a href="author.html#867">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-01-30 20:26:53 +0100 (Sun, 30 Jan 2011)
+New Revision: 914
+
+Modified:
+   branches/pre0.8/CHANGELOG
+   branches/pre0.8/doc/en/inthandlers.txt
+   branches/pre0.8/doc/en/news.txt
+Log:
+more doc updates for 0.8
+
+Modified: branches/pre0.8/CHANGELOG
+===================================================================
+--- branches/pre0.8/CHANGELOG	2011-01-30 18:02:33 UTC (rev 913)
++++ branches/pre0.8/CHANGELOG	2011-01-30 19:26:53 UTC (rev 914)
+@@ -1,28 +1,25 @@
+-01.Feb.2011 Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdanm at egmail.com</A>&gt;
++TODO 01.Feb.2011 Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdanm at egmail.com</A>&gt;
+             Dado Sutter      &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">dadosutter at gmail.com</A>&gt;
+             James Snyder     &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at gmail.com</A>&gt;
+ 
+   * Official release 0.8
+-  * Added support for new platforms:  mbed, EVK-1101, STR-E912, ET-STM32, Mizar32, FEZ Panda,
+-  * Added Lua and C interrupt handlers support
++  * Added the RFS (RemoTe File System), a new file system which allows sharing
++    a directory on the PC with the eLua board.
++  * Added Lua and C interrupt handlers support.
++  * Added generic I2C support and docs
++  * Added hardware flow control and runtime configurable buffers for UARTs.
++  * Added support for new boards: mbed, EVK-1101, Mizar32, FEZ Panda
+   * Added SPI and SD/MMC support for EVK1100 and EVK1101 (AVR32) 
+   * Added I2C support for STR-E912 (STR912) 
+-  * Added generic I2C support and doc
+-  * Added ADC support for mbed (LPC17xx)
+   * Added support for require() and autorun from SD/MMC
+-  * Added external memory support for STR912
++  * TODO Added external memory support for STR912
+   * Fixed open files count on closing files
+   * Added long filename support for SD/MMC
+   * Added version() function to elua module
+-  * Added (partial) PWM support for LPC17xx
+-  * Added support for Remote (PC) File System
+-  * Added timer support for mbed (LPC17xx)
+   * Added RTC (real time clock) platform specific support for str9
+   * Added support for new toolchains, which ???? ##TODO
+-  * Added build support for Windows
+-  * Added support to ASCIIDOC to the doc builder
+-  * Tutorials and new projects added to the <A HREF="http://wiki.eluaproject.net[eLua">http://wiki.eluaproject.net[eLua</A> User Labs
+-  * wiki]
++  * Added support for AsciiDoc in the doc builder
++  * Tutorials and new projects added to the eLua User Labs wiki
+   * Demo files were moved out of the distro to <A HREF="http://wiki.eluaproject.net/Projects">http://wiki.eluaproject.net/Projects</A>
+   * ????? ##TODO
+ 
+
+Modified: branches/pre0.8/doc/en/inthandlers.txt
+===================================================================
+--- branches/pre0.8/doc/en/inthandlers.txt	2011-01-30 18:02:33 UTC (rev 913)
++++ branches/pre0.8/doc/en/inthandlers.txt	2011-01-30 19:26:53 UTC (rev 914)
+@@ -34,9 +34,10 @@
+ 
+ While this might seem restrictive, Lua interrupt handlers work quite well in practical situations. As an added bonus, since they are implemented by C support code, there's nothing
+ preventing eLua from implementing &quot;custom interrupts&quot; (software generated interrupts that don't correspond to a hardware interrupt on the CPU), such as serial interrupt on
+-char match (generate an interrupt when a certain char is received on the serial port, for example a newline), timer interrupts for link:arch_platform_timers.html#virtual_timers[virtual timers]
+-, TCP/UDP data packet received interrupt and many others.
++char match (generate an interrupt when a certain char is received on the serial port, for example a newline), timer interrupts for link:arch_platform_timers.html#virtual_timers[virtual timers], TCP/UDP data packet received interrupt and many others.
+ 
++IMPORTANT: An up-to-date list of all interrupts supported by eLua can be found link:arch_ints.html#intlist[here].
++
+ Using interrupt handlers in Lua
+ --------------------------------
+ To enable Lua interrupt handler, define *BUILD_LUA_INT_HANDLERS* and *PLTATFORM_INT_QUEUE_LOG_SIZE* in _platform_conf.h_ (see link:building.html[here] for details). Setting up interrupt 
+@@ -236,8 +237,7 @@
+   interrupt handler on the Lua side call _cpu.set_int_handler_ with *nil* for the \'handler' argument. After this the Lua interrupt subsystem will not queue 
+   interrupts for the given interrupt ID and thus the handler won't be called anymore. You can re-enable the handler by calling _cpu.set_int_handler_ with an
+   actual function for the \'handler' argument.
+-
+- ::
++  +
+   The same holds true for the C side. To disable the handler on the C side call _elua_int_set_c_handler_ with NULL for the \'handler' argument. To re-enable the
+   C handler call _elua_int_set_c_handler_ with an actual function for the \'handler' argument.
+ 
+
+Modified: branches/pre0.8/doc/en/news.txt
+===================================================================
+--- branches/pre0.8/doc/en/news.txt	2011-01-30 18:02:33 UTC (rev 913)
++++ branches/pre0.8/doc/en/news.txt	2011-01-30 19:26:53 UTC (rev 914)
+@@ -2,24 +2,44 @@
+ eLua Project News
+ -----------------
+ 
+-February 1st, 2011
+-~~~~~~~~~~~~~~~~~~
+-We are proud to annunce the release of eLua v0.8
+-The main additions from v0.7 are:
+-##TODO  Include here CHANGELOG info ##
++February 1st, 2011 TODO
++~~~~~~~~~~~~~~~~~~~~~~~
++.eLua v0.8 released
++We are proud to annunce the release of eLua v0.8! This is the changelog:
+ 
++* Added the link:arch_rfs.html[RFS] (Remoe File System), a new file system which allows sharing
++  a directory on the PC with the eLua board.
++* Added Lua and C interrupt handlers support, see link:inthandlers.html[here] for more details.
++* Added generic I2C support and docs
++* Added hardware flow control and runtime configurable buffers for link:refman_gen_uart.html[UARTs].
++* Added support for new boards:  <A HREF="http://mbed.org[mbed">http://mbed.org[mbed</A>], <A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=4175[EVK-1101">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=4175[EVK-1101</A>],
++      <A HREF="http://code.google.com/p/mizar32[Mizar32">http://code.google.com/p/mizar32[Mizar32</A>], TODO <A HREF="http://www.tinyclr.com/hardware/16/fez-panda[FEZ">http://www.tinyclr.com/hardware/16/fez-panda[FEZ</A> Panda]
++* Added SPI and SD/MMC support for EVK1100 and EVK1101 (AVR32) 
++* Added I2C support for STR-E912 (STR912) 
++* Added support for require() and autorun from SD/MMC
++* TODO Added external memory support for STR912
++* Fixed open files count on closing files
++* Added long filename support for SD/MMC
++* Added version() function to elua module
++* Added RTC (real time clock) platform specific support for str9
++* Added support for new toolchains, which ???? ##TODO
++* Added support for <A HREF="http://www.methods.co.nz/asciidoc[AsciiDoc">http://www.methods.co.nz/asciidoc[AsciiDoc</A>] in the doc builder
++* Tutorials and new projects added to the <A HREF="http://wiki.eluaproject.net[eLua">http://wiki.eluaproject.net[eLua</A> User Labs wiki]
++* Demo files were moved out of the distro to <A HREF="http://wiki.eluaproject.net/Projects">http://wiki.eluaproject.net/Projects</A>
++* TODO
++
+ January 13th, 2011
+ ~~~~~~~~~~~~~~~~~~
+ We're glad to announce another eLua project service, the eLua Issue
+ Tracker.
+ It is a regular web service where users can follow up closely what
+ developers are working on, features to come and, of course, report bugs and
+-follow up fixes.
++follow up fixes. +
+ The eLua Issue Tracker lives at <A HREF="http://tracker.eluaproject.net">http://tracker.eluaproject.net</A>
+ It is currently used to manage the development of two main projects; eLua
+ itself and the eLua Web Builder.
+ Other eLua-related projects can be added and the tool is available for the
+-community for this.
++community for this. +
+  Please feel free to register and to send comments and suggestions here to
+ the list too. 
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000866.html">[Elua-svn] r913 - branches/pre0.8/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000868.html">[Elua-svn] r915 - branches/pre0.8/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#867">[ date ]</a>
+              <a href="thread.html#867">[ thread ]</a>
+              <a href="subject.html#867">[ subject ]</a>
+              <a href="author.html#867">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

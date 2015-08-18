@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r602 - branches/pre0.7/doc/eluadoc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r602%20-%20branches/pre0.7/doc/eluadoc&In-Reply-To=%3C200912170416.nBH4GJCA005169%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000557.html">
+   <LINK REL="Next"  HREF="000559.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r602 - branches/pre0.7/doc/eluadoc</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r602%20-%20branches/pre0.7/doc/eluadoc&In-Reply-To=%3C200912170416.nBH4GJCA005169%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r602 - branches/pre0.7/doc/eluadoc">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Dec 17 05:16:19 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000557.html">[Elua-svn] r601 - branches/pre0.7/doc
+</A></li>
+        <LI>Next message: <A HREF="000559.html">[Elua-svn] r603 - branches/pre0.7/src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#558">[ date ]</a>
+              <a href="thread.html#558">[ thread ]</a>
+              <a href="subject.html#558">[ subject ]</a>
+              <a href="author.html#558">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-17 05:16:18 +0100 (Thu, 17 Dec 2009)
+New Revision: 602
+
+Modified:
+   branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua
+Log:
+Reformat some of RPC doc.
+
+Modified: branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua
+===================================================================
+--- branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua	2009-12-17 04:00:54 UTC (rev 601)
++++ branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua	2009-12-17 04:16:18 UTC (rev 602)
+@@ -1,4 +1,4 @@
+--- eLua reference manual - SPI module
++-- eLua reference manual - RPC module
+ 
+ data_en = 
+ {
+@@ -17,7 +17,7 @@
+   &lt;p&gt;In order to open a connection, it is necessary to specify the interface through wich the connection is made.
+   Currently the connections are limited to serial ports on the desktop side, and uart devices on the eLua side.
+   For a number of the connections below, a parameter labeled $transport_identifiers$ is used to specify the port
+-  to be used in a platform specific manner:
++  to be used in a platform specific manner.:
+   &lt;ul&gt;
+     &lt;li&gt;eLua: $transport_identifiers$ = $uart_id$, $timer_id$
+       &lt;ul&gt;
+@@ -46,14 +46,32 @@
+       {
+         &quot;$transport_identifiers$ - platform-specific serial port identification (see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">overview at overview</A>@)&quot;
+       },
+-      ret = [[$handle$ - handle used to interact with the remote Lua state.  Usage styles are as follows:
+-              &lt;ul&gt;
+-                &lt;li&gt;$handle$.$remote_variable$ = $local_variable$ - send contents of $local_variable$ to remote host and assign to $remote_variable$ (registered on global table). This also works where the destination variable is nested within tables.&lt;/li&gt;
+-                &lt;li&gt;$local_variable$ = $handle$.$remote_variable$:get() - get contents of $remote_variable$ from remote global table and assign to $local_variable$.&lt;/li&gt;
+-                &lt;li&gt;$val1$, $val2$, $valn$ = $handle$.$remote_function$() - call $remote_function$ on the server side, and return values to local state&lt;/li&gt;
+-                &lt;li&gt;$helper$ = $handle$.$remote_variable$ - create a $helper$ which points to $remote_variable$, and can be used as shorthand later (e.g.: $helper$:get() would get the contents of the remote variable. If $remote_variable$ were a table with functions on it: $helper$.$funcname$() would call $funcname$, on table $remote_variable$ on the server, and return any results.)&lt;/li&gt;
+-              &lt;/ul&gt;
+-            ]]
++      ret = [[$handle$ - handle used to interact with the remote Lua state.  Usage styles are as follows:&lt;/p&gt;
++    &lt;table style=&quot;text-align: left; margin-left: 2em;&quot;&gt;
++    &lt;tbody&gt;
++    &lt;tr&gt;
++      &lt;th style=&quot;text-align: left; width: 20em;&quot;&gt;Usage Style&lt;/th&gt;
++      &lt;th style=&quot;text-align: left;&quot;&gt;Meaning&lt;/th&gt;
++    &lt;/tr&gt;
++    &lt;tr&gt;
++      &lt;td&gt;$handle$.$remote_var$ = $local_var$&lt;/td&gt;
++      &lt;td&gt;send contents of $local_var$ to remote host and assign to $remote_var$ (registered on global table). This also works where the destination variable is nested within tables.&lt;/td&gt;
++    &lt;/tr&gt;
++    &lt;tr&gt;
++      &lt;td&gt;$local_var$ = $handle$.$remote_var$:get()&lt;/td&gt;
++      &lt;td&gt;get contents of $remote_var$ from remote global table and assign to $local_var$.&lt;/td&gt;
++    &lt;/tr&gt;
++    &lt;tr&gt;
++      &lt;td&gt;$val1$, $val2$, $valn$ = $handle$.$remote_func$()&lt;/td&gt;
++      &lt;td&gt;call $remote_func$ on the server side, and return values to local state&lt;/td&gt;
++    &lt;/tr&gt;
++    &lt;tr&gt;
++      &lt;td&gt;$helper$ = $handle$.$remote_var$&lt;/td&gt;
++      &lt;td&gt;create a $helper$ which points to $remote_var$, and can be used as shorthand later (e.g.: $helper$:get() would get the contents of the remote variable. If $remote_var$ were a table with functions on it: $helper$.$funcname$() would call $funcname$, on table $remote_var$ on the server, and return any results.)&lt;/td&gt;
++    &lt;/tr&gt;
++    &lt;/tbody&gt;
++    &lt;/table&gt;
++    &lt;p&gt;]]
+     },
+ 
+     { sig = &quot;#rpc.close#( handle )&quot;,
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000557.html">[Elua-svn] r601 - branches/pre0.7/doc
+</A></li>
+	<LI>Next message: <A HREF="000559.html">[Elua-svn] r603 - branches/pre0.7/src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#558">[ date ]</a>
+              <a href="thread.html#558">[ thread ]</a>
+              <a href="subject.html#558">[ subject ]</a>
+              <a href="author.html#558">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

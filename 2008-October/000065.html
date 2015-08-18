@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r109 - in trunk/src: . modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r109%20-%20in%20trunk/src%3A%20.%20modules&In-Reply-To=%3C200810232039.m9NKdpEL008308%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000064.html">
+   <LINK REL="Next"  HREF="000066.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r109 - in trunk/src: . modules</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r109%20-%20in%20trunk/src%3A%20.%20modules&In-Reply-To=%3C200810232039.m9NKdpEL008308%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r109 - in trunk/src: . modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Oct 23 22:39:51 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000064.html">[Elua-svn] r108 - in trunk: inc src src/lua src/modules src/newlib	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str7 src/platform/str9 src/uip
+</A></li>
+        <LI>Next message: <A HREF="000066.html">[Elua-svn] r110 - trunk/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#65">[ date ]</a>
+              <a href="thread.html#65">[ thread ]</a>
+              <a href="subject.html#65">[ subject ]</a>
+              <a href="author.html#65">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-10-23 22:39:50 +0200 (Thu, 23 Oct 2008)
+New Revision: 109
+
+Modified:
+   trunk/src/elua_uip.c
+   trunk/src/modules/net.c
+Log:
+small changes to the TCP/IP subsystem
+
+Modified: trunk/src/elua_uip.c
+===================================================================
+--- trunk/src/elua_uip.c	2008-10-09 10:49:07 UTC (rev 108)
++++ trunk/src/elua_uip.c	2008-10-23 20:39:50 UTC (rev 109)
+@@ -287,7 +287,15 @@
+   {
+ #ifdef BUILD_CON_TCP    
+     if( uip_conn-&gt;lport == HTONS( ELUA_NET_TELNET_PORT ) ) // special case: telnet server
+-      elua_uip_telnet_socket = sockno;
++    {
++      if( elua_uip_telnet_socket == -1 )
++      {
++        uip_close();
++        return;
++      }
++      else
++        elua_uip_telnet_socket = sockno;
++    }
+     else
+ #endif
+     if( elua_uip_accept_request )
+@@ -383,6 +391,9 @@
+ #endif   
+       int lastfound = 0;
+       
++      // Check end of transmission
++      if( uip_datalen() &lt; UIP_RECEIVE_WINDOW )
++        lastfound = 1;
+       // Check overflow
+       if( s-&gt;len &lt; uip_datalen() )
+       {
+
+Modified: trunk/src/modules/net.c
+===================================================================
+--- trunk/src/modules/net.c	2008-10-09 10:49:07 UTC (rev 108)
++++ trunk/src/modules/net.c	2008-10-23 20:39:50 UTC (rev 109)
+@@ -146,7 +146,7 @@
+ {
+   int sock = ( int )luaL_checkinteger( L, 1 );
+   elua_net_size maxsize;
+-  s16 lastchar = -1;
++  s16 lastchar = ELUA_NET_NO_LASTCHAR;
+   unsigned timer_id = 0;
+   u32 timeout = 0;
+   
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000064.html">[Elua-svn] r108 - in trunk: inc src src/lua src/modules src/newlib	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str7 src/platform/str9 src/uip
+</A></li>
+	<LI>Next message: <A HREF="000066.html">[Elua-svn] r110 - trunk/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#65">[ date ]</a>
+              <a href="thread.html#65">[ thread ]</a>
+              <a href="subject.html#65">[ subject ]</a>
+              <a href="author.html#65">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

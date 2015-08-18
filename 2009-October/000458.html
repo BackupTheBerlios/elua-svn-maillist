@@ -1,0 +1,317 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r502 - branches/lpc24xx/src/platform/lpc24xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r502%20-%20branches/lpc24xx/src/platform/lpc24xx&In-Reply-To=%3C200910300053.n9U0rm17010416%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000457.html">
+   <LINK REL="Next"  HREF="000459.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r502 - branches/lpc24xx/src/platform/lpc24xx</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r502%20-%20branches/lpc24xx/src/platform/lpc24xx&In-Reply-To=%3C200910300053.n9U0rm17010416%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r502 - branches/lpc24xx/src/platform/lpc24xx">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Oct 30 01:53:48 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000457.html">[Elua-svn] r501 - branches/lpc24xx/src/platform/lpc24xx
+</A></li>
+        <LI>Next message: <A HREF="000459.html">[Elua-svn] r503 - branches/lpc24xx/src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#458">[ date ]</a>
+              <a href="thread.html#458">[ thread ]</a>
+              <a href="subject.html#458">[ subject ]</a>
+              <a href="author.html#458">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-10-30 01:53:47 +0100 (Fri, 30 Oct 2009)
+New Revision: 502
+
+Modified:
+   branches/lpc24xx/src/platform/lpc24xx/platform.c
+   branches/lpc24xx/src/platform/lpc24xx/platform_conf.h
+   branches/lpc24xx/src/platform/lpc24xx/startup.s
+   branches/lpc24xx/src/platform/lpc24xx/target.c
+   branches/lpc24xx/src/platform/lpc24xx/target.h
+Log:
+First eLua prompt from the board! :) Still needs timers for proper serial communication. CPU frequency bumped to 72MHz, also implemented a neat fixed point (24.8) algorithm for finding the UART fractional baud rate divider parameters (as the board can't do 115200 without the fractional divider).
+
+
+
+Modified: branches/lpc24xx/src/platform/lpc24xx/platform.c
+===================================================================
+--- branches/lpc24xx/src/platform/lpc24xx/platform.c	2009-10-29 20:46:56 UTC (rev 501)
++++ branches/lpc24xx/src/platform/lpc24xx/platform.c	2009-10-30 00:53:47 UTC (rev 502)
+@@ -27,12 +27,12 @@
+ {
+   // [TODO] the rest of initialization must go here
+ 
++  // Setup GPIO1 and GPIO1 in fast mode
++  SCS |= 1;
++
+   // Initialize UART
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+ 
+-  // Setup GPIO1 and GPIO1 in fast mode
+-  SCS |= 1;
+-
+   // Common platform initialiation code
+   cmn_platform_init();
+ 
+@@ -91,7 +91,7 @@
+       break;
+       
+     case PLATFORM_IO_PIN_GET:
+-      retval = *FIOxPIN &amp; pinmask ? 1 : 0;
++      retval =( *FIOxPIN &amp; pinmask ) ? 1 : 0;
+       break;
+       
+     default:
+@@ -115,15 +115,49 @@
+ static const u32 uart_thr[ NUM_UART ] = { ( u32 )&amp;U0THR, ( u32 )&amp;U1THR, ( u32 )&amp;U2THR, ( u32 )&amp;U3THR };
+ static const u32 uart_lsr[ NUM_UART ] = { ( u32 )&amp;U0LSR, ( u32 )&amp;U1LSR, ( u32 )&amp;U2LSR, ( u32 )&amp;U3LSR };
+ static const u32 uart_rbr[ NUM_UART ] = { ( u32 )&amp;U0RBR, ( u32 )&amp;U1RBR, ( u32 )&amp;U2RBR, ( u32 )&amp;U3RBR };
++static const u32 uart_fdr[ NUM_UART ] = { ( u32 )&amp;U0FDR, ( u32 )0,      ( u32 )&amp;U2FDR, ( u32 )&amp;U3FDR };
+ 
++// Quick-and-dirty FP
++#define INTTOFP(x)      ( (x) &lt;&lt; 8 )
++#define FLTTOFP(x)      ( ( u32 )( x * 256 ) )
++
++// Table of FR versus DivAddVal/MulVal (taken from the datasheet)
++typedef struct
++{
++  u32 fr;
++  u8 divadd;
++  u8 mul;
++} uart_fractional_data;
++
++static const uart_fractional_data fr_to_vals[] = 
++{
++  {FLTTOFP(1.000), 0, 1}, {FLTTOFP(1.067), 1, 15}, {FLTTOFP(1.071), 1, 14}, {FLTTOFP(1.077), 1, 13}, {FLTTOFP(1.083), 1, 12}, 
++  {FLTTOFP(1.091), 1, 11}, {FLTTOFP(1.100), 1, 10}, {FLTTOFP(1.111), 1, 9}, {FLTTOFP(1.125), 1, 8}, {FLTTOFP(1.133), 2, 15}, 
++  {FLTTOFP(1.143), 1, 7}, {FLTTOFP(1.154), 2, 13}, {FLTTOFP(1.167), 1, 6}, {FLTTOFP(1.182), 2, 11}, {FLTTOFP(1.200), 1, 5},
++  {FLTTOFP(1.214), 3, 14}, {FLTTOFP(1.222), 2, 9}, {FLTTOFP(1.231), 3, 13}, {FLTTOFP(1.250), 1, 4}, {FLTTOFP(1.267), 4, 15},
++  {FLTTOFP(1.273), 3, 11}, {FLTTOFP(1.286), 2, 7}, {FLTTOFP(1.300), 3, 10}, {FLTTOFP(1.308), 4, 13}, {FLTTOFP(1.333), 1, 3},
++  {FLTTOFP(1.357), 5, 14}, {FLTTOFP(1.364), 4, 11}, {FLTTOFP(1.375), 3, 8}, {FLTTOFP(1.385), 5, 13}, {FLTTOFP(1.400), 2, 5},
++  {FLTTOFP(1.417), 5, 12}, {FLTTOFP(1.429), 3, 7}, {FLTTOFP(1.444), 4, 9}, {FLTTOFP(1.455), 5, 11}, {FLTTOFP(1.462), 6, 13},
++  {FLTTOFP(1.467), 7, 15}, {FLTTOFP(1.500), 1, 2}, {FLTTOFP(1.533), 8, 15}, {FLTTOFP(1.538), 7, 13}, {FLTTOFP(1.545), 6, 11},
++  {FLTTOFP(1.556), 5, 9}, {FLTTOFP(1.571), 4, 7}, {FLTTOFP(1.583), 7, 12}, {FLTTOFP(1.600), 3, 5}, {FLTTOFP(1.615), 8, 13},
++  {FLTTOFP(1.625), 5, 8}, {FLTTOFP(1.636), 7, 11}, {FLTTOFP(1.643), 9, 14}, {FLTTOFP(1.667), 2, 3}, {FLTTOFP(1.692), 9, 13},
++  {FLTTOFP(1.700), 7, 10}, {FLTTOFP(1.714), 5, 7}, {FLTTOFP(1.727), 8, 11}, {FLTTOFP(1.733), 11, 15}, {FLTTOFP(1.750), 3, 4},
++  {FLTTOFP(1.769), 10, 13}, {FLTTOFP(1.778), 7, 9}, {FLTTOFP(1.786), 11, 14}, {FLTTOFP(1.800), 4, 5}, {FLTTOFP(1.818), 9, 11},
++  {FLTTOFP(1.833), 5, 6}, {FLTTOFP(1.846), 11, 13}, {FLTTOFP(1.857), 6, 7}, {FLTTOFP(1.867), 13, 15}, {FLTTOFP(1.875), 7, 8},
++  {FLTTOFP(1.889), 8, 9}, {FLTTOFP(1.900), 9, 10}, {FLTTOFP(1.909), 10, 11}, {FLTTOFP(1.917), 11, 12}, {FLTTOFP(1.923), 12, 13},
++  {FLTTOFP(1.929), 13, 14},{FLTTOFP(1.933), 14, 15}
++};
++
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+ {
+-  u32 temp;
++  u32 temp, frest, fr, dlest, minfr;
++  unsigned i, idx;
+ 
+   PREG UxLCR = ( PREG )uart_lcr[ id ];
+   PREG UxDLM = ( PREG )uart_dlm[ id ];
+   PREG UxDLL = ( PREG )uart_dll[ id ];
+-  PREG UxFCR = ( PREG )uart_fcr[ id ];
++  PREG UxFCR = ( PREG )uart_fcr[ id ];  
++  PREG UxFDR = ( PREG )uart_fdr[ id ];
+ 
+   // Set data bits, parity, stop bit
+   temp = 0;
+@@ -159,9 +193,44 @@
+   }
+   *UxLCR = temp;
+ 
+-  // Set baud
++  // Divisor and fractional baud computation
++  // Based on the datasheet, but modified slightly (also used 24.8 fixed point)
++  temp = ( Fpclk &gt;&gt; 4 ) / baud;
++  if( ( ( Fpclk &gt;&gt; 4 ) % baud != 0 ) &amp;&amp; UxFDR )
++  {
++    // Non-integer result, must estimate fr
++    // Start from 1.1 and stop before 2, in 0.05 increments
++    minfr = 0xFFFFFFFF;
++    for( fr = FLTTOFP( 1.1 ); fr &lt; INTTOFP( 2 ); fr += FLTTOFP( 0.05 ) )
++    {
++      dlest = ( Fpclk &lt;&lt; 4 ) / ( baud * fr ); // this is an integer
++      frest = ( Fpclk &lt;&lt; 4 ) / ( baud * dlest ); // this is a 24.8 FP number
++      if( ( frest &lt; minfr ) &amp;&amp; ( frest &gt; FLTTOFP( 1.1 ) ) &amp;&amp; ( frest &lt; FLTTOFP( 1.9 ) ) )
++      {
++        temp = dlest;
++        minfr = frest;
++      }
++    }
++  }
++  else
++    minfr = INTTOFP( 1 );
++  // Divisor is in 'temp', now find DivAddVal and MulVal from frest
++  fr = minfr;
++  idx = 0;
++  if( fr != INTTOFP( 1 ) )
++  {
++    minfr = ABSDIFF( fr, fr_to_vals[ 0 ].fr );
++    for( i = 1; i &lt; sizeof( fr_to_vals ) / sizeof( uart_fractional_data ); i ++ )
++      if( ABSDIFF( fr_to_vals[ i ].fr, fr ) &lt; minfr )
++      {
++        idx = i;
++        minfr = ABSDIFF( fr_to_vals[ i ].fr, fr );
++      }
++  }
++  // Set baud and divisors
+   *UxLCR |= UART_DLAB_ENABLE;
+-  temp = ( Fpclk / 16 ) / baud;
++  if( UxFDR )
++   *UxFDR = ( fr_to_vals[ idx ].mul &lt;&lt; 4 ) | fr_to_vals[ idx ].divadd;
+   *UxDLM = temp &gt;&gt; 8;
+   *UxDLL = temp &amp; 0xFF;
+   *UxLCR &amp;= ~UART_DLAB_ENABLE;
+@@ -175,7 +244,7 @@
+     PINSEL0 = ( PINSEL0 &amp; 0xFFFFFF0F ) | 0x00000050;
+ 
+   // Return the actual baud
+-  return ( Fpclk / 16 ) / temp;
++  return ( Fpclk &lt;&lt; 4 ) / ( 16 * temp * fr_to_vals[ idx ].fr );
+ }
+ 
+ void platform_uart_send( unsigned id, u8 data )
+
+Modified: branches/lpc24xx/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- branches/lpc24xx/src/platform/lpc24xx/platform_conf.h	2009-10-29 20:46:56 UTC (rev 501)
++++ branches/lpc24xx/src/platform/lpc24xx/platform_conf.h	2009-10-30 00:53:47 UTC (rev 502)
+@@ -20,7 +20,7 @@
+ // UART/Timer IDs configuration data (used in main.c)
+ 
+ #define CON_UART_ID           0
+-#define CON_UART_SPEED        9600
++#define CON_UART_SPEED        115200
+ #define CON_TIMER_ID          0
+ #define TERM_LINES            25
+ #define TERM_COLS             80
+
+Modified: branches/lpc24xx/src/platform/lpc24xx/startup.s
+===================================================================
+--- branches/lpc24xx/src/platform/lpc24xx/startup.s	2009-10-29 20:46:56 UTC (rev 501)
++++ branches/lpc24xx/src/platform/lpc24xx/startup.s	2009-10-30 00:53:47 UTC (rev 502)
+@@ -56,6 +56,7 @@
+ entry:
+ resetHandler:
+ 
++// [TODO] enable interrupts
+ /* Setup stacks for each mode */
+         ldr     r0, =Top_Stack
+ 
+@@ -64,7 +65,7 @@
+         sub     r0, r0, #STACK_SIZE_IRQ                  
+ 
+         # Set up Supervisor Mode and set Supervisor Mode Stack (leave interrupts enabled)
+-        msr     CPSR_c, #ARM_MODE_SVC|F_BIT
++        msr     CPSR_c, #ARM_MODE_SVC|F_BIT|I_BIT
+         mov     r13, r0
+ 
+ 
+
+Modified: branches/lpc24xx/src/platform/lpc24xx/target.c
+===================================================================
+--- branches/lpc24xx/src/platform/lpc24xx/target.c	2009-10-29 20:46:56 UTC (rev 501)
++++ branches/lpc24xx/src/platform/lpc24xx/target.c	2009-10-30 00:53:47 UTC (rev 502)
+@@ -130,7 +130,6 @@
+   PLLFEED = 0xaa;
+   PLLFEED = 0x55;
+   while ( ((PLLSTAT &amp; (1 &lt;&lt; 25)) == 0) );	/* Check connect bit status */
+-  return;
+ }
+ 
+ /******************************************************************************
+@@ -190,7 +189,6 @@
+   GPIOResetInit();
+ 
+   init_VIC();
+-  return;
+ }
+ 
+ /******************************************************************************
+
+Modified: branches/lpc24xx/src/platform/lpc24xx/target.h
+===================================================================
+--- branches/lpc24xx/src/platform/lpc24xx/target.h	2009-10-29 20:46:56 UTC (rev 501)
++++ branches/lpc24xx/src/platform/lpc24xx/target.h	2009-10-30 00:53:47 UTC (rev 502)
+@@ -74,21 +74,29 @@
+ /* System frequence,should be less than 80MHz. */
+ #define Fcclk	48000000
+ #define Fcco	288000000
+-#else
+ 
++#else // #if USE_USB
+ 
++
+ // [TODO]: use the PLL calculator XLS to increase frequency a bit
+ /* Fcck = 60Mhz, Fosc = 360Mhz, USB can't be divided into 48Mhz
+ in this case, so USBCLKDivValue is not needed. */
++#if 0 // 60MHz
+ #define PLL_MValue			14
+ #define PLL_NValue			0
+ #define CCLKDivValue		5
++#define Fcclk           60000000ULL
++#else // 72MHz
++#define PLL_MValue      14
++#define PLL_NValue      0
++#define CCLKDivValue    4
++#define Fcclk           72000000ULL
++#endif
+ 
+ /* System configuration: Fosc, Fcclk, Fcco, Fpclk must be defined */
+ /* PLL input Crystal frequence range 4KHz~20MHz. */
+ #define Fosc	12000000
+ /* System frequence,should be less than 72MHz. */
+-#define Fcclk	60000000
+ #define Fcco	360000000
+ 
+ #endif
+@@ -101,6 +109,8 @@
+ #define Fpclk	(Fcclk / 4)
+ #endif
+ 
++#define Fpclk_MHz       (Fpclk / 1000000)
++
+ /******************************************************************************
+ ** Function name:		TargetInit
+ **
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000457.html">[Elua-svn] r501 - branches/lpc24xx/src/platform/lpc24xx
+</A></li>
+	<LI>Next message: <A HREF="000459.html">[Elua-svn] r503 - branches/lpc24xx/src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#458">[ date ]</a>
+              <a href="thread.html#458">[ thread ]</a>
+              <a href="subject.html#458">[ subject ]</a>
+              <a href="author.html#458">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

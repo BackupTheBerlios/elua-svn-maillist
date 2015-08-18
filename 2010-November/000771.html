@@ -1,0 +1,1746 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r818 - in branches/remotefs_int: . inc inc/remotefs mux	rfs_server src src/modules src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r818%20-%20in%20branches/remotefs_int%3A%20.%20inc%20inc/remotefs%20mux%0A%09rfs_server%20src%20src/modules%20src/platform/stm32&In-Reply-To=%3C20101113210236.8D4D2480F56%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000770.html">
+   <LINK REL="Next"  HREF="000772.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r818 - in branches/remotefs_int: . inc inc/remotefs mux	rfs_server src src/modules src/platform/stm32</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r818%20-%20in%20branches/remotefs_int%3A%20.%20inc%20inc/remotefs%20mux%0A%09rfs_server%20src%20src/modules%20src/platform/stm32&In-Reply-To=%3C20101113210236.8D4D2480F56%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r818 - in branches/remotefs_int: . inc inc/remotefs mux	rfs_server src src/modules src/platform/stm32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Nov 13 22:02:36 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000770.html">[Elua-svn] r817 - in branches/remotefs_int: . mux rfs_server
+</A></li>
+        <LI>Next message: <A HREF="000772.html">[Elua-svn] r819 - in trunk: inc src src/lua src/modules	src/platform/lpc24xx src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#771">[ date ]</a>
+              <a href="thread.html#771">[ thread ]</a>
+              <a href="subject.html#771">[ subject ]</a>
+              <a href="author.html#771">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-13 22:02:36 +0100 (Sat, 13 Nov 2010)
+New Revision: 818
+
+Added:
+   branches/remotefs_int/rfs_server/deskutils.c
+   branches/remotefs_int/rfs_server/deskutils.h
+   branches/remotefs_int/rfs_server/rfs.h
+Modified:
+   branches/remotefs_int/inc/common.h
+   branches/remotefs_int/inc/remotefs/client.h
+   branches/remotefs_int/inc/remotefs/remotefs.h
+   branches/remotefs_int/mux.py
+   branches/remotefs_int/mux/main.c
+   branches/remotefs_int/rfs_server.py
+   branches/remotefs_int/rfs_server/log.h
+   branches/remotefs_int/rfs_server/main.c
+   branches/remotefs_int/rfs_server/net.h
+   branches/remotefs_int/rfs_server/net_posix.c
+   branches/remotefs_int/rfs_server/net_win32.c
+   branches/remotefs_int/rfs_server/serial.h
+   branches/remotefs_int/rfs_server/serial_posix.c
+   branches/remotefs_int/rfs_server/serial_win32.c
+   branches/remotefs_int/rfs_server/type.h
+   branches/remotefs_int/src/buf.c
+   branches/remotefs_int/src/common.c
+   branches/remotefs_int/src/common_uart.c
+   branches/remotefs_int/src/modules/tmr.c
+   branches/remotefs_int/src/modules/uart.c
+   branches/remotefs_int/src/platform/stm32/platform.c
+   branches/remotefs_int/src/platform/stm32/platform_conf.h
+   branches/remotefs_int/src/platform/stm32/platform_int.c
+Log:
+RFS server and serial multiplexer FINALLY working fine on both Win32 and Linux. Hint: the first person that says to me again &quot;hey, serial communication in Win32 is a damn mess, POSIX is so much better&quot; should really be able to run FAST. The whole thing is working over STM32 only for now, but the rest is just an easy (although tedious) work of adding interrupt support (specifically INT_UART_RX) for the rest of the platforms who needs this (which is probably all of them).
+ 
+
+
+Modified: branches/remotefs_int/inc/common.h
+===================================================================
+--- branches/remotefs_int/inc/common.h	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/inc/common.h	2010-11-13 21:02:36 UTC (rev 818)
+@@ -18,6 +18,7 @@
+ int cmn_tmr_int_set_status( elua_int_resnum resnum, int status );
+ int cmn_tmr_int_get_status( elua_int_resnum resnum );
+ int cmn_tmr_int_get_flag( elua_int_resnum resnum, int clear );
++void cmn_uart_setup_sermux();
+ 
+ unsigned int intlog2( unsigned int v );
+ 
+
+Modified: branches/remotefs_int/inc/remotefs/client.h
+===================================================================
+--- branches/remotefs_int/inc/remotefs/client.h	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/inc/remotefs/client.h	2010-11-13 21:02:36 UTC (rev 818)
+@@ -11,7 +11,7 @@
+ 
+ // RFS client send/receive functions
+ typedef u32 ( *p_rfsc_send )( const u8 *p, u32 size );
+-typedef u32 ( *p_rfsc_recv )( u8 *p, u32 size, u32 timeout );
++typedef u32 ( *p_rfsc_recv )( u8 *p, u32 size, s32 timeout );
+ 
+ // Public interface
+ void rfsc_setup( u8 *pbuf, p_rfsc_send rfsc_send_func, p_rfsc_recv rfsc_recv_func, u32 timeout );
+
+Modified: branches/remotefs_int/inc/remotefs/remotefs.h
+===================================================================
+--- branches/remotefs_int/inc/remotefs/remotefs.h	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/inc/remotefs/remotefs.h	2010-11-13 21:02:36 UTC (rev 818)
+@@ -5,12 +5,6 @@
+ 
+ #include &quot;type.h&quot;
+ 
+-#define   PACKET_SIG      0x18AFC284UL
+-
+-// Error codes
+-#define   REMOTEFS_OK     0
+-#define   REMOTEFS_ERR    1
+-
+ // Operation IDs
+ #define   RFS_OP_OPEN     0x01
+ #define   RFS_OP_FIRST    RFS_OP_OPEN
+@@ -24,17 +18,6 @@
+ #define   RFS_OP_LAST     RFS_OP_CLOSEDIR
+ #define   RFS_OP_RES_MOD  0x80
+ 
+-// Protocol constants
+-#define   RFS_START_OFFSET    4
+-#define   RFS_START_SIZE      6
+-#define   RFS_END_SIZE        6
+-#define   RFS_RESPONSE_SIZE   1
+-#define   RFS_PTR_HEADER_SIZE 6
+-#define   RFS_U32_SIZE        5
+-#define   RFS_OP_ID_SIZE      2
+-#define   RFS_READ_BUF_OFFSET ( RFS_START_OFFSET + RFS_START_SIZE + RFS_RESPONSE_SIZE + RFS_PTR_HEADER_SIZE )
+-#define   RFS_WRITE_REQUEST_EXTRA ( RFS_START_OFFSET + RFS_START_SIZE + RFS_OP_ID_SIZE + RFS_U32_SIZE + RFS_PTR_HEADER_SIZE + RFS_END_SIZE )
+-
+ // Platform independent constants for &quot;flags&quot; in &quot;open&quot;
+ #define   RFS_OPEN_FLAG_APPEND      0x01
+ #define   RFS_OPEN_FLAG_CREAT       0x02
+@@ -57,16 +40,6 @@
+ // Max filename size on a RFS instance
+ #define   RFS_MAX_FNAME_SIZE        31
+ 
+-// Public interface
+-// Get request ID
+-int remotefs_get_request_id( const u8 *p, u8 *pid );
+-
+-// Replace a flag with another flag
+-u32 remotefs_replace_flag( u32 val, u32 origflag, u32 newflag );
+-
+-// Get packet size
+-int remotefs_get_packet_size( const u8 *p, u16 *psize );
+-
+ // Function: int open(const char *pathname,int flags, mode_t mode)
+ void remotefs_open_write_response( u8 *p, int result );
+ int remotefs_open_read_response( const u8 *p, int *presult );
+
+Modified: branches/remotefs_int/mux/main.c
+===================================================================
+--- branches/remotefs_int/mux/main.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/mux/main.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -12,6 +12,7 @@
+ #include &quot;serial.h&quot;
+ #include &quot;sermux.h&quot;
+ #include &quot;rfs.h&quot;
++#include &quot;deskutils.h&quot;
+ 
+ // ****************************************************************************
+ // Data structures and local variables
+@@ -19,6 +20,11 @@
+ #define MODE_MUX              1
+ #define MODE_RFSMUX           2
+ 
++#define HND_TRANSPORT_OFFSET  0
++#define HND_FIRST_VOFFSET     1
++
++#define RFS_PSEUDO_SELIDX     0xFF
++
+ // Send/receive/init function pointers
+ typedef u32 ( *p_recv_func )( u8 *p, u32 size );
+ typedef u32 ( *p_send_func )( const u8 *p, u32 size );
+@@ -41,7 +47,6 @@
+ static unsigned vport_num;
+ 
+ static TRANSPORT_SER *transport_data;
+-static p_recv_func transport_recv;
+ static p_send_func transport_send;
+ static p_init_func transport_init;
+ 
+@@ -50,17 +55,11 @@
+ static ser_handler transport_hnd = SER_HANDLER_INVALID;
+ static int mux_mode;
+ static int verbose_mode;
++static int rfs_service_id = -1, service_offset;
+ 
+ // ***************************************************************************
+ // Serial transport implementation
+ 
+-static u32 transport_ser_recv( u8 *p, u32 size ) 
+-{
+-  TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
+-
+-  return ser_read( pser-&gt;fd, p, size, SER_NO_TIMEOUT );
+-}
+-
+ static u32 transport_ser_send( const u8 *p, u32 size )
+ {
+   TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
+@@ -96,45 +95,6 @@
+   transport_send( &amp;data, 1 );
+ }
+ 
+-static int transport_read_byte() 
+-{
+-  u8 c;
+-
+-  return transport_recv( &amp;c, 1 ) == 1 ? c : -1;
+-}
+-
+-// Secure atoi
+-static int secure_atoi( const char *str, long *pres )
+-{
+-  char *end_ptr;
+-  long s1;
+-  
+-  errno = 0;
+-  s1 = strtol( str, &amp;end_ptr, 10 );
+-  if( ( s1 == LONG_MIN || s1 == LONG_MAX ) &amp;&amp; errno != 0 )
+-    return 0;
+-  else if( end_ptr == str )
+-    return 0;
+-  else if( s1 &gt; INT_MAX || s1 &lt; INT_MIN )
+-    return 0;
+-  else if( '\0' != *end_ptr )
+-    return 0;
+-  *pres = s1;
+-  return 1;  
+-}
+-
+-// Local strndup function to compensate the lack of strndup in Windows
+-static char* l_strndup( const char* s, size_t n )
+-{
+-  char* p;
+-  
+-  if( ( p = ( char* )malloc( n + 1 ) ) == NULL )
+-    return NULL;
+-  p [ 0 ] = p[ n ] = '\0';
+-  strncpy( p, s, n );
+-  return p;
+-} 
+-
+ // Transport parser
+ static int parse_transport( const char* s )
+ {
+@@ -154,7 +114,6 @@
+   tser.pname = l_strndup( s, c - s );
+   transport_data = &tser;
+   transport_send = transport_ser_send;
+-  transport_recv = transport_ser_recv;
+   transport_init = transport_ser_init;
+   return 1;
+ }
+@@ -171,18 +130,23 @@
+ {
+   unsigned i;
+   SERVICE_DATA *tservice;
+-  int c;
+-  int temp, sdata;
++  int c, prev_sent = -1;
++  int temp;
+   int got_esc = 0;
+-  fd_set fds;
+   char* rfs_dir_name;
++  ser_handler *phandlers;
++  int selidx;
++  u16 rfs_size = 0;
++  u8 *rfs_ptr;
+ 
+   // Interpret arguments
+   setvbuf( stdout, NULL, _IONBF, 0 );  
+   if( argc &lt; MIN_ARGC_COUNT )
+   {
+     log_err( &quot;Usage: %s &lt;mode&gt; &lt;transport&gt; &lt;vcom1&gt; [&lt;vcom2&gt;] ... [&lt;vcomn&gt;] [-v]\n&quot;, argv[ 0 ] );
+-    log_err( &quot;  mode: 'mux' for multiplexer mode, 'rfsmux:&lt;directory&gt;' for combined RFS and multiplexer mode.\n&quot; );
++    log_err( &quot;  mode: \n&quot; );
++    log_err( &quot;    'mux':                 serial multiplexer mode\n&quot; );
++    log_err( &quot;    'rfsmux:&lt;directory&gt;:   combined RFS and multiplexer mode.\n&quot; );
+     log_err( &quot;  transport: '&lt;port&gt;,&lt;baud&gt;.\n&quot; );
+     log_err( &quot;  vcom1, ..., vcomn: multiplexer serial ports.&quot; );
+     log_err( &quot;  Use '-v' for verbose output.\n&quot; );
+@@ -196,6 +160,8 @@
+   {
+     rfs_dir_name = argv[ MODE_IDX ] + strlen( &quot;rfsmux:&quot; );
+     mux_mode = MODE_RFSMUX;
++    rfs_service_id = SERMUX_SERVICE_ID_FIRST;
++    service_offset = 1;
+   }
+   else
+   {
+@@ -233,6 +199,12 @@
+     log_err( &quot;Not enough memory\n&quot; );
+     return 1;
+   }
++  if( ( phandlers = ( ser_handler* )malloc( sizeof( ser_handler ) * ( vport_num + 1 ) ) ) == NULL )
++  {
++    log_err( &quot;Not enough memory\n&quot; );
++    return 1;  
++  }
++  phandlers[ HND_TRANSPORT_OFFSET ] = transport_hnd;
+ 
+   memset( services, 0, sizeof( SERVICE_DATA ) * vport_num );
+   for( i = 0; i &lt; vport_num; i ++ ) 
+@@ -249,6 +221,7 @@
+       return 1;
+     }
+     tservice-&gt;pname = argv[ i + FIRST_SERVICE_IDX ];
++    phandlers[ i + HND_FIRST_VOFFSET ] = tservice-&gt;fd;
+   }
+   
+   // Setup RFS server in RFSMUX mode
+@@ -257,36 +230,64 @@
+     char *args[] = { &quot;dummy&quot;, &quot;mem&quot;, rfs_dir_name, NULL };
+     if( verbose_mode )
+       args[ 3 ] = &quot;-v&quot;;
+-    if( rfs_init( verbose_mode ? 4 : 3, args ) != 0 )      
++    if( rfs_init( verbose_mode ? 4 : 3, ( const char ** )args ) != 0 )      
+       return 1;
+   }
+ 
+   log_msg( &quot;Starting service multiplexer on %u port(s)\n&quot;, vport_num );
+-/*  
++  
+   // Main service thread
+   while( 1 )
+   {
+-    FD_ZERO( &amp;fds );
+-    FD_SET( transport_hnd, &amp;fds );
+-    for( i = 0; i &lt; vport_num; i ++ )
+-      FD_SET( ports[ i ].fd, &amp;fds );
+-    if( select( maxfd + 1, &amp;fds, NULL, NULL, NULL ) &lt;= 0 )
+-      continue;
+-    if( FD_ISSET( transport_hnd, &amp;fds ) )
++    if( rfs_size &gt; 0 ) // Response packet from RFS
+     {
+-      c = transport_read_byte();
+-      // Read one byte, interpret it
+-      if( c != ESCAPE_CHAR )
++      c = *rfs_ptr ++;
++      rfs_size --;
++      selidx = RFS_PSEUDO_SELIDX;
++    }
++    else
++    {
++      if( ( c = ser_select_byte( phandlers, vport_num + 1, SER_INF_TIMEOUT ) ) == -1 )
+       {
+-        if( c &gt;= SERVICE_ID_FIRST &amp;&amp; c &lt;= SERVICE_ID_LAST )
++        log_err( &quot;Error on select, aborting program\n&quot; );
++        return 1;
++      }
++      selidx = c &gt;&gt; 8;
++      c = c &amp; 0xFF;
++    }
++    //log_msg( &quot;Got byte %d from idx %d\n&quot;, c, selidx );
++    if( selidx == HND_TRANSPORT_OFFSET ) // Got byte on transport interface
++    {
++      // Interpret byte
++      if( c != SERMUX_ESCAPE_CHAR )
++      {
++        if( c &gt;= SERMUX_SERVICE_ID_FIRST &amp;&amp; c &lt;= SERMUX_SERVICE_ID_LAST )
++        {
++          log_msg( &quot;Changed service_id_in from %d(%X) to %d(%X).\n&quot;, service_id_in, service_id_in, c, c );
+           service_id_in = c;
++        } 
++        else if( c == SERMUX_FORCE_SID_CHAR )
++        {
++          if( prev_sent == -1 )
++          {
++            log_err( &quot;Protocol error: got request to resend service ID when the last char sent was not set.\n&quot; );
++            return 1;
++          }
++          log_msg( &quot;Got request to resend service_id_out %d(%X).\n&quot;, service_id_out, service_id_out );
++          // Re-transmit the last data AND the service ID
++          transport_send_byte( service_id_out );
++          if( prev_sent &amp; SERMUX_ESC_MASK )
++            transport_send_byte( SERMUX_ESCAPE_CHAR );
++          transport_send_byte( prev_sent &amp; 0xFF );
++          prev_sent = -1;
++        }          
+         else
+         {
+           if( got_esc )
+           {
+             // Got an escape last time, check the char now (with the 5th bit flipped)
+-            c ^= ESCAPE_XOR_MASK;
+-            if( c != ESCAPE_CHAR &amp;&amp; c &lt; SERVICE_ID_FIRST &amp;&amp; c &gt; SERVICE_ID_LAST )
++            c ^= SERMUX_ESCAPE_XOR_MASK;
++            if( c != SERMUX_ESCAPE_CHAR &amp;&amp; c != SERMUX_FORCE_SID_CHAR &amp;&amp; ( c &lt; SERMUX_SERVICE_ID_FIRST || c &gt; SERMUX_SERVICE_ID_LAST ) )
+             {
+                log_err( &quot;Protocol error: invalid escape sequence\n&quot; );
+                return 1;
+@@ -295,52 +296,58 @@
+           }  
+           if( service_id_in == -1 )
+           {
+-            log_err( &quot;Protocol error: service ID not specified\n&quot; );
+-            return 1;
++            transport_send_byte( SERMUX_FORCE_SID_CHAR );
++            log_msg( &quot;Requested resend of service ID.\n&quot; );
+           }
+-          ser_write_byte( ports[ service_id_in - SERVICE_ID_FIRST ].fd, c );
++          else
++          {
++            if( service_id_in == rfs_service_id ) // this request is for the RFS server
++            {
++              rfs_mem_read_request_packet( c );
++              if( rfs_mem_has_response() ) // we have a response from the RFS server
++              {
++                rfs_mem_write_response( &amp;rfs_size, &amp;rfs_ptr );                  
++                rfs_mem_start_request(); // initialize the RFS server for a new request  
++              }
++            }
++            else
++            {
++              //log_msg( &quot;Sending byte %d to %s\n&quot;, c, services[ service_id_in - SERMUX_SERVICE_ID_FIRST - service_offset ].pname );
++              ser_write_byte( services[ service_id_in - SERMUX_SERVICE_ID_FIRST - service_offset ].fd, c );
++            }
++          }
+         }
+       }
+       else
+-        got_esc = 1;
++        got_esc = 1;                          
+     }
+     else
+     {
+-      // No byte to read, check if there's something to send
+-      // Favour the service that sent data previously (if any)
+-      temp = service_id_out != -1 ? service_id_out : SERVICE_ID_FIRST;
+-      if( FD_ISSET( ports[ temp - SERVICE_ID_FIRST ].fd, &amp;fds ) )
+-        sdata = ser_read_byte( ports[ temp - SERVICE_ID_FIRST ].fd, SER_NO_TIMEOUT );
+-      else
++      // No byte to read, there must be something to send
++      if( selidx == RFS_PSEUDO_SELIDX )
++        temp = SERMUX_SERVICE_ID_FIRST;
++      else        
++        temp = SERMUX_SERVICE_ID_FIRST + selidx - HND_FIRST_VOFFSET + service_offset;
++      prev_sent = c;
++      // Send the service ID first if needed
++      if( temp != service_id_out )
+       {
+-        temp = -1;
+-        for( i = SERVICE_ID_FIRST; i &lt; SERVICE_ID_FIRST + vport_num; i ++ )
+-          if( FD_ISSET( ports[ i - SERVICE_ID_FIRST ].fd, &amp;fds ) )
+-          {
+-            temp = ( int )i;
+-            sdata = ser_read_byte( ports[ i - SERVICE_ID_FIRST ].fd, SER_NO_TIMEOUT );
+-            break;
+-          }
++        log_msg( &quot;Changed service_id_out to %d(%X).\n&quot;, temp, temp );
++        transport_send_byte( temp );
+       }
+-      if( temp != -1 )
++      // Then send the actual data byte, escaping it if needed
++      if( c == SERMUX_ESCAPE_CHAR || c == SERMUX_FORCE_SID_CHAR || ( c &gt;= SERMUX_SERVICE_ID_FIRST &amp;&amp; c &lt;= SERMUX_SERVICE_ID_LAST ) )
+       {
+-        // We have something to send
+-        // Send the service ID first if needed
+-        if( temp != service_id_out )
+-          transport_send_byte( temp );
+-        // Then send the actual data byte, escaping it if needed
+-        if( sdata == ESCAPE_CHAR || ( sdata &gt;= SERVICE_ID_FIRST &amp;&amp; sdata &lt;= SERVICE_ID_LAST ) )
+-        {
+-          transport_send_byte( ESCAPE_CHAR );
+-          transport_send_byte( ( u8 )sdata ^ ESCAPE_XOR_MASK );
+-        }
+-        else
+-          transport_send_byte( sdata );
+-        service_id_out = temp;
++        transport_send_byte( SERMUX_ESCAPE_CHAR );
++        transport_send_byte( ( u8 )c ^ SERMUX_ESCAPE_XOR_MASK );
++        prev_sent = SERMUX_ESC_MASK | ( ( u8 )c ^ SERMUX_ESCAPE_XOR_MASK );
+       }
++      else
++        transport_send_byte( c );
++      service_id_out = temp;
+     }
+   }
+-*/
++
+   return 0;
+ }
+ 
+
+Modified: branches/remotefs_int/mux.py
+===================================================================
+--- branches/remotefs_int/mux.py	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/mux.py	2010-11-13 21:02:36 UTC (rev 818)
+@@ -2,7 +2,7 @@
+ 
+ flist = &quot;main.c&quot;
+ rfs_flist = ''
+-rfs_flist = &quot;main.c server.c log.c&quot;
++rfs_flist = &quot;main.c server.c log.c deskutils.c&quot;
+ cdefs = &quot;-DRFS_UDP_TRANSPORT -DRFS_INSIDE_MUX_MODE&quot;
+ socklib = ''
+ ptlib = ''
+
+Added: branches/remotefs_int/rfs_server/deskutils.c
+===================================================================
+--- branches/remotefs_int/rfs_server/deskutils.c	                        (rev 0)
++++ branches/remotefs_int/rfs_server/deskutils.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -0,0 +1,40 @@
++// Utility functions for desktop programs
++
++#include &quot;deskutils.h&quot;
++#include &lt;stdio.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;limits.h&gt;
++#include &lt;errno.h&gt;
++
++// Secure atoi
++int secure_atoi( const char *str, long *pres )
++{
++  char *end_ptr;
++  long s1;
++  
++  errno = 0;
++  s1 = strtol( str, &amp;end_ptr, 10 );
++  if( ( s1 == LONG_MIN || s1 == LONG_MAX ) &amp;&amp; errno != 0 )
++    return 0;
++  else if( end_ptr == str )
++    return 0;
++  else if( s1 &gt; INT_MAX || s1 &lt; INT_MIN )
++    return 0;
++  else if( '\0' != *end_ptr )
++    return 0;
++  *pres = s1;
++  return 1;  
++}
++
++// Local strndup function to compensate the lack of strndup in Windows
++char* l_strndup( const char* s, size_t n )
++{
++  char* p;
++  
++  if( ( p = ( char* )malloc( n + 1 ) ) == NULL )
++    return NULL;
++  p [ 0 ] = p[ n ] = '\0';
++  strncpy( p, s, n );
++  return p;
++} 
+
+Added: branches/remotefs_int/rfs_server/deskutils.h
+===================================================================
+--- branches/remotefs_int/rfs_server/deskutils.h	                        (rev 0)
++++ branches/remotefs_int/rfs_server/deskutils.h	2010-11-13 21:02:36 UTC (rev 818)
+@@ -0,0 +1,12 @@
++// Utility functions for desktop programs
++
++#ifndef __DESKUTILS_H__
++#define __DESKUTILS_H__
++
++#include &quot;type.h&quot;
++#include &lt;stddef.h&gt;
++
++int secure_atoi( const char *str, long *pres );
++char* l_strndup( const char* s, size_t n );
++
++#endif
+
+Modified: branches/remotefs_int/rfs_server/log.h
+===================================================================
+--- branches/remotefs_int/rfs_server/log.h	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/rfs_server/log.h	2010-11-13 21:02:36 UTC (rev 818)
+@@ -11,4 +11,6 @@
+ void log_msg( const char *msg, ... );
+ void log_err( const char* msg, ... );
+ 
++#define LOG_SET_MODULE
++
+ #endif
+
+Modified: branches/remotefs_int/rfs_server/main.c
+===================================================================
+--- branches/remotefs_int/rfs_server/main.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/rfs_server/main.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -14,6 +14,7 @@
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+ #include &quot;rfs.h&quot;
++#include &quot;deskutils.h&quot;
+ 
+ // ****************************************************************************
+ // Local definitions
+@@ -313,38 +314,6 @@
+ // ****************************************************************************
+ // Helper functions
+ 
+-// Secure atoi
+-static int secure_atoi( const char *str, long *pres )
+-{
+-  char *end_ptr;
+-  long s1;
+-  
+-  errno = 0;
+-  s1 = strtol( str, &amp;end_ptr, 10 );
+-  if( ( s1 == LONG_MIN || s1 == LONG_MAX ) &amp;&amp; errno != 0 )
+-    return 0;
+-  else if( end_ptr == str )
+-    return 0;
+-  else if( s1 &gt; INT_MAX || s1 &lt; INT_MIN )
+-    return 0;
+-  else if( '\0' != *end_ptr )
+-    return 0;
+-  *pres = s1;
+-  return 1;  
+-}
+-
+-// Local strndup function to compensate the lack of strndup in Windows
+-static char* l_strndup( const char* s, size_t n )
+-{
+-  char* p;
+-  
+-  if( ( p = ( char* )malloc( n + 1 ) ) == NULL )
+-    return NULL;
+-  p [ 0 ] = p[ n ] = '\0';
+-  strncpy( p, s, n );
+-  return p;
+-} 
+-
+ // Transport parser
+ static int parse_transport_and_init( const char* s )
+ {
+
+Modified: branches/remotefs_int/rfs_server/net.h
+===================================================================
+--- branches/remotefs_int/rfs_server/net.h	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/rfs_server/net.h	2010-11-13 21:02:36 UTC (rev 818)
+@@ -3,12 +3,13 @@
+ #ifndef __NETINIT_H__
+ #define __NETINIT_H__
+ 
++typedef int net_ssize_t;
++
+ #ifdef WIN32_BUILD
+ 
+ #include &lt;winsock2.h&gt;
+ #include &lt;windows.h&gt;
+ typedef int socklen_t;
+-typedef int ssize_t;
+ #define INVALID_SOCKET_VALUE  NULL
+ typedef struct 
+ {
+@@ -36,8 +37,8 @@
+ 
+ int net_init();
+ NET_SOCKET net_create_socket( int domain, int type, int protocol );
+-ssize_t net_recvfrom( NET_SOCKET s, void *buf, size_t len, int flags, struct sockaddr* from, socklen_t *fromlen, int timeout );
+-ssize_t net_sendto( NET_SOCKET s, const void *buf, size_t len, int flags, const struct sockaddr *to, socklen_t tolen );
++net_ssize_t net_recvfrom( NET_SOCKET s, void *buf, size_t len, int flags, struct sockaddr* from, socklen_t *fromlen, int timeout );
++net_ssize_t net_sendto( NET_SOCKET s, const void *buf, size_t len, int flags, const struct sockaddr *to, socklen_t tolen );
+ int net_close( NET_SOCKET s );
+ net_sync_object net_get_sync_object( NET_SOCKET s );
+ 
+
+Modified: branches/remotefs_int/rfs_server/net_posix.c
+===================================================================
+--- branches/remotefs_int/rfs_server/net_posix.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/rfs_server/net_posix.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -1,49 +1,50 @@
+-// Network functions (POSIX)
+-
+-#include &quot;net.h&quot;
+-#include &quot;log.h&quot;
+-#include &lt;stdio.h&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;string.h&gt;
+-#include &lt;errno.h&gt;
+-#include &lt;limits.h&gt;
+-#include &lt;sys/select.h&gt;
+-
+-int net_init()
+-{ 
+-  return 1;
+-}
+-
+-NET_SOCKET net_create_socket( int domain, int type, int protocol )
+-{
+-  return socket( domain, type, protocol ); 
+-}
+-
+-ssize_t net_recvfrom( NET_SOCKET s, void *buf, size_t len, int flags, struct sockaddr* from, socklen_t *fromlen, int timeout )
+-{
+-  fd_set fds;
+-  struct timeval tv;
+-  
+-  FD_ZERO( &amp;fds );
+-  FD_SET( s, &amp;fds );
+-  tv.tv_sec = timeout * 1000;
+-  tv.tv_usec = 0;
+-  if( select( s + 1, &amp;fds, NULL, NULL, timeout == NET_INF_TIMEOUT ? NULL : &amp;tv ) &lt;= 0 )
+-    return 0;
+-  return recvfrom( s, buf, len, flags, from, fromlen, timeout );      
+-}
+-
+-ssize_t net_sendto( NET_SOCKET s, const void *buf, size_t len, int flags, const struct sockaddr *to, socklen_t tolen )
+-{
+-  return sendto( s, buf, len, flags, to, tolen );
+-}
+-
+-int net_close( NET_SOCKET s )
+-{
+-  return close( s );
+-}
+-
+-net_sync_object net_get_sync_object( NET_SOCKET s )
+-{
+-  return s;
+-}
++// Network functions (POSIX)
++
++#include &quot;net.h&quot;
++#include &quot;log.h&quot;
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;string.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;limits.h&gt;
++#include &lt;sys/select.h&gt;
++#include &lt;unistd.h&gt;
++
++int net_init()
++{ 
++  return 1;
++}
++
++NET_SOCKET net_create_socket( int domain, int type, int protocol )
++{
++  return socket( domain, type, protocol ); 
++}
++
++net_ssize_t net_recvfrom( NET_SOCKET s, void *buf, size_t len, int flags, struct sockaddr* from, socklen_t *fromlen, int timeout )
++{
++  fd_set fds;
++  struct timeval tv;
++  
++  FD_ZERO( &amp;fds );
++  FD_SET( s, &amp;fds );
++  tv.tv_sec = timeout / 1000000;
++  tv.tv_usec = ( timeout % 1000000 ) * 1000;
++  if( select( s + 1, &amp;fds, NULL, NULL, timeout == NET_INF_TIMEOUT ? NULL : &amp;tv ) &lt;= 0 )
++    return 0;
++  return recvfrom( s, buf, len, flags, from, fromlen );      
++}
++
++net_ssize_t net_sendto( NET_SOCKET s, const void *buf, size_t len, int flags, const struct sockaddr *to, socklen_t tolen )
++{
++  return sendto( s, buf, len, flags, to, tolen );
++}
++
++int net_close( NET_SOCKET s )
++{
++  return close( s );
++}
++
++net_sync_object net_get_sync_object( NET_SOCKET s )
++{
++  return s;
++}
+
+Modified: branches/remotefs_int/rfs_server/net_win32.c
+===================================================================
+--- branches/remotefs_int/rfs_server/net_win32.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/rfs_server/net_win32.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -44,7 +44,7 @@
+   return d;  
+ }
+ 
+-ssize_t net_recvfrom( NET_SOCKET s, void *buf, size_t len, int flags, struct sockaddr* from, socklen_t *fromlen, int timeout )
++net_ssize_t net_recvfrom( NET_SOCKET s, void *buf, size_t len, int flags, struct sockaddr* from, socklen_t *fromlen, int timeout )
+ {
+   DWORD readbytes = 0;
+   DWORD rflags = ( DWORD )flags;
+@@ -76,7 +76,7 @@
+   return readbytes;    
+ }
+ 
+-ssize_t net_sendto( NET_SOCKET s, const void *buf, size_t len, int flags, const struct sockaddr *to, socklen_t tolen )
++net_ssize_t net_sendto( NET_SOCKET s, const void *buf, size_t len, int flags, const struct sockaddr *to, socklen_t tolen )
+ {
+   DWORD wrotebytes;
+   WSABUF datadesc = { len, ( char* )buf };
+
+Added: branches/remotefs_int/rfs_server/rfs.h
+===================================================================
+--- branches/remotefs_int/rfs_server/rfs.h	                        (rev 0)
++++ branches/remotefs_int/rfs_server/rfs.h	2010-11-13 21:02:36 UTC (rev 818)
+@@ -0,0 +1,12 @@
++// RFS public interface (used by mux)
++
++#ifndef __RFS_H__
++#define __RFS_H__
++
++int rfs_init( int argc, const char **argv );
++void rfs_mem_start_request();
++int rfs_mem_read_request_packet( int c );
++int rfs_mem_has_response();
++void rfs_mem_write_response( u16 *plen, u8 **pdata );
++
++#endif
+
+Modified: branches/remotefs_int/rfs_server/serial.h
+===================================================================
+--- branches/remotefs_int/rfs_server/serial.h	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/rfs_server/serial.h	2010-11-13 21:02:36 UTC (rev 818)
+@@ -39,3 +39,4 @@
+ int ser_select_byte( ser_handler *pobjects, unsigned nobjects, int timeout );
+ 
+ #endif
++
+
+Modified: branches/remotefs_int/rfs_server/serial_posix.c
+===================================================================
+--- branches/remotefs_int/rfs_server/serial_posix.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/rfs_server/serial_posix.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -10,6 +10,8 @@
+ #include &lt;sys/select.h&gt;
+ #include &lt;sys/time.h&gt;
+ #include &lt;sys/types.h&gt;
++#include &lt;sys/ioctl.h&gt;
++#include &quot;log.h&quot;
+ 
+ // Open the serial port
+ ser_handler ser_open( const char* sername )
+@@ -17,10 +19,7 @@
+   int fd;
+ 
+   if( ( fd = open( sername, O_RDWR | O_NOCTTY | O_NDELAY ) ) == -1 )
+-  {
+-    perror( &quot;ser_open: unable to open port&quot; );
+     return SER_HANDLER_INVALID;
+-  }
+   else
+     fcntl( fd, F_SETFL, 0 );
+   return ( ser_handler )fd;
+@@ -93,9 +92,9 @@
+   {
+     termdata.c_cflag |= PARENB;
+     termdata.c_cflag |= PARODD;
+-  }
++  }  
+ 
+-   // Data bits
++  // Data bits
+   termdata.c_cflag |= ( CLOCAL | CREAD );
+   termdata.c_cflag &amp;= ~CSIZE;
+   termdata.c_cflag |= ser_number_of_bits_to_id( databits );
+@@ -116,18 +115,18 @@
+   else
+     termdata.c_iflag |= ( INPCK | ISTRIP );
+ 
+-  termdata.c_cc[ VMIN ] = 1;
++  termdata.c_cc[ VMIN ] = 0;
+   termdata.c_cc[ VTIME ] = 0;
+ 
++  // Flush everything
++  tcflush( hnd, TCIOFLUSH );
++
+   // Set the attibutes now
+   tcsetattr( hnd, TCSANOW, &amp;termdata );
+ 
+-  // Flush everything
+-  tcflush( hnd, TCIOFLUSH );
++  // And set non-blocking mode by default
++  fcntl( hnd, F_SETFL, FNDELAY );
+ 
+-  // And set blocking mode by default
+-  fcntl( id, F_SETFL, 0 );
+-
+   // All done
+   return SER_OK;
+ }
+@@ -135,35 +134,19 @@
+ // Read up to the specified number of bytes, return bytes actually read
+ u32 ser_read( ser_handler id, u8* dest, u32 maxsize, u32 timeout )
+ {
+-  struct termios termdata;
++  fd_set readfs;
++  struct timeval tv;
++  int retval;
+ 
+-  tcgetattr( id, &amp;termdata );
+-  if( timeout == SER_INF_TIMEOUT )
+-  {
+-    termdata.c_cc[ VMIN ] = maxsize;
+-    termdata.c_cc[ VTIME ] = 0;
+-    tcsetattr( id, TCSANOW, &amp;termdata );
+-    return ( u32 )read( ( int )id, dest, maxsize );
+-  }
+-  else
+-  {
+-    fd_set readfs;
+-    struct timeval tv;
+-    int retval;
+-
+-    termdata.c_cc[ VMIN ] = 1;
+-    termdata.c_cc[ VTIME ] = 0;
+-    tcsetattr( id, TCSANOW, &amp;termdata );
+-    FD_ZERO( &amp;readfs );
+-    FD_SET( ( int )id, &amp;readfs );
+-    tv.tv_sec = timeout / 1000000;
+-    tv.tv_usec = ( timeout % 1000000 ) * 1000;
+-    retval = select( ( int )id + 1, &amp;readfs, NULL, NULL, &amp;tv );
+-    if( retval == -1 || retval == 0 )
+-      return 0;
+-    else 
+-      return ( u32 )read( ( int )id, dest, maxsize );
+-  }
++  FD_ZERO( &amp;readfs );
++  FD_SET( ( int )id, &amp;readfs );
++  tv.tv_sec = timeout / 1000;
++  tv.tv_usec = ( timeout % 1000 ) * 1000;
++  retval = select( ( int )id + 1, &amp;readfs, NULL, NULL, timeout == SER_INF_TIMEOUT ? NULL : &amp;tv );
++  if( retval == -1 || retval == 0 )
++    return 0;
++  else 
++    return ( u32 )read( id, dest, maxsize );
+ }
+ 
+ // Read a single byte and return it (or -1 for error)
+@@ -190,3 +173,40 @@
+   return ( u32 )write( id, &amp;data, 1 );
+ }
+ 
++// Perform 'select' on the specified handler(s), returning a single byte 
++// if it could be read (plus the object ID in the upper 8 bits) and -1
++// otherwise
++int ser_select_byte( ser_handler *pobjects, unsigned nobjects, int timeout )
++{
++  int i, maxfd = -1;
++  fd_set readfs;
++  struct timeval tv;  
++  int res = -1;
++  u8 data;
++  
++  FD_ZERO( &amp;readfs );
++  for( i = 0; i &lt; nobjects; i ++ )
++  {
++    FD_SET( pobjects[ i ], &amp;readfs );
++    if( pobjects[ i ] &gt; maxfd )
++      maxfd = pobjects[ i ];
++  }
++  
++  tv.tv_sec = timeout / 1000;
++  tv.tv_usec = ( timeout % 1000 ) * 1000;
++  res = select( maxfd + 1, &amp;readfs, NULL, NULL, timeout == SER_INF_TIMEOUT ? NULL : &amp;tv );
++  if( res &lt;= 0 )
++    return -1;
++  res = -1;
++  for( i = 0; i &lt; nobjects; i ++ )
++    if( FD_ISSET( pobjects[ i ], &amp;readfs ) )
++    {
++      res = read( pobjects[ i ], &amp;data, 1 );
++      if( res != 1 )
++        return -1;
++      res = data | ( i &lt;&lt; 8 );
++      break;
++    }
++  return res;
++}
++
+
+Modified: branches/remotefs_int/rfs_server/serial_win32.c
+===================================================================
+--- branches/remotefs_int/rfs_server/serial_win32.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/rfs_server/serial_win32.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -12,6 +12,7 @@
+ #define MAX_HANDLES   1024
+ 
+ static HANDLE sel_handlers[ MAX_HANDLES ];
++static int sel_handler_map[ MAX_HANDLES ];
+ 
+ // Helper: set timeout
+ static int ser_win32_set_timeouts( HANDLE hComm, DWORD ri, DWORD rtm, DWORD rtc, DWORD wtm, DWORD wtc )
+@@ -68,8 +69,11 @@
+     return SER_HANDLER_INVALID;
+   memset( hnd, 0, sizeof( SERIAL_DATA ) );
+   hnd-&gt;hnd = hComm;
++  hnd-&gt;fWaitingOnRead = FALSE;
+   if( ( hnd-&gt;o.hEvent = CreateEvent( NULL, TRUE, FALSE, NULL ) ) == NULL )
+     return SER_HANDLER_INVALID;
++  if( ( hnd-&gt;o_wr.hEvent = CreateEvent( NULL, TRUE, FALSE, NULL ) ) == NULL )
++    return SER_HANDLER_INVALID;    
+   return hnd;
+ }
+ 
+@@ -77,6 +81,7 @@
+ void ser_close( ser_handler id )
+ {
+   CloseHandle( id-&gt;o.hEvent );
++  CloseHandle( id-&gt;o_wr.hEvent );  
+   CloseHandle( id-&gt;hnd );
+   free( id );
+ }
+@@ -146,8 +151,7 @@
+       
+   if( id-&gt;fWaitingOnRead )
+   {
+-    DWORD dwRes = WaitForSingleObject( id-&gt;o.hEvent, timeout == SER_INF_TIMEOUT ? INFINITE : timeout );
+-    ResetEvent( id-&gt;o.hEvent );    
++    DWORD dwRes = WaitForSingleObject( id-&gt;o.hEvent, timeout == SER_INF_TIMEOUT ? INFINITE : timeout ); 
+     if( dwRes == WAIT_OBJECT_0 ) 
+     {
+       if( !GetOverlappedResult( hComm, &amp;id-&gt;o, &amp;readbytes, TRUE ) )
+@@ -159,6 +163,7 @@
+       GetOverlappedResult( hComm, &amp;id-&gt;o, &amp;readbytes, TRUE );
+       readbytes = 0;
+     }
++    ResetEvent( id-&gt;o.hEvent );   
+   }  
+   id-&gt;fWaitingOnRead = FALSE;  
+   return readbytes;
+@@ -179,9 +184,11 @@
+   HANDLE hComm = id-&gt;hnd;
+   DWORD written = 0;
+   BOOL fWaitingOnWrite = FALSE;
++	HANDLE temp = id-&gt;o_wr.hEvent;
+ 	
+-  ResetEvent( id-&gt;o.hEvent );
+-  if( WriteFile( hComm, src, size, &amp;written, &amp;id-&gt;o ) == FALSE )
++	memset( &amp;id-&gt;o_wr, 0, sizeof( OVERLAPPED ) );
++	id-&gt;o_wr.hEvent = temp;
++  if( WriteFile( hComm, src, size, &amp;written, &amp;id-&gt;o_wr ) == FALSE )
+   {
+     if( GetLastError() != ERROR_IO_PENDING )    
+       return 0;
+@@ -192,14 +199,15 @@
+     return written;
+ 
+   if( fWaitingOnWrite )
+-  {
+-    DWORD dwRes = WaitForSingleObject( id-&gt;o.hEvent, INFINITE );
++  {                              
++    DWORD dwRes = WaitForSingleObject( id-&gt;o_wr.hEvent, INFINITE );      
+     if( dwRes == WAIT_OBJECT_0 )
+-      if( !GetOverlappedResult( hComm, &amp;id-&gt;o, &amp;written, FALSE ) )
++      if( !GetOverlappedResult( hComm, &amp;id-&gt;o_wr, &amp;written, FALSE ) )
+         written = 0;
++    ResetEvent( id-&gt;o_wr.hEvent );        
+   }
+ 
+-  return written;
++  return written; 
+ }
+ 
+ // Write a byte to the serial port
+@@ -213,23 +221,30 @@
+ // otherwise
+ int ser_select_byte( ser_handler *pobjects, unsigned nobjects, int timeout )
+ {
+-  unsigned i;
+-  int wait_on_read = 0;
++  int i, idx;
+   DWORD readbytes;
+-  int res;
++  int res = -1;
++  unsigned num_wait = 0;
++  ser_handler hnd;
++  HANDLE temp;
+   
+   // Try to read directly first
+   for( i = 0; i &lt; nobjects; i ++ )
++  {   
++    temp = pobjects[ i ]-&gt;o.hEvent;
++    memset( &amp;pobjects[ i ]-&gt;o, 0, sizeof( OVERLAPPED ) );
++    pobjects[ i ]-&gt;o.hEvent = temp;
+     if( !pobjects[ i ]-&gt;fWaitingOnRead )
+     {
+       if( ReadFile( pobjects[ i ]-&gt;hnd, &amp;pobjects[ i ]-&gt;databuf, 1, &amp;readbytes, &amp;pobjects[ i ]-&gt;o ) == FALSE )
+       {
+-        if( GetLastError() != ERROR_IO_PENDING )   
++        if( GetLastError() != ERROR_IO_PENDING )
+           return -1;
+         else
+         {
+           pobjects[ i ]-&gt;fWaitingOnRead = TRUE;
+-          wait_on_read = 1;
++          sel_handler_map[ num_wait ] = i;
++          sel_handlers[ num_wait ++ ] = pobjects[ i ]-&gt;o.hEvent;
+         }
+       }
+       else
+@@ -239,36 +254,40 @@
+         else
+           return -1;
+       }    
+-    }
++    }  
++    else
++    {
++      sel_handler_map[ num_wait ] = i;
++      sel_handlers[ num_wait ++ ] = pobjects[ i ]-&gt;o.hEvent;
++    }  
++  }
+     
+-  // Populate handler array  
+-  for( i = 0; i &lt; nobjects; i ++ )
+-    sel_handlers[ i ] = pobjects[ i ]-&gt;o.hEvent;
+-    
+-  if( wait_on_read )
++  if( num_wait &gt; 0 )
+   {
+-    DWORD dwRes = WaitForMultipleObjects( nobjects, sel_handlers, FALSE, timeout == SER_INF_TIMEOUT ? INFINITE : timeout );
+-    if( dwRes &gt;= WAIT_OBJECT_0 &amp;&amp; dwRes &lt; WAIT_OBJECT_0 + nobjects ) 
++    idx = -1;
++    DWORD dwRes = WaitForMultipleObjects( num_wait, sel_handlers, FALSE, timeout == SER_INF_TIMEOUT ? INFINITE : timeout );
++    if( dwRes &gt;= WAIT_OBJECT_0 &amp;&amp; dwRes &lt; WAIT_OBJECT_0 + num_wait ) 
+     {
+-      i = dwRes - WAIT_OBJECT_0;
+-      pobjects[ i ]-&gt;fWaitingOnRead = FALSE;
+-      if( !GetOverlappedResult( pobjects[ i ]-&gt;hnd, &amp;pobjects[ i ]-&gt;o, &amp;readbytes, TRUE ) )
+-        res = -1;
+-      else if( readbytes == 1 )
+-        res = pobjects[ i ]-&gt;databuf | ( i &lt;&lt; 8 );
+-      ResetEvent( pobjects[ i ]-&gt;o.hEvent );        
++      i = idx = dwRes - WAIT_OBJECT_0;
++      hnd = pobjects[ sel_handler_map[ i ] ];
++      hnd-&gt;fWaitingOnRead = FALSE;
++      if( GetOverlappedResult( hnd-&gt;hnd, &amp;hnd-&gt;o, &amp;readbytes, TRUE ) &amp;&amp; readbytes == 1 )
++        res = hnd-&gt;databuf | ( sel_handler_map[ i ] &lt;&lt; 8 );
++      ResetEvent( hnd-&gt;o.hEvent );        
+     }
+     else if( dwRes == WAIT_TIMEOUT )
+     {
+-      for( i = 0; i &lt; nobjects; i ++ )
++      for( i = 0; i &lt; num_wait; i ++ )
+       {
+-        CancelIo( pobjects[ i ]-&gt;hnd );
+-        GetOverlappedResult( pobjects[ i ]-&gt;hnd, &amp;pobjects[ i ]-&gt;o, &amp;readbytes, TRUE );
+-        pobjects[ i ]-&gt;fWaitingOnRead = FALSE;
+-        ResetEvent( pobjects[ i ]-&gt;o.hEvent );
+-      }
+-    }
++        hnd = pobjects[ sel_handler_map[ i ] ];      
++        hnd-&gt;fWaitingOnRead = FALSE;      
++        CancelIo( hnd-&gt;hnd );
++        GetOverlappedResult( hnd-&gt;hnd, &amp;hnd-&gt;o, &amp;readbytes, TRUE );
++        ResetEvent( hnd-&gt;o.hEvent );
++      } 
++    }  
+   }  
+-  
++    
+   return res;    
+ }
++
+
+Modified: branches/remotefs_int/rfs_server/type.h
+===================================================================
+--- branches/remotefs_int/rfs_server/type.h	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/rfs_server/type.h	2010-11-13 21:02:36 UTC (rev 818)
+@@ -19,6 +19,7 @@
+ {
+   HANDLE hnd;
+   OVERLAPPED o;
++  OVERLAPPED o_wr;
+   BOOL fWaitingOnRead;
+   u8 databuf;
+ } SERIAL_DATA;
+
+Modified: branches/remotefs_int/rfs_server.py
+===================================================================
+--- branches/remotefs_int/rfs_server.py	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/rfs_server.py	2010-11-13 21:02:36 UTC (rev 818)
+@@ -13,12 +13,12 @@
+   if sim == '1':
+     print &quot;SIM target not supported under Windows&quot;
+     os.exit( 1 )
+-  flist = &quot;main.c server.c os_io_win32.c log.c net_win32.c serial_win32.c&quot;
++  flist = &quot;main.c server.c os_io_win32.c log.c net_win32.c serial_win32.c deskutils.c&quot;
+   cdefs = cdefs + &quot; -DWIN32_BUILD&quot;
+   exeprefix = &quot;exe&quot;
+   socklib = '-lws2_32'
+ else:
+-  flist = &quot;%s server.c os_io_posix.c log.c net_posix.c serial_posix.c&quot; % mainname
++  flist = &quot;%s server.c os_io_posix.c log.c net_posix.c serial_posix.c deskutils.c&quot; % mainname
+   exeprefix = &quot;elf&quot;
+ 
+ if sim == '0':
+
+Modified: branches/remotefs_int/src/buf.c
+===================================================================
+--- branches/remotefs_int/src/buf.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/src/buf.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -61,8 +61,8 @@
+ #ifdef BUILD_SERMUX
+ static unsigned bufh_check_resnum( unsigned resid, unsigned resnum )
+ {
+-  if( resid == BUF_ID_UART &amp;&amp; resnum &gt;= SERVICE_ID_FIRST )
+-    return resnum - SERVICE_ID_FIRST + NUM_UART;
++  if( resid == BUF_ID_UART &amp;&amp; resnum &gt;= SERMUX_SERVICE_ID_FIRST )
++    return resnum - SERMUX_SERVICE_ID_FIRST + NUM_UART;
+   else
+     return resnum;
+ }
+
+Modified: branches/remotefs_int/src/common.c
+===================================================================
+--- branches/remotefs_int/src/common.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/src/common.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -15,6 +15,7 @@
+ #include &quot;xmodem.h&quot;
+ #include &quot;elua_int.h&quot;
+ 
++// [TODO] the new builder should automatically do this
+ #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
+ #define BUILD_INT_HANDLERS
+ 
+@@ -26,10 +27,16 @@
+ 
+ #endif // #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
+ 
++// [TODO] the new builder should automatically do this
+ #ifndef VTMR_NUM_TIMERS
+ #define VTMR_NUM_TIMERS       0
+ #endif // #ifndef VTMR_NUM_TIMERS
+ 
++// [TODO] the new builder should automatically do this
++#ifndef CON_BUF_SIZE
++#define CON_BUF_SIZE          0
++#endif // #ifndef CON_BUF_SIZE
++
+ // ****************************************************************************
+ // XMODEM support code
+ 
+@@ -143,7 +150,26 @@
+ #ifdef BUILD_INT_HANDLERS
+   platform_int_init();
+ #endif
++  
++#ifdef BUILD_SERMUX
++  unsigned i;
++  unsigned bufsizes[] = SERMUX_BUFFER_SIZES;
+ 
++  // Setup the serial multiplexer
++  platform_uart_setup( SERMUX_PHYS_ID, SERMUX_PHYS_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
++  cmn_uart_setup_sermux();
++
++  // Set buffers for all virtual UARTs 
++  for( i = 0; i &lt; sizeof( bufsizes ) / sizeof( unsigned ); i ++ )
++    platform_uart_set_buffer( i + SERMUX_SERVICE_ID_FIRST, bufsizes[ i ] );    
++#endif
++
++#if defined( CON_UART_ID ) &amp;&amp; CON_UART_ID &lt; SERMUX_SERVICE_ID_FIRST
++  // Setup console UART
++  platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );  
++  platform_uart_set_buffer( CON_UART_ID, CON_BUF_SIZE );
++#endif // #if defined( CON_UART_ID ) &amp;&amp; CON_UART_ID &lt; SERMUX_SERVICE_ID_FIRST
++
+   // Set the send/recv functions                          
+   std_set_send_func( uart_send );
+   std_set_get_func( uart_recv );  
+@@ -157,20 +183,6 @@
+   // Initialize terminal
+   term_init( TERM_LINES, TERM_COLS, term_out, term_in, term_translate );
+ #endif
+-
+-#ifdef BUILD_SERMUX
+-  // Set buffers for all virtual UARTs
+-  unsigned i;
+-  unsigned bufsizes [] = SERMUX_BUFFER_SIZES;
+-
+-  for( i = 0; i &lt; sizeof( bufsizes ) / sizeof( unsigned ); i ++ )
+-    buf_set( BUF_ID_UART, i + SERVICE_ID_FIRST, bufsizes[ i ], BUF_DSIZE_U8 );
+-#endif
+-
+-#if defined( CON_BUF_SIZE ) &amp;&amp; ( CON_UART_ID &lt; SERMUX_SERVICE_ID_FIRST )
+-  // Set console buffer if the console is on a physical UART
+-  platform_uart_set_buffer( CON_UART_ID, intlog2( CON_BUF_SIZE ) );
+-#endif
+ }
+ 
+ // ****************************************************************************
+
+Modified: branches/remotefs_int/src/common_uart.c
+===================================================================
+--- branches/remotefs_int/src/common_uart.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/src/common_uart.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -16,16 +16,18 @@
+ u8 uart_got_esc = 0;
+ int uart_last_sent = -1;
+ // [TODO] add interrupt support for virtual UARTs
+-#endif
++#else // #ifdef BUILD_SERMUX
++#define SERMUX_PHYS_ID        ( 0xFFFF )
++#endif // #ifdef BUILD_SERMUX
+ 
+ // The platform UART functions
+ int platform_uart_exists( unsigned id )
+ {
+ #ifdef BUILD_SERMUX
+-  return id &lt; NUM_UART || ( id &gt;= SERVICE_ID_FIRST &amp;&amp; id &lt; SERVICE_ID_FIRST + SERMUX_NUM_VUART );
+-#else
++  return id &lt; NUM_UART || ( id &gt;= SERMUX_SERVICE_ID_FIRST &amp;&amp; id &lt; SERMUX_SERVICE_ID_FIRST + SERMUX_NUM_VUART );
++#else // #ifdef BUILD_SERMUX
+   return id &lt; NUM_UART;
+-#endif
++#endif // #ifdef BUILD_SERMUX
+ }
+ 
+ // Helper function for buffers
+@@ -48,7 +50,7 @@
+     return ( int )data;
+   }
+   else
+-#endif
++#endif // #ifdef BUF_ENABLE_UART
+   return platform_s_uart_recv( id, timeout );
+ }
+ 
+@@ -82,16 +84,16 @@
+ #ifdef BUILD_SERMUX
+   if( usart_id == SERMUX_PHYS_ID )
+   {
+-    if( data != ESCAPE_CHAR )
++    if( data != SERMUX_ESCAPE_CHAR )
+     {
+-      if( ( data &gt;= SERVICE_ID_FIRST ) &amp;&amp; data &lt; ( SERVICE_ID_FIRST + SERMUX_NUM_VUART ) )
++      if( ( data &gt;= SERMUX_SERVICE_ID_FIRST ) &amp;&amp; data &lt; ( SERMUX_SERVICE_ID_FIRST + SERMUX_NUM_VUART ) )
+         uart_service_id_in = data;
+-      else if( ( data == FORCE_SID_CHAR ) &amp;&amp; ( uart_last_sent != -1 ) )
++      else if( ( data == SERMUX_FORCE_SID_CHAR ) &amp;&amp; ( uart_last_sent != -1 ) )
+       {
+         // Retransmit service ID and last char
+         platform_s_uart_send( SERMUX_PHYS_ID, uart_service_id_out );
+-        if( uart_last_sent &amp; ESC_MASK )
+-          platform_s_uart_send( SERMUX_PHYS_ID, ESCAPE_CHAR );
++        if( uart_last_sent &amp; SERMUX_ESC_MASK )
++          platform_s_uart_send( SERMUX_PHYS_ID, SERMUX_ESCAPE_CHAR );
+         platform_s_uart_send( SERMUX_PHYS_ID, uart_last_sent &amp; 0xFF );
+       }
+       else
+@@ -99,11 +101,11 @@
+         // Check for an escaped char
+         if( uart_got_esc )
+         {
+-          data ^= ESCAPE_XOR_MASK;
++          data ^= SERMUX_ESCAPE_XOR_MASK;
+           uart_got_esc = 0;
+         }
+         if( uart_service_id_in == -1 ) // request full restransmit if needed
+-          platform_s_uart_send( SERMUX_PHYS_ID, FORCE_SID_CHAR );
++          platform_s_uart_send( SERMUX_PHYS_ID, SERMUX_FORCE_SID_CHAR );
+         else
+           buf_write( BUF_ID_UART, uart_service_id_in, ( t_buf_data* )&amp;data );
+       }
+@@ -112,16 +114,40 @@
+       uart_got_esc = 1;
+   }
+   else
+-#endif
++#endif // #ifdef BUILD_SERMUX
+   buf_write( BUF_ID_UART, usart_id, ( t_buf_data* )&amp;data );
+ }
+ 
++// Send: version with and without mux
++void platform_uart_send( unsigned id, u8 data ) 
++{
++#ifdef BUILD_SERMUX
++  if( id &gt;= SERMUX_SERVICE_ID_FIRST &amp;&amp; id &lt; SERMUX_SERVICE_ID_FIRST + SERMUX_NUM_VUART )
++  {
++    if( id != uart_service_id_out )
++      platform_s_uart_send( SERMUX_PHYS_ID, id );
++    uart_last_sent = data;
++    if( data == SERMUX_ESCAPE_CHAR || data == SERMUX_FORCE_SID_CHAR || ( data &gt;= SERMUX_SERVICE_ID_FIRST &amp;&amp; data &lt;= SERMUX_SERVICE_ID_LAST ) )
++    {
++      platform_s_uart_send( SERMUX_PHYS_ID, SERMUX_ESCAPE_CHAR );
++      platform_s_uart_send( SERMUX_PHYS_ID, data ^ SERMUX_ESCAPE_XOR_MASK );
++      uart_last_sent = SERMUX_ESC_MASK | ( data ^ SERMUX_ESCAPE_XOR_MASK );
++    }
++    else
++      platform_s_uart_send( SERMUX_PHYS_ID, data );
++    uart_service_id_out = id;
++  }
++  else
++#endif // #ifdef BUILD_SERMUX
++  platform_s_uart_send( id, data );
++}
++
+ #ifdef BUF_ENABLE_UART
+ static elua_int_c_handler prev_uart_rx_handler;
+ 
+-static void cmn_uart_rx_handler( elua_int_resnum resnum )
+-{
+-  if( buf_is_enabled( BUF_ID_UART, resnum ) )
++static void cmn_uart_rx_inthandler( elua_int_resnum resnum )
++{   
++  if( buf_is_enabled( BUF_ID_UART, resnum ) || resnum == SERMUX_PHYS_ID )
+     cmn_rx_handler( resnum, platform_s_uart_recv( resnum, 0 ) );
+   
+   // Chain to previous handler
+@@ -132,6 +158,8 @@
+ 
+ int platform_uart_set_buffer( unsigned id, unsigned log2size )
+ {
++  if( id == SERMUX_PHYS_ID ) // mere mortals aren't allowed to mess with VUART physical interface buffering
++    return PLATFORM_ERR;
+ #ifdef BUF_ENABLE_UART
+   if( log2size == 0 )
+   {
+@@ -151,36 +179,28 @@
+     if( platform_cpu_set_interrupt( INT_UART_RX, id, PLATFORM_CPU_ENABLE ) != PLATFORM_INT_OK )
+       return PLATFORM_ERR;
+     // Setup our C handler
+-    if( elua_int_get_c_handler( INT_UART_RX ) != cmn_uart_rx_handler )
+-      prev_uart_rx_handler = elua_int_set_c_handler( INT_UART_RX, cmn_uart_rx_handler );      
++    if( elua_int_get_c_handler( INT_UART_RX ) != cmn_uart_rx_inthandler )
++      prev_uart_rx_handler = elua_int_set_c_handler( INT_UART_RX, cmn_uart_rx_inthandler );
+   }
+   return PLATFORM_OK;
+-#else
++#else // BUF_ENABLE_UART
+   return PLATFORM_ERR;
+-#endif
++#endif // BUF_ENABLE_UART
+ }
+ 
+-// Send: version with and without mux
+-void platform_uart_send( unsigned id, u8 data ) 
++#ifdef BUILD_SERMUX
++// Setup the serial multiplexer
++void cmn_uart_setup_sermux()
+ {
+-#ifdef BUILD_SERMUX
+-  if( id &gt;= SERVICE_ID_FIRST &amp;&amp; id &lt; SERVICE_ID_FIRST + SERMUX_NUM_VUART )
++  // Enable UART RX interrupt 
++  if( platform_cpu_set_interrupt( INT_UART_RX, SERMUX_PHYS_ID, PLATFORM_CPU_ENABLE ) == PLATFORM_INT_OK )
+   {
+-    if( id != uart_service_id_out )
+-      platform_s_uart_send( SERMUX_PHYS_ID, id );
+-    uart_last_sent = data;
+-    if( data == ESCAPE_CHAR || data == FORCE_SID_CHAR || ( data &gt;= SERVICE_ID_FIRST &amp;&amp; data &lt;= SERVICE_ID_LAST ) )
+-    {
+-      platform_s_uart_send( SERMUX_PHYS_ID, ESCAPE_CHAR );
+-      platform_s_uart_send( SERMUX_PHYS_ID, data ^ ESCAPE_XOR_MASK );
+-      uart_last_sent = ESC_MASK | ( data ^ ESCAPE_XOR_MASK );
+-    }
+-    else
+-      platform_s_uart_send( SERMUX_PHYS_ID, data );
+-    uart_service_id_out = id;
++    // Setup our C handler
++    if( elua_int_get_c_handler( INT_UART_RX ) != cmn_uart_rx_inthandler )
++      prev_uart_rx_handler = elua_int_set_c_handler( INT_UART_RX, cmn_uart_rx_inthandler );
+   }
+-  else
+-#endif
+-  platform_s_uart_send( id, data );
++  else // We don't have a choice but to get stuck here, as we can't print an error anyway, since the console most likely lives on a virtual UART
++    while( 1 );      
+ }
++#endif // #ifdef BUILD_SERMUX
+ 
+
+Modified: branches/remotefs_int/src/modules/tmr.c
+===================================================================
+--- branches/remotefs_int/src/modules/tmr.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/src/modules/tmr.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -13,6 +13,7 @@
+ #include &lt;string.h&gt;
+ 
+ #define MAX_VTIMER_NAME_LEN     6
++#define MIN_VTIMER_NAME_LEN     5
+ 
+ // Helper function for the read/start functions
+ static int tmrh_timer_op( lua_State* L, int op )
+@@ -147,7 +148,7 @@
+   char* pend;
+   long res;
+   
+-  if( strlen( key ) &gt; MAX_VTIMER_NAME_LEN || strlen( key ) &lt; 5 )
++  if( strlen( key ) &gt; MAX_VTIMER_NAME_LEN || strlen( key ) &lt; MIN_VTIMER_NAME_LEN )
+     return 0;
+   if( strncmp( key, &quot;VIRT&quot;, 4 ) )
+     return 0;  
+
+Modified: branches/remotefs_int/src/modules/uart.c
+===================================================================
+--- branches/remotefs_int/src/modules/uart.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/src/modules/uart.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -6,8 +6,11 @@
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
+ #include &quot;lrotable.h&quot;
++#include &quot;common.h&quot;
+ #include &lt;string.h&gt;
+ #include &lt;ctype.h&gt;
++#include &lt;stdlib.h&gt;
++#include &quot;platform_conf.h&quot;
+ 
+ // Modes for the UART read function
+ enum
+@@ -115,6 +118,8 @@
+     cres = ( char )res;
+     count ++;
+     issign = ( count == 1 ) &amp;&amp; ( ( res == '-' ) || ( res == '+' ) );
++    // [TODO] this only works for lines that actually end with '\n', other line endings
++    // are not supported.
+     if( ( cres == '\n' ) &amp;&amp; ( mode == UART_READ_MODE_LINE ) )
+       break;
+     if( !isdigit( cres ) &amp;&amp; !issign &amp;&amp; ( mode == UART_READ_MODE_NUMBER ) )
+@@ -168,6 +173,48 @@
+   return 1;  
+ }
+ 
++
++// Lua: uart.set_buffer( id, size )
++static int uart_set_buffer( lua_State *L )
++{
++  int id = luaL_checkinteger( L, 1 );
++  u32 size = luaL_checkinteger( L, 2 );
++  
++  MOD_CHECK_ID( uart, id );
++  if( size &amp;&amp; ( size &amp; ( size - 1 ) ) )
++    return luaL_error( L, &quot;the buffer size must be a power of 2 or 0&quot; );
++  if( platform_uart_set_buffer( id, intlog2( size ) ) == PLATFORM_ERR )
++    return luaL_error( L, &quot;unable to set UART buffer&quot; );
++  return 0;
++}
++
++#ifdef BUILD_SERMUX
++
++#define MAX_VUART_NAME_LEN    7
++#define MIN_VUART_NAME_LEN    6
++
++// __index metafunction for UART
++// Look for all VUARTx timer identifiers
++static int uart_mt_index( lua_State* L )
++{
++  const char *key = luaL_checkstring( L ,2 );
++  char* pend;
++  long res;
++  
++  if( strlen( key ) &gt; MAX_VUART_NAME_LEN || strlen( key ) &lt; MIN_VUART_NAME_LEN )
++    return 0;
++  if( strncmp( key, &quot;VUART&quot;, 5 ) )
++    return 0;  
++  res = strtol( key + 5, &amp;pend, 10 );
++  if( *pend != '\0' )
++    return 0;
++  if( res &gt;= SERMUX_NUM_VUART )
++    return 0;
++  lua_pushinteger( L, SERMUX_SERVICE_ID_FIRST + res );
++  return 1;
++}
++#endif // #ifdef BUILD_SERMUX
++
+ // Module function map
+ #define MIN_OPT_LEVEL   2
+ #include &quot;lrodefs.h&quot;
+@@ -177,6 +224,7 @@
+   { LSTRKEY( &quot;write&quot; ), LFUNCVAL( uart_write ) },
+   { LSTRKEY( &quot;read&quot; ), LFUNCVAL( uart_read ) },
+   { LSTRKEY( &quot;getchar&quot; ), LFUNCVAL( uart_getchar ) },
++  { LSTRKEY( &quot;set_buffer&quot; ), LFUNCVAL( uart_set_buffer ) },
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;PAR_EVEN&quot; ), LNUMVAL( PLATFORM_UART_PARITY_EVEN ) },
+   { LSTRKEY( &quot;PAR_ODD&quot; ), LNUMVAL( PLATFORM_UART_PARITY_ODD ) },
+@@ -187,6 +235,10 @@
+   { LSTRKEY( &quot;NO_TIMEOUT&quot; ), LNUMVAL( 0 ) },
+   { LSTRKEY( &quot;INF_TIMEOUT&quot; ), LNUMVAL( PLATFORM_UART_INFINITE_TIMEOUT ) },
+ #endif
++#if LUA_OPTIMIZE_MEMORY &gt; 0 &amp;&amp; defined( BUILD_SERMUX )
++  { LSTRKEY( &quot;__metatable&quot; ), LROVAL( uart_map ) },
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( uart_mt_index ) },  
++#endif
+   { LNILKEY, LNILVAL }
+ };
+ 
+
+Modified: branches/remotefs_int/src/platform/stm32/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/src/platform/stm32/platform.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -553,25 +553,12 @@
+ 
+ static void uarts_init()
+ {
+-  USART_InitTypeDef USART_InitStructure;
+-
+   // Enable clocks.
+   RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART5, ENABLE);
+-
+-  // Configure the U(S)ART
+-  USART_InitStructure.USART_BaudRate = CON_UART_SPEED;
+-  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+-  USART_InitStructure.USART_StopBits = USART_StopBits_1;
+-  USART_InitStructure.USART_Parity = USART_Parity_No;
+-  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+-  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+-
+-  usart_init(CON_UART_ID, &amp;USART_InitStructure);
+-
+ }
+ 
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+
+Modified: branches/remotefs_int/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform_conf.h	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/src/platform/stm32/platform_conf.h	2010-11-13 21:02:36 UTC (rev 818)
+@@ -8,6 +8,7 @@
+ #include &quot;stacks.h&quot;
+ #include &quot;stm32f10x.h&quot;
+ #include &quot;elua_int.h&quot;
++#include &quot;sermux.h&quot;
+ 
+ // *****************************************************************************
+ // Define here what components you want for this platform
+@@ -22,20 +23,22 @@
+ //#define BUILD_DNS
+ #define BUILD_CON_GENERIC
+ #define BUILD_ADC
+-#define BUILD_RPC
+-//#define BUILD_RFS
++//#define BUILD_RPC
++#define BUILD_RFS
+ //#define BUILD_CON_TCP
+ #define BUILD_C_INT_HANDLERS
+ #define BUILD_LUA_INT_HANDLERS
++#define BUILD_SERMUX
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+ 
+-#define CON_UART_ID           0
+-#define CON_UART_SPEED        115200
+-#define CON_TIMER_ID          0
+ #define TERM_LINES            25
+ #define TERM_COLS             80
++#define CON_UART_ID           ( SERMUX_SERVICE_ID_FIRST + 1 )
++//#define CON_UART_ID           0
++#define CON_UART_SPEED        115200
++#define CON_TIMER_ID          0
+ 
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+@@ -85,30 +88,6 @@
+ // *****************************************************************************
+ // Configuration data
+ 
+-// Static TCP/IP configuration
+-#define ELUA_CONF_IPADDR0     192
+-#define ELUA_CONF_IPADDR1     168
+-#define ELUA_CONF_IPADDR2     1
+-#define ELUA_CONF_IPADDR3     13
+-
+-#define ELUA_CONF_NETMASK0    255
+-#define ELUA_CONF_NETMASK1    255
+-#define ELUA_CONF_NETMASK2    255
+-#define ELUA_CONF_NETMASK3    0
+-
+-#define ELUA_CONF_DEFGW0      192
+-#define ELUA_CONF_DEFGW1      168
+-#define ELUA_CONF_DEFGW2      1
+-#define ELUA_CONF_DEFGW3      1
+-
+-#define ELUA_CONF_DNS0        192
+-#define ELUA_CONF_DNS1        168
+-#define ELUA_CONF_DNS2        1
+-#define ELUA_CONF_DNS3        1
+-
+-// *****************************************************************************
+-// Configuration data
+-
+ #define EGC_INITIAL_MODE      1
+ 
+ // Virtual timers (0 if not used)
+@@ -126,7 +105,7 @@
+ 
+ // Enable RX buffering on UART
+ #define BUF_ENABLE_UART
+-#define CON_BUF_SIZE          BUF_SIZE_128
++#define CON_BUF_SIZE          BUF_SIZE_128                                                                                                    
+ 
+ // ADC Configuration Params
+ #define ADC_BIT_RESOLUTION    12
+@@ -164,11 +143,16 @@
+ 
+ // Remote file system data
+ #define RFS_BUFFER_SIZE       BUF_SIZE_512
+-#define RFS_UART_ID           0
++#define RFS_UART_ID           ( SERMUX_SERVICE_ID_FIRST )
+ #define RFS_TIMER_ID          0
+ #define RFS_TIMEOUT           100000
+ #define RFS_UART_SPEED        115200
+ 
++#define SERMUX_PHYS_ID        0
++#define SERMUX_PHYS_SPEED     115200
++#define SERMUX_NUM_VUART      2
++#define SERMUX_BUFFER_SIZES   { RFS_BUFFER_SIZE, CON_BUF_SIZE }
++
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+ #define SRAM_SIZE             ( 64 * 1024 )
+
+Modified: branches/remotefs_int/src/platform/stm32/platform_int.c
+===================================================================
+--- branches/remotefs_int/src/platform/stm32/platform_int.c	2010-11-12 16:48:54 UTC (rev 817)
++++ branches/remotefs_int/src/platform/stm32/platform_int.c	2010-11-13 21:02:36 UTC (rev 818)
+@@ -16,8 +16,8 @@
+ 
+ static void all_usart_irqhandler( int resnum )
+ {
+-  USART_ClearITPendingBit( stm32_usart[ resnum ], USART_IT_RXNE );
+   cmn_int_handler( INT_UART_RX, resnum );
++  USART_ClearITPendingBit( stm32_usart[ resnum ], USART_IT_RXNE );  
+ }
+ 
+ void USART1_IRQHandler()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000770.html">[Elua-svn] r817 - in branches/remotefs_int: . mux rfs_server
+</A></li>
+	<LI>Next message: <A HREF="000772.html">[Elua-svn] r819 - in trunk: inc src src/lua src/modules	src/platform/lpc24xx src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#771">[ date ]</a>
+              <a href="thread.html#771">[ thread ]</a>
+              <a href="subject.html#771">[ subject ]</a>
+              <a href="author.html#771">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

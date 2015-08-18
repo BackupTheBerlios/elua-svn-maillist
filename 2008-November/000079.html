@@ -1,0 +1,1113 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r123 - trunk/src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r123%20-%20trunk/src/platform/stm32&In-Reply-To=%3C200811110408.mAB48nYM032103%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000078.html">
+   <LINK REL="Next"  HREF="000080.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r123 - trunk/src/platform/stm32</H1>
+    <B>mpanetta at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r123%20-%20trunk/src/platform/stm32&In-Reply-To=%3C200811110408.mAB48nYM032103%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r123 - trunk/src/platform/stm32">mpanetta at mail.berlios.de
+       </A><BR>
+    <I>Tue Nov 11 05:08:49 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000078.html">[Elua-svn] r122 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000080.html">[Elua-svn] r124 - in trunk: . src/lua src/modules src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#79">[ date ]</a>
+              <a href="thread.html#79">[ thread ]</a>
+              <a href="subject.html#79">[ subject ]</a>
+              <a href="author.html#79">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: mpanetta
+Date: 2008-11-11 05:08:48 +0100 (Tue, 11 Nov 2008)
+New Revision: 123
+
+Added:
+   trunk/src/platform/stm32/lcd.c
+   trunk/src/platform/stm32/lcd.h
+   trunk/src/platform/stm32/lua_lcd.c
+Modified:
+   trunk/src/platform/stm32/conf.py
+Log:
+Fixed a bug in stm32/conf.py that broke build due to finding .svn dir. Added files to start lcd module for the STM3210E-EVAL
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2008-11-08 07:14:51 UTC (rev 122)
++++ trunk/src/platform/stm32/conf.py	2008-11-11 04:08:48 UTC (rev 123)
+@@ -1,18 +1,19 @@
+ # Configuration file for the STM32 microcontroller
+ import fnmatch
++import glob
+ import os
+ 
+ local_include = local_include + &quot; -Isrc/platform/%s/FWLib/library/inc&quot; % platform
+ 
+-fwlib_files = &quot; &quot;.join( [ &quot;FWLib/library/src/%s&quot; % f for f in os.listdir(&quot;src/platform/%s/FWLib/library/src/&quot; % platform) ] )
++fwlib_files = &quot; &quot;.join(glob.glob(&quot;src/platform/%s/FWLib/library/src/*.c&quot; % platform))
+ #print &quot;FWLib: %s &quot; % fwlib_files 
+ 
+-specific_files = fwlib_files + &quot; &quot; + &quot;cortexm3_macro.s stm32f10x_vector.c  platform.c stm32f10x_it.c&quot;
++specific_files = &quot;cortexm3_macro.s stm32f10x_vector.c  platform.c stm32f10x_it.c lua_lcd.c&quot;
+ 
+ ldscript = &quot;stm32.ld&quot;
+   
+ # Prepend with path
+-specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++specific_files = fwlib_files + &quot; &quot; + &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+ cdefs = cdefs + &quot; -Dgcc&quot;
+
+Added: trunk/src/platform/stm32/lcd.c
+===================================================================
+--- trunk/src/platform/stm32/lcd.c	2008-11-08 07:14:51 UTC (rev 122)
++++ trunk/src/platform/stm32/lcd.c	2008-11-11 04:08:48 UTC (rev 123)
+@@ -0,0 +1,761 @@
++/******************** (C) COPYRIGHT 2008 STMicroelectronics ********************
++* File Name          : lcd.c
++* Author             : MCD Application Team
++* Version            : V1.1.2
++* Date               : 09/22/2008
++* Description        : This file includes the LCD driver for AM-240320L8TNQW00H 
++*                     (LCD_ILI9320) Liquid Crystal Display Module of STM3210E-EVAL
++*                      board.
++********************************************************************************
++* THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;main.h&quot;
++#include &quot;fonts.h&quot;
++
++/* Private typedef -----------------------------------------------------------*/
++typedef struct
++{
++  vu16 LCD_REG;
++  vu16 LCD_RAM;
++} LCD_TypeDef;
++
++/* Note: LCD /CS is CE4 - Bank 4 of NOR/SRAM Bank 1~4 */
++#define LCD_BASE        ((u32)(0x60000000 | 0x0C000000))
++#define LCD             ((LCD_TypeDef *) LCD_BASE)
++
++/* Private define ------------------------------------------------------------*/
++/* Private macro -------------------------------------------------------------*/                              
++/* Private variables ---------------------------------------------------------*/
++  /* Global variables to set the written text color */
++static  vu16 TextColor = 0x0000, BackColor = 0xFFFF;
++  
++/* Private function prototypes -----------------------------------------------*/
++/* Private functions ---------------------------------------------------------*/
++
++/*******************************************************************************
++* Function Name  : STM3210E_LCD_Init
++* Description    : Initializes the LCD.
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void STM3210E_LCD_Init(void)
++{ 
++/* Configure the LCD Control pins --------------------------------------------*/
++  LCD_CtrlLinesConfig();
++
++/* Configure the FSMC Parallel interface -------------------------------------*/
++  LCD_FSMCConfig();
++
++  Delay(5); /* delay 50 ms */
++/* Start Initial Sequence ----------------------------------------------------*/
++  LCD_WriteReg(R229,0x8000); /* Set the internal vcore voltage */
++  LCD_WriteReg(R0,  0x0001); /* Start internal OSC. */
++  LCD_WriteReg(R1,  0x0100); /* set SS and SM bit */
++  LCD_WriteReg(R2,  0x0700); /* set 1 line inversion */
++  LCD_WriteReg(R3,  0x1030); /* set GRAM write direction and BGR=1. */
++  LCD_WriteReg(R4,  0x0000); /* Resize register */
++  LCD_WriteReg(R8,  0x0202); /* set the back porch and front porch */
++  LCD_WriteReg(R9,  0x0000); /* set non-display area refresh cycle ISC[3:0] */
++  LCD_WriteReg(R10, 0x0000); /* FMARK function */
++  LCD_WriteReg(R12, 0x0000); /* RGB interface setting */
++  LCD_WriteReg(R13, 0x0000); /* Frame marker Position */
++  LCD_WriteReg(R15, 0x0000); /* RGB interface polarity */
++
++/* Power On sequence ---------------------------------------------------------*/
++  LCD_WriteReg(R16, 0x0000); /* SAP, BT[3:0], AP, DSTB, SLP, STB */
++  LCD_WriteReg(R17, 0x0000); /* DC1[2:0], DC0[2:0], VC[2:0] */
++  LCD_WriteReg(R18, 0x0000); /* VREG1OUT voltage */
++  LCD_WriteReg(R19, 0x0000); /* VDV[4:0] for VCOM amplitude */
++  Delay(20);                 /* Dis-charge capacitor power voltage (200ms) */
++  LCD_WriteReg(R16, 0x17B0); /* SAP, BT[3:0], AP, DSTB, SLP, STB */
++  LCD_WriteReg(R17, 0x0137); /* DC1[2:0], DC0[2:0], VC[2:0] */
++  Delay(5);                  /* Delay 50 ms */
++  LCD_WriteReg(R18, 0x0139); /* VREG1OUT voltage */
++  Delay(5);                  /* Delay 50 ms */
++  LCD_WriteReg(R19, 0x1d00); /* VDV[4:0] for VCOM amplitude */
++  LCD_WriteReg(R41, 0x0013); /* VCM[4:0] for VCOMH */
++  Delay(5);                  /* Delay 50 ms */
++  LCD_WriteReg(R32, 0x0000); /* GRAM horizontal Address */
++  LCD_WriteReg(R33, 0x0000); /* GRAM Vertical Address */
++
++/* Adjust the Gamma Curve ----------------------------------------------------*/
++  LCD_WriteReg(R48, 0x0006);
++  LCD_WriteReg(R49, 0x0101);
++  LCD_WriteReg(R50, 0x0003);
++  LCD_WriteReg(R53, 0x0106);
++  LCD_WriteReg(R54, 0x0b02);
++  LCD_WriteReg(R55, 0x0302);
++  LCD_WriteReg(R56, 0x0707);
++  LCD_WriteReg(R57, 0x0007);
++  LCD_WriteReg(R60, 0x0600);
++  LCD_WriteReg(R61, 0x020b);
++  
++/* Set GRAM area -------------------------------------------------------------*/
++  LCD_WriteReg(R80, 0x0000); /* Horizontal GRAM Start Address */
++  LCD_WriteReg(R81, 0x00EF); /* Horizontal GRAM End Address */
++  LCD_WriteReg(R82, 0x0000); /* Vertical GRAM Start Address */
++  LCD_WriteReg(R83, 0x013F); /* Vertical GRAM End Address */
++
++  LCD_WriteReg(R96,  0x2700); /* Gate Scan Line */
++  LCD_WriteReg(R97,  0x0001); /* NDL,VLE, REV */
++  LCD_WriteReg(R106, 0x0000); /* set scrolling line */
++
++/* Partial Display Control ---------------------------------------------------*/
++  LCD_WriteReg(R128, 0x0000);
++  LCD_WriteReg(R129, 0x0000);
++  LCD_WriteReg(R130, 0x0000);
++  LCD_WriteReg(R131, 0x0000);
++  LCD_WriteReg(R132, 0x0000);
++  LCD_WriteReg(R133, 0x0000);
++
++/* Panel Control -------------------------------------------------------------*/
++  LCD_WriteReg(R144, 0x0010);
++  LCD_WriteReg(R146, 0x0000);
++  LCD_WriteReg(R147, 0x0003);
++  LCD_WriteReg(R149, 0x0110);
++  LCD_WriteReg(R151, 0x0000);
++  LCD_WriteReg(R152, 0x0000);
++
++  /* Set GRAM write direction and BGR = 1 */
++  /* I/D=01 (Horizontal : increment, Vertical : decrement) */
++  /* AM=1 (address is updated in vertical writing direction) */
++  LCD_WriteReg(R3, 0x1018);
++
++  LCD_WriteReg(R7, 0x0173); /* 262K color and display ON */  
++}
++
++/*******************************************************************************
++* Function Name  : LCD_SetTextColor
++* Description    : Sets the Text color.
++* Input          : - Color: specifies the Text color code RGB(5-6-5).
++* Output         : - TextColor: Text color global variable used by LCD_DrawChar
++*                  and LCD_DrawPicture functions.
++* Return         : None
++*******************************************************************************/
++void LCD_SetTextColor(vu16 Color)
++{
++  TextColor = Color;
++}
++
++/*******************************************************************************
++* Function Name  : LCD_SetBackColor
++* Description    : Sets the Background color.
++* Input          : - Color: specifies the Background color code RGB(5-6-5).
++* Output         : - BackColor: Background color global variable used by 
++*                  LCD_DrawChar and LCD_DrawPicture functions.
++* Return         : None
++*******************************************************************************/
++void LCD_SetBackColor(vu16 Color)
++{
++  BackColor = Color;
++}
++
++/*******************************************************************************
++* Function Name  : LCD_ClearLine
++* Description    : Clears the selected line.
++* Input          : - Line: the Line to be cleared.
++*                    This parameter can be one of the following values:
++*                       - Linex: where x can be 0..9
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_ClearLine(u8 Line)
++{
++  LCD_DisplayStringLine(Line, &quot;                    &quot;);
++}
++
++/*******************************************************************************
++* Function Name  : LCD_Clear
++* Description    : Clears the hole LCD.
++* Input          : Color: the color of the background.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_Clear(u16 Color)
++{
++  u32 index = 0;
++  
++  LCD_SetCursor(0x00, 0x013F); 
++
++  LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++
++  for(index = 0; index &lt; 76800; index++)
++  {
++    LCD-&gt;LCD_RAM = Color;
++  }  
++}
++
++/*******************************************************************************
++* Function Name  : LCD_SetCursor
++* Description    : Sets the cursor position.
++* Input          : - Xpos: specifies the X position.
++*                  - Ypos: specifies the Y position. 
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_SetCursor(u8 Xpos, u16 Ypos)
++{
++  LCD_WriteReg(R32, Xpos);
++  LCD_WriteReg(R33, Ypos);
++}
++
++/*******************************************************************************
++* Function Name  : LCD_DrawChar
++* Description    : Draws a character on LCD.
++* Input          : - Xpos: the Line where to display the character shape.
++*                    This parameter can be one of the following values:
++*                       - Linex: where x can be 0..9
++*                  - Ypos: start column address.
++*                  - c: pointer to the character data.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_DrawChar(u8 Xpos, u16 Ypos, uc16 *c)
++{
++  u32 index = 0, i = 0;
++  u8 Xaddress = 0;
++   
++  Xaddress = Xpos;
++  
++  LCD_SetCursor(Xaddress, Ypos);
++  
++  for(index = 0; index &lt; 24; index++)
++  {
++    LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++    for(i = 0; i &lt; 16; i++)
++    {
++      if((c[index] &amp; (1 &lt;&lt; i)) == 0x00)
++      {
++        LCD_WriteRAM(BackColor);
++      }
++      else
++      {
++        LCD_WriteRAM(TextColor);
++      }
++    }
++    Xaddress++;
++    LCD_SetCursor(Xaddress, Ypos);
++  }
++}
++
++/*******************************************************************************
++* Function Name  : LCD_DisplayChar
++* Description    : Displays one character (16dots width, 24dots height).
++* Input          : - Line: the Line where to display the character shape .
++*                    This parameter can be one of the following values:
++*                       - Linex: where x can be 0..9
++*                  - Column: start column address.
++*                  - Ascii: character ascii code, must be between 0x20 and 0x7E.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_DisplayChar(u8 Line, u16 Column, u8 Ascii)
++{
++  Ascii -= 32;
++  LCD_DrawChar(Line, Column, &amp;ASCII_Table[Ascii * 24]);
++}
++
++/*******************************************************************************
++* Function Name  : LCD_DisplayStringLine
++* Description    : Displays a maximum of 20 char on the LCD.
++* Input          : - Line: the Line where to display the character shape .
++*                    This parameter can be one of the following values:
++*                       - Linex: where x can be 0..9
++*                  - *ptr: pointer to string to display on LCD.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_DisplayStringLine(u8 Line, u8 *ptr)
++{
++  u32 i = 0;
++  u16 refcolumn = 319;
++
++  /* Send the string character by character on lCD */
++  while ((*ptr != 0) &amp; (i &lt; 20))
++  {
++    /* Display one character on LCD */
++    LCD_DisplayChar(Line, refcolumn, *ptr);
++    /* Decrement the column position by 16 */
++    refcolumn -= 16;
++    /* Point on the next character */
++    ptr++;
++    /* Increment the character counter */
++    i++;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : LCD_SetDisplayWindow
++* Description    : Sets a display window
++* Input          : - Xpos: specifies the X buttom left position.
++*                  - Ypos: specifies the Y buttom left position.
++*                  - Height: display window height.
++*                  - Width: display window width.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_SetDisplayWindow(u8 Xpos, u16 Ypos, u8 Height, u16 Width)
++{
++  /* Horizontal GRAM Start Address */
++  if(Xpos &gt;= Height)
++  {
++    LCD_WriteReg(R80, (Xpos - Height + 1));
++  }
++  else
++  {
++    LCD_WriteReg(R80, 0);
++  }
++  /* Horizontal GRAM End Address */
++  LCD_WriteReg(R81, Xpos);
++  /* Vertical GRAM Start Address */
++  if(Ypos &gt;= Width)
++  {
++    LCD_WriteReg(R82, (Ypos - Width + 1));
++  }  
++  else
++  {
++    LCD_WriteReg(R82, 0);
++  }
++  /* Vertical GRAM End Address */
++  LCD_WriteReg(R83, Ypos);
++
++  LCD_SetCursor(Xpos, Ypos);
++}
++
++/*******************************************************************************
++* Function Name  : LCD_WindowModeDisable
++* Description    : Disables LCD Window mode.
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_WindowModeDisable(void)
++{
++  LCD_SetDisplayWindow(239, 0x13F, 240, 320);
++  LCD_WriteReg(R3, 0x1018);    
++}
++/*******************************************************************************
++* Function Name  : LCD_DrawLine
++* Description    : Displays a line.
++* Input          : - Xpos: specifies the X position.
++*                  - Ypos: specifies the Y position.
++*                  - Length: line length.
++*                  - Direction: line direction.
++*                    This parameter can be one of the following values: Vertical 
++*                    or Horizontal.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_DrawLine(u8 Xpos, u16 Ypos, u16 Length, u8 Direction)
++{
++  u32 i = 0;
++  
++  LCD_SetCursor(Xpos, Ypos);
++
++  if(Direction == Horizontal)
++  {
++    LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++    for(i = 0; i &lt; Length; i++)
++    {
++      LCD_WriteRAM(TextColor);
++    }
++  }
++  else
++  {
++    for(i = 0; i &lt; Length; i++)
++    {
++      LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++      LCD_WriteRAM(TextColor);
++      Xpos++;
++      LCD_SetCursor(Xpos, Ypos);
++    }
++  }
++}
++
++/*******************************************************************************
++* Function Name  : LCD_DrawRect
++* Description    : Displays a rectangle.
++* Input          : - Xpos: specifies the X position.
++*                  - Ypos: specifies the Y position.
++*                  - Height: display rectangle height.
++*                  - Width: display rectangle width.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_DrawRect(u8 Xpos, u16 Ypos, u8 Height, u16 Width)
++{
++  LCD_DrawLine(Xpos, Ypos, Width, Horizontal);
++  LCD_DrawLine((Xpos + Height), Ypos, Width, Horizontal);
++  
++  LCD_DrawLine(Xpos, Ypos, Height, Vertical);
++  LCD_DrawLine(Xpos, (Ypos - Width + 1), Height, Vertical);
++}
++
++/*******************************************************************************
++* Function Name  : LCD_DrawCircle
++* Description    : Displays a circle.
++* Input          : - Xpos: specifies the X position.
++*                  - Ypos: specifies the Y position.
++*                  - Height: display rectangle height.
++*                  - Width: display rectangle width.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_DrawCircle(u8 Xpos, u16 Ypos, u16 Radius)
++{
++  s32  D;/* Decision Variable */ 
++  u32  CurX;/* Current X Value */
++  u32  CurY;/* Current Y Value */ 
++  
++  D = 3 - (Radius &lt;&lt; 1);
++  CurX = 0;
++  CurY = Radius;
++  
++  while (CurX &lt;= CurY)
++  {
++    LCD_SetCursor(Xpos + CurX, Ypos + CurY);
++    LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++    LCD_WriteRAM(TextColor);
++
++    LCD_SetCursor(Xpos + CurX, Ypos - CurY);
++    LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++    LCD_WriteRAM(TextColor);
++
++    LCD_SetCursor(Xpos - CurX, Ypos + CurY);
++    LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++    LCD_WriteRAM(TextColor);
++
++    LCD_SetCursor(Xpos - CurX, Ypos - CurY);
++    LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++    LCD_WriteRAM(TextColor);
++
++    LCD_SetCursor(Xpos + CurY, Ypos + CurX);
++    LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++    LCD_WriteRAM(TextColor);
++
++    LCD_SetCursor(Xpos + CurY, Ypos - CurX);
++    LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++    LCD_WriteRAM(TextColor);
++
++    LCD_SetCursor(Xpos - CurY, Ypos + CurX);
++    LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++    LCD_WriteRAM(TextColor);
++
++    LCD_SetCursor(Xpos - CurY, Ypos - CurX);
++    LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++    LCD_WriteRAM(TextColor);
++
++    if (D &lt; 0)
++    { 
++      D += (CurX &lt;&lt; 2) + 6;
++    }
++    else
++    {
++      D += ((CurX - CurY) &lt;&lt; 2) + 10;
++      CurY--;
++    }
++    CurX++;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : LCD_DrawMonoPict
++* Description    : Displays a monocolor picture.
++* Input          : - Pict: pointer to the picture array.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_DrawMonoPict(uc32 *Pict)
++{
++  u32 index = 0, i = 0;
++
++  LCD_SetCursor(0, 319); 
++
++  LCD_WriteRAM_Prepare(); /* Prepare to write GRAM */
++  for(index = 0; index &lt; 2400; index++)
++  {
++    for(i = 0; i &lt; 32; i++)
++    {
++      if((Pict[index] &amp; (1 &lt;&lt; i)) == 0x00)
++      {
++        LCD_WriteRAM(BackColor);
++      }
++      else
++      {
++        LCD_WriteRAM(TextColor);
++      }
++    }
++  }
++}
++
++/*******************************************************************************
++* Function Name  : LCD_WriteBMP
++* Description    : Displays a bitmap picture loaded in the internal Flash.
++* Input          : - BmpAddress: Bmp picture address in the internal Flash.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_WriteBMP(u32 BmpAddress)
++{
++  u32 index = 0, size = 0;
++
++  /* Read bitmap size */
++  size = *(vu16 *) (BmpAddress + 2);
++  size |= (*(vu16 *) (BmpAddress + 4)) &lt;&lt; 16;
++
++  /* Get bitmap data address offset */
++  index = *(vu16 *) (BmpAddress + 10);
++  index |= (*(vu16 *) (BmpAddress + 12)) &lt;&lt; 16;
++
++  size = (size - index)/2;
++
++  BmpAddress += index;
++
++  /* Set GRAM write direction and BGR = 1 */
++  /* I/D=00 (Horizontal : decrement, Vertical : decrement) */
++  /* AM=1 (address is updated in vertical writing direction) */
++  LCD_WriteReg(R3, 0x1008);
++ 
++  LCD_WriteRAM_Prepare();
++ 
++  for(index = 0; index &lt; size; index++)
++  {
++    LCD_WriteRAM(*(vu16 *)BmpAddress);
++    BmpAddress += 2;
++  }
++ 
++  /* Set GRAM write direction and BGR = 1 */
++  /* I/D = 01 (Horizontal : increment, Vertical : decrement) */
++  /* AM = 1 (address is updated in vertical writing direction) */
++  LCD_WriteReg(R3, 0x1018);
++}
++
++/*******************************************************************************
++* Function Name  : LCD_WriteReg
++* Description    : Writes to the selected LCD register.
++* Input          : - LCD_Reg: address of the selected register.
++*                  - LCD_RegValue: value to write to the selected register.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_WriteReg(u8 LCD_Reg, u16 LCD_RegValue)
++{
++  /* Write 16-bit Index, then Write Reg */
++  LCD-&gt;LCD_REG = LCD_Reg;
++  /* Write 16-bit Reg */
++  LCD-&gt;LCD_RAM = LCD_RegValue;
++}
++
++/*******************************************************************************
++* Function Name  : LCD_ReadReg
++* Description    : Reads the selected LCD Register.
++* Input          : None
++* Output         : None
++* Return         : LCD Register Value.
++*******************************************************************************/
++u16 LCD_ReadReg(u8 LCD_Reg)
++{
++  /* Write 16-bit Index (then Read Reg) */
++  LCD-&gt;LCD_REG = LCD_Reg;
++  /* Read 16-bit Reg */
++  return (LCD-&gt;LCD_RAM);
++}
++
++/*******************************************************************************
++* Function Name  : LCD_WriteRAM_Prepare
++* Description    : Prepare to write to the LCD RAM.
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_WriteRAM_Prepare(void)
++{
++  LCD-&gt;LCD_REG = R34;
++}
++
++/*******************************************************************************
++* Function Name  : LCD_WriteRAM
++* Description    : Writes to the LCD RAM.
++* Input          : - RGB_Code: the pixel color in RGB mode (5-6-5).
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_WriteRAM(u16 RGB_Code)
++{
++  /* Write 16-bit GRAM Reg */
++  LCD-&gt;LCD_RAM = RGB_Code;
++}
++
++/*******************************************************************************
++* Function Name  : LCD_ReadRAM
++* Description    : Reads the LCD RAM.
++* Input          : None
++* Output         : None
++* Return         : LCD RAM Value.
++*******************************************************************************/
++u16 LCD_ReadRAM(void)
++{
++  /* Write 16-bit Index (then Read Reg) */
++  LCD-&gt;LCD_REG = R34; /* Select GRAM Reg */
++  /* Read 16-bit Reg */
++  return LCD-&gt;LCD_RAM;
++}
++
++/*******************************************************************************
++* Function Name  : LCD_PowerOn
++* Description    : Power on the LCD.
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_PowerOn(void)
++{
++/* Power On sequence ---------------------------------------------------------*/
++  LCD_WriteReg(R16, 0x0000); /* SAP, BT[3:0], AP, DSTB, SLP, STB */
++  LCD_WriteReg(R17, 0x0000); /* DC1[2:0], DC0[2:0], VC[2:0] */
++  LCD_WriteReg(R18, 0x0000); /* VREG1OUT voltage */
++  LCD_WriteReg(R19, 0x0000); /* VDV[4:0] for VCOM amplitude*/
++  Delay(20);             /* Dis-charge capacitor power voltage (200ms) */
++  LCD_WriteReg(R16, 0x17B0); /* SAP, BT[3:0], AP, DSTB, SLP, STB */
++  LCD_WriteReg(R17, 0x0137); /* DC1[2:0], DC0[2:0], VC[2:0] */
++  Delay(5);              /* Delay 50 ms */
++  LCD_WriteReg(R18, 0x0139); /* VREG1OUT voltage */
++  Delay(5);              /* Delay 50 ms */
++  LCD_WriteReg(R19, 0x1d00); /* VDV[4:0] for VCOM amplitude */
++  LCD_WriteReg(R41, 0x0013); /* VCM[4:0] for VCOMH */
++  Delay(5);              /* Delay 50 ms */
++  LCD_WriteReg(R7, 0x0173);  /* 262K color and display ON */
++}
++
++/*******************************************************************************
++* Function Name  : LCD_DisplayOn
++* Description    : Enables the Display.
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_DisplayOn(void)
++{
++  /* Display On */
++  LCD_WriteReg(R7, 0x0173); /* 262K color and display ON */
++}
++
++/*******************************************************************************
++* Function Name  : LCD_DisplayOff
++* Description    : Disables the Display.
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_DisplayOff(void)
++{
++  /* Display Off */
++  LCD_WriteReg(R7, 0x0); 
++}
++
++/*******************************************************************************
++* Function Name  : LCD_CtrlLinesConfig
++* Description    : Configures LCD Control lines (FSMC Pins) in alternate function
++                   Push-Pull mode.
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_CtrlLinesConfig(void)
++{
++  GPIO_InitTypeDef GPIO_InitStructure;
++
++  /* Enable FSMC, GPIOD, GPIOE, GPIOF, GPIOG and AFIO clocks */
++  RCC_AHBPeriphClockCmd(RCC_AHBPeriph_FSMC, ENABLE);
++
++  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE |
++                         RCC_APB2Periph_GPIOF | RCC_APB2Periph_GPIOG |
++                         RCC_APB2Periph_AFIO, ENABLE);
++
++  /* Set PD.00(D2), PD.01(D3), PD.04(NOE), PD.05(NWE), PD.08(D13), PD.09(D14),
++     PD.10(D15), PD.14(D0), PD.15(D1) as alternate 
++     function push pull */
++  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_4 | GPIO_Pin_5 |
++                                GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | GPIO_Pin_14 | 
++                                GPIO_Pin_15;
++  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
++  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
++  GPIO_Init(GPIOD, &amp;GPIO_InitStructure);
++
++  /* Set PE.07(D4), PE.08(D5), PE.09(D6), PE.10(D7), PE.11(D8), PE.12(D9), PE.13(D10),
++     PE.14(D11), PE.15(D12) as alternate function push pull */
++  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9 | GPIO_Pin_10 | 
++                                GPIO_Pin_11 | GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | 
++                                GPIO_Pin_15;
++  GPIO_Init(GPIOE, &amp;GPIO_InitStructure);
++
++  /* Set PF.00(A0 (RS)) as alternate function push pull */
++  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
++  GPIO_Init(GPIOF, &amp;GPIO_InitStructure);
++
++  /* Set PG.12(NE4 (LCD/CS)) as alternate function push pull - CE3(LCD /CS) */
++  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12;
++  GPIO_Init(GPIOG, &amp;GPIO_InitStructure);
++}
++
++/*******************************************************************************
++* Function Name  : LCD_FSMCConfig
++* Description    : Configures the Parallel interface (FSMC) for LCD(Parallel mode)
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void LCD_FSMCConfig(void)
++{
++  FSMC_NORSRAMInitTypeDef  FSMC_NORSRAMInitStructure;
++  FSMC_NORSRAMTimingInitTypeDef  p;
++
++/*-- FSMC Configuration ------------------------------------------------------*/
++/*----------------------- SRAM Bank 4 ----------------------------------------*/
++  /* FSMC_Bank1_NORSRAM4 configuration */
++  p.FSMC_AddressSetupTime = 0;
++  p.FSMC_AddressHoldTime = 0;
++  p.FSMC_DataSetupTime = 1;
++  p.FSMC_BusTurnAroundDuration = 0;
++  p.FSMC_CLKDivision = 0;
++  p.FSMC_DataLatency = 0;
++  p.FSMC_AccessMode = FSMC_AccessMode_A;
++
++  /* Color LCD configuration ------------------------------------
++     LCD configured as follow:
++        - Data/Address MUX = Disable
++        - Memory Type = SRAM
++        - Data Width = 16bit
++        - Write Operation = Enable
++        - Extended Mode = Enable
++        - Asynchronous Wait = Disable */
++  FSMC_NORSRAMInitStructure.FSMC_Bank = FSMC_Bank1_NORSRAM4;
++  FSMC_NORSRAMInitStructure.FSMC_DataAddressMux = FSMC_DataAddressMux_Disable;
++  FSMC_NORSRAMInitStructure.FSMC_MemoryType = FSMC_MemoryType_SRAM;
++  FSMC_NORSRAMInitStructure.FSMC_MemoryDataWidth = FSMC_MemoryDataWidth_16b;
++  FSMC_NORSRAMInitStructure.FSMC_BurstAccessMode = FSMC_BurstAccessMode_Disable;
++  FSMC_NORSRAMInitStructure.FSMC_WaitSignalPolarity = FSMC_WaitSignalPolarity_Low;
++  FSMC_NORSRAMInitStructure.FSMC_WrapMode = FSMC_WrapMode_Disable;
++  FSMC_NORSRAMInitStructure.FSMC_WaitSignalActive = FSMC_WaitSignalActive_BeforeWaitState;
++  FSMC_NORSRAMInitStructure.FSMC_WriteOperation = FSMC_WriteOperation_Enable;
++  FSMC_NORSRAMInitStructure.FSMC_WaitSignal = FSMC_WaitSignal_Disable;
++  FSMC_NORSRAMInitStructure.FSMC_ExtendedMode = FSMC_ExtendedMode_Disable;
++  FSMC_NORSRAMInitStructure.FSMC_WriteBurst = FSMC_WriteBurst_Disable;
++  FSMC_NORSRAMInitStructure.FSMC_ReadWriteTimingStruct = &p;
++  FSMC_NORSRAMInitStructure.FSMC_WriteTimingStruct = &p;
++
++  FSMC_NORSRAMInit(&amp;FSMC_NORSRAMInitStructure);  
++
++  /* BANK 4 (of NOR/SRAM Bank 1~4) is enabled */
++  FSMC_NORSRAMCmd(FSMC_Bank1_NORSRAM4, ENABLE);
++}
++
++/******************* (C) COPYRIGHT 2008 STMicroelectronics *****END OF FILE****/
+
+
+Property changes on: trunk/src/platform/stm32/lcd.c
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/src/platform/stm32/lcd.h
+===================================================================
+--- trunk/src/platform/stm32/lcd.h	2008-11-08 07:14:51 UTC (rev 122)
++++ trunk/src/platform/stm32/lcd.h	2008-11-11 04:08:48 UTC (rev 123)
+@@ -0,0 +1,203 @@
++/******************** (C) COPYRIGHT 2008 STMicroelectronics ********************
++* File Name          : lcd.h
++* Author             : MCD Application Team
++* Version            : V1.1.2
++* Date               : 09/22/2008
++* Description        : This file contains all the functions prototypes for the
++*                      lcd firmware driver.
++********************************************************************************
++* THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Define to prevent recursive inclusion -------------------------------------*/
++#ifndef __LCD_H
++#define __LCD_H
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;stm32f10x_lib.h&quot;
++
++/* Exported types ------------------------------------------------------------*/
++/* Exported constants --------------------------------------------------------*/
++/* LCD Registers */
++#define R0             0x00
++#define R1             0x01
++#define R2             0x02
++#define R3             0x03
++#define R4             0x04
++#define R5             0x05
++#define R6             0x06
++#define R7             0x07
++#define R8             0x08
++#define R9             0x09
++#define R10            0x0A
++#define R12            0x0C
++#define R13            0x0D
++#define R14            0x0E
++#define R15            0x0F
++#define R16            0x10
++#define R17            0x11
++#define R18            0x12
++#define R19            0x13
++#define R20            0x14
++#define R21            0x15
++#define R22            0x16
++#define R23            0x17
++#define R24            0x18
++#define R25            0x19
++#define R26            0x1A
++#define R27            0x1B
++#define R28            0x1C
++#define R29            0x1D
++#define R30            0x1E
++#define R31            0x1F
++#define R32            0x20
++#define R33            0x21
++#define R34            0x22
++#define R36            0x24
++#define R37            0x25
++#define R40            0x28
++#define R41            0x29
++#define R43            0x2B
++#define R45            0x2D
++#define R48            0x30
++#define R49            0x31
++#define R50            0x32
++#define R51            0x33
++#define R52            0x34
++#define R53            0x35
++#define R54            0x36
++#define R55            0x37
++#define R56            0x38
++#define R57            0x39
++#define R59            0x3B
++#define R60            0x3C
++#define R61            0x3D
++#define R62            0x3E
++#define R63            0x3F
++#define R64            0x40
++#define R65            0x41
++#define R66            0x42
++#define R67            0x43
++#define R68            0x44
++#define R69            0x45
++#define R70            0x46
++#define R71            0x47
++#define R72            0x48
++#define R73            0x49
++#define R74            0x4A
++#define R75            0x4B
++#define R76            0x4C
++#define R77            0x4D
++#define R78            0x4E
++#define R79            0x4F
++#define R80            0x50
++#define R81            0x51
++#define R82            0x52
++#define R83            0x53
++#define R96            0x60
++#define R97            0x61
++#define R106           0x6A
++#define R118           0x76
++#define R128           0x80
++#define R129           0x81
++#define R130           0x82
++#define R131           0x83
++#define R132           0x84
++#define R133           0x85
++#define R134           0x86
++#define R135           0x87
++#define R136           0x88
++#define R137           0x89
++#define R139           0x8B
++#define R140           0x8C
++#define R141           0x8D
++#define R143           0x8F
++#define R144           0x90
++#define R145           0x91
++#define R146           0x92
++#define R147           0x93
++#define R148           0x94
++#define R149           0x95
++#define R150           0x96
++#define R151           0x97
++#define R152           0x98
++#define R153           0x99
++#define R154           0x9A
++#define R157           0x9D
++#define R192           0xC0
++#define R193           0xC1
++#define R229           0xE5
++
++/* LCD Control pins */
++#define CtrlPin_NCS    GPIO_Pin_2   /* PB.02 */
++#define CtrlPin_RS     GPIO_Pin_7   /* PD.07 */
++#define CtrlPin_NWR    GPIO_Pin_15  /* PD.15 */
++
++/* LCD color */
++#define White          0xFFFF
++#define Black          0x0000
++#define Grey           0xF7DE
++#define Blue           0x001F
++#define Blue2          0x051F
++#define Red            0xF800
++#define Magenta        0xF81F
++#define Green          0x07E0
++#define Cyan           0x7FFF
++#define Yellow         0xFFE0
++
++#define Line0          0
++#define Line1          24
++#define Line2          48
++#define Line3          72
++#define Line4          96
++#define Line5          120
++#define Line6          144
++#define Line7          168
++#define Line8          192
++#define Line9          216
++
++#define Horizontal     0x00
++#define Vertical       0x01
++
++/* Exported macro ------------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++/*----- High layer function -----*/
++void STM3210E_LCD_Init(void);
++void LCD_SetTextColor(vu16 Color);
++void LCD_SetBackColor(vu16 Color);
++void LCD_ClearLine(u8 Line);
++void LCD_Clear(u16 Color);
++void LCD_SetCursor(u8 Xpos, u16 Ypos);
++void LCD_DrawChar(u8 Xpos, u16 Ypos, uc16 *c);
++void LCD_DisplayChar(u8 Line, u16 Column, u8 Ascii);
++void LCD_DisplayStringLine(u8 Line, u8 *ptr);
++void LCD_SetDisplayWindow(u8 Xpos, u16 Ypos, u8 Height, u16 Width);
++void LCD_WindowModeDisable(void);
++void LCD_DrawLine(u8 Xpos, u16 Ypos, u16 Length, u8 Direction);
++void LCD_DrawRect(u8 Xpos, u16 Ypos, u8 Height, u16 Width);
++void LCD_DrawCircle(u8 Xpos, u16 Ypos, u16 Radius);
++void LCD_DrawMonoPict(uc32 *Pict);
++void LCD_WriteBMP(u32 BmpAddress);
++
++/*----- Medium layer function -----*/
++void LCD_WriteReg(u8 LCD_Reg, u16 LCD_RegValue);
++u16 LCD_ReadReg(u8 LCD_Reg);
++void LCD_WriteRAM_Prepare(void);
++void LCD_WriteRAM(u16 RGB_Code);
++u16 LCD_ReadRAM(void);
++void LCD_PowerOn(void);
++void LCD_DisplayOn(void);
++void LCD_DisplayOff(void);
++
++/*----- Low layer function -----*/
++void LCD_CtrlLinesConfig(void);
++void LCD_FSMCConfig(void);
++
++#endif /* __LCD_H */
++
++/******************* (C) COPYRIGHT 2008 STMicroelectronics *****END OF FILE****/
+
+
+Property changes on: trunk/src/platform/stm32/lcd.h
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/src/platform/stm32/lua_lcd.c
+===================================================================
+--- trunk/src/platform/stm32/lua_lcd.c	2008-11-08 07:14:51 UTC (rev 122)
++++ trunk/src/platform/stm32/lua_lcd.c	2008-11-11 04:08:48 UTC (rev 123)
+@@ -0,0 +1,17 @@
++// Module to interface with the LCD on the STM3210E board.
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;auxmods.h&quot;
++#include &lt;stdio.h&gt;
++#include &lt;ctype.h&gt;
++#include &lt;string.h&gt;
++
++#include &quot;lcd.h&quot;
++
++
++
++
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000078.html">[Elua-svn] r122 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000080.html">[Elua-svn] r124 - in trunk: . src/lua src/modules src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#79">[ date ]</a>
+              <a href="thread.html#79">[ thread ]</a>
+              <a href="subject.html#79">[ subject ]</a>
+              <a href="author.html#79">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

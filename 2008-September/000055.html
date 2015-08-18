@@ -1,0 +1,1185 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r99 - in trunk: . inc src src/modules src/newlib	src/platform/lm3s src/uip
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r99%20-%20in%20trunk%3A%20.%20inc%20src%20src/modules%20src/newlib%0A%09src/platform/lm3s%20src/uip&In-Reply-To=%3C200809231939.m8NJdFCZ008357%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000054.html">
+   <LINK REL="Next"  HREF="000056.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r99 - in trunk: . inc src src/modules src/newlib	src/platform/lm3s src/uip</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r99%20-%20in%20trunk%3A%20.%20inc%20src%20src/modules%20src/newlib%0A%09src/platform/lm3s%20src/uip&In-Reply-To=%3C200809231939.m8NJdFCZ008357%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r99 - in trunk: . inc src src/modules src/newlib	src/platform/lm3s src/uip">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Sep 23 21:39:15 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000054.html">[Elua-svn] r98 - in trunk: inc src src/modules src/newlib
+</A></li>
+        <LI>Next message: <A HREF="000056.html">[Elua-svn] r100 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#55">[ date ]</a>
+              <a href="thread.html#55">[ thread ]</a>
+              <a href="subject.html#55">[ subject ]</a>
+              <a href="author.html#55">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-09-23 21:39:14 +0200 (Tue, 23 Sep 2008)
+New Revision: 99
+
+Added:
+   trunk/src/uip/resolv.c
+   trunk/src/uip/resolv.h
+Modified:
+   trunk/SConstruct
+   trunk/inc/elua_net.h
+   trunk/inc/elua_uip.h
+   trunk/src/elua_uip.c
+   trunk/src/modules/net.c
+   trunk/src/newlib/stdtcp.c
+   trunk/src/newlib/stubs.c
+   trunk/src/platform/lm3s/build.h
+   trunk/src/platform/lm3s/uip-conf.h
+   trunk/src/uip/uip.c
+   trunk/src/uip/uip.h
+Log:
+- fixed a serious bug in the implementation of the eLua UIP support code. Now one can have multiple TCP/IP connection _without_ mixing the data buffers between them :)
+- added the resolver application (src/uip/resolv.*) to eLua (configurable by BUILD_DNS in build.h) to allow DNS lookups
+- more functions in the &quot;net&quot; module, more tests, it seems to work fine now in both &quot;server mode&quot; and &quot;client mode&quot;
+- console over TCP works once again, or should I say &quot;now works&quot;. It turns out that it never worked with the code in SVN, because I committed a wrong file a while ago.
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/SConstruct	2008-09-23 19:39:14 UTC (rev 99)
+@@ -123,7 +123,7 @@
+ newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+ 
+ # UIP files
+-uip_files = &quot;uip_arp.c uip.c uiplib.c uip-split.c dhcpc.c psock.c&quot;
++uip_files = &quot;uip_arp.c uip.c uiplib.c uip-split.c dhcpc.c psock.c resolv.c&quot;
+ uip_files = &quot; src/elua_uip.c &quot; + &quot; &quot;.join( [ &quot;src/uip/%s&quot; % name for name in uip_files.split() ] )
+ local_include = local_include + &quot; -Isrc/uip&quot;
+ 
+
+Modified: trunk/inc/elua_net.h
+===================================================================
+--- trunk/inc/elua_net.h	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/inc/elua_net.h	2008-09-23 19:39:14 UTC (rev 99)
+@@ -45,6 +45,7 @@
+ elua_net_size elua_net_send( int s, const void* buf, elua_net_size len );
+ int elua_accept( u16 port, unsigned timer_id, u32 to_us, elua_net_ip* pfrom );
+ int elua_net_connect( int s, elua_net_ip addr, u16 port );
++elua_net_ip elua_net_lookup( const char* hostname );
+ 
+ int elua_net_get_last_err( int s );
+ int elua_net_get_telnet_socket();
+
+Modified: trunk/inc/elua_uip.h
+===================================================================
+--- trunk/inc/elua_uip.h	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/inc/elua_uip.h	2008-09-23 19:39:14 UTC (rev 99)
+@@ -31,6 +31,7 @@
+ 
+ // Helper functions
+ void elua_uip_appcall();
++void elua_uip_udp_appcall();
+ void elua_uip_init( const struct uip_eth_addr* paddr );
+ void elua_uip_mainloop();
+ 
+
+Modified: trunk/src/elua_uip.c
+===================================================================
+--- trunk/src/elua_uip.c	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/src/elua_uip.c	2008-09-23 19:39:14 UTC (rev 99)
+@@ -13,6 +13,7 @@
+ #include &quot;utils.h&quot;
+ #include &quot;uip-split.h&quot;
+ #include &quot;dhcpc.h&quot;
++#include &quot;resolv.h&quot;
+ #include &lt;string.h&gt;
+ 
+ // UIP send buffer
+@@ -34,15 +35,18 @@
+ #define UIP_PERIODIC_TIMER_MS   500
+ #define UIP_ARP_TIMER_MS        10000
+ 
+-// This is called from uip_split_output
+-void tcpip_output()
+-{
+-  platform_eth_send_packet( uip_buf, uip_len );
+-}
++#define IP_TCP_HEADER_LENGTH 40
++#define TOTAL_HEADER_LENGTH (IP_TCP_HEADER_LENGTH+UIP_LLH_LEN)
+ 
+ static void device_driver_send()
+ {
+-  uip_split_output();  
++  if( uip_len &lt;= TOTAL_HEADER_LENGTH )
++    platform_eth_send_packet( uip_buf, uip_len );
++  else
++  {
++    platform_eth_send_packet( uip_buf, TOTAL_HEADER_LENGTH );
++    platform_eth_send_packet( ( u8* )uip_appdata, uip_len - TOTAL_HEADER_LENGTH );
++  }
+ }
+ 
+ // This gets called on both Ethernet RX interrupts and timer requests,
+@@ -91,35 +95,29 @@
+     }
+   }
+   
+-  for( temp = 0; temp &lt; UIP_UDP_CONNS; temp ++ )
++  // Process TCP/IP Periodic Timer here.
++  // Also process the &quot;force interrupt&quot; events (platform_eth_force_interrupt)
++  if( periodic_timer &gt;= UIP_PERIODIC_TIMER_MS )
+   {
+-    // Poll connection
+-    uip_poll_conn_num( temp );
++    periodic_timer = 0;
++    uip_set_forced_poll( 0 );
++  }
++  else
++    uip_set_forced_poll( 1 );
++  for( temp = 0; temp &lt; UIP_CONNS; temp ++ )
++  {
++    uip_periodic( temp );
++
++    // If the above function invocation resulted in data that
++    // should be sent out on the network, the global variable
++    // uip_len is set to a value &gt; 0.
+     if( uip_len &gt; 0 )
+     {
+       uip_arp_out();
+       device_driver_send();
+     }
+   }
+-  
+-  // Process TCP/IP Periodic Timer here.
+-  if( periodic_timer &gt;= UIP_PERIODIC_TIMER_MS )
+-  {
+-    periodic_timer = 0;
+-    for( temp = 0; temp &lt; UIP_CONNS; temp ++ )
+-    {
+-      uip_periodic( temp );
+ 
+-      // If the above function invocation resulted in data that
+-      // should be sent out on the network, the global variable
+-      // uip_len is set to a value &gt; 0.
+-      if( uip_len &gt; 0 )
+-      {
+-        uip_arp_out();
+-        device_driver_send();
+-      }
+-    }
+-
+ #if UIP_UDP
+     for( temp = 0; temp &lt; UIP_UDP_CONNS; temp ++ )
+     {
+@@ -135,7 +133,6 @@
+       }
+     }
+ #endif // UIP_UDP
+-  }  
+   
+   // Process ARP Timer here.
+   if( arp_timer &gt;= UIP_ARP_TIMER_MS )
+@@ -149,18 +146,37 @@
+ // DHCP callback
+ 
+ #ifdef BUILD_DHCPC
+-
+ void dhcpc_configured(const struct dhcpc_state *s)
+ {
+-  if(s-&gt;ipaddr[0] != 0)
++  if( s-&gt;ipaddr[ 0 ] != 0 )
+   {
+-    uip_sethostaddr(s-&gt;ipaddr);
+-    uip_setnetmask(s-&gt;netmask); 
+-    uip_setdraddr(s-&gt;default_router);     
++    uip_sethostaddr( s-&gt;ipaddr );
++    uip_setnetmask( s-&gt;netmask ); 
++    uip_setdraddr( s-&gt;default_router );     
++    resolv_conf( ( u16_t* )s-&gt;dnsaddr );
+     elua_uip_configured = 1;
+   }
+ }
++#endif
+ 
++// *****************************************************************************
++// DNS callback
++
++#ifdef BUILD_DNS
++volatile static int elua_resolv_req_done;
++static elua_net_ip elua_resolv_ip;
++
++void resolv_found( char *name, u16_t *ipaddr )
++{
++  if( !ipaddr )
++    elua_resolv_ip.ipaddr = 0;
++  else
++  {
++    elua_resolv_ip.ipwords[ 0 ] = ipaddr[ 0 ];
++    elua_resolv_ip.ipwords[ 1 ] = ipaddr[ 1 ];
++  }
++  elua_resolv_req_done = 1;
++}
+ #endif
+ 
+ // *****************************************************************************
+@@ -319,7 +335,7 @@
+     if( uip_acked() )
+     {
+       // Send next part of the buffer (if needed)
+-      if( s-&gt;len &lt; uip_mss() ) // end of transmission
++      if( s-&gt;len &lt;= uip_mss() ) // end of transmission
+       { 
+         s-&gt;len = 0;
+         s-&gt;state = ELUA_UIP_STATE_IDLE;
+@@ -332,7 +348,7 @@
+     }
+     if( s-&gt;len &gt; 0 ) // need to (re)transmit?
+     {
+-#ifdef BUILD_CON_TCP    
++#ifdef BUILD_CON_TCP
+       if( sockno == elua_uip_telnet_socket )
+       {
+         temp = elua_uip_telnet_prep_send( s-&gt;ptr, s-&gt;len );
+@@ -432,25 +448,40 @@
+   // Initialize the uIP TCP/IP stack.
+   uip_init();
+   uip_arp_init();  
++  
+ #ifdef BUILD_DHCPC
+   dhcpc_init( paddr-&gt;addr, sizeof( *paddr ) );
+   dhcpc_request();
+ #else
+   uip_ipaddr_t ipaddr;
+-  uip_ipaddr(ipaddr, ELUA_CONF_IPADDR0, ELUA_CONF_IPADDR1, ELUA_CONF_IPADDR2, ELUA_CONF_IPADDR3);
+-  uip_sethostaddr(ipaddr);
+-  uip_ipaddr(ipaddr, ELUA_CONF_NETMASK0, ELUA_CONF_NETMASK1, ELUA_CONF_NETMASK2, ELUA_CONF_NETMASK3);
+-  uip_setnetmask(ipaddr); 
+-  uip_ipaddr(ipaddr, ELUA_CONF_DEFGW0, ELUA_CONF_DEFGW1, ELUA_CONF_DEFGW2, ELUA_CONF_DEFGW3);
+-  uip_setdraddr(ipaddr);      
++  uip_ipaddr( ipaddr, ELUA_CONF_IPADDR0, ELUA_CONF_IPADDR1, ELUA_CONF_IPADDR2, ELUA_CONF_IPADDR3 );
++  uip_sethostaddr( ipaddr );
++  uip_ipaddr( ipaddr, ELUA_CONF_NETMASK0, ELUA_CONF_NETMASK1, ELUA_CONF_NETMASK2, ELUA_CONF_NETMASK3 );
++  uip_setnetmask( ipaddr ); 
++  uip_ipaddr( ipaddr, ELUA_CONF_DEFGW0, ELUA_CONF_DEFGW1, ELUA_CONF_DEFGW2, ELUA_CONF_DEFGW3 );
++  uip_setdraddr( ipaddr );    
++  uip_ipaddr( ipaddr, ELUA_CONF_DNS0, ELUA_CONF_DNS1, ELUA_CONF_DNS2, ELUA_CONF_DNS3 );
++  resolv_conf( ipaddr );  
+   elua_uip_configured = 1;
+ #endif
++  
++  resolv_init();
++  
+ #ifdef BUILD_CON_TCP
+   uip_listen( HTONS( ELUA_NET_TELNET_PORT ) );
+ #endif  
+ }
+ 
+ // *****************************************************************************
++// eLua UIP UDP application (used for the DHCP client and the DNS resolver)
++
++void elua_uip_udp_appcall()
++{
++  resolv_appcall();
++  dhcpc_appcall();
++}
++
++// *****************************************************************************
+ // eLua TCP/IP services (from elua_net.h)
+ 
+ #define ELUA_UIP_IS_SOCK_OK( sock ) ( elua_uip_configured &amp;&amp; sock &gt;= 0 &amp;&amp; sock &lt; UIP_CONNS )
+@@ -639,4 +670,32 @@
+   return pstate-&gt;res == ELUA_NET_ERR_OK ? 0 : -1;
+ }
+ 
++// Hostname lookup (resolver)
++elua_net_ip elua_net_lookup( const char* hostname )
++{
++  elua_net_ip res;
++  
++  res.ipaddr = 0; 
++#ifdef BUILD_DNS
++  u16_t *data;
++  
++  if( ( data = resolv_lookup( ( char* )hostname ) ) != NULL )
++  {
++    // Name already saved locally
++    res.ipwords[ 0 ] = data[ 0 ];
++    res.ipwords[ 1 ] = data[ 1 ];
++  }
++  else
++  {
++    // Name not saved locally, must make request
++    elua_resolv_req_done = 0;
++    resolv_query( ( char* )hostname );
++    platform_eth_force_interrupt();
++    while( elua_resolv_req_done == 0 );
++    res = elua_resolv_ip;
++  }
++#endif
++  return res;  
++}
++
+ #endif // #ifdef BUILD_UIP
+
+Modified: trunk/src/modules/net.c
+===================================================================
+--- trunk/src/modules/net.c	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/src/modules/net.c	2008-09-23 19:39:14 UTC (rev 99)
+@@ -66,7 +66,7 @@
+ }
+ 
+ // Lua: sockno, err = connect( sock, iptype, port )
+-// &quot;iptype&quot; is actually an int returned by &quot;net_ipaddr&quot;
++// &quot;iptype&quot; is actually an int returned by &quot;net.packip&quot;
+ static int net_connect( lua_State *L )
+ {
+   elua_net_ip ip;
+@@ -79,10 +79,10 @@
+   return 2;  
+ }
+ 
+-// Lua: data = ipaddr( ip0, ip1, ip2, ip3 ), or
+-// Lua: data = ipaddr( &quot;ip&quot; )
++// Lua: data = packip( ip0, ip1, ip2, ip3 ), or
++// Lua: data = packip( &quot;ip&quot; )
+ // Returns an internal representation for the given IP address
+-static int net_ipaddr( lua_State *L )
++static int net_packip( lua_State *L )
+ {
+   elua_net_ip ip;
+   unsigned i, temp;
+@@ -113,16 +113,30 @@
+   return 1;
+ }
+ 
+-// Lua: ip0, ip1, ip2, ip3 = getip( iptype )
+-static int net_getip( lua_State *L )
++// Lua: ip0, ip1, ip2, ip3 = unpackip( iptype, &quot;*n&quot; ), or
++//               string_ip = unpackip( iptype, &quot;*s&quot; )
++static int net_unpackip( lua_State *L )
+ {
+   elua_net_ip ip;
+   unsigned i;  
++  const char* fmt;
+   
+   ip.ipaddr = ( u32 )luaL_checkinteger( L, 1 );
+-  for( i = 0; i &lt; 4; i ++ )
+-    lua_pushinteger( L, ip.ipbytes[ i ] );
+-  return 4;
++  fmt = luaL_checkstring( L, 2 );
++  if( !strcmp( fmt, &quot;*n&quot; ) )
++  {
++    for( i = 0; i &lt; 4; i ++ ) 
++      lua_pushinteger( L, ip.ipbytes[ i ] );
++    return 4;
++  }
++  else if( !strcmp( fmt, &quot;*s&quot; ) )
++  {
++    lua_pushfstring( L, &quot;%d.%d.%d.%d&quot;, ( int )ip.ipbytes[ 0 ], ( int )ip.ipbytes[ 1 ], 
++                     ( int )ip.ipbytes[ 2 ], ( int )ip.ipbytes[ 3 ] );
++    return 1;
++  }
++  else
++    return luaL_error( L, &quot;invalid format&quot; );                                      
+ }
+ 
+ static luaL_Buffer net_recv_buff;
+@@ -158,17 +172,29 @@
+   return 2;
+ }
+ 
++// Lua: iptype = lookup( &quot;name&quot; )
++static int net_lookup( lua_State* L )
++{
++  const char* name = luaL_checkstring( L, 1 );
++  elua_net_ip res;
++  
++  res = elua_net_lookup( name );
++  lua_pushinteger( L, res.ipaddr );
++  return 1;
++}
++
+ // Module function map
+ static const luaL_reg net_map[] = 
+ {
+   { &quot;accept&quot;, net_accept },
+-  { &quot;ipaddr&quot;, net_ipaddr },
+-  { &quot;getip&quot;, net_getip },
++  { &quot;packip&quot;, net_packip },
++  { &quot;unpackip&quot;, net_unpackip },
+   { &quot;connect&quot;, net_connect },
+   { &quot;socket&quot;, net_socket },
+   { &quot;close&quot;, net_close },
+   { &quot;send&quot;, net_send },
+   { &quot;recv&quot;, net_recv },
++  { &quot;lookup&quot;, net_lookup },
+   { NULL, NULL }
+ };
+ 
+
+Modified: trunk/src/newlib/stdtcp.c
+===================================================================
+--- trunk/src/newlib/stdtcp.c	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/src/newlib/stdtcp.c	2008-09-23 19:39:14 UTC (rev 99)
+@@ -74,6 +74,15 @@
+   return len;
+ }
+ 
++// Set send/recv functions
++void std_set_send_func( p_std_send_char pfunc )
++{
++}
++
++void std_set_get_func( p_std_get_char pfunc )
++{
++}
++
+ // Our UART device descriptor structure
+ static DM_DEVICE std_device = 
+ {
+
+Modified: trunk/src/newlib/stubs.c
+===================================================================
+--- trunk/src/newlib/stubs.c	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/src/newlib/stubs.c	2008-09-23 19:39:14 UTC (rev 99)
+@@ -368,7 +368,7 @@
+ // *****************************************************************************
+ // eLua stubs (not Newlib specific)
+ 
+-#ifndef BUILD_CON_GENERIC
++#if !defined( BUILD_CON_GENERIC ) &amp;&amp; !defined( BUILD_CON_TCP )
+ 
+ // Set send/recv functions
+ void std_set_send_func( p_std_send_char pfunc )
+@@ -384,4 +384,4 @@
+   return NULL;
+ }
+ 
+-#endif // #ifndef BUILD_CON_GENERIC
++#endif // #if !defined( BUILD_CON_GENERIC ) &amp;&amp; !defined( BUILD_CON_TCP )
+
+Modified: trunk/src/platform/lm3s/build.h
+===================================================================
+--- trunk/src/platform/lm3s/build.h	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/src/platform/lm3s/build.h	2008-09-23 19:39:14 UTC (rev 99)
+@@ -9,8 +9,9 @@
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+ #define BUILD_UIP
++#define BUILD_DHCPC
++#define BUILD_DNS
+ #define BUILD_CON_GENERIC
+-#define BUILD_DHCPC
+ //#define BUILD_CON_TCP
+ 
+ // Static TCP/IP configuration
+@@ -18,13 +19,20 @@
+ #define ELUA_CONF_IPADDR1         168
+ #define ELUA_CONF_IPADDR2         1
+ #define ELUA_CONF_IPADDR3         13
++
+ #define ELUA_CONF_NETMASK0        255
+ #define ELUA_CONF_NETMASK1        255
+ #define ELUA_CONF_NETMASK2        255
+ #define ELUA_CONF_NETMASK3        0
++
+ #define ELUA_CONF_DEFGW0          192
+ #define ELUA_CONF_DEFGW1          168
+ #define ELUA_CONF_DEFGW2          1
+ #define ELUA_CONF_DEFGW3          1
+ 
++#define ELUA_CONF_DNS0            192
++#define ELUA_CONF_DNS1            168
++#define ELUA_CONF_DNS2            1
++#define ELUA_CONF_DNS3            1
++
+ #endif
+
+Modified: trunk/src/platform/lm3s/uip-conf.h
+===================================================================
+--- trunk/src/platform/lm3s/uip-conf.h	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/src/platform/lm3s/uip-conf.h	2008-09-23 19:39:14 UTC (rev 99)
+@@ -73,7 +73,7 @@
+ //
+ // UDP Maximum Connections
+ //
+-#define UIP_CONF_UDP_CONNS          2
++#define UIP_CONF_UDP_CONNS          4
+ 
+ //
+ // Maximum number of TCP connections.
+@@ -147,7 +147,7 @@
+ #endif
+ 
+ #ifndef UIP_ADP_APPCALL
+-#define UIP_UDP_APPCALL             dhcpc_appcall
++#define UIP_UDP_APPCALL             elua_uip_udp_appcall
+ #endif
+ 
+ // Added for eLua: DHCP TIMER ID
+
+Added: trunk/src/uip/resolv.c
+===================================================================
+--- trunk/src/uip/resolv.c	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/src/uip/resolv.c	2008-09-23 19:39:14 UTC (rev 99)
+@@ -0,0 +1,483 @@
++#include &quot;build.h&quot;
++#ifdef BUILD_DNS
++
++/**
++ * \addtogroup apps
++ * @{
++ */
++
++/**
++ * \defgroup resolv DNS resolver
++ * @{
++ *
++ * The uIP DNS resolver functions are used to lookup a hostname and
++ * map it to a numerical IP address. It maintains a list of resolved
++ * hostnames that can be queried with the resolv_lookup()
++ * function. New hostnames can be resolved using the resolv_query()
++ * function.
++ *
++ * When a hostname has been resolved (or found to be non-existant),
++ * the resolver code calls a callback function called resolv_found()
++ * that must be implemented by the module that uses the resolver.
++ */
++
++/**
++ * \file
++ * DNS host name to IP address resolver.
++ * \author Adam Dunkels &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">adam at dunkels.com</A>&gt;
++ *
++ * This file implements a DNS host name to IP address resolver.
++ */
++
++/*
++ * Copyright (c) 2002-2003, Adam Dunkels.
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ * 3. The name of the author may not be used to endorse or promote
++ *    products derived from this software without specific prior
++ *    written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
++ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
++ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
++ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
++ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ *
++ * This file is part of the uIP TCP/IP stack.
++ *
++ * $Id: resolv.c,v 1.5 2006/06/11 21:46:37 adam Exp $
++ *
++ */
++
++#include &quot;resolv.h&quot;
++#include &quot;uip.h&quot;
++
++#include &lt;string.h&gt;
++
++#ifndef NULL
++#define NULL (void *)0
++#endif /* NULL */
++
++/** \internal The maximum number of retries when asking for a name. */
++#define MAX_RETRIES 8
++
++/** \internal The DNS message header. */
++struct __attribute((packed)) dns_hdr {
++  u16_t id;
++  u8_t flags1, flags2;
++#define DNS_FLAG1_RESPONSE        0x80
++#define DNS_FLAG1_OPCODE_STATUS   0x10
++#define DNS_FLAG1_OPCODE_INVERSE  0x08
++#define DNS_FLAG1_OPCODE_STANDARD 0x00
++#define DNS_FLAG1_AUTHORATIVE     0x04
++#define DNS_FLAG1_TRUNC           0x02
++#define DNS_FLAG1_RD              0x01
++#define DNS_FLAG2_RA              0x80
++#define DNS_FLAG2_ERR_MASK        0x0f
++#define DNS_FLAG2_ERR_NONE        0x00
++#define DNS_FLAG2_ERR_NAME        0x03
++  u16_t numquestions;
++  u16_t numanswers;
++  u16_t numauthrr;
++  u16_t numextrarr;
++};
++
++/** \internal The DNS answer message structure. */
++struct __attribute((packed)) dns_answer {
++  /* DNS answer record starts with either a domain name or a pointer
++     to a name already present somewhere in the packet. */
++  u16_t type;
++  u16_t class;
++  u16_t ttl[2];
++  u16_t len;
++  uip_ipaddr_t ipaddr;
++};
++
++struct namemap {
++#define STATE_UNUSED 0
++#define STATE_NEW    1
++#define STATE_ASKING 2
++#define STATE_DONE   3
++#define STATE_ERROR  4
++  u8_t state;
++  u8_t tmr;
++  u8_t retries;
++  u8_t seqno;
++  u8_t err;
++  char name[32];
++  uip_ipaddr_t ipaddr;
++};
++
++#ifndef UIP_CONF_RESOLV_ENTRIES
++#define RESOLV_ENTRIES 4
++#else /* UIP_CONF_RESOLV_ENTRIES */
++#define RESOLV_ENTRIES UIP_CONF_RESOLV_ENTRIES
++#endif /* UIP_CONF_RESOLV_ENTRIES */
++
++
++static struct namemap names[RESOLV_ENTRIES];
++
++static u8_t seqno;
++
++static struct uip_udp_conn *resolv_conn = NULL;
++
++
++/*---------------------------------------------------------------------------*/
++/** \internal
++ * Walk through a compact encoded DNS name and return the end of it.
++ *
++ * \return The end of the name.
++ */
++/*---------------------------------------------------------------------------*/
++static unsigned char *
++parse_name(unsigned char *query)
++{
++  unsigned char n;
++
++  do {
++    n = *query++;
++    
++    while(n &gt; 0) {
++      /*      printf(&quot;%c&quot;, *query);*/
++      ++query;
++      --n;
++    };
++    /*    printf(&quot;.&quot;);*/
++  } while(*query != 0);
++  /*  printf(&quot;\n&quot;);*/
++  return query + 1;
++}
++/*---------------------------------------------------------------------------*/
++/** \internal
++ * Runs through the list of names to see if there are any that have
++ * not yet been queried and, if so, sends out a query.
++ */
++/*---------------------------------------------------------------------------*/
++static void
++check_entries(void)
++{
++  register struct dns_hdr *hdr;
++  char *query, *nptr, *nameptr;
++  static u8_t i;
++  static u8_t n;
++  register struct namemap *namemapptr;
++  
++  for(i = 0; i &lt; RESOLV_ENTRIES; ++i) {
++    namemapptr = &amp;names[i];
++    if(namemapptr-&gt;state == STATE_NEW ||
++       namemapptr-&gt;state == STATE_ASKING) {
++      if(namemapptr-&gt;state == STATE_ASKING) {
++	if(--namemapptr-&gt;tmr == 0) {
++	  if(++namemapptr-&gt;retries == MAX_RETRIES) {
++	    namemapptr-&gt;state = STATE_ERROR;
++	    resolv_found(namemapptr-&gt;name, NULL);
++	    continue;
++	  }
++	  namemapptr-&gt;tmr = namemapptr-&gt;retries;
++	} else {
++	  /*	  printf(&quot;Timer %d\n&quot;, namemapptr-&gt;tmr);*/
++	  /* Its timer has not run out, so we move on to next
++	     entry. */
++	  continue;
++	}
++      } else {
++	namemapptr-&gt;state = STATE_ASKING;
++	namemapptr-&gt;tmr = 1;
++	namemapptr-&gt;retries = 0;
++      }
++      hdr = (struct dns_hdr *)uip_appdata;
++      memset(hdr, 0, sizeof(struct dns_hdr));
++      hdr-&gt;id = htons(i);
++      hdr-&gt;flags1 = DNS_FLAG1_RD;
++      hdr-&gt;numquestions = HTONS(1);
++      query = (char *)uip_appdata + 12;
++      nameptr = namemapptr-&gt;name;
++      --nameptr;
++      /* Convert hostname into suitable query format. */
++      do {
++	++nameptr;
++	nptr = query;
++	++query;
++	for(n = 0; *nameptr != '.' &amp;&amp; *nameptr != 0; ++nameptr) {
++	  *query = *nameptr;
++	  ++query;
++	  ++n;
++	}
++	*nptr = n;
++      } while(*nameptr != 0);
++      {
++	static unsigned char endquery[] =
++	  {0,0,1,0,1};
++	memcpy(query, endquery, 5);
++      }
++      uip_udp_send((unsigned char)(query + 5 - (char *)uip_appdata));
++      break;
++    }
++  }
++}
++/*---------------------------------------------------------------------------*/
++/** \internal
++ * Called when new UDP data arrives.
++ */
++/*---------------------------------------------------------------------------*/
++static void
++newdata(void)
++{
++  char *nameptr;
++  struct dns_answer *ans;
++  struct dns_hdr *hdr;
++  static u8_t nquestions, nanswers;
++  static u8_t i;
++  register struct namemap *namemapptr;
++  
++  hdr = (struct dns_hdr *)uip_appdata;
++  /*  printf(&quot;ID %d\n&quot;, htons(hdr-&gt;id));
++      printf(&quot;Query %d\n&quot;, hdr-&gt;flags1 &amp; DNS_FLAG1_RESPONSE);
++      printf(&quot;Error %d\n&quot;, hdr-&gt;flags2 &amp; DNS_FLAG2_ERR_MASK);
++      printf(&quot;Num questions %d, answers %d, authrr %d, extrarr %d\n&quot;,
++      htons(hdr-&gt;numquestions),
++      htons(hdr-&gt;numanswers),
++      htons(hdr-&gt;numauthrr),
++      htons(hdr-&gt;numextrarr));
++  */
++
++  /* The ID in the DNS header should be our entry into the name
++     table. */
++  i = htons(hdr-&gt;id);
++  namemapptr = &amp;names[i];
++  if(i &lt; RESOLV_ENTRIES &amp;&amp;
++     namemapptr-&gt;state == STATE_ASKING) {
++
++    /* This entry is now finished. */
++    namemapptr-&gt;state = STATE_DONE;
++    namemapptr-&gt;err = hdr-&gt;flags2 &amp; DNS_FLAG2_ERR_MASK;
++
++    /* Check for error. If so, call callback to inform. */
++    if(namemapptr-&gt;err != 0) {
++      namemapptr-&gt;state = STATE_ERROR;
++      resolv_found(namemapptr-&gt;name, NULL);
++      return;
++    }
++
++    /* We only care about the question(s) and the answers. The authrr
++       and the extrarr are simply discarded. */
++    nquestions = htons(hdr-&gt;numquestions);
++    nanswers = htons(hdr-&gt;numanswers);
++
++    /* Skip the name in the question. XXX: This should really be
++       checked agains the name in the question, to be sure that they
++       match. */
++    nameptr = parse_name((char *)uip_appdata + 12) + 4;
++
++    while(nanswers &gt; 0) {
++      /* The first byte in the answer resource record determines if it
++	 is a compressed record or a normal one. */
++      if(*nameptr &amp; 0xc0) {
++	/* Compressed name. */
++	nameptr +=2;
++	/*	printf(&quot;Compressed anwser\n&quot;);*/
++      } else {
++	/* Not compressed name. */
++	nameptr = parse_name((char *)nameptr);
++      }
++
++      ans = (struct dns_answer *)nameptr;
++      /*      printf(&quot;Answer: type %x, class %x, ttl %x, length %x\n&quot;,
++	     htons(ans-&gt;type), htons(ans-&gt;class), (htons(ans-&gt;ttl[0])
++	     &lt;&lt; 16) | htons(ans-&gt;ttl[1]), htons(ans-&gt;len));*/
++
++      /* Check for IP address type and Internet class. Others are
++	 discarded. */
++      if(ans-&gt;type == HTONS(1) &amp;&amp;
++	 ans-&gt;class == HTONS(1) &amp;&amp;
++	 ans-&gt;len == HTONS(4)) {
++	/*	printf(&quot;IP address %d.%d.%d.%d\n&quot;,
++	       htons(ans-&gt;ipaddr[0]) &gt;&gt; 8,
++	       htons(ans-&gt;ipaddr[0]) &amp; 0xff,
++	       htons(ans-&gt;ipaddr[1]) &gt;&gt; 8,
++	       htons(ans-&gt;ipaddr[1]) &amp; 0xff);*/
++	/* XXX: we should really check that this IP address is the one
++	   we want. */
++	namemapptr-&gt;ipaddr[0] = ans-&gt;ipaddr[0];
++	namemapptr-&gt;ipaddr[1] = ans-&gt;ipaddr[1];
++	
++	resolv_found(namemapptr-&gt;name, namemapptr-&gt;ipaddr);
++	return;
++      } else {
++	nameptr = nameptr + 10 + htons(ans-&gt;len);
++      }
++      --nanswers;
++    }
++  }
++
++}
++/*---------------------------------------------------------------------------*/
++/** \internal
++ * The main UDP function.
++ */
++/*---------------------------------------------------------------------------*/
++void
++resolv_appcall(void)
++{
++  if(resolv_conn-&gt;rport == HTONS(53)) {
++    if(uip_poll()) {
++      check_entries();
++    }
++    if(uip_newdata()) {
++      newdata();
++    }
++  }
++}
++/*---------------------------------------------------------------------------*/
++/**
++ * Queues a name so that a question for the name will be sent out.
++ *
++ * \param name The hostname that is to be queried.
++ */
++/*---------------------------------------------------------------------------*/
++void
++resolv_query(char *name)
++{
++  static u8_t i;
++  static u8_t lseq, lseqi;
++  register struct namemap *nameptr;
++      
++  lseq = lseqi = 0;
++  
++  for(i = 0; i &lt; RESOLV_ENTRIES; ++i) {
++    nameptr = &amp;names[i];
++    if(nameptr-&gt;state == STATE_UNUSED) {
++      break;
++    }
++    if(seqno - nameptr-&gt;seqno &gt; lseq) {
++      lseq = seqno - nameptr-&gt;seqno;
++      lseqi = i;
++    }
++  }
++
++  if(i == RESOLV_ENTRIES) {
++    i = lseqi;
++    nameptr = &amp;names[i];
++  }
++
++  /*  printf(&quot;Using entry %d\n&quot;, i);*/
++
++  strcpy(nameptr-&gt;name, name);
++  nameptr-&gt;state = STATE_NEW;
++  nameptr-&gt;seqno = seqno;
++  ++seqno;
++}
++/*---------------------------------------------------------------------------*/
++/**
++ * Look up a hostname in the array of known hostnames.
++ *
++ * \note This function only looks in the internal array of known
++ * hostnames, it does not send out a query for the hostname if none
++ * was found. The function resolv_query() can be used to send a query
++ * for a hostname.
++ *
++ * \return A pointer to a 4-byte representation of the hostname's IP
++ * address, or NULL if the hostname was not found in the array of
++ * hostnames.
++ */
++/*---------------------------------------------------------------------------*/
++u16_t *
++resolv_lookup(char *name)
++{
++  static u8_t i;
++  struct namemap *nameptr;
++  
++  /* Walk through the list to see if the name is in there. If it is
++     not, we return NULL. */
++  for(i = 0; i &lt; RESOLV_ENTRIES; ++i) {
++    nameptr = &amp;names[i];
++    if(nameptr-&gt;state == STATE_DONE &amp;&amp;
++       strcmp(name, nameptr-&gt;name) == 0) {
++      return nameptr-&gt;ipaddr;
++    }
++  }
++  return NULL;
++}
++/*---------------------------------------------------------------------------*/
++/**
++ * Obtain the currently configured DNS server.
++ *
++ * \return A pointer to a 4-byte representation of the IP address of
++ * the currently configured DNS server or NULL if no DNS server has
++ * been configured.
++ */
++/*---------------------------------------------------------------------------*/
++u16_t *
++resolv_getserver(void)
++{
++  if(resolv_conn == NULL) {
++    return NULL;
++  }
++  return resolv_conn-&gt;ripaddr;
++}
++/*---------------------------------------------------------------------------*/
++/**
++ * Configure which DNS server to use for queries.
++ *
++ * \param dnsserver A pointer to a 4-byte representation of the IP
++ * address of the DNS server to be configured.
++ */
++/*---------------------------------------------------------------------------*/
++void
++resolv_conf(u16_t *dnsserver)
++{
++  if(resolv_conn != NULL) {
++    uip_udp_remove(resolv_conn);
++  }
++  
++  resolv_conn = uip_udp_new( ( uip_ipaddr_t* )dnsserver, HTONS(53));
++}
++/*---------------------------------------------------------------------------*/
++/**
++ * Initalize the resolver.
++ */
++/*---------------------------------------------------------------------------*/
++void
++resolv_init(void)
++{
++  static u8_t i;
++  
++  for(i = 0; i &lt; RESOLV_ENTRIES; ++i) {
++    names[i].state = STATE_DONE;
++  }
++
++}
++/*---------------------------------------------------------------------------*/
++
++/** @} */
++/** @} */
++
++#else  // #ifdef BUILD_DNS
++
++void resolv_appcall()
++{
++}
++
++void resolv_init()
++{
++}
++
++void resolv_conf( u16_t *dnsserver )
++{
++}
++
++#endif // #ifdef BUILD_DNS
+
+Added: trunk/src/uip/resolv.h
+===================================================================
+--- trunk/src/uip/resolv.h	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/src/uip/resolv.h	2008-09-23 19:39:14 UTC (rev 99)
+@@ -0,0 +1,73 @@
++/**
++ * \addtogroup resolv
++ * @{
++ */
++/**
++ * \file
++ * DNS resolver code header file.
++ * \author Adam Dunkels &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">adam at dunkels.com</A>&gt;
++ */
++
++/*
++ * Copyright (c) 2002-2003, Adam Dunkels.
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ * 3. The name of the author may not be used to endorse or promote
++ *    products derived from this software without specific prior
++ *    written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
++ * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
++ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
++ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
++ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ *
++ * This file is part of the uIP TCP/IP stack.
++ *
++ * $Id: resolv.h,v 1.4 2006/06/11 21:46:37 adam Exp $
++ *
++ */
++#ifndef __RESOLV_H__
++#define __RESOLV_H__
++
++#include &quot;uipopt.h&quot;
++
++/**
++ * Callback function which is called when a hostname is found.
++ *
++ * This function must be implemented by the module that uses the DNS
++ * resolver. It is called when a hostname is found, or when a hostname
++ * was not found.
++ *
++ * \param name A pointer to the name that was looked up.  \param
++ * ipaddr A pointer to a 4-byte array containing the IP address of the
++ * hostname, or NULL if the hostname could not be found.
++ */
++void resolv_found(char *name, u16_t *ipaddr);
++
++/* Functions. */
++void resolv_conf(u16_t *dnsserver);
++u16_t *resolv_getserver(void);
++void resolv_init(void);
++u16_t *resolv_lookup(char *name);
++void resolv_query(char *name);
++
++void resolv_appcall( void );
++
++#endif /* __RESOLV_H__ */
++
++/** @} */
+
+Modified: trunk/src/uip/uip.c
+===================================================================
+--- trunk/src/uip/uip.c	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/src/uip/uip.c	2008-09-23 19:39:14 UTC (rev 99)
+@@ -174,6 +174,8 @@
+ u16_t uip_listenports[UIP_LISTENPORTS];
+                              /* The uip_listenports list all currently
+ 				listning ports. */
++				
++u8_t uip_forced_poll;   // 1 if forcing the polling, 0 if the polling is not forced
+ #endif /* UIP_TCP */
+ 
+ #if UIP_UDP
+@@ -792,8 +794,8 @@
+        for the connection to time out. If so, we increase the
+        connection's timer and remove the connection if it times
+        out. */
+-    if(uip_connr-&gt;tcpstateflags == UIP_TIME_WAIT ||
+-       uip_connr-&gt;tcpstateflags == UIP_FIN_WAIT_2) {
++    if( !uip_forced_poll &amp;&amp; (uip_connr-&gt;tcpstateflags == UIP_TIME_WAIT ||
++       uip_connr-&gt;tcpstateflags == UIP_FIN_WAIT_2)) {
+       ++(uip_connr-&gt;timer);
+       if(uip_connr-&gt;timer == UIP_TIME_WAIT_TIMEOUT) {
+ 	uip_connr-&gt;tcpstateflags = UIP_CLOSED;
+@@ -802,7 +804,7 @@
+       /* If the connection has outstanding data, we increase the
+ 	 connection's timer and see if it has reached the RTO value
+ 	 in which case we retransmit. */
+-      if(uip_outstanding(uip_connr)) {
++      if(uip_outstanding(uip_connr) &amp;&amp; !uip_forced_poll) {
+ 	if(uip_connr-&gt;timer-- == 0) {
+ 	  if(uip_connr-&gt;nrtx == UIP_MAXRTX ||
+ 	     ((uip_connr-&gt;tcpstateflags == UIP_SYN_SENT ||
+
+Modified: trunk/src/uip/uip.h
+===================================================================
+--- trunk/src/uip/uip.h	2008-09-22 22:09:12 UTC (rev 98)
++++ trunk/src/uip/uip.h	2008-09-23 19:39:14 UTC (rev 99)
+@@ -345,10 +345,11 @@
+  */
+ #define uip_poll_conn(conn) do { uip_conn = conn; \
+                                  uip_process(UIP_POLL_REQUEST); } while (0)
+-#define uip_poll_conn_num(conn) do { uip_conn = &amp;uip_conns[conn]; \
+-                                 uip_process(UIP_POLL_REQUEST); } while (0)                                 
++                                 
++/* Set the &quot;forced poolling&quot; flag */
++extern u8_t uip_forced_poll;
++#define uip_set_forced_poll(val) do { uip_forced_poll = val; } while(0) 
+ 
+-
+ #if UIP_UDP
+ /**
+  * Periodic processing for a UDP connection identified by its number.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000054.html">[Elua-svn] r98 - in trunk: inc src src/modules src/newlib
+</A></li>
+	<LI>Next message: <A HREF="000056.html">[Elua-svn] r100 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#55">[ date ]</a>
+              <a href="thread.html#55">[ thread ]</a>
+              <a href="subject.html#55">[ subject ]</a>
+              <a href="author.html#55">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

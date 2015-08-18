@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r862 - trunk/src
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r862%20-%20trunk/src&In-Reply-To=%3C20101216225809.4E10B480F32%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000814.html">
+   <LINK REL="Next"  HREF="000816.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r862 - trunk/src</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r862%20-%20trunk/src&In-Reply-To=%3C20101216225809.4E10B480F32%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r862 - trunk/src">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Dec 16 23:58:09 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000814.html">[Elua-svn] r861 - in trunk/src: . platform/avr32	platform/avr32/EVK1100 platform/avr32/EVK1101 platform/avr32/MIZAR32
+</A></li>
+        <LI>Next message: <A HREF="000816.html">[Elua-svn] r863 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#815">[ date ]</a>
+              <a href="thread.html#815">[ thread ]</a>
+              <a href="subject.html#815">[ subject ]</a>
+              <a href="author.html#815">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-12-16 23:58:08 +0100 (Thu, 16 Dec 2010)
+New Revision: 862
+
+Modified:
+   trunk/src/elua_mmc.c
+Log:
+reverted back some changes to the SD support code
+
+Modified: trunk/src/elua_mmc.c
+===================================================================
+--- trunk/src/elua_mmc.c	2010-12-16 22:44:43 UTC (rev 861)
++++ trunk/src/elua_mmc.c	2010-12-16 22:58:08 UTC (rev 862)
+@@ -35,14 +35,16 @@
+ static
+ void SELECT (void)
+ {
+-	platform_spi_select( MMCFS_SPI_NUM, PLATFORM_SPI_SELECT_ON ); // select sd card pin
++  platform_pio_op( MMCFS_CS_PORT , ( ( u32 ) 1 &lt;&lt; MMCFS_CS_PIN ), PLATFORM_IO_PIN_CLEAR ); 
++	//platform_spi_select( MMCFS_SPI_NUM, PLATFORM_SPI_SELECT_ON ); // select sd card pin
+ }
+ 
+ // de-asserts the CS pin to the card
+ static
+ void DESELECT (void)
+ {
+-	platform_spi_select( MMCFS_SPI_NUM, PLATFORM_SPI_SELECT_OFF ); // deselect sd card pin
++  platform_pio_op( MMCFS_CS_PORT, ( ( u32 ) 1 &lt;&lt; MMCFS_CS_PIN ), PLATFORM_IO_PIN_SET );
++	//platform_spi_select( MMCFS_SPI_NUM, PLATFORM_SPI_SELECT_OFF ); // deselect sd card pin
+ }
+ 
+ 
+@@ -147,6 +149,8 @@
+      */
+     
+     // Setup CS pin &amp; deselect
++    platform_pio_op( MMCFS_CS_PORT, ( ( u32 ) 1 &lt;&lt; MMCFS_CS_PIN ), PLATFORM_IO_PIN_DIR_OUTPUT );
++    //platform_pio_op( MMCFS_CS_PORT, ( ( u32 ) 1 &lt;&lt; MMCFS_CS_PIN ), PLATFORM_IO_PIN_PULLUP );
+     DESELECT();
+ 
+     // Setup SPI
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000814.html">[Elua-svn] r861 - in trunk/src: . platform/avr32	platform/avr32/EVK1100 platform/avr32/EVK1101 platform/avr32/MIZAR32
+</A></li>
+	<LI>Next message: <A HREF="000816.html">[Elua-svn] r863 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#815">[ date ]</a>
+              <a href="thread.html#815">[ thread ]</a>
+              <a href="subject.html#815">[ subject ]</a>
+              <a href="author.html#815">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

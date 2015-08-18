@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r841 - in trunk/src: lua modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r841%20-%20in%20trunk/src%3A%20lua%20modules&In-Reply-To=%3C20101130231326.34E904801A9%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000795.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r841 - in trunk/src: lua modules</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r841%20-%20in%20trunk/src%3A%20lua%20modules&In-Reply-To=%3C20101130231326.34E904801A9%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r841 - in trunk/src: lua modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Dec  1 00:13:26 CET 2010</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000795.html">[Elua-svn] r842 - trunk/src/platform/avr32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#794">[ date ]</a>
+              <a href="thread.html#794">[ thread ]</a>
+              <a href="subject.html#794">[ subject ]</a>
+              <a href="author.html#794">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-12-01 00:13:25 +0100 (Wed, 01 Dec 2010)
+New Revision: 841
+
+Modified:
+   trunk/src/lua/ldump.c
+   trunk/src/modules/lpack.c
+Log:
+fixes to prevent linking of the compiler floating point emulation functions on different targets
+
+Modified: trunk/src/lua/ldump.c
+===================================================================
+--- trunk/src/lua/ldump.c	2010-11-28 23:18:36 UTC (rev 840)
++++ trunk/src/lua/ldump.c	2010-11-30 23:13:25 UTC (rev 841)
+@@ -118,6 +118,9 @@
+ 
+ static void DumpNumber(lua_Number x, DumpState* D)
+ {
++#if defined( LUA_NUMBER_INTEGRAL ) &amp;&amp; !defined( LUA_CROSS_COMPILER )
++  DumpIntWithSize(x,D-&gt;target.sizeof_lua_Number,D);
++#else // #if defined( LUA_NUMBER_INTEGRAL ) &amp;&amp; !defined( LUA_CROSS_COMPILER )
+  if (D-&gt;target.lua_Number_integral)
+  {
+   if (((float)(int)x)!=x) D-&gt;status=LUA_ERR_CC_NOTINTEGER;
+@@ -137,7 +140,7 @@
+     double y=x;
+     // ARM FPA mode: keep endianness, but swap high and low parts of the 
+     // memory representation. This is the default compilation mode for ARM 
+-    // targets (at least with GCC)
++    // targets with non-EABI gcc
+     if(D-&gt;target.is_arm_fpa)
+     {
+       char *pnum=(char*)&amp;y, temp[4];
+@@ -151,6 +154,7 @@
+    default: lua_assert(0);
+   }
+  }
++#endif // #if defined( LUA_NUMBER_INTEGRAL ) &amp;&amp; !defined( LUA_CROSS_COMPILER )
+ }
+ 
+ static void DumpCode(const Proto *f, DumpState* D)
+
+Modified: trunk/src/modules/lpack.c
+===================================================================
+--- trunk/src/modules/lpack.c	2010-11-28 23:18:36 UTC (rev 840)
++++ trunk/src/modules/lpack.c	2010-11-30 23:13:25 UTC (rev 841)
+@@ -152,8 +152,10 @@
+    UNPACKSTRING(OP_WSTRING, unsigned short)
+    UNPACKSTRING(OP_SSTRING, size_t)
+    UNPACKNUMBER(OP_NUMBER, lua_Number)
++#ifndef LUA_NUMBER_INTEGRAL   
+    UNPACKNUMBER(OP_DOUBLE, double)
+    UNPACKNUMBER(OP_FLOAT, float)
++#endif   
+    UNPACKNUMBER(OP_CHAR, char)
+    UNPACKNUMBER(OP_BYTE, unsigned char)
+    UNPACKNUMBER(OP_SHORT, short)
+@@ -234,8 +236,10 @@
+    PACKSTRING(OP_WSTRING, unsigned short)
+    PACKSTRING(OP_SSTRING, size_t)
+    PACKNUMBER(OP_NUMBER, lua_Number)
++#ifndef LUA_NUMBER_INTEGRAL   
+    PACKNUMBER(OP_DOUBLE, double)
+    PACKNUMBER(OP_FLOAT, float)
++#endif
+    PACKNUMBER(OP_CHAR, char)
+    PACKNUMBER(OP_BYTE, unsigned char)
+    PACKNUMBER(OP_SHORT, short)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000795.html">[Elua-svn] r842 - trunk/src/platform/avr32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#794">[ date ]</a>
+              <a href="thread.html#794">[ thread ]</a>
+              <a href="subject.html#794">[ subject ]</a>
+              <a href="author.html#794">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

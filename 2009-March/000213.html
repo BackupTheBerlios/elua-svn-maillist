@@ -1,0 +1,428 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r257 - in trunk/doc: . en wb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r257%20-%20in%20trunk/doc%3A%20.%20en%20wb&In-Reply-To=%3C200903122201.n2CM1XLo014457%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000212.html">
+   <LINK REL="Next"  HREF="000214.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r257 - in trunk/doc: . en wb</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r257%20-%20in%20trunk/doc%3A%20.%20en%20wb&In-Reply-To=%3C200903122201.n2CM1XLo014457%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r257 - in trunk/doc: . en wb">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Mar 12 23:01:33 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000212.html">[Elua-svn] r256 - in trunk: romfs src/modules
+</A></li>
+        <LI>Next message: <A HREF="000214.html">[Elua-svn] r258 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#213">[ date ]</a>
+              <a href="thread.html#213">[ thread ]</a>
+              <a href="subject.html#213">[ subject ]</a>
+              <a href="author.html#213">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-03-12 23:01:32 +0100 (Thu, 12 Mar 2009)
+New Revision: 257
+
+Modified:
+   trunk/doc/en/arch_newport.html
+   trunk/doc/en/arch_overview.html
+   trunk/doc/wb/wb_usr.lua
+   trunk/doc/wb_tree_en.html
+Log:
+docs, docs and more docs
+
+Modified: trunk/doc/en/arch_newport.html
+===================================================================
+--- trunk/doc/en/arch_newport.html	2009-03-12 21:06:14 UTC (rev 256)
++++ trunk/doc/en/arch_newport.html	2009-03-12 22:01:32 UTC (rev 257)
+@@ -6,7 +6,7 @@
+ &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
+ &lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
+ &lt;h3&gt;Porting eLua&lt;/h3&gt;
+-&lt;p&gt;So, you realized how cool &lt;b&gt;eLua&lt;/b&gt; is :), and you'd like to give it a try. Unfortunately, &lt;b&gt;eLua&lt;/b&gt; doesn't have a port on your CPU of choice.
++&lt;p&gt;So, you realized how cool &lt;b&gt;eLua&lt;/b&gt; is :), and you'd like to give it a try. Unfortunately, &lt;b&gt;eLua&lt;/b&gt; doesn't have a port on your CPU or board of choice.
+   The solution is simple: write the port yourself. This might seem as a daunting task at first, but it's actually easier than it sounds. &lt;b&gt;eLua&lt;/b&gt; was
+   designed to make the task of implementing new ports as easy and intuitive as possible. This section gives an overview of the porting process. It's not
+   an exhaustive guide, but it should be enough to point you in the right direction. Before diving into this, it's highly recommended that you take a look
+@@ -18,81 +18,71 @@
+   of program memory and 32k of RAM for a complete &lt;b&gt;eLua&lt;/b&gt; image, and 128k of program memory for a basic image. It's possible to run &lt;b&gt;eLua&lt;/b&gt; in
+   less than 32k of RAM (especially when &lt;a href=&quot;arch_ltr.html&quot;&gt;LTR&lt;/a&gt; is enabled), but you'll probably run out of memory fast.
+   64k of RAM (or more) is recommended.&lt;/li&gt;
+-  &lt;li&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://sourceware.org/newlib">http://sourceware.org/newlib</A>&quot;&gt;Newlib&lt;/a&gt; can be compiled for your CPU. &lt;b&gt;eLua&lt;/b&gt; depends on Newlib currently
++  &lt;li&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://sourceware.org/newlib">http://sourceware.org/newlib</A>&quot;&gt;Newlib&lt;/a&gt; is available for your CPU. &lt;b&gt;eLua&lt;/b&gt; depends on Newlib currently
+   (although this limitation will be eliminated in a future version), so if Newlib is not available for your CPU, you're out of luck. &lt;/li&gt;
+   &lt;li&gt;you have a C compiler for your target. Ideally you'd use GCC, but if this isn't possible other compilers might work as well. Keep in mind that
+   &lt;a href=&quot;arch_ltr.html&quot;&gt;LTR&lt;/a&gt; needs a C99 C compiler (or at least a partially C99 compliant C compiler than supports C99-style union initialization). 
+   &lt;/li&gt;
++  &lt;li&gt;you have a platform library (it usually comes from the CPU manufacturer) that you can use to implement (at least part of) the platform interface.
++  It's also highly recommended to gain at least a basic understanding of your platform, it will help a lot while writing the port.&lt;/li&gt;
+ &lt;/ul&gt;&lt;/p&gt;
+ &lt;p&gt;If all of the above are true, you should continue reading this document to bring your port to life. If not, we're sorry, but (at least at this point)
+-&lt;b&gt;eLua&lt;/b&gt; can't be ported to your CPU.&lt;/p&gt;
+-&lt;h3&gt;Overall structure of a port&lt;/h3&gt;
+-&lt;p&gt;&lt;b&gt;eLua&lt;/b&gt; uses the notion of &lt;b&gt;platform&lt;/b&gt; to denote a group of &lt;b&gt;CPUs&lt;/b&gt; that share the same core structure, although their specific silicon
+-  implementation might differ in terms of intergrated peripherals, internal memory and other such attributes. An &lt;b&gt;eLua&lt;/b&gt; port implements one or 
+-  more CPUs from a given platform. For example, the &lt;b&gt;lm3s port&lt;/b&gt; of &lt;b&gt;eLua&lt;/b&gt; runs on LM3S8962, LM3S6965 and LM3S6918 CPUs, all of them part of the 
+-  &lt;b&gt;lm3s&lt;/b&gt; platform (reffer to &lt;a href=&quot;status.html&quot;&gt;the status page&lt;/a&gt; for a full list of platforms and CPUs on which &lt;b&gt;eLua&lt;/b&gt; runs). &lt;/p&gt;
+-&lt;p&gt;All the source files specific to a platform/port reside in a subdirectory of &lt;i&gt;src/platform&lt;/i&gt; that has the same name as the platform (for &lt;b&gt;lm3s&lt;/b&gt;
+-  it would be &lt;i&gt;src/platform/lm3s&lt;/i&gt;, for example). Each such platform-specific subdirectory must contain at least these files:&lt;/p&gt;
+-&lt;ul&gt;
+-  &lt;li&gt;&lt;b&gt;type.h&lt;/b&gt;: this defines the &quot;specific data types&quot;, which are integer types with a specific size (see &lt;a href=&quot;arch_coding.html&quot;&gt;coding style&lt;/a&gt; 
+-      for details. An example from the &lt;b&gt;i386&lt;/b&gt; platform:
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;typedef unsigned char u8;
+-typedef signed char s8;
+-typedef unsigned short u16;
+-typedef signed short s16;
+-typedef unsigned long u32;
+-typedef signed long s32;
+-typedef unsigned long long u64;
+-typedef signed long long s64;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;b&gt;eLua&lt;/b&gt; can't be ported to your CPU. If, on the other hand, you're good to go, please take a bit of time and read 
++  &lt;a href=&quot;arch_overview.html#platforms&quot;&gt;this section&lt;/a&gt; first, as it details the structure of a port and might simplify your work quite a bit.&lt;/p&gt;
++&lt;h3&gt;Adding a new board&lt;/h3&gt;
++&lt;p&gt;If all you need is to add a new board that uses a CPU already supported by &lt;b&gt;eLua&lt;/b&gt; (check &lt;a href=&quot;status.html&quot;&gt;here&lt;/a&gt; for a complete list), it's
++fairly easy to accomplish this:
++&lt;ol&gt;
++  &lt;li&gt;choose a good name for your board :)&lt;/li&gt;
++  &lt;li&gt;edit &lt;b&gt;SConstruct&lt;/b&gt; and add your board to the &lt;b&gt;board_list&lt;/b&gt; dictionary, specifying its CPU. A part of the definition of &lt;b&gt;board_list&lt;/b&gt; is given below:
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;# List of board/CPU combinations
++board_list = { 'SAM7-EX256' : [ 'AT91SAM7X256', 'AT91SAM7X512' ],
++               'EK-LM3S8962' : [ 'LM3S8962' ],
++               'EK-LM3S6965' : [ 'LM3S6965' ],
++               ..............................
++            }&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
+   &lt;/li&gt;
+-  &lt;li&gt;&lt;b&gt;conf.py&lt;/b&gt;: this is the platform specific build configuration file, used by the &lt;a href=&quot;building.html&quot;&gt;build system&lt;/a&gt; for a number of purposes:
+-&lt;ul&gt;
+-    &lt;li&gt;to get the list of platform-specific files that will be compiled in the &lt;b&gt;eLua&lt;/b&gt; image. They are exported in the &lt;i&gt;specific_files&lt;/i&gt; string,
+-      separated by spaces, and must be prepended with the relative path to the platform subdirectory. An example from the &lt;b&gt;i386&lt;/b&gt; platform:
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;specific_files = &quot;boot.s common.c descriptor_tables.c gdt.s interrupt.s isr.c kb.c  monitor.c timer.c platform.c&quot;
+-# Prepend with path
+-specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
+-    &lt;/li&gt;
+-    &lt;li&gt;to get the full command lines of the different toolchain utilities (linker, assembler, compiler) used to compile &lt;b&gt;eLua&lt;/b&gt;. They must be declared
+-      inside the &lt;i&gt;tools&lt;/i&gt; variable, in a separate dictinoary which key is the same as the platform name, and with specific names for each tool in turn:
+-      &lt;b&gt;cccom&lt;/b&gt; for the compiler, &lt;b&gt;linkcom&lt;/b&gt; for the linker and &lt;b&gt;ascom&lt;/b&gt; for the assembler.
+-      For example, this is how the &lt;i&gt;tools&lt;/i&gt; variable is defined for the &lt;b&gt;i386&lt;/b&gt; platform:
+- &lt;p&gt;&lt;pre&gt;&lt;code&gt;# Toolset data
+- tools[ 'i386' ] = {}
+- tools[ 'i386' ][ 'cccom' ] = &quot;%s %s %s -march=i386 -mfpmath=387 -m32 -ffunction-sections -fdata-sections -fno-builtin -fno-stack-protector %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
+- tools[ 'i386' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -march=i386 -mfpmath=387 -m32 -T %s -Wl,--gc-sections -Wl,-e,start -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
+- tools[ 'i386' ][ 'ascom' ] = &quot;%s -felf $SOURCE&quot; % toolset[ 'asm' ]&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;     
+-  Note how the definition of &lt;b&gt;tools&lt;/b&gt; uses the definition of &lt;b&gt;toolset&lt;/b&gt;, a dictionary with the names of the tools in the current toolchain. This
+-  is also part of the &lt;b&gt;eLua&lt;/b&gt; build system and is documented &lt;a href=&quot;toolchains.html&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
+-  &lt;li&gt;to get the name of a &lt;b&gt;programmning function&lt;/b&gt; which receives the name of the &lt;b&gt;eLua&lt;/b&gt; executable file (the result of the build step) and 
+-  produces a file suitable for programming on the corresponding hardware platform. The name of this function should also be set in the &lt;i&gt;tools&lt;/i&gt; 
+-  dictionary, as shown below (example taken from the &lt;b&gt;str7&lt;/b&gt; platform):
+- &lt;p&gt;&lt;pre&gt;&lt;code&gt;# Programming function for STR7
+- def progfunc_str7( target, source, env ):
+-   outname = output + &quot;.elf&quot;
+-   os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+-   print &quot;Generating binary image...&quot;
+-   os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
+-           
+-   tools[ 'str7' ][ 'progfunc' ] = progfunc_str7&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt; 
+-  Note, once again, how this function uses the same &lt;i&gt;toolset&lt;/i&gt; variable mentioned in the previous paragraph.
++  &lt;li&gt;also edit the &lt;b&gt;file_list&lt;/b&gt; dictionary in &lt;b&gt;SConstruct&lt;/b&gt; to specify the list of ROMFS files that will be compiled for your board (see the 
++  &lt;a href=&quot;arch_romfs.html&quot;&gt;ROMFS section&lt;/a&gt; for details). A part of the definition of &lt;b&gt;file_list&lt;/b&gt; is given below:
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;# List of board/romfs data combinations
++file_list = { 'SAM7-EX256' : [ 'bisect', 'hangman' , 'led', 'piano', 'hello', 'info', 'morse' ],
++              'EK-LM3S8962' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope' ],
++              'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope' ],
++              ...............................
++            }&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;
++  &lt;li&gt;if your board has external memory, you'll probably want to use the &quot;multiple&quot; allocator by default to take advantage of that (see &lt;a href=&quot;building.html&quot;&gt;building&lt;/a&gt;)
++  for details. If so, you need to modify the CPU/allocator mapping code from &lt;b&gt;SConstruct&lt;/b&gt;:
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;# CPU/allocator mapping (if allocator not specified)
++if allocator == '':
++  if &lt;b&gt;boardname == 'LPC-H2888'&lt;/b&gt; or &lt;b&gt;boardname == 'ATEVK1100'&lt;/b&gt;:
++    allocator = 'multiple'
++  else:
++    allocator = 'newlib'
++elif allocator not in [ 'newlib', 'multiple', 'simple' ]:
++  print &quot;Unknown allocator&quot;, allocator
++  print &quot;Allocator can be either 'newlib', 'multiple' or 'simple'&quot;
++  sys.exit( -1 )
++&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
+   &lt;/li&gt;
+-  &lt;/ul&gt;
+-  &lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;stacks.h&lt;/b&gt;: by convention, the stack(s) size(s) used in the system are declared in this file. An example taken from the &lt;b&gt;at91sam7x&lt;/b&gt; platform is given below:
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;#define  STACK_SIZE_USR   2048
+-#define  STACK_SIZE_IRQ   64
+-#define  STACK_SIZE_TOTAL ( STACK_SIZE_USR + STACK_SIZE_IRQ )&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;platform.c&lt;/b&gt;: by convention, the &lt;a href=&quot;&quot;&gt;##platform interface&lt;/a&gt; is implemented in this file. It also contains the platform-specific
+-  initialization function (&lt;i&gt;platform_init&lt;/i&gt;, see the description of the &lt;a href=&quot;elua_arch.html#boot&quot;&gt;eLua boot process&lt;/a&gt; for details).&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;platform_conf.h&lt;/b&gt;
+-&lt;/ul&gt;&lt;p&gt;
+-&lt;p&gt;
+-&lt;/p&gt;
+-&lt;h3&gt;Prerequisites&lt;/h3&gt;
+-&lt;p&gt;The very first thing to do before starting a new port is to verify if you can use one of the already existing &lt;b&gt;platforms&lt;/b&gt;. A &lt;b&gt;platform&lt;/b&gt; groups
+-  CPUs that share the same core structure, although their specific silicon implementation might differ in terms of integrated peripherals, internal memory,
+-  package size and other such attributes. For a list of ports currently supported by &lt;b&gt;eLua&lt;/b&gt; check the &lt;a href=&quot;status.html&quot;&gt;status page&lt;/a&gt;. If you
+-  find 
+-&lt;/p&gt;
++  &lt;li&gt;customize the &lt;b&gt;eLua&lt;/b&gt; image for this new board. You can use the variable &lt;b&gt;boardname&lt;/b&gt; in &lt;b&gt;conf.py&lt;/b&gt; to define new preprocessor macros specifically for your board
++  (that you can use later in &lt;b&gt;platform_conf.h&lt;/b&gt;, for example), or to include or exclude certain files from the build, or change the build flags and so on. An example taken from 
++  the &lt;b&gt;lm3s&lt;/b&gt; port is given below (part of &lt;b&gt;conf.py&lt;/b&gt;):
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;if boardname == 'EK-LM3S6965' or boardname == 'EK-LM3S8962':
++  specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
++  cdefs = cdefs + &quot; -DENABLE_DISP&quot;
++
++# The default for the Eagle 100 board is to start the image at 0x2000,
++# so that the built in Ethernet boot loader can be used to upload it
++if boardname == 'EAGLE-100':
++  linkopts = &quot;-Wl,-Ttext,0x2000&quot;
++else:
++  linkopts = &quot;&quot;
++&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;/li&gt;
++&lt;/ol&gt;&lt;/p&gt;
++&lt;p&gt;After you edit all the relevant source files, all you have to do is to execute &quot;scons board=&lt;boardname;&gt;&quot; and you'll have &lt;b&gt;eLua&lt;/b&gt; compiled for your board.&lt;/p&gt;
++&lt;h3&gt;Adding a new CPU&lt;/h3&gt;
++##TODO
++&lt;h3&gt;Adding a new platform&lt;/h3&gt;
++##TODO
+ &lt;/body&gt;&lt;/html&gt;
+
+Modified: trunk/doc/en/arch_overview.html
+===================================================================
+--- trunk/doc/en/arch_overview.html	2009-03-12 21:06:14 UTC (rev 256)
++++ trunk/doc/en/arch_overview.html	2009-03-12 22:01:32 UTC (rev 257)
+@@ -13,7 +13,11 @@
+ &lt;area href=&quot;arch_overview.html#platforms&quot; title=&quot;Platforms&quot; shape=rect coords=&quot;9, 0, 537, 132&quot;&gt;
+ &lt;/map&gt;
+ &lt;p align=&quot;center&quot;&gt;&lt;img src=&quot;../wb_img/elua_arch.png&quot; usemap=&quot;#arch&quot; border=0&gt;&lt;/img&gt;&lt;/p&gt;
+-&lt;p&gt;As can be seen from this image, &lt;b&gt;eLua&lt;/b&gt; tries to be as portable as possible between different architectures by using a few simple design
++&lt;p&gt;&lt;b&gt;eLua&lt;/b&gt; uses the notion of &lt;b&gt;platform&lt;/b&gt; to denote a group of &lt;b&gt;CPUs&lt;/b&gt; that share the same core structure, although their specific silicon
++  implementation might differ in terms of intergrated peripherals, internal memory and other such attributes. An &lt;b&gt;eLua&lt;/b&gt; port implements one or 
++  more CPUs from a given platform. For example, the &lt;b&gt;lm3s port&lt;/b&gt; of &lt;b&gt;eLua&lt;/b&gt; runs on LM3S8962, LM3S6965 and LM3S6918 CPUs, all of them part of the 
++  &lt;b&gt;lm3s&lt;/b&gt; platform. Refer to &lt;a href=&quot;status.html&quot;&gt;the status page&lt;/a&gt; for a full list of platforms and CPUs on which &lt;b&gt;eLua&lt;/b&gt; runs.&lt;/p&gt;
++&lt;p&gt;As can be seen from this image, &lt;b&gt;eLua&lt;/b&gt; tries to be as portable as possible between different platforms by using a few simple design
+ rules:
+ &lt;ul&gt;
+   &lt;li&gt;all code that is platform-independent is &lt;b&gt;common code&lt;/b&gt; and it should be written in ANSI C as much as possible, this makes it highly portable
+@@ -54,8 +58,9 @@
+   this into consideration. The same thing holds for the generic modules: the user must have a way to choose the set of modules he needs.&lt;/p&gt;
+ &lt;p&gt;For maximum portability, make your code work in a variety of scenarios if possible (and if that makes sense from a practical point of view). 
+   Take for example the code for stdio/stdout/stderr handling (&lt;i&gt;src/newlib/genstd.c&lt;/i&gt;): it acknowledges the fact that a terminal can be implemented 
+-  over a large variety of physical transports (RS-232 for PC, SPI for a separate LCD/keyboard board, a radio link and so on) so it uses callbacks for its 
+-  send/receive functions. The impact on speed and resource consumption is minimum, but it matters a lot in the portability department.&lt;/p&gt;
++  over a large variety of physical transports (RS-232 for PC, SPI for a separate LCD/keyboard board, a radio link and so on) so it uses pointers for its 
++  send/receive functions (see &lt;a href=&quot;arch_con_term.html&quot;&gt;this link&lt;/a&gt; for more details). The impact on speed and resource consumption is minimum, but 
++  it matters a lot in the portability department.&lt;/p&gt;
+ &lt;a name=&quot;platform&quot;&gt;&lt;h3&gt;Platform interface&lt;/h3&gt;&lt;/a&gt;
+ &lt;p&gt;Used properly, the platform interface allows writing extremely portable code over a large variety of different platforms, both from C and from Lua. 
+   An important property of the platform interface is that it tries to group only &lt;b&gt;common&lt;/b&gt; attributes of different platforms (as much as possible). 
+@@ -64,13 +69,15 @@
+ &lt;p&gt;A special emphasis on the platform interface usage: remember to use it not only for Lua, but also for C. The platform interface is mainly used by the 
+   generic modules to allow Lua code to access platform peripherals, but this isn't its only use. It can (and it should) also be used by C code that wants 
+   to implement a generic module and neeeds access to peripherals. An example was given in the previous section: implementing a new file system.&lt;/p&gt;
+-&lt;p&gt;The platform interface definition is always in the &lt;i&gt;inc/platform.h&lt;/i&gt; header file.&lt;/p&gt;
++&lt;p&gt;The platform interface definition is always in the &lt;i&gt;inc/platform.h&lt;/i&gt; header file. For a full description of its functions, check
++  &lt;a href=&quot;arch_platform.html&quot;&gt;the platform interface documentation.&lt;/a&gt;&lt;/p&gt;
+ &lt;a name=&quot;platforms&quot;&gt;&lt;h3&gt;Platforms and ports&lt;/h3&gt;&lt;/a&gt;
+-&lt;p&gt;All the platforms that run &lt;b&gt;eLua&lt;/b&gt; (and that implement the platform interface) are implemened in this conceptual layer.&lt;/p&gt;
+-&lt;p&gt;A platform implementation can (and generally will) contain specific peripheral drivers, many times taken directly from the platform's CPU support
++&lt;p&gt;All the platforms that run &lt;b&gt;eLua&lt;/b&gt; (and that implement the platform interface) are implemened in this conceptual layer. A &lt;b&gt;port&lt;/b&gt; is a full
++  &lt;b&gt;eLua&lt;/b&gt; implementation on a given platform. The two terms can generally be used interchangeably.&lt;/p&gt;
++&lt;p&gt;A port can (and generally will) contain specific peripheral drivers, many times taken directly from the platform's CPU support
+    package. These drivers are used to implement the platform interface. Note that:
+ &lt;ul&gt;
+-  &lt;li&gt;a platform implementation doesn't need to implement &lt;b&gt;all&lt;/b&gt; the platform interface functions, just the ones it needs. As explained 
++  &lt;li&gt;a port isn't required to implement &lt;b&gt;all&lt;/b&gt; the platform interface functions, just the ones it needs. As explained 
+   &lt;a href=&quot;building.html&quot;&gt;here&lt;/a&gt;, the user must have full control over what's getting built into this &lt;b&gt;eLua&lt;/b&gt; image. If you don't need the SPI
+   module, for example, you don't need to implement its platform interface.&lt;/li&gt;
+   &lt;li&gt;a part of the platform interface is implemented (at least partially) in a file that is common for all the platforms (&lt;i&gt;src/common.c&lt;/i&gt;). It
+@@ -88,8 +95,110 @@
+   &lt;li&gt;if implementing a peripheral driver that for some reason should be specific to the platform on the LPC2888 platform, for example its dual audio
+   DAC, give it a meaningful name, for example &lt;b&gt;lpc288x.audiodac&lt;/b&gt;.&lt;/li&gt;
+ &lt;/ul&gt;&lt;/p&gt;
+-&lt;p&gt;By convention, all the code for platform &lt;i&gt;name&lt;/i&gt; (including peripheral drivers) should reside in &lt;i&gt;src/platform/&lt;name&gt;&lt;/i&gt;. Also, the 
+-  platform interface should be implemented in a file called &lt;i&gt;platform.c&lt;/i&gt;, thus its path should be &lt;i&gt;src/platform/&lt;name&gt;/platform.c&lt;/i&gt;.
++&lt;h2&gt;Structure of a port&lt;/h2&gt;
++&lt;p&gt;All the code for platform &lt;i&gt;name&lt;/i&gt; (including peripheral drivers) must reside in a directory called &lt;i&gt;src/platform/&lt;name&gt;&lt;/i&gt; (for example
++&lt;i&gt;src/platform/lm3s&lt;/i&gt; for the &lt;i&gt;lm3s&lt;/i&gt; platform). Each such platform-specific subdirectory must contain at least these files:&lt;/p&gt;
++&lt;ul&gt;
++  &lt;li&gt;&lt;b&gt;type.h&lt;/b&gt;: this defines the &quot;specific data types&quot;, which are integer types with a specific size (see &lt;a href=&quot;arch_coding.html&quot;&gt;coding style&lt;/a&gt; 
++      for details. An example from the &lt;b&gt;i386&lt;/b&gt; platform:
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;typedef unsigned char u8;
++typedef signed char s8;
++typedef unsigned short u16;
++typedef signed short s16;
++typedef unsigned long u32;
++typedef signed long s32;
++typedef unsigned long long u64;
++typedef signed long long s64;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++  &lt;/li&gt;
++  &lt;li&gt;&lt;b&gt;conf.py&lt;/b&gt;: this is the platform specific build configuration file, used by the &lt;a href=&quot;building.html&quot;&gt;build system&lt;/a&gt; for a number of purposes:
++&lt;ul&gt;
++    &lt;li&gt;to get the list of platform-specific files that will be compiled in the &lt;b&gt;eLua&lt;/b&gt; image. They are exported in the &lt;i&gt;specific_files&lt;/i&gt; string,
++      separated by spaces, and must be prepended with the relative path to the platform subdirectory. An example from the &lt;b&gt;i386&lt;/b&gt; platform:
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;specific_files = &quot;boot.s common.c descriptor_tables.c gdt.s interrupt.s isr.c kb.c  monitor.c timer.c platform.c&quot;
++# Prepend with path
++specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++    &lt;/li&gt;
++    &lt;li&gt;to get the full command lines of the different toolchain utilities (linker, assembler, compiler) used to compile &lt;b&gt;eLua&lt;/b&gt;. They must be declared
++      inside the &lt;i&gt;tools&lt;/i&gt; variable, in a separate dictinoary which key is the same as the platform name, and with specific names for each tool in turn:
++      &lt;b&gt;cccom&lt;/b&gt; for the compiler, &lt;b&gt;linkcom&lt;/b&gt; for the linker and &lt;b&gt;ascom&lt;/b&gt; for the assembler.
++      For example, this is how the &lt;i&gt;tools&lt;/i&gt; variable is defined for the &lt;b&gt;i386&lt;/b&gt; platform:
++ &lt;p&gt;&lt;pre&gt;&lt;code&gt;# Toolset data
++ tools[ 'i386' ] = {}
++ tools[ 'i386' ][ 'cccom' ] = &quot;%s %s %s -march=i386 -mfpmath=387 -m32 -ffunction-sections -fdata-sections -fno-builtin -fno-stack-protector %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
++ tools[ 'i386' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -march=i386 -mfpmath=387 -m32 -T %s -Wl,--gc-sections -Wl,-e,start -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
++ tools[ 'i386' ][ 'ascom' ] = &quot;%s -felf $SOURCE&quot; % toolset[ 'asm' ]&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;     
++  Note how the definition of &lt;b&gt;tools&lt;/b&gt; uses the definition of &lt;b&gt;toolset&lt;/b&gt;, a dictionary with the names of the tools in the current toolchain. This
++  is also part of the &lt;b&gt;eLua&lt;/b&gt; build system and is documented &lt;a href=&quot;toolchains.html&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
++  &lt;li&gt;to get the name of a &lt;b&gt;programmning function&lt;/b&gt; which receives the name of the &lt;b&gt;eLua&lt;/b&gt; executable file (the result of the build step) and 
++  produces a file suitable for programming on the corresponding hardware platform. The name of this function should also be set in the &lt;i&gt;tools&lt;/i&gt; 
++  dictionary, as shown below (example taken from the &lt;b&gt;str7&lt;/b&gt; platform):
++ &lt;p&gt;&lt;pre&gt;&lt;code&gt;# Programming function for STR7
++ def progfunc_str7( target, source, env ):
++   outname = output + &quot;.elf&quot;
++   os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
++   print &quot;Generating binary image...&quot;
++   os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
++           
++   tools[ 'str7' ][ 'progfunc' ] = progfunc_str7&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt; 
++  Note, once again, how this function uses the same &lt;i&gt;toolset&lt;/i&gt; variable mentioned in the previous paragraph.
++  &lt;/li&gt;
++  &lt;/ul&gt;
++  &lt;/li&gt;
++&lt;li&gt;&lt;b&gt;stacks.h&lt;/b&gt;: by convention, the stack(s) size(s) used in the system are declared in this file. An example taken from the &lt;b&gt;at91sam7x&lt;/b&gt; platform is given below:
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;#define  STACK_SIZE_USR   2048
++#define  STACK_SIZE_IRQ   64
++#define  STACK_SIZE_TOTAL ( STACK_SIZE_USR + STACK_SIZE_IRQ )&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;platform.c&lt;/b&gt;: by convention, the &lt;a href=&quot;arch_platform.html&quot;&gt;platform interface&lt;/a&gt; is implemented in this file. It also contains the platform-specific
++  initialization function (&lt;i&gt;platform_init&lt;/i&gt;, see the description of the &lt;a href=&quot;elua_arch.html#boot&quot;&gt;eLua boot process&lt;/a&gt; for details).&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;platform_conf.h&lt;/b&gt;: this is the platform configuration file, used to give information about both the platform itself and the build configuration for the 
++  platform. This is what you can set inside &lt;b&gt;platform_conf.h&lt;/b&gt;:
++&lt;ul&gt;
++  &lt;li&gt;the list of &lt;b&gt;components&lt;/b&gt; that will be part of the build (see &lt;a href=&quot;building.html&quot;&gt;building eLua&lt;/a&gt; for details).&lt;/li&gt;
++  &lt;li&gt;the list of &lt;b&gt;modules&lt;/b&gt; that will be part of the build (see &lt;a href=&quot;building.html&quot;&gt;building eLua&lt;/a&gt; and &lt;a href=&quot;arch_ltr.html#config&quot;&gt;LTR configuration&lt;/a&gt;
++     for details.&lt;/li&gt;
++  &lt;li&gt;the &lt;b&gt;static configuration data&lt;/b&gt; (see &lt;a href=&quot;building.html&quot;&gt;building eLua&lt;/a&gt; for details).&lt;/li&gt;
++  &lt;li&gt;the &lt;b&gt;number of peripherals&lt;/b&gt; on your CPU. See an example below (taken from &lt;b&gt;lm3s&lt;/b&gt;) that also shows how to differentiate between different CPUs that belong to the same 
++  platform; the &lt;b&gt;FORxxxx&lt;/b&gt; macros are defined in &lt;b&gt;conf.py&lt;/b&gt;):
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;&lt;/code&gt;// Number of resources (0 if not available/not implemented)
++#define NUM_PIO               7
++#define NUM_SPI               1
++#ifdef FORLM3S6965
++  #define NUM_UART            3
++#else
++  #define NUM_UART            2
++#endif
++#define NUM_TIMER             4
++#ifndef FORLM3S6918
++  #define NUM_PWM             6
++#else
++  #define NUM_PWM             0
++#endif  
++#define NUM_ADC               4&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;
++  &lt;li&gt;&lt;b&gt;specific peripheral configuration&lt;/b&gt;: this includes (but it not limited to) enabling buffering on UART, enabling and setting up virtual timers, setting PIO configuration and so on.
++  All these parameters are described in detail in the &lt;a href=&quot;arch_platform.html&quot;&gt;platform interface section&lt;/a&gt;.
++  &lt;li&gt;&lt;b&gt;memory configuration&lt;/b&gt;: describes the regions of free RAM in the system, which will be later used by the standard system allocator (malloc/realloc/free). Two macros
++  (&lt;b&gt;MEM_START_ADDRESS&lt;/b&gt; and &lt;b&gt;MEM_END_ADDRESS&lt;/b&gt;) define two arrays with the beginning and the end of all the free RAM memory in the system. If your board has external RAM memory, you 
++  should define it here. If not, you can only use the internal memory, and you'll generally need to use the linker-defined symbol &lt;b&gt;end&lt;/b&gt; to find out where your free memory starts. Following 
++  is an example from the &lt;b&gt;ATEVK1100&lt;/b&gt; (AVR32) board that has both on-chip and external RAM:
++&lt;p&gt;&lt;pre&gt;&lt;code&gt;// Allocator data: define your free memory zones here in two arrays
++// (start address and end address)
++#define MEM_START_ADDRESS     { ( void* )end, ( void* )SDRAM }
++#define MEM_END_ADDRESS       { ( void* )( 0x10000 - STACK_SIZE_TOTAL - 1 ), ( void* )( SDRAM + SDRAM_SIZE - 1 ) }
++&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++  &lt;/li&gt;
++&lt;/ul&gt;
++  If you want to take a look at a real life example of a &lt;b&gt;platform_conf.h&lt;/b&gt; file, see for example &lt;i&gt;src/platform/lm3s/platform_conf.h&lt;/i&gt;.
++&lt;/li&gt;
++&lt;/ul&gt;&lt;/p&gt;
++&lt;p&gt;Besides the required files, the most common scenario is to include other platform specific files in your port:
++&lt;ul&gt;
++  &lt;li&gt;&lt;b&gt;a &quot;startup sequence&quot;&lt;/b&gt;, generally written in assembler, that does very low level
++  intialization, sets the stack pointer, zeroes the BSS section, copies ROM to 
++  RAM for the DATA section, and then jumps to main.&lt;/li&gt;
++  &lt;li&gt;a &lt;b&gt;linker command file&lt;/b&gt;.
++  &lt;li&gt;the &lt;b&gt;CPU support package&lt;/b&gt; generally comes from the CPU manufacturer, and includes code
++  for accessing peripherals, configuring the core, setting up interrupts and so on.&lt;/li&gt;
++&lt;/ul&gt;&lt;/p&gt;
+ &lt;a name=&quot;boot&quot;&gt;&lt;h3&gt;eLua boot process&lt;/h3&gt;&lt;/a&gt;
+ &lt;p&gt;This is what happens when you power up your &lt;b&gt;eLua&lt;/b&gt; board:
+ &lt;ol&gt;
+@@ -99,7 +208,7 @@
+   initialize the platform and return a result to main, that can be either &lt;b&gt;PLATFORM_OK&lt;/b&gt; if the initialization succeded or &lt;b&gt;PLATFORM_ERR&lt;/b&gt;
+   otherwise. If &lt;b&gt;PLATFORM_ERR&lt;/b&gt; is returned, &lt;b&gt;main&lt;/b&gt; blocks immediately in an infinite loop.&lt;/li&gt;
+   &lt;li&gt;&lt;b&gt;main&lt;/b&gt; then initializes the rest of the system: the ROM file system, XMODEM, and term.&lt;/li&gt;
+-  &lt;li&gt;if &lt;b&gt;/rom/autorun.lua&lt;/b&gt; (which is a file called &lt;b&gt;autorun.lua&lt;/b&gt; in the &lt;a href=&quot;arch_romfs.html&quot;&gt;ROM file system&quot;&lt;/a&gt;) is found, it is
++  &lt;li&gt;if &lt;b&gt;/rom/autorun.lua&lt;/b&gt; (which is a file called &lt;b&gt;autorun.lua&lt;/b&gt; in the &lt;a href=&quot;arch_romfs.html&quot;&gt;ROM file system&lt;/a&gt;) is found, it is
+   executed. If it returns after execution, or if it isn't found, the boot process continues with the next step.&lt;/li&gt;
+   &lt;li&gt;if the &lt;a href=&quot;using.html#shell&quot;&gt;shell&lt;/a&gt; was compiled in the image, it is started, otherwise a standard Lua interpreter is started.&lt;/li&gt;
+ &lt;/ol&gt;
+
+Modified: trunk/doc/wb/wb_usr.lua
+===================================================================
+--- trunk/doc/wb/wb_usr.lua	2009-03-12 21:06:14 UTC (rev 256)
++++ trunk/doc/wb/wb_usr.lua	2009-03-12 22:01:32 UTC (rev 257)
+@@ -219,7 +219,7 @@
+                 { name = { en = &quot;Platforms/ports&quot;, pt = &quot;##Platforms/ports&quot; },
+                   link = &quot;arch_overview.html#platforms&quot;,
+                 },
+-                { name = { en = &quot;eLua boot process&quot;, pt = &quot;##eLua boot process&quot; },
++                { name = { en = &quot;Booting eLua&quot;, pt = &quot;##eLua boot process&quot; },
+                   link = &quot;arch_overview.html#boot&quot;,
+                 },
+               },
+
+Modified: trunk/doc/wb_tree_en.html
+===================================================================
+--- trunk/doc/wb_tree_en.html	2009-03-12 21:06:14 UTC (rev 256)
++++ trunk/doc/wb_tree_en.html	2009-03-12 22:01:32 UTC (rev 257)
+@@ -274,7 +274,7 @@
+             &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link37folder.4.4.1&quot; href=&quot;en/arch_overview.html#common&quot;&gt;Common code&lt;/a&gt;&lt;/p&gt;
+             &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link38folder.4.4.1&quot; href=&quot;en/arch_overview.html#platform&quot;&gt;Platform interface&lt;/a&gt;&lt;/p&gt;
+             &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link39folder.4.4.1&quot; href=&quot;en/arch_overview.html#platforms&quot;&gt;Platforms/ports&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link40folder.4.4.1&quot; href=&quot;en/arch_overview.html#boot&quot;&gt;eLua boot process&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link40folder.4.4.1&quot; href=&quot;en/arch_overview.html#boot&quot;&gt;Booting eLua&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+           &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link41folder.4.4&quot; href=&quot;en/arch_platform.html&quot;&gt;Platform interface&lt;/a&gt;&lt;/p&gt;
+           &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link42folder.4.4&quot; href=&quot;en/arch_romfs.html&quot;&gt;ROM file system&lt;/a&gt;&lt;/p&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000212.html">[Elua-svn] r256 - in trunk: romfs src/modules
+</A></li>
+	<LI>Next message: <A HREF="000214.html">[Elua-svn] r258 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#213">[ date ]</a>
+              <a href="thread.html#213">[ thread ]</a>
+              <a href="subject.html#213">[ subject ]</a>
+              <a href="author.html#213">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

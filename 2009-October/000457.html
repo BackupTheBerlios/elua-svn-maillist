@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r501 - branches/lpc24xx/src/platform/lpc24xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r501%20-%20branches/lpc24xx/src/platform/lpc24xx&In-Reply-To=%3C200910292046.n9TKkwfD005910%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000456.html">
+   <LINK REL="Next"  HREF="000458.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r501 - branches/lpc24xx/src/platform/lpc24xx</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r501%20-%20branches/lpc24xx/src/platform/lpc24xx&In-Reply-To=%3C200910292046.n9TKkwfD005910%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r501 - branches/lpc24xx/src/platform/lpc24xx">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Oct 29 21:46:58 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000456.html">[Elua-svn] r500 - branches/lpc24xx/src/platform/lpc24xx
+</A></li>
+        <LI>Next message: <A HREF="000458.html">[Elua-svn] r502 - branches/lpc24xx/src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#457">[ date ]</a>
+              <a href="thread.html#457">[ thread ]</a>
+              <a href="subject.html#457">[ subject ]</a>
+              <a href="author.html#457">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-10-29 21:46:56 +0100 (Thu, 29 Oct 2009)
+New Revision: 501
+
+Modified:
+   branches/lpc24xx/src/platform/lpc24xx/conf.py
+   branches/lpc24xx/src/platform/lpc24xx/platform_conf.h
+   branches/lpc24xx/src/platform/lpc24xx/startup.s
+Log:
+working on the lpc24xx port
+
+Modified: branches/lpc24xx/src/platform/lpc24xx/conf.py
+===================================================================
+--- branches/lpc24xx/src/platform/lpc24xx/conf.py	2009-10-29 17:37:46 UTC (rev 500)
++++ branches/lpc24xx/src/platform/lpc24xx/conf.py	2009-10-29 20:46:56 UTC (rev 501)
+@@ -33,7 +33,7 @@
+   outname = output + &quot;.elf&quot;
+   os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+-  os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
++  os.system( &quot;%s -O ihex %s %s.hex&quot; % ( toolset[ 'bin' ], outname, output ) )
+   
+ tools[ 'lpc24xx' ][ 'progfunc' ] = progfunc_lpx24xx
+ 
+
+Modified: branches/lpc24xx/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- branches/lpc24xx/src/platform/lpc24xx/platform_conf.h	2009-10-29 17:37:46 UTC (rev 500)
++++ branches/lpc24xx/src/platform/lpc24xx/platform_conf.h	2009-10-29 20:46:56 UTC (rev 501)
+@@ -20,7 +20,7 @@
+ // UART/Timer IDs configuration data (used in main.c)
+ 
+ #define CON_UART_ID           0
+-#define CON_UART_SPEED        115200
++#define CON_UART_SPEED        9600
+ #define CON_TIMER_ID          0
+ #define TERM_LINES            25
+ #define TERM_COLS             80
+
+Modified: branches/lpc24xx/src/platform/lpc24xx/startup.s
+===================================================================
+--- branches/lpc24xx/src/platform/lpc24xx/startup.s	2009-10-29 17:37:46 UTC (rev 500)
++++ branches/lpc24xx/src/platform/lpc24xx/startup.s	2009-10-29 20:46:56 UTC (rev 501)
+@@ -67,8 +67,6 @@
+         msr     CPSR_c, #ARM_MODE_SVC|F_BIT
+         mov     r13, r0
+ 
+-/* Call external initialization code */
+-        bl      TargetResetInit
+ 
+ /* Perform low-level initialization of the chip using LowLevelInit() */
+ /* Initialize the relocate segment */
+@@ -91,6 +89,9 @@
+         strcc   r2, [r0], #4
+         bcc     ZeroBSS
+ 
++ /* Call external initialization code */
++        bl      TargetResetInit
++
+ /* Branch to main()
+  ******************/
+         ldr     r0, =main
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000456.html">[Elua-svn] r500 - branches/lpc24xx/src/platform/lpc24xx
+</A></li>
+	<LI>Next message: <A HREF="000458.html">[Elua-svn] r502 - branches/lpc24xx/src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#457">[ date ]</a>
+              <a href="thread.html#457">[ thread ]</a>
+              <a href="subject.html#457">[ subject ]</a>
+              <a href="author.html#457">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

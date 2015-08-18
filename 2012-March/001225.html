@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] 374a21: Bug fix: always return 0 from Lua	functions
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2012-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20374a21%3A%20Bug%20fix%3A%20always%20return%200%20from%20Lua%0A%09functions&In-Reply-To=%3C4f67b8cd5a597_29a53fc8704b5af046991%40sh1.rs.github.com.mail%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001224.html">
+   <LINK REL="Next"  HREF="001226.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] 374a21: Bug fix: always return 0 from Lua	functions</H1>
+    <B>GitHub</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20374a21%3A%20Bug%20fix%3A%20always%20return%200%20from%20Lua%0A%09functions&In-Reply-To=%3C4f67b8cd5a597_29a53fc8704b5af046991%40sh1.rs.github.com.mail%3E"
+       TITLE="[eLua-svn] [elua/elua] 374a21: Bug fix: always return 0 from Lua	functions">noreply at github.com
+       </A><BR>
+    <I>Mon Mar 19 23:53:01 CET 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001224.html">[eLua-svn] [elua/elua] 5b141d: .gitignore: Ignore auto-generated file inc/git_ver...
+</A></li>
+        <LI>Next message: <A HREF="001226.html">[eLua-svn] [elua/elua] 800a94: Fix CR-&gt;NL and NL-&gt;CR transations on	linux
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1225">[ date ]</a>
+              <a href="thread.html#1225">[ thread ]</a>
+              <a href="subject.html#1225">[ subject ]</a>
+              <a href="author.html#1225">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+  Commit: 374a21f15e364c60cb86649a49c9ec184e1ade03
+      <A HREF="https://github.com/elua/elua/commit/374a21f15e364c60cb86649a49c9ec184e1ade03">https://github.com/elua/elua/commit/374a21f15e364c60cb86649a49c9ec184e1ade03</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-03-19 (Mon, 19 Mar 2012)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  Bug fix: always return 0 from Lua functions
+
+Many mizar32.lcd() Lua functions used to tail-call the i2c_send_command()
+functions, whereas they should explicitly return 0, the number of return
+values from the Lua function. OK, i2c_send_command did return 0 but this
+will change in future when it can detect slave presence and collisions.
+
+
+  Commit: 8b0bb4bbb9455afd1f76d071ecacd15050fb0dbf
+      <A HREF="https://github.com/elua/elua/commit/8b0bb4bbb9455afd1f76d071ecacd15050fb0dbf">https://github.com/elua/elua/commit/8b0bb4bbb9455afd1f76d071ecacd15050fb0dbf</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-03-19 (Mon, 19 Mar 2012)
+
+  Changed paths:
+    M src/platform/avr32/i2c.c
+
+  Log Message:
+  -----------
+  Ensure Mizar32 i2c pins are initialized if i2c.setup() is not called
+
+
+  Commit: 976d0f51119fdc93f469cab17acdc70ba220decc
+      <A HREF="https://github.com/elua/elua/commit/976d0f51119fdc93f469cab17acdc70ba220decc">https://github.com/elua/elua/commit/976d0f51119fdc93f469cab17acdc70ba220decc</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-03-19 (Mon, 19 Mar 2012)
+
+  Changed paths:
+    M src/platform/avr32/i2c.c
+  M src/platform/avr32/i2c.h
+  M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  Refactor AVR32 I2C code to have I2C packet-level send() and recv() routines
+
+This introduces i2c_send() and i2c_recv in the AVR32 code that send/receive
+whole I2C messages from start to optional stop.
+
+
+  Commit: 42af821686bf10b20f1eaf5e79e09007c373d688
+      <A HREF="https://github.com/elua/elua/commit/42af821686bf10b20f1eaf5e79e09007c373d688">https://github.com/elua/elua/commit/42af821686bf10b20f1eaf5e79e09007c373d688</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-03-19 (Mon, 19 Mar 2012)
+
+  Changed paths:
+    M src/platform/avr32/conf.lua
+
+  Log Message:
+  -----------
+  AVR32 bugfix: Include usb-cdc.c in the Lua build system too.
+
+
+  Commit: 939cdbc3fdf9d6506159f5e6fbc6c9b6dae35d98
+      <A HREF="https://github.com/elua/elua/commit/939cdbc3fdf9d6506159f5e6fbc6c9b6dae35d98">https://github.com/elua/elua/commit/939cdbc3fdf9d6506159f5e6fbc6c9b6dae35d98</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-03-19 (Mon, 19 Mar 2012)
+
+  Changed paths:
+    M src/platform/avr32/i2c.c
+  M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  Convert AVR32 i2c_{send,recv} to take 7-bit addresses
+
+
+  Commit: 6dd64a0dc6ae01abbe8882fd0e5a1485b96fed97
+      <A HREF="https://github.com/elua/elua/commit/6dd64a0dc6ae01abbe8882fd0e5a1485b96fed97">https://github.com/elua/elua/commit/6dd64a0dc6ae01abbe8882fd0e5a1485b96fed97</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-03-19 (Mon, 19 Mar 2012)
+
+  Changed paths:
+    M doc/eluadoc.lua
+  M src/platform/avr32/MIZAR32/mizar32_conf.h
+  M src/platform/avr32/conf.lua
+  M src/platform/avr32/conf.py
+  M src/platform/avr32/platform.c
+  A src/platform/avr32/rtc.c
+
+  Log Message:
+  -----------
+  New mizar32.rtc platform module
+
+Methods: mizar32.rtc.get() returns a table like Lua's os.date()
+and os.time() with fields year, monthm day, wday, hour min, sec
+and mizar32.rtc.set() takes a similar table, only changing the
+fields that are present in the table.
+Works with DS1337 and PCF8563 clock chips.
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/49ab7be...6dd64a0">https://github.com/elua/elua/compare/49ab7be...6dd64a0</A>
+</PRE>
+
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001224.html">[eLua-svn] [elua/elua] 5b141d: .gitignore: Ignore auto-generated file inc/git_ver...
+</A></li>
+	<LI>Next message: <A HREF="001226.html">[eLua-svn] [elua/elua] 800a94: Fix CR-&gt;NL and NL-&gt;CR transations on	linux
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1225">[ date ]</a>
+              <a href="thread.html#1225">[ thread ]</a>
+              <a href="subject.html#1225">[ subject ]</a>
+              <a href="author.html#1225">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

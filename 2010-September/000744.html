@@ -1,0 +1,1889 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r791 - in trunk: . inc romfs src src/lua src/modules	src/platform src/platform/at91sam7x src/platform/avr32	src/platform/i386 src/platform/lm3s src/platform/lpc17xx	src/platform/lpc24xx src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/str7 src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r791%20-%20in%20trunk%3A%20.%20inc%20romfs%20src%20src/lua%20src/modules%0A%09src/platform%20src/platform/at91sam7x%20src/platform/avr32%0A%09src/platform/i386%20src/platform/lm3s%20src/platform/lpc17xx%0A%09src/platform/lpc24xx%20src/platform/lpc288x%20src/platform/sim%0A%09src/platform/stm32%20src/platform/str7%20src/platform/str9&In-Reply-To=%3C20100926185418.65B57481006%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000743.html">
+   <LINK REL="Next"  HREF="000745.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r791 - in trunk: . inc romfs src src/lua src/modules	src/platform src/platform/at91sam7x src/platform/avr32	src/platform/i386 src/platform/lm3s src/platform/lpc17xx	src/platform/lpc24xx src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/str7 src/platform/str9</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r791%20-%20in%20trunk%3A%20.%20inc%20romfs%20src%20src/lua%20src/modules%0A%09src/platform%20src/platform/at91sam7x%20src/platform/avr32%0A%09src/platform/i386%20src/platform/lm3s%20src/platform/lpc17xx%0A%09src/platform/lpc24xx%20src/platform/lpc288x%20src/platform/sim%0A%09src/platform/stm32%20src/platform/str7%20src/platform/str9&In-Reply-To=%3C20100926185418.65B57481006%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r791 - in trunk: . inc romfs src src/lua src/modules	src/platform src/platform/at91sam7x src/platform/avr32	src/platform/i386 src/platform/lm3s src/platform/lpc17xx	src/platform/lpc24xx src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/str7 src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Sep 26 20:54:18 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000743.html">[Elua-svn] r790 - trunk/src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000745.html">[Elua-svn] r792 - in trunk: doc doc/en src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#744">[ date ]</a>
+              <a href="thread.html#744">[ thread ]</a>
+              <a href="subject.html#744">[ subject ]</a>
+              <a href="author.html#744">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-09-26 20:54:18 +0200 (Sun, 26 Sep 2010)
+New Revision: 791
+
+Added:
+   trunk/inc/elua_int.h
+   trunk/romfs/inttest.lua
+   trunk/src/elua_int.c
+   trunk/src/platform/arm_constants.h
+   trunk/src/platform/arm_cortex_interrupts.c
+   trunk/src/platform/arm_utils.s
+   trunk/src/platform/cortex_constants.h
+   trunk/src/platform/cortex_utils.s
+Modified:
+   trunk/SConstruct
+   trunk/inc/platform.h
+   trunk/src/buf.c
+   trunk/src/common.c
+   trunk/src/elua_adc.c
+   trunk/src/elua_uip.c
+   trunk/src/lua/lstate.c
+   trunk/src/lua/lua.h
+   trunk/src/modules/cpu.c
+   trunk/src/modules/pio.c
+   trunk/src/modules/tmr.c
+   trunk/src/platform/at91sam7x/conf.py
+   trunk/src/platform/at91sam7x/platform.c
+   trunk/src/platform/avr32/conf.py
+   trunk/src/platform/avr32/platform.c
+   trunk/src/platform/i386/conf.py
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lpc17xx/conf.py
+   trunk/src/platform/lpc17xx/platform.c
+   trunk/src/platform/lpc24xx/conf.py
+   trunk/src/platform/lpc24xx/platform.c
+   trunk/src/platform/lpc24xx/platform_conf.h
+   trunk/src/platform/lpc24xx/startup.s
+   trunk/src/platform/lpc288x/conf.py
+   trunk/src/platform/sim/conf.py
+   trunk/src/platform/stm32/conf.py
+   trunk/src/platform/stm32/platform.c
+   trunk/src/platform/stm32/platform_conf.h
+   trunk/src/platform/str7/conf.py
+   trunk/src/platform/str7/platform.c
+   trunk/src/platform/str9/conf.py
+   trunk/src/platform/str9/platform.c
+   trunk/src/platform/str9/startup912.s
+Log:
+- interrupt support in Lua 
+- ASM interrupt support for ARM targets which eliminates the need for buggy GCC __attribute__ ((interrupt (&quot;IRQ&quot;))) functions
+- code refactoring
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/SConstruct	2010-09-26 18:54:18 UTC (rev 791)
+@@ -129,7 +129,8 @@
+           'tetrives' : [ 'tetrives.lua' ],
+           'snake' : [ 'snake.lua' ],
+           'dataflash' : [ 'dataflash.lua' ],
+-          'pachube' : [ 'pachube_demo.lua' ]
++          'pachube' : [ 'pachube_demo.lua' ],
++          'inttest' : [ 'inttest.lua' ]
+         }
+ 
+ # List of board/romfs data combinations
+@@ -149,7 +150,7 @@
+               'ATEVK1101' : [ 'bisect', 'led', 'hello', 'info', 'dataflash' ],
+               'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect','adcscope','adcpoll', 'dualpwm', 'pwmled' ],
+               'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ],
+-              'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'pwmled', 'adcscope', 'adcpoll' ],
++              'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'pwmled', 'adcscope', 'adcpoll', 'inttest' ],
+               'MBED' : [ 'bisect', 'hangman', 'hello', 'info', 'led', 'pwmled', 'dualpwm', 'life', 'adcscope', 'adcpoll' ],
+ }
+ 
+@@ -366,7 +367,7 @@
+ 
+   lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
+   
+-  comp.Append(CPPPATH = ['inc', 'inc/newlib',  'inc/remotefs', 'src/lua'])
++  comp.Append(CPPPATH = ['inc', 'inc/newlib',  'inc/remotefs', 'src/platform', 'src/lua'])
+   if comp['target'] == 'lualong':
+     conf.env.Append(CPPDEFINES = ['LUA_NUMBER_INTEGRAL'])
+ 
+@@ -377,7 +378,7 @@
+   local_libs = ''
+ 
+   # Application files
+-  app_files = &quot; src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua_uart.c &quot;
++  app_files = &quot; src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua_uart.c src/elua_int.c &quot;
+ 
+   # Newlib related files
+   newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+
+Copied: trunk/inc/elua_int.h (from rev 790, branches/ints/inc/elua_int.h)
+===================================================================
+--- trunk/inc/elua_int.h	                        (rev 0)
++++ trunk/inc/elua_int.h	2010-09-26 18:54:18 UTC (rev 791)
+@@ -0,0 +1,39 @@
++// eLua interrupt handlers support
++
++#ifndef __ELUA_INT_H__
++#define __ELUA_INT_H__
++
++#include &quot;type.h&quot;
++
++typedef u8 elua_int_id;
++// The resource number is a 16-bit integer because it must be able to hold a 
++// port/pin combination coded as specified in platform.h 
++typedef u16 elua_int_resnum;
++
++#define ELUA_INT_EMPTY_SLOT             0
++#define ELUA_INT_FIRST_ID               1
++#define ELUA_INT_INVALID_INTERRUPT      0xFF
++
++// This is what gets pushed in the interrupt queue
++typedef struct 
++{
++  elua_int_id id;
++  elua_int_resnum resnum;
++} elua_int_element;
++
++// Handler key in the registry
++#define LUA_INT_HANDLER_KEY             ( int )&amp;elua_int_add
++
++// Maximum number of interrupt sources that can appear in ANY backend
++// Must be a multiple of 32
++#define LUA_INT_MAX_SOURCES             128
++
++// Function prototypes
++int elua_int_add( elua_int_id inttype, elua_int_resnum resnum );
++void elua_int_enable( elua_int_id inttype );
++void elua_int_disable( elua_int_id inttype );
++int elua_int_is_enabled( elua_int_id inttype );
++void elua_int_disable_all();
++
++#endif
++
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/inc/platform.h	2010-09-26 18:54:18 UTC (rev 791)
+@@ -5,6 +5,7 @@
+ 
+ #include &quot;devman.h&quot;
+ #include &quot;type.h&quot;
++#include &quot;elua_int.h&quot;
+ 
+ // Error / status codes
+ enum
+@@ -158,7 +159,8 @@
+   PLATFORM_TIMER_OP_SET_CLOCK,
+   PLATFORM_TIMER_OP_GET_CLOCK,
+   PLATFORM_TIMER_OP_GET_MAX_DELAY,
+-  PLATFORM_TIMER_OP_GET_MIN_DELAY
++  PLATFORM_TIMER_OP_GET_MIN_DELAY,
++  PLATFORM_TIMER_OP_SET_INT_TIMEOUT
+ };
+ 
+ // The platform timer functions
+@@ -192,8 +194,13 @@
+ // *****************************************************************************
+ // CPU specific functions
+ 
+-void platform_cpu_enable_interrupts();
+-void platform_cpu_disable_interrupts();
++#define PLATFORM_CPU_DISABLE            0
++#define PLATFORM_CPU_ENABLE             1
++
++int platform_cpu_set_global_interrupts( int status );
++int platform_cpu_get_global_interrupts();
++int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status );
++int platform_cpu_get_interrupt( elua_int_id id, elua_int_resnum resnum );
+ u32 platform_cpu_get_frequency();
+ 
+ // *****************************************************************************
+
+Copied: trunk/romfs/inttest.lua (from rev 790, branches/ints/romfs/inttest.lua)
+===================================================================
+--- trunk/romfs/inttest.lua	                        (rev 0)
++++ trunk/romfs/inttest.lua	2010-09-26 18:54:18 UTC (rev 791)
+@@ -0,0 +1,24 @@
++local vtmrid = tmr.VIRT0
++local to = 1500000
++
++local function handler( id, resnum )
++  print( string.format( &quot;Got interrupt with id %d and resnum %d&quot;, id, resnum ) )
++  if id == cpu.INT_GPIO_POSEDGE or id == cpu.INT_GPIO_NEGEDGE then
++    local port, pin = pio.decode( resnum )
++    print( string.format( &quot;Port is %d, pin is %d&quot;, port, pin ) )
++  elseif id == cpu.INT_TMR_MATCH then
++    print &quot;Timer interrupt! Rearming ... &quot;
++    tmr.setinttimeout( vtmrid, to )
++  end
++end
++
++cpu.set_int_handler( handler )
++cpu.sei( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )
++cpu.sei( cpu.INT_TMR_MATCH, vtmrid )
++tmr.setinttimeout( vtmrid, to )
++local tmrid = 0
++while true do
++  print &quot;Outside interrupt&quot; 
++  for i = 1, 1000 do tmr.delay( tmrid, 1000 ) end
++end
++
+
+Modified: trunk/src/buf.c
+===================================================================
+--- trunk/src/buf.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/buf.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -141,6 +141,7 @@
+ int buf_read( unsigned resid, unsigned resnum, t_buf_data *data )
+ {
+   BUF_GETPTR( resid, resnum );
++  int old_status;
+   
+   if( READ16( pbuf-&gt;count ) == 0 )
+     return PLATFORM_UNDERFLOW;
+@@ -150,10 +151,10 @@
+   
+   DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
+ 
+-  platform_cpu_disable_interrupts();
++  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+   pbuf-&gt;count --;
+   BUF_MOD_INCR( pbuf, rptr );
+-  platform_cpu_enable_interrupts();
++  platform_cpu_set_global_interrupts( old_status );
+   
+   return PLATFORM_OK;
+ }
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/common.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -13,6 +13,7 @@
+ #include &quot;elua_adc.h&quot;
+ #include &quot;term.h&quot;
+ #include &quot;xmodem.h&quot;
++#include &quot;elua_int.h&quot;
+ 
+ // ****************************************************************************
+ // XMODEM support code
+@@ -232,13 +233,27 @@
+ static volatile u32 vtmr_counters[ VTMR_NUM_TIMERS ];
+ static volatile s8 vtmr_reset_idx = -1;
+ 
++#ifdef BUILD_LUA_INT_HANDLERS
++static volatile u32 vtmr_period_limit[ VTMR_NUM_TIMERS ];  
++static volatile u8 vtmr_int_enabled[ ( VTMR_NUM_TIMERS + 7 ) &gt;&gt; 3 ];
++#endif // #ifdef BUILD_LUA_INTERRUPT_HANDLERS
++
+ // This should be called from the platform's timer interrupt at VTMR_FREQ_HZ
+ void cmn_virtual_timer_cb()
+ {
+   unsigned i;
+ 
+   for( i = 0; i &lt; VTMR_NUM_TIMERS; i ++ )
++  {
+     vtmr_counters[ i ] ++;  
++#ifdef BUILD_LUA_INT_HANDLERS
++    if( ( vtmr_int_enabled[ i &gt;&gt; 3 ] &amp; ( 1 &lt;&lt; ( i &amp; 0x07 ) ) ) &amp;&amp; ( vtmr_counters[ i ] == vtmr_period_limit[ i ] ) )
++    {
++      vtmr_int_enabled[ i &gt;&gt; 3 ] &amp;= ( u8 )~( 1 &lt;&lt; ( i &amp; 0x07 ) );    
++      elua_int_add( INT_TMR_MATCH, i + VTMR_FIRST_ID );
++    }
++#endif // #ifdef BUILD_LUA_INT_HANDLERS
++  }    
+   if( vtmr_reset_idx != -1 )
+   {
+     vtmr_counters[ vtmr_reset_idx ] = 0;
+@@ -264,6 +279,27 @@
+   while( vtmr_counters[ id ] &lt; final );  
+ }
+ 
++#ifdef BUILD_LUA_INT_HANDLERS
++static int vtmr_set_int_timeout( unsigned vid, u32 delay_us )
++{
++  timer_data_type final;
++  unsigned id = VTMR_GET_ID( vid );
++    
++  if( ( final = ( ( u64 )delay_us * VTMR_FREQ_HZ ) / 1000000 ) == 0 )
++    return 0;
++  vtmr_period_limit[ id ] = final;
++  vtmr_reset_timer( vid );  
++  vtmr_int_enabled[ id &gt;&gt; 3 ] |= 1 &lt;&lt; ( id &amp; 0x07 );    
++  return 1; 
++}
++#else // #ifdef BUILD_LUA_INT_HANDLERS
++static int vtmr_set_int_timeout( unsigned vid, u32 delay_us )
++{
++  fprintf( stderr, &quot;Timeouts with interrupts not available when Lua interrupt support is not enabled\n&quot; );
++  return 0;
++}
++#endif // #ifdef BUILD_LUA_INT_HANDLERS
++
+ #else // #if VTMR_NUM_TIMERS &gt; 0
+ 
+ void cmn_virtual_timer_cb()
+@@ -321,6 +357,10 @@
+     case PLATFORM_TIMER_OP_GET_CLOCK:
+       res = VTMR_FREQ_HZ;
+       break;      
++      
++    case PLATFORM_TIMER_OP_SET_INT_TIMEOUT:
++      res = vtmr_set_int_timeout( id, data );
++      break;
+   }
+ #endif
+   return res;
+
+Modified: trunk/src/elua_adc.c
+===================================================================
+--- trunk/src/elua_adc.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/elua_adc.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -32,10 +32,10 @@
+   unsigned previd = d-&gt;ch_state[ d-&gt;seq_ctr ]-&gt;id;
+   unsigned id;
+   u8 tmp_seq_ctr = 0;
+-  
++  int old_status;  
+   if( d-&gt;ch_active != d-&gt;last_ch_active || d-&gt;force_reseq == 1 )
+   {
+-    platform_cpu_disable_interrupts();
++    old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+     // Update channel sequence
+     d-&gt;seq_ctr = 0;
+     for( id = 0; id &lt; NUM_ADC; id ++ )
+@@ -65,7 +65,7 @@
+     d-&gt;last_ch_active = d-&gt;ch_active;
+     d-&gt;seq_ctr = tmp_seq_ctr;
+     d-&gt;force_reseq = 0;
+-    platform_cpu_enable_interrupts();
++    platform_cpu_set_global_interrupts( old_status );
+   }
+ }
+ 
+@@ -74,10 +74,12 @@
+ {
+   elua_adc_ch_state *s = adc_get_ch_state( id );
+   elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  int old_status = platform_cpu_get_global_interrupts();
++
+ #if defined( BUF_ENABLE_ADC )
+   int res;
+ 
+-  platform_cpu_disable_interrupts();
++  old_status = platform_cpu_get_global_interrupts( PLATFORM_CPU_DISABLE );
+   if( ( (u16) 1 &lt;&lt; logcount ) != buf_get_size( BUF_ID_ADC, id ) )
+   {   
+     res = buf_set( BUF_ID_ADC, id, logcount, BUF_DSIZE_U16 );
+@@ -91,7 +93,7 @@
+   s-&gt;op_pending = 1;
+   
+   ACTIVATE_CHANNEL( d, id );
+-  platform_cpu_enable_interrupts();
++  platform_cpu_set_global_interrupts( old_status );
+   
+   return PLATFORM_OK;
+ }
+
+Copied: trunk/src/elua_int.c (from rev 790, branches/ints/src/elua_int.c)
+===================================================================
+--- trunk/src/elua_int.c	                        (rev 0)
++++ trunk/src/elua_int.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -0,0 +1,131 @@
++// eLua interrupt support
++
++#include &quot;elua_int.h&quot;
++#include &quot;lua.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;type.h&quot;
++#include &quot;ldebug.h&quot;
++#include &lt;stdio.h&gt;
++
++#ifdef BUILD_LUA_INT_HANDLERS
++
++// Interrupt queue read and write indexes
++static volatile u8 elua_int_read_idx, elua_int_write_idx;
++// The interrupt queue
++static elua_int_element elua_int_queue[ 1 &lt;&lt; PLATFORM_INT_QUEUE_LOG_SIZE ];
++// Interrupt enabled/disabled flags
++static u32 elua_int_flags[ LUA_INT_MAX_SOURCES / 32 ];
++
++// Masking for read/write indexes
++#define INT_IDX_SHIFT                   ( PLATFORM_INT_QUEUE_LOG_SIZE )
++#define INT_IDX_MASK                    ( ( 1 &lt;&lt; INT_IDX_SHIFT ) - 1 )
++
++// We need to know if there is a global interrupt handler set in Lua
++// (this comes from src/modules/cpu.c)
++extern u8 cpu_is_int_handler_active();
++
++// Our hook function (called by the Lua VM)
++static void elua_int_hook( lua_State *L, lua_Debug *ar )
++{
++  elua_int_element crt;
++  int old_status;
++
++  // Get interrupt (and remove from queue)
++  crt = elua_int_queue[ elua_int_read_idx ];
++  elua_int_queue[ elua_int_read_idx ].id = ELUA_INT_EMPTY_SLOT;
++  elua_int_read_idx = ( elua_int_read_idx + 1 ) &amp; INT_IDX_MASK;
++
++  // Call Lua handler
++  if( cpu_is_int_handler_active() )
++  {
++    lua_rawgeti( L, LUA_REGISTRYINDEX, LUA_INT_HANDLER_KEY );
++    lua_pushinteger( L, crt.id );
++    lua_pushinteger( L, crt.resnum );
++    lua_call( L, 2, 0 );    
++  }
++
++  // Set hook again if needed
++  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
++  if( elua_int_queue[ elua_int_read_idx ].id == ELUA_INT_EMPTY_SLOT )
++    lua_sethook( L, NULL, 0, 0 );
++  platform_cpu_set_global_interrupts( old_status );
++}
++
++// Queue an interrupt and set the Lua hook
++// Returns PLATFORM_OK or PLATFORM_ERR
++int elua_int_add( elua_int_id inttype, elua_int_resnum resnum )
++{
++  // If Lua is not running (no Lua state), or no Lua interrupt handler is set, 
++  // or the interrupt is not enabled, don't do anything
++  if( lua_getstate() == NULL || !cpu_is_int_handler_active() || !elua_int_is_enabled( inttype ) )
++    return PLATFORM_ERR;
++
++  // If there's no more room in the queue, set the overflow flag and return
++  if( elua_int_queue[ elua_int_write_idx ].id != ELUA_INT_EMPTY_SLOT )
++  {
++    printf( &quot;ERROR in elua_int_add: buffer overflow, interrupt not queued\n&quot; );
++    return PLATFORM_ERR;
++  }
++
++  // Queue the interrupt
++  elua_int_queue[ elua_int_write_idx ].id = inttype;
++  elua_int_queue[ elua_int_write_idx ].resnum = resnum;
++  elua_int_write_idx = ( elua_int_write_idx + 1 ) &amp; INT_IDX_MASK;
++
++  // Set the Lua hook (it's OK to set it even if it's already set)
++  // [TODO] is it safe to call lua_sethook here ? If not, set a &quot;trap&quot; in lvm.c
++  lua_sethook( lua_getstate(), elua_int_hook, LUA_MASKCOUNT, 2 ); 
++
++  // All OK
++  return PLATFORM_OK;
++}
++
++// Enable the given interrupt
++void elua_int_enable( elua_int_id inttype )
++{
++  if( inttype &lt; LUA_INT_MAX_SOURCES )
++    elua_int_flags[ inttype &gt;&gt; 5 ] |= 1 &lt;&lt; ( inttype &amp; 0x1F );
++}
++
++// Disable the given interrupt
++void elua_int_disable( elua_int_id inttype )
++{
++  if( inttype &lt; LUA_INT_MAX_SOURCES )
++    elua_int_flags[ inttype &gt;&gt; 5 ] &amp;= ~( 1 &lt;&lt; ( inttype &amp; 0x1F ) );
++}
++
++// Returns 1 if the given interrupt is enabled, 0 otherwise
++int elua_int_is_enabled( elua_int_id inttype )
++{
++  if( inttype &lt; LUA_INT_MAX_SOURCES )
++    return elua_int_flags[ inttype &gt;&gt; 5 ] &amp; ( 1 &lt;&lt; ( inttype &amp; 0x1F ) ) ? 1 : 0;
++  return 0;
++}
++
++// Disable all interrupts (used by Lua in lua_close (lstate.c))
++void elua_int_disable_all()
++{
++  unsigned i;
++
++  for( i = 0; i &lt; LUA_INT_MAX_SOURCES &gt;&gt; 5; i ++ )
++    elua_int_flags[ i ] = 0;    
++}
++
++#else // #ifdef BUILD_LUA_INT_HANDLERS
++
++// This is needed by lua_close (lstate.c)
++void elua_int_disable_all()
++{
++}
++
++void elua_int_enable( elua_int_id inttype )
++{
++}
++
++void elua_int_disable( elua_int_id inttype )
++{
++}
++
++#endif // #ifdef BUILD_LUA_INT_HANDLERS
++
+
+Modified: trunk/src/elua_uip.c
+===================================================================
+--- trunk/src/elua_uip.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/elua_uip.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -513,12 +513,13 @@
+ {
+   int i;
+   struct uip_conn* pconn;
++  int old_status;
+   
+   // [TODO] add UDP support at some point.
+   if( type == ELUA_NET_SOCK_DGRAM )
+     return -1;
+   
+-  platform_cpu_disable_interrupts();
++  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+   // Iterate through the list of connections, looking for a free one
+   for( i = 0; i &lt; UIP_CONNS; i ++ )
+   {
+@@ -530,7 +531,7 @@
+       break;
+     }
+   }
+-  platform_cpu_enable_interrupts();
++  platform_cpu_set_global_interrupts( old_status );
+   return i == UIP_CONNS ? -1 : i;
+ }
+ 
+@@ -554,6 +555,7 @@
+ {
+   volatile struct elua_uip_state *pstate = ( volatile struct elua_uip_state* )&amp;( uip_conns[ s ].appstate );
+   u32 tmrstart = 0;
++  int old_status;
+   
+   if( !ELUA_UIP_IS_SOCK_OK( s ) || !uip_conn_active( s ) )
+     return -1;
+@@ -568,13 +570,13 @@
+       break;
+     if( to_us &gt; 0 &amp;&amp; platform_timer_get_diff_us( timer_id, tmrstart, platform_timer_op( timer_id, PLATFORM_TIMER_OP_READ, 0 ) ) &gt;= to_us )
+     {
+-      platform_cpu_disable_interrupts();
++      old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+       if( pstate-&gt;state != ELUA_UIP_STATE_IDLE )
+       { 
+         pstate-&gt;res = ELUA_NET_ERR_TIMEDOUT;
+         pstate-&gt;state = ELUA_UIP_STATE_IDLE;
+       }
+-      platform_cpu_enable_interrupts();
++      platform_cpu_set_global_interrupts( old_status );
+       break;
+     }
+   }
+@@ -634,6 +636,7 @@
+ int elua_accept( u16 port, unsigned timer_id, u32 to_us, elua_net_ip* pfrom )
+ {
+   u32 tmrstart = 0;
++  int old_status;
+   
+   if( !elua_uip_configured )
+     return -1;
+@@ -641,10 +644,10 @@
+   if( port == ELUA_NET_TELNET_PORT )
+     return -1;
+ #endif  
+-  platform_cpu_disable_interrupts();
++  old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+   uip_unlisten( htons( port ) );
+   uip_listen( htons( port ) );
+-  platform_cpu_enable_interrupts();
++  platform_cpu_set_global_interrupts( old_status );
+   elua_uip_accept_sock = -1;
+   elua_uip_accept_request = 1;
+   if( to_us &gt; 0 )
+
+Modified: trunk/src/lua/lstate.c
+===================================================================
+--- trunk/src/lua/lstate.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/lua/lstate.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -23,6 +23,8 @@
+ #include &quot;ltable.h&quot;
+ #include &quot;ltm.h&quot;
+ #include &quot;platform_conf.h&quot;
++// BogdanM: modified for Lua interrupt support
++#include &quot;elua_int.h&quot;
+ 
+ #define state_size(x)	(sizeof(x) + LUAI_EXTRASPACE)
+ #define fromstate(l)	(cast(lu_byte *, (l)) - LUAI_EXTRASPACE)
+@@ -211,7 +213,18 @@
+   luaC_callGCTM(L);  /* call GC metamethods for all udata */
+ }
+ 
++// BogdanM: modified for eLua interrupt support
++extern lua_State *luaL_newstate (void);
++static lua_State *lua_crtstate;
+ 
++lua_State *lua_open(void) {
++  lua_crtstate = luaL_newstate(); 
++  return lua_crtstate;
++}
++
++lua_State *lua_getstate(void) {
++  return lua_crtstate;
++}
+ LUA_API void lua_close (lua_State *L) {
+   L = G(L)-&gt;mainthread;  /* only the main thread can be closed */
+   lua_lock(L);
+@@ -226,5 +239,8 @@
+   lua_assert(G(L)-&gt;tmudata == NULL);
+   luai_userstateclose(L);
+   close_state(L);
++  // BogdanM: modified for eLua interrupt support
++  lua_crtstate = NULL;
++  elua_int_disable_all();
+ }
+ 
+
+Modified: trunk/src/lua/lua.h
+===================================================================
+--- trunk/src/lua/lua.h	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/lua/lua.h	2010-09-26 18:54:18 UTC (rev 791)
+@@ -290,7 +290,10 @@
+ ** compatibility macros and functions
+ */
+ 
+-#define lua_open()	luaL_newstate()
++// BogdanM: modified for eLua interrupt support
++//#define lua_open()	luaL_newstate()
++lua_State* lua_open(void);
++lua_State* lua_getstate(void);
+ 
+ #define lua_getregistry(L)	lua_pushvalue(L, LUA_REGISTRYINDEX)
+ 
+
+Modified: trunk/src/modules/cpu.c
+===================================================================
+--- trunk/src/modules/cpu.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/modules/cpu.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -82,16 +82,60 @@
+ }
+ 
+ // Lua: cli()
++// Lua: cli() - to disable all interrupts
++// or cli( id1, resnum1, [resnum2], ..., [resnumn] ) - to disable a specific id/resnum(s)
+ static int cpu_cli( lua_State *L )
+ {
+-  platform_cpu_disable_interrupts();
++#ifdef BUILD_LUA_INT_HANDLERS
++  unsigned i;
++  elua_int_id id;
++  elua_int_resnum resnum;
++
++  if( lua_gettop( L ) &gt; 0 )
++  {
++    id = ( elua_int_id )luaL_checkinteger( L, 1 );
++    for( i = 2; i &lt;= lua_gettop( L ); i ++ )
++    {
++      resnum = ( elua_int_resnum )luaL_checkinteger( L, i );
++      platform_cpu_set_interrupt( id, resnum, PLATFORM_CPU_DISABLE );
++    }
++    elua_int_disable( id );
++  }
++  else
++#else // #ifdef BUILD_LUA_INT_HANDLERS
++  if( lua_gettop( L ) &gt; 0 )
++    return luaL_error( L, &quot;Lua interrupt support not available.&quot; );
++#endif // #ifdef BUILD_LUA_INT_HANDLERS
++  platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+   return 0;
+ }
+ 
+-// Lua: sei()
++
++// Lua: sei() - to enable all interrupts
++// or sei( id1, resnum1, [resnum2], ..., [resnumn] ) - to enable a specific id/resnum(s)
+ static int cpu_sei( lua_State *L )
+ {
+-  platform_cpu_enable_interrupts();
++#ifdef BUILD_LUA_INT_HANDLERS  
++  unsigned i;
++  elua_int_id id;
++  elua_int_resnum resnum;  
++
++  if( lua_gettop( L ) &gt; 0 )
++  {
++    id = ( elua_int_id )luaL_checkinteger( L, 1 );
++    for( i = 2; i &lt;= lua_gettop( L ); i ++ )
++    {
++      resnum = ( elua_int_resnum )luaL_checkinteger( L, i );
++      platform_cpu_set_interrupt( id, resnum, PLATFORM_CPU_ENABLE );
++    }
++    elua_int_enable( id );
++  }
++  else
++#else // #ifdef BUILD_LUA_INT_HANDLERS
++  if( lua_gettop( L ) &gt; 0 )
++    return luaL_error( L, &quot;Lua interrupt support not available.&quot; );
++#endif // #ifdef BUILD_LUA_INT_HANDLERS  
++  platform_cpu_set_global_interrupts( PLATFORM_CPU_ENABLE );
+   return 0;
+ }
+ 
+@@ -134,6 +178,31 @@
+ }
+ #endif
+ 
++#ifdef BUILD_LUA_INT_HANDLERS
++static u8 cpu_int_handler_active;
++
++u8 cpu_is_int_handler_active()
++{
++  return cpu_int_handler_active;
++}
++
++// lua: cpu.set_int_handler( f )
++static int cpu_set_int_handler( lua_State *L )
++{
++  if( lua_type( L, 1 ) == LUA_TNIL )
++    cpu_int_handler_active = 0;
++  else if( lua_type( L, 1 ) == LUA_TFUNCTION || lua_type( L, 1 ) == LUA_TLIGHTFUNCTION )
++  {
++    lua_settop( L, 1 );
++    lua_rawseti( L, LUA_REGISTRYINDEX, LUA_INT_HANDLER_KEY );
++    cpu_int_handler_active = 1;
++  }
++  else
++    return luaL_error( L, &quot;invalid argument (must be a function or nil)&quot; );
++  return 0;
++}
++#endif
++
+ // Module function map
+ #define MIN_OPT_LEVEL 2
+ #include &quot;lrodefs.h&quot;
+@@ -148,6 +217,9 @@
+   { LSTRKEY( &quot;cli&quot; ), LFUNCVAL( cpu_cli ) },
+   { LSTRKEY( &quot;sei&quot; ), LFUNCVAL( cpu_sei ) },
+   { LSTRKEY( &quot;clock&quot; ), LFUNCVAL( cpu_clock ) },
++#ifdef BUILD_LUA_INT_HANDLERS
++  { LSTRKEY( &quot;set_int_handler&quot; ), LFUNCVAL( cpu_set_int_handler ) },
++#endif
+ #if defined( PLATFORM_CPU_CONSTANTS ) &amp;&amp; LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;__metatable&quot; ), LROVAL( cpu_map ) },
+ #endif
+@@ -159,6 +231,9 @@
+ 
+ LUALIB_API int luaopen_cpu( lua_State *L )
+ {
++#ifdef BUILD_LUA_INT_HANDLERS
++  cpu_int_handler_active = 0;
++#endif
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   return 0;
+ #else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+
+Modified: trunk/src/modules/pio.c
+===================================================================
+--- trunk/src/modules/pio.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/modules/pio.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -304,7 +304,19 @@
+   }
+ }
+ 
+-// ****************************************************************************
++// *****************************************************************************
++// The 'decode' functions returns a port/pin pair from a platform code
++
++static int pio_decode( lua_State *L )
++{
++  int code = ( int )luaL_checkinteger( L, 1 );
++  
++  lua_pushinteger( L, PLATFORM_IO_GET_PORT( code ) );
++  lua_pushinteger( L, PLATFORM_IO_GET_PIN( code ) );
++  return 2;
++}
++
++// *****************************************************************************
+ // Pin function map
+ 
+ #define MIN_OPT_LEVEL 2
+@@ -336,6 +348,7 @@
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;pin&quot; ), LROVAL( pio_pin_map ) },
+   { LSTRKEY( &quot;port&quot; ), LROVAL( pio_port_map ) },
++  { LSTRKEY( &quot;decode&quot; ), LFUNCVAL( pio_decode ) },  
+   { LSTRKEY( &quot;INPUT&quot; ), LNUMVAL( PIO_DIR_INPUT ) },
+   { LSTRKEY( &quot;OUTPUT&quot; ), LNUMVAL( PIO_DIR_OUTPUT ) },
+   { LSTRKEY( &quot;PULLUP&quot; ), LNUMVAL( PLATFORM_IO_PIN_PULLUP ) },
+
+Modified: trunk/src/modules/tmr.c
+===================================================================
+--- trunk/src/modules/tmr.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/modules/tmr.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -120,6 +120,23 @@
+   return 1;
+ }
+ 
++// Lua: setinttimeout( id, timeout )
++static int tmr_setinttimeout( lua_State *L )
++{
++#ifdef BUILD_LUA_INT_HANDLERS
++  unsigned id;
++  u32 res;
++  
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( timer, id );
++  res = platform_timer_op( id, PLATFORM_TIMER_OP_SET_INT_TIMEOUT, ( u32 )luaL_checknumber( L, 2 ) );
++  lua_pushinteger( L, res );
++  return 1;
++#else
++  return luaL_error( L, &quot;setinttimeout not supported when Lua interrupt support is not compiled&quot; );
++#endif
++}
++
+ #if VTMR_NUM_TIMERS &gt; 0
+ // __index metafunction for TMR
+ // Look for all VIRTx timer identifiers
+@@ -156,6 +173,7 @@
+   { LSTRKEY( &quot;getmaxdelay&quot; ), LFUNCVAL( tmr_getmaxdelay ) },
+   { LSTRKEY( &quot;setclock&quot; ), LFUNCVAL( tmr_setclock ) },
+   { LSTRKEY( &quot;getclock&quot; ), LFUNCVAL( tmr_getclock ) },
++  { LSTRKEY( &quot;setinttimeout&quot; ), LFUNCVAL( tmr_setinttimeout ) },
+ #if LUA_OPTIMIZE_MEMORY &gt; 0 &amp;&amp; VTMR_NUM_TIMERS &gt; 0
+   { LSTRKEY( &quot;__metatable&quot; ), LROVAL( tmr_map ) },
+ #endif
+
+Added: trunk/src/platform/arm_constants.h
+===================================================================
+--- trunk/src/platform/arm_constants.h	                        (rev 0)
++++ trunk/src/platform/arm_constants.h	2010-09-26 18:54:18 UTC (rev 791)
+@@ -0,0 +1,16 @@
++// ARM/Thumb constants
++
++#ifndef __ARM_CONSTANTS_H__
++#define __ARM_CONSTANTS_H__
++
++#define I_BIT                   0x80
++#define F_BIT                   0x40
++
++#ifndef CORTEX_M3
++#define INTERRUPT_MASK_BIT      ( I_BIT )
++// Define next constant as 0 if the interrupt flag is active on logic 0, or as INTERRUPT_MASK_BIT otherwise
++#define INTERRUPT_ACTIVE        ( 0 )
++#endif // #ifndef CORTEX_M3
++
++#endif
++
+
+Added: trunk/src/platform/arm_cortex_interrupts.c
+===================================================================
+--- trunk/src/platform/arm_cortex_interrupts.c	                        (rev 0)
++++ trunk/src/platform/arm_cortex_interrupts.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -0,0 +1,27 @@
++// Generic functions for ARM CPUs
++
++#include &quot;arm_constants.h&quot;
++#include &quot;cortex_constants.h&quot;
++#include &quot;type.h&quot;
++#include &quot;platform.h&quot;
++
++extern void arm_enable_ints();
++extern void arm_disable_ints();
++extern u32 arm_get_int_status();
++
++int platform_cpu_set_global_interrupts( int status )
++{
++  u32 crt_status = arm_get_int_status();
++
++  if( status == PLATFORM_CPU_ENABLE )
++    arm_enable_ints();
++  else
++    arm_disable_ints();
++  return ( crt_status &amp; INTERRUPT_MASK_BIT ) == INTERRUPT_ACTIVE;
++}
++
++int platform_cpu_get_global_interrupts()
++{
++  return ( arm_get_int_status() &amp; INTERRUPT_MASK_BIT ) == INTERRUPT_ACTIVE;
++}
++
+
+Added: trunk/src/platform/arm_utils.s
+===================================================================
+--- trunk/src/platform/arm_utils.s	                        (rev 0)
++++ trunk/src/platform/arm_utils.s	2010-09-26 18:54:18 UTC (rev 791)
+@@ -0,0 +1,52 @@
++#include &quot;arm_constants.h&quot;
++
++        .section .text
++        .align 4
++
++        .macro prologue
++#ifdef CPUMODE_THUMB
++        mov   r1, pc
++        bx    r1
++        .arm
++#endif
++        .endm
++
++        .macro functype
++#ifdef CPUMODE_THUMB
++        .thumb
++        .thumb_func
++#else
++        .arm
++#endif
++        .endm
++
++# enable interrupts
++        .global    arm_enable_ints
++        functype
++arm_enable_ints:
++        prologue
++        mrs     r0, CPSR
++        bic     r0, r0, #I_BIT
++        msr     CPSR_c, r0
++        bx      lr
++
++# disable interrupts
++       .global arm_disable_ints
++       functype
++arm_disable_ints:
++       prologue
++       mrs      r0, CPSR
++       orr      r0, r0, #I_BIT
++       msr      CPSR_c, r0
++       bx       lr
++
++# Get interrupt status
++      .global arm_get_int_status
++      functype
++arm_get_int_status:
++      prologue
++      mrs     r0, CPSR
++      bx      lr
++
++      .end
++
+
+Modified: trunk/src/platform/at91sam7x/conf.py
+===================================================================
+--- trunk/src/platform/at91sam7x/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/at91sam7x/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -17,6 +17,7 @@
+   
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++specific_files += &quot; src/platform/arm_utils.s src/platform/arm_cortex_interrupts.c&quot;
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+ comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
+@@ -27,6 +28,9 @@
+ TARGET_FLAGS = ['-mcpu=arm7tdmi']
+ if cpumode == 'thumb':
+   TARGET_FLAGS += ['-mthumb']
++  comp.Append(CPPDEFINES = ['CPUMODE_THUMB'])
++else:
++  comp.Append(CPPDEFINES = ['CPUMODE_ARM'])
+ 
+ # Configure General Flags for Target
+ comp.Prepend(CCFLAGS = [TARGET_FLAGS])
+
+Modified: trunk/src/platform/at91sam7x/platform.c
+===================================================================
+--- trunk/src/platform/at91sam7x/platform.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/at91sam7x/platform.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -447,15 +447,3 @@
+   return res;
+ }
+ 
+-// ****************************************************************************
+-// CPU functions
+-
+-void platform_cpu_enable_interrupts()
+-{
+-  AT91C_BASE_AIC-&gt;AIC_DCR &amp;= ~AT91C_AIC_DCR_GMSK; 
+-}
+-
+-void platform_cpu_disable_interrupts()
+-{
+-  AT91C_BASE_AIC-&gt;AIC_DCR |= AT91C_AIC_DCR_GMSK; 
+-}
+
+Modified: trunk/src/platform/avr32/conf.py
+===================================================================
+--- trunk/src/platform/avr32/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/avr32/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -38,7 +38,7 @@
+   print &quot;Generating binary image...&quot;
+   os.system( &quot;%s -O ihex %s %s.hex&quot; % ( toolset[ 'bin' ], outname, output ) )
+ 
+-  print &quot;Programming...&quot;
+-  os.system( &quot;batchisp -hardware usb -device %s -operation erase f memory flash blankcheck loadbuffer %s program verify start reset 0&quot; % ( comp[ 'cpu' ].lower(), output + &quot;.hex&quot; ) )
++  # print &quot;Programming...&quot;
++  # os.system( &quot;batchisp -hardware usb -device %s -operation erase f memory flash blankcheck loadbuffer %s program verify start reset 0&quot; % ( comp[ 'cpu' ].lower(), output + &quot;.hex&quot; ) )
+ 
+ tools[ 'avr32' ][ 'progfunc' ] = progfunc_avr32
+
+Modified: trunk/src/platform/avr32/platform.c
+===================================================================
+--- trunk/src/platform/avr32/platform.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/avr32/platform.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -601,13 +601,19 @@
+ // ****************************************************************************
+ // CPU functions
+ 
+-void platform_cpu_enable_interrupts()
++int platform_cpu_set_global_interrupts( int status )
+ {
+-  Enable_global_interrupt();
++  int previous = Is_global_interrupt_enabled();
++
++  if( status == PLATFORM_CPU_ENABLE )
++    Enable_global_interrupt();
++  else
++    Disable_global_interrupt();
++  return previous;
+ }
+ 
+-void platform_cpu_disable_interrupts()
++int platform_cpu_get_global_interrupts()
+ {
+-  Disable_global_interrupt();
++  return Is_global_interrupt_enabled();
+ }
+ 
+
+Added: trunk/src/platform/cortex_constants.h
+===================================================================
+--- trunk/src/platform/cortex_constants.h	                        (rev 0)
++++ trunk/src/platform/cortex_constants.h	2010-09-26 18:54:18 UTC (rev 791)
+@@ -0,0 +1,15 @@
++// ARM/Thumb constants
++
++#ifndef __CORTEX_CONSTANTS_H__
++#define __CORTEX_CONSTANTS_H__
++
++#define PM_BIT                  0x01
++
++#ifdef CORTEX_M3
++#define INTERRUPT_MASK_BIT      ( PM_BIT )
++// Define next constant as 0 if the interrupt flag is active on logic 0, or as INTERRUPT_MASK_BIT otherwise
++#define INTERRUPT_ACTIVE        ( 0 )
++#endif // #ifdef CORTEX_M3
++
++#endif
++
+
+Added: trunk/src/platform/cortex_utils.s
+===================================================================
+--- trunk/src/platform/cortex_utils.s	                        (rev 0)
++++ trunk/src/platform/cortex_utils.s	2010-09-26 18:54:18 UTC (rev 791)
+@@ -0,0 +1,31 @@
++#include &quot;cortex_constants.h&quot;
++
++        .section .text
++        .align 2
++
++# enable interrupts
++        .global    arm_enable_ints
++        .thumb
++        .thumb_func
++arm_enable_ints:
++        cpsie   i   
++        bx      lr
++
++# disable interrupts
++       .global arm_disable_ints
++       .thumb
++       .thumb_func
++arm_disable_ints:
++       cpsid    i
++       bx       lr
++
++# Get interrupt status
++      .global arm_get_int_status
++      .thumb
++      .thumb_func
++arm_get_int_status:
++      mrs       r0, PRIMASK
++      bx        lr
++
++      .end
++
+
+Modified: trunk/src/platform/i386/conf.py
+===================================================================
+--- trunk/src/platform/i386/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/i386/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -25,7 +25,7 @@
+ tools[ 'i386' ] = {}
+ 
+ # Programming function for i386 (not needed, empty function)
+-def progfunc_i386( comp[ 'target' ], source, env ):
++def progfunc_i386( target, source, env ):
+   outname = output + &quot;.elf&quot;
+   os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Visit <A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A> for instructions on how to use your eLua ELF file&quot;
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/lm3s/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -18,11 +18,12 @@
+ 
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++specific_files += &quot; src/platform/cortex_utils.s src/platform/arm_cortex_interrupts.c&quot;
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+ comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
++comp.Append(CPPDEFINES = ['CORTEX_M3'])
+ 
+-
+ # Standard GCC Flags
+ comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
+ comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/lm3s/platform.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -20,6 +20,7 @@
+ #include &quot;lua.h&quot;
+ #include &quot;lauxlib.h&quot;
+ #include &quot;lrotable.h&quot;
++#include &quot;elua_int.h&quot; 
+ 
+ // Platform specific includes
+ #include &quot;hw_ints.h&quot;
+@@ -551,19 +552,6 @@
+ }
+ 
+ // *****************************************************************************
+-// CPU specific functions
+-
+-void platform_cpu_enable_interrupts()
+-{
+-  MAP_IntMasterEnable();
+-}
+-
+-void platform_cpu_disable_interrupts()
+-{
+-  MAP_IntMasterDisable();
+-}
+-
+-// *****************************************************************************
+ // ADC specific functions and variables
+ 
+ #ifdef BUILD_ADC
+
+Modified: trunk/src/platform/lpc17xx/conf.py
+===================================================================
+--- trunk/src/platform/lpc17xx/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/lpc17xx/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -19,9 +19,11 @@
+   
+ # Prepend with path
+ specific_files = fwlib_files + &quot; &quot; + &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++specific_files += &quot; src/platform/cortex_utils.s src/platform/arm_cortex_interrupts.c&quot;
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+ comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
++comp.Append(CPPDEFINES = ['CORTEX_M3'])
+ 
+ # Standard GCC Flags
+ comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
+
+Modified: trunk/src/platform/lpc17xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc17xx/platform.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/lpc17xx/platform.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -321,20 +321,6 @@
+   return res;
+ }
+ 
+-// ****************************************************************************
+-// CPU functions
+-
+-void platform_cpu_enable_interrupts()
+-{
+-  __enable_irq();  
+-}
+-
+-void platform_cpu_disable_interrupts()
+-{
+-  __disable_irq();
+-}
+-
+-
+ // *****************************************************************************
+ // ADC specific functions and variables
+ 
+
+Modified: trunk/src/platform/lpc24xx/conf.py
+===================================================================
+--- trunk/src/platform/lpc24xx/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/lpc24xx/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -11,6 +11,7 @@
+     
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++specific_files += &quot; src/platform/arm_utils.s src/platform/arm_cortex_interrupts.c&quot;
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+ comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
+@@ -25,6 +26,9 @@
+ TARGET_FLAGS = ['-mcpu=arm7tdmi']
+ if cpumode == 'thumb':
+   TARGET_FLAGS += ['-mthumb']
++  comp.Append(CPPDEFINES = ['CPUMODE_THUMB'])
++else:
++  comp.Append(CPPDEFINES = ['CPUMODE_ARM'])
+ 
+ comp.Prepend(CCFLAGS = TARGET_FLAGS)
+ comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,entry'])
+
+Modified: trunk/src/platform/lpc24xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc24xx/platform.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/lpc24xx/platform.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -15,6 +15,8 @@
+ #include &quot;elua_adc.h&quot;
+ #include &quot;platform_conf.h&quot;
+ #include &quot;buf.h&quot;
++#include &quot;elua_int.h&quot;
++#include &quot;arm_constants.h&quot;
+ 
+ // Platform includes
+ #include &quot;LPC23xx.h&quot;                        /* LPC23xx/24xx definitions */
+@@ -25,6 +27,40 @@
+ extern void enable_ints();
+ extern void disable_ints();
+ 
++// *****************************************************************************
++// These interrupt handlers are the link to elua_int.c
++
++static PREG const posedge_status[] = { ( PREG )&amp;IO0_INT_STAT_R, ( PREG )&amp;IO2_INT_STAT_R };
++static PREG const negedge_status[] = { ( PREG )&amp;IO0_INT_STAT_F, ( PREG )&amp;IO2_INT_STAT_F };
++static PREG const intclr_regs[] = { ( PREG )&amp;IO0_INT_CLR, ( PREG )&amp;IO2_INT_CLR };
++
++static void int_handler_eint3()
++{
++  elua_int_id id = ELUA_INT_INVALID_INTERRUPT;
++  pio_code resnum = 0;
++  int pidx, pin;
++  
++  EXTINT |= 1 &lt;&lt; 3; // clear interrupt
++  // Look for interrupt source
++  // In can only be GPIO0/GPIO2, as the EXT interrupts are not (yet) used
++  pidx = ( IO_INT_STAT &amp; 1 ) ? 0 : 1;
++  if( *posedge_status[ pidx ] )
++  {
++    id = INT_GPIO_POSEDGE;
++    pin = intlog2( *posedge_status[ pidx ] );
++  }
++  else
++  {
++    id = INT_GPIO_NEGEDGE;
++    pin = intlog2( *negedge_status[ pidx ] );
++  }
++  resnum = PLATFORM_IO_ENCODE( pidx * 2, pin, PLATFORM_IO_ENC_PIN );   
++  *intclr_regs[ pidx ] = 1 &lt;&lt; pin;
++  
++  // Queue interrupt
++  elua_int_add( id, resnum );
++  VICVectAddr = 0; // ACK interrupt    
++}
+ // ****************************************************************************
+ // Platform initialization
+ 
+@@ -60,6 +96,12 @@
+   SCS |= 1;
+ }
+ 
++// Setup all required interrupt handlers
++static void platform_setup_interrupts()
++{
++  install_irq( EINT3_INT, int_handler_eint3, HIGHEST_PRIORITY - 1 );   
++}
++
+ #define P2C(Period)     (((Period&lt;EMC_PERIOD)?0:(unsigned int)((float)Period/EMC_PERIOD)))
+ #define SDRAM_BASE_ADDR *(volatile unsigned int*)0xA0000000 //DYCS0
+ #define SDRAM_CS0_BASE (0xA0000000)
+@@ -136,6 +178,9 @@
+   // Setup peripherals
+   platform_setup_timers();
+   platform_setup_pwm();
++  
++  // Setup interrupt handlers
++  platform_setup_interrupts();
+ 
+   // Initialize console UART
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+@@ -158,6 +203,8 @@
+ static const u32 pio_fiopin[ NUM_PIO ] = { ( u32 )&amp;FIO0PIN, ( u32 )&amp;FIO1PIN, ( u32 )&amp;FIO2PIN, ( u32 )&amp;FIO3PIN, ( u32 )&amp;FIO4PIN };
+ static const u32 pio_fioset[ NUM_PIO ] = { ( u32 )&amp;FIO0SET, ( u32 )&amp;FIO1SET, ( u32 )&amp;FIO2SET, ( u32 )&amp;FIO3SET, ( u32 )&amp;FIO4SET };
+ static const u32 pio_fioclr[ NUM_PIO ] = { ( u32 )&amp;FIO0CLR, ( u32 )&amp;FIO1CLR, ( u32 )&amp;FIO2CLR, ( u32 )&amp;FIO3CLR, ( u32 )&amp;FIO4CLR };
++static const u32 pio_pinmode[ NUM_PIO * 2 ] = { ( u32 )&amp;PINMODE0, ( u32 )&amp;PINMODE1, ( u32 )&amp;PINMODE2, ( u32 )&amp;PINMODE3, ( u32 )&amp;PINMODE4,
++                                                ( u32 )&amp;PINMODE5, ( u32 )&amp;PINMODE6, ( u32 )&amp;PINMODE7, ( u32 )&amp;PINMODE8, ( u32 )&amp;PINMODE9 };
+ 
+ // The platform I/O functions
+ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
+@@ -167,6 +214,9 @@
+   PREG FIOxPIN = ( PREG )pio_fiopin[ port ];
+   PREG FIOxSET = ( PREG )pio_fioset[ port ];
+   PREG FIOxCLR = ( PREG )pio_fioclr[ port ];
++  PREG PINxMODE0 = ( PREG )pio_pinmode[ port * 2 ];
++  PREG PINxMODE1 = ( PREG )pio_pinmode[ port * 2 + 1 ];
++  u32 mask;
+    
+   switch( op )
+   {
+@@ -205,6 +255,48 @@
+     case PLATFORM_IO_PIN_GET:
+       retval =( *FIOxPIN &amp; pinmask ) ? 1 : 0;
+       break;
++
++    case PLATFORM_IO_PIN_PULLUP:
++      if( port == 0 &amp;&amp; ( pinmask &amp; 0xF8000000 ) )
++        printf( &quot;Unable to set pullups on specified pin(s).\n&quot; );
++      else
++      {
++        for( mask = 1; mask &lt; 16; mask ++ )
++          if( pinmask &amp; ( 1 &lt;&lt; mask ) )
++            *PINxMODE0 = *PINxMODE0 &amp; ~( 3 &lt;&lt; ( mask * 2 ) );
++        for( mask = 16; mask &lt; 32; mask ++ ) 
++          if( pinmask &amp; ( 1 &lt;&lt; mask ) )
++            *PINxMODE1 = *PINxMODE1 &amp; ~( 3 &lt;&lt; ( mask * 2 ) );
++      }
++      break;
++
++    case PLATFORM_IO_PIN_PULLDOWN:
++      if( port == 0 &amp;&amp; ( pinmask &amp; 0xF8000000 ) )
++        printf( &quot;Unable to set pulldowns on specified pin(s).\n&quot; );
++      else
++      {
++         for( mask = 1; mask &lt; 16; mask ++ )
++          if( pinmask &amp; ( 1 &lt;&lt; mask ) )
++            *PINxMODE0 = ( *PINxMODE0 &amp; ~( 3 &lt;&lt; ( mask * 2 ) ) ) | ( 3 &lt;&lt; ( mask * 2 ) );
++        for( mask = 16; mask &lt; 32; mask ++ ) 
++          if( pinmask &amp; ( 1 &lt;&lt; mask ) )
++            *PINxMODE1 = ( *PINxMODE1 &amp; ~( 3 &lt;&lt; ( mask * 2 ) ) ) | ( 3 &lt;&lt; ( mask * 2 ) );
++      }
++      break;
++
++    case PLATFORM_IO_PIN_NOPULL:
++      if( port == 0 &amp;&amp; ( pinmask &amp; 0xF8000000 ) )
++        printf( &quot;Unable to reset pullups/pulldowns on specified pin(s).\n&quot; );
++      else
++      {
++        for( mask = 1; mask &lt; 16; mask ++ )
++          if( pinmask &amp; ( 1 &lt;&lt; mask ) )
++            *PINxMODE0 = ( *PINxMODE0 &amp; ~( 3 &lt;&lt; ( mask * 2 ) ) ) | ( 2 &lt;&lt; ( mask * 2 ) );
++        for( mask = 16; mask &lt; 32; mask ++ ) 
++          if( pinmask &amp; ( 1 &lt;&lt; mask ) )
++            *PINxMODE1 = ( *PINxMODE1 &amp; ~( 3 &lt;&lt; ( mask * 2 ) ) ) | ( 2 &lt;&lt; ( mask * 2 ) );
++      }
++      break;
+       
+     default:
+       retval = 0;
+@@ -402,7 +494,7 @@
+ }
+ 
+ #if VTMR_NUM_TIMERS &gt; 0
+-static void __attribute__((interrupt (&quot;IRQ&quot;))) tmr_int_handler() 
++static void int_handler_tmr()
+ {
+   T3IR = 1; // clear interrupt
+   cmn_virtual_timer_cb();
+@@ -431,8 +523,8 @@
+   T3IR = 0xFF;
+   // Set interrupt handle and eanble timer interrupt (and global interrupts)
+   T3MCR = 0x03; // interrupt on match with MR0 and clear on match
+-  install_irq( TIMER3_INT, tmr_int_handler, HIGHEST_PRIORITY ); 
+-  platform_cpu_enable_interrupts(); 
++  install_irq( TIMER3_INT, int_handler_tmr, HIGHEST_PRIORITY ); 
++  platform_cpu_set_global_interrupts( PLATFORM_CPU_ENABLE );
+   // Start timer
+   T3TCR = TMR_ENABLE;
+ #endif
+@@ -489,16 +581,58 @@
+ // ****************************************************************************
+ // CPU functions
+ 
+-void platform_cpu_enable_interrupts()
++static PREG const posedge_regs[] = { ( PREG )&amp;IO0_INT_EN_R, NULL, ( PREG )&amp;IO2_INT_EN_R };
++static PREG const negedge_regs[] = { ( PREG )&amp;IO0_INT_EN_F, NULL, ( PREG )&amp;IO0_INT_EN_F };
++
++// Helper: return the status of a specific interrupt (enabled/disabled)
++static int platform_cpuh_get_int_status( elua_int_id id, elua_int_resnum resnum )
+ {
+-  enable_ints();  
++  int port, pin;
++  
++  if( id == INT_GPIO_POSEDGE || id == INT_GPIO_NEGEDGE )
++  {
++    port = PLATFORM_IO_GET_PORT( resnum ); 
++    pin = PLATFORM_IO_GET_PIN( resnum ); 
++    if( id == INT_GPIO_POSEDGE )
++      return *posedge_regs[ port ] &amp; ( 1 &lt;&lt; pin );
++    else
++      return *negedge_regs[ port ] &amp; ( 1 &lt;&lt; pin );        
++  } 
++  return 0;
+ }
+ 
+-void platform_cpu_disable_interrupts()
++int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status )
+ {
+-  disable_ints();
++  int crt_status = platform_cpuh_get_int_status( id, resnum );
++  int port, pin;
++  
++  if( id == INT_GPIO_POSEDGE || id == INT_GPIO_NEGEDGE )
++  {
++    port = PLATFORM_IO_GET_PORT( resnum ); 
++    pin = PLATFORM_IO_GET_PIN( resnum ); 
++    if( id == INT_GPIO_POSEDGE )
++    {
++      if( status == PLATFORM_CPU_ENABLE )
++        *posedge_regs[ port ] |= 1 &lt;&lt; pin;
++      else
++        *posedge_regs[ port ] &amp;= ~( 1 &lt;&lt; pin );       
++    }
++    else
++    {
++      if( status == PLATFORM_CPU_ENABLE )
++        *negedge_regs[ port ] |= 1 &lt;&lt; pin;
++      else
++        *negedge_regs[ port ] &amp;= ~( 1 &lt;&lt; pin );         
++    }    
++  }
++  return crt_status;
+ }
+ 
++int platform_cpu_get_interrupt( elua_int_id id, elua_int_resnum resnum )
++{
++  return platform_cpuh_get_int_status( id, resnum );
++}
++
+ // *****************************************************************************
+ // ADC specific functions and variables
+ 
+@@ -534,7 +668,7 @@
+ 
+ 
+ 
+-static void __attribute__((optimize(2))) __attribute__((interrupt (&quot;IRQ&quot;))) adc_int_handler() 
++static void adc_int_handler() 
+ {
+   elua_adc_dev_state *d = adc_get_dev_state( 0 );
+   elua_adc_ch_state *s = d-&gt;ch_state[ d-&gt;seq_ctr ];
+
+Modified: trunk/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc24xx/platform_conf.h	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/lpc24xx/platform_conf.h	2010-09-26 18:54:18 UTC (rev 791)
+@@ -6,6 +6,8 @@
+ #include &quot;auxmods.h&quot;
+ #include &quot;stacks.h&quot;
+ #include &quot;target.h&quot;
++#include &quot;buf.h&quot;
++#include &quot;elua_int.h&quot;
+ 
+ // *****************************************************************************
+ // Define here what components you want for this platform
+@@ -17,6 +19,7 @@
+ #define BUILD_CON_GENERIC
+ #define BUILD_ADC
+ #define BUILD_RPC
++#define BUILD_LUA_INT_HANDLERS
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -82,6 +85,8 @@
+ #define NUM_TIMER             3
+ #endif
+ 
++// Interrupt data
++#define PLATFORM_INT_QUEUE_LOG_SIZE   BUF_SIZE_32
+ // Enable RX buffering on UART
+ // [TODO] make this happen
+ //#define BUF_ENABLE_UART
+@@ -145,6 +150,15 @@
+ #define IO_PINSEL9           ( PINSEL_BASE_ADDR + 0x24 )
+ #define IO_PINSEL10          ( PINSEL_BASE_ADDR + 0x28 )
+ 
++// Interrupt list
++enum
++{
++  // Platform interrupts
++  INT_GPIO_POSEDGE = ELUA_INT_FIRST_ID,
++  INT_GPIO_NEGEDGE,
++  INT_TMR_MATCH
++};
++
+ #define PLATFORM_CPU_CONSTANTS\
+  _C( IO_PINSEL0 ),\
+  _C( IO_PINSEL1 ),\
+@@ -156,7 +170,10 @@
+  _C( IO_PINSEL7 ),\
+  _C( IO_PINSEL8 ),\
+  _C( IO_PINSEL9 ),\
+- _C( IO_PINSEL10 )
++ _C( IO_PINSEL10 ),\
++ _C( INT_GPIO_POSEDGE ),\
++ _C( INT_GPIO_NEGEDGE ),\
++ _C( INT_TMR_MATCH )
+  
+ #endif // #ifndef __PLATFORM_CONF_H__
+ 
+
+Modified: trunk/src/platform/lpc24xx/startup.s
+===================================================================
+--- trunk/src/platform/lpc24xx/startup.s	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/lpc24xx/startup.s	2010-09-26 18:54:18 UTC (rev 791)
+@@ -22,6 +22,8 @@
+ #define RAM_Size         0x10000        // [TODO] make this 96k?
+ #define Top_Stack        (RAM_Base + RAM_Size)
+ 
++#define VectorAddress    0xFFFFFF00
++
+ //------------------------------------------------------------------------------
+ //         Startup routine
+ //------------------------------------------------------------------------------
+@@ -46,10 +48,23 @@
+ reservedVector:
+          b       reservedVector          /* Reserved for future use */
+ irqVector:
+-         ldr     pc, [pc, #-0x0120]      /* Vector from VicVectAddr */
++         b       irqHandler              /* Generic IRQ handler */
+ fiqVector:
+-         b       fiqVector               /* Fast interrupt */
++         b       fiqVector               /* Fast interrupt */                
++         
++//------------------------------------------------------------------------------
++/// IRQ handler
++//------------------------------------------------------------------------------                          
+ 
++irqHandler:
++            sub       lr, lr ,#4
++            stmfd     sp!, {r0-r3, r12, lr}
++            ldr       r0, =VectorAddress
++            ldr       r0, [r0] 
++            mov       lr, pc                          
++            bx        r0               
++            ldmfd     sp!, {r0-r3, r12, pc}^
++            
+ //------------------------------------------------------------------------------
+ /// Initializes the chip and branches to the main() function.
+ //------------------------------------------------------------------------------
+@@ -61,7 +76,6 @@
+ entry:
+ resetHandler:
+ 
+-// [TODO] enable interrupts
+ /* Setup stacks for each mode */
+         ldr     r0, =Top_Stack
+ 
+@@ -108,27 +122,7 @@
+ 
+ /* Loop indefinitely when program is finished */
+ forever:
+-        b       forever
++        b       forever      
+ 
+-# enable interrupts
+-        .global    enable_ints
+-enable_ints:
+-        stmfd   sp!,  {r1}
+-        mrs     r1, CPSR
+-        bic     r1, r1, #I_BIT
+-        msr     CPSR_c, r1
+-        ldmfd   sp!, {r1}
+-        mov     pc, r14
+-
+-# disable interrupts
+-       .global disable_ints
+-disable_ints:
+-       stmfd    sp!, {r1}
+-       mrs      r1, CPSR
+-       orr      r1, r1, #I_BIT
+-       msr      CPSR_c, r1
+-       ldmfd    sp!, {r1}
+-       mov      pc, r14
+-
+       .end
+ 
+
+Modified: trunk/src/platform/lpc288x/conf.py
+===================================================================
+--- trunk/src/platform/lpc288x/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/lpc288x/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -18,6 +18,7 @@
+   
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++specific_files += &quot; src/platform/arm_utils.s src/platform/arm_cortex_interrupts.c&quot;
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+ comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
+@@ -32,7 +33,10 @@
+ TARGET_FLAGS = ['-mcpu=arm7tdmi']
+ if cpumode == 'thumb':
+   TARGET_FLAGS += ['-mthumb']
+-
++  comp.Append(CPPDEFINES = ['CPUMODE_THUMB'])
++else:
++  comp.Append(CPPDEFINES = ['CPUMODE_ARM'])
++  
+ comp.Prepend(CCFLAGS = TARGET_FLAGS)
+ comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,HardReset'])
+ comp.Prepend(ASFLAGS = [TARGET_FLAGS,'-D__ASSEMBLY__'])
+
+Modified: trunk/src/platform/sim/conf.py
+===================================================================
+--- trunk/src/platform/sim/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/sim/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -5,7 +5,7 @@
+   
+ # override default optimize settings (-Os is broken right now)
+ comp.Replace(OPTFLAGS = ['-O0'])
+-comp.AppendUnique(CCFLAGS = '-g'])
++comp.AppendUnique(CCFLAGS = ['-g'])
+ 
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/stm32/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -14,9 +14,11 @@
+   
+ # Prepend with path
+ specific_files = fwlib_files + &quot; &quot; + &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++specific_files += &quot; src/platform/cortex_utils.s src/platform/arm_cortex_interrupts.c&quot;
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+ comp.Append(CPPDEFINES = [&quot;FOR&quot; + cnorm( comp[ 'cpu' ] ),&quot;FOR&quot; + cnorm( comp[ 'board' ] ),'gcc'])
++comp.Append(CPPDEFINES = ['CORTEX_M3'])
+ 
+ # Standard GCC Flags
+ comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/stm32/platform.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -942,21 +942,9 @@
+   return res;
+ }
+ 
+-
+-
+ // *****************************************************************************
+ // CPU specific functions
+  
+-void platform_cpu_enable_interrupts()
+-{
+-  void NVIC_RESETPRIMASK(void); // enable interrupts
+-}
+-
+-void platform_cpu_disable_interrupts()
+-{
+-  void NVIC_SETPRIMASK(void); // disable interrupts
+-}
+-
+ u32 platform_s_cpu_get_frequency()
+ {
+   return HCLK;
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/stm32/platform_conf.h	2010-09-26 18:54:18 UTC (rev 791)
+@@ -14,7 +14,7 @@
+ #define BUILD_XMODEM
+ #define BUILD_SHELL
+ #define BUILD_ROMFS
+-#define BUILD_MMCFS
++//#define BUILD_MMCFS
+ #define BUILD_TERM
+ //#define BUILD_UIP
+ //#define BUILD_DHCPC
+
+Modified: trunk/src/platform/str7/conf.py
+===================================================================
+--- trunk/src/platform/str7/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/str7/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -11,6 +11,7 @@
+     
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++specific_files += &quot; src/platform/arm_utils.s src/platform/arm_cortex_interrupts.c&quot;
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+ comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
+@@ -25,6 +26,9 @@
+ TARGET_FLAGS = ['-mcpu=arm7tdmi']
+ if cpumode == 'thumb':
+   TARGET_FLAGS += ['-mthumb']
++  comp.Append(CPPDEFINES = ['CPUMODE_THUMB'])
++else:
++  comp.Append(CPPDEFINES = ['CPUMODE_ARM'])
+ 
+ comp.Prepend(CCFLAGS = TARGET_FLAGS)
+ comp.Prepend(LINKFLAGS = [TARGET_FLAGS,'-Wl,-e,entry'])
+
+Modified: trunk/src/platform/str7/platform.c
+===================================================================
+--- trunk/src/platform/str7/platform.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/str7/platform.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -56,6 +56,9 @@
+   platform_timer_op( 0, PLATFORM_TIMER_OP_SET_CLOCK, 39000 ); 
+   
+   cmn_platform_init();
++
++  // If interrupts are needed, uncomment the line below
++  // EIC-&gt;ICR |= 0x03;
+       
+   return PLATFORM_OK;
+ } 
+@@ -342,15 +345,3 @@
+   return res;
+ }
+ 
+-// ****************************************************************************
+-// CPU functions
+-
+-void platform_cpu_enable_interrupts()
+-{
+-  EIC-&gt;ICR |= 0x03;
+-}
+-
+-void platform_cpu_disable_interrupts()
+-{
+-  EIC-&gt;ICR &amp;= ~0x03;
+-}
+
+Modified: trunk/src/platform/str9/conf.py
+===================================================================
+--- trunk/src/platform/str9/conf.py	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/str9/conf.py	2010-09-26 18:54:18 UTC (rev 791)
+@@ -13,6 +13,7 @@
+   
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++specific_files += &quot; src/platform/arm_utils.s src/platform/arm_cortex_interrupts.c&quot;
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
+ comp.Append(CPPDEFINES = [&quot;FOR&quot; + comp[ 'cpu' ],'gcc'])
+@@ -27,6 +28,9 @@
+ TARGET_FLAGS = ['-mcpu=arm966e-s']
+ if cpumode == 'thumb':
+   TARGET_FLAGS += ['-mthumb']
++  comp.Append(CPPDEFINES = ['CPUMODE_THUMB'])
++else:
++  comp.Append(CPPDEFINES = ['CPUMODE_ARM'])
+ 
+ # toolchain 'arm-gcc' requires '-mfpu=fpa' for some reason
+ if comp['toolchain'] == 'arm-gcc':
+
+Modified: trunk/src/platform/str9/platform.c
+===================================================================
+--- trunk/src/platform/str9/platform.c	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/str9/platform.c	2010-09-26 18:54:18 UTC (rev 791)
+@@ -413,22 +413,6 @@
+ }
+ 
+ // ****************************************************************************
+-// CPU functions
+-
+-extern void enable_ints();
+-extern void disable_ints();
+-
+-void platform_cpu_enable_interrupts()
+-{
+-  enable_ints();
+-}
+-
+-void platform_cpu_disable_interrupts()
+-{
+-  disable_ints();
+-}
+-
+-// ****************************************************************************
+ // I2C support
+ static const GPIO_TypeDef* i2c_port_data[] = { GPIO1, GPIO2 };
+ static const I2C_TypeDef* i2cs[] = { I2C0, I2C1 };
+
+Modified: trunk/src/platform/str9/startup912.s
+===================================================================
+--- trunk/src/platform/str9/startup912.s	2010-09-21 21:59:10 UTC (rev 790)
++++ trunk/src/platform/str9/startup912.s	2010-09-26 18:54:18 UTC (rev 791)
+@@ -291,26 +291,6 @@
+ forever:
+        B      forever
+ 
+-# enable interrupts
+-     .global    enable_ints
+-enable_ints:
+-      stmfd   sp!,  {r1}
+-      mrs     r1, CPSR
+-      bic     r1, r1, #I_BIT
+-      msr     CPSR_c, r1
+-      ldmfd   sp!, {r1}
+-      mov     pc, r14
+-
+-# disable interrupts
+-     .global disable_ints
+-disable_ints:
+-      stmfd    sp!, {r1}
+-      mrs      r1, CPSR
+-      orr      r1, r1, #I_BIT
+-      msr      CPSR_c, r1
+-      ldmfd    sp!, {r1}
+-      mov      pc, r14
+-
+ #*************************************************************************
+ # END
+ #*************************************************************************   
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000743.html">[Elua-svn] r790 - trunk/src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000745.html">[Elua-svn] r792 - in trunk: doc doc/en src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#744">[ date ]</a>
+              <a href="thread.html#744">[ thread ]</a>
+              <a href="subject.html#744">[ subject ]</a>
+              <a href="author.html#744">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

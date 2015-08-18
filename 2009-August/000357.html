@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r401 - in trunk/src: modules platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r401%20-%20in%20trunk/src%3A%20modules%20platform/lm3s&In-Reply-To=%3C200908200231.n7K2VYZh021849%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000356.html">
+   <LINK REL="Next"  HREF="000358.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r401 - in trunk/src: modules platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r401%20-%20in%20trunk/src%3A%20modules%20platform/lm3s&In-Reply-To=%3C200908200231.n7K2VYZh021849%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r401 - in trunk/src: modules platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Aug 20 04:31:34 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000356.html">[Elua-svn] r400 - in trunk: . romfs src/lua src/modules	src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000358.html">[Elua-svn] r402 - tags/pre0.6/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#357">[ date ]</a>
+              <a href="thread.html#357">[ thread ]</a>
+              <a href="subject.html#357">[ subject ]</a>
+              <a href="author.html#357">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-08-20 04:31:32 +0200 (Thu, 20 Aug 2009)
+New Revision: 401
+
+Modified:
+   trunk/src/modules/luarpc.c
+   trunk/src/platform/lm3s/platform_conf.h
+Log:
+Minor style adjustments in luarpc.
+Fix for compiles on LM3S where disp module is not included.  As plat specific
+mechanism grows, should handle partial or no plat specific modules being
+included.
+Fix for memory quantities on 9Bxx vs other lm3s devices.
+
+Modified: trunk/src/modules/luarpc.c
+===================================================================
+--- trunk/src/modules/luarpc.c	2009-08-19 19:18:45 UTC (rev 400)
++++ trunk/src/modules/luarpc.c	2009-08-20 02:31:32 UTC (rev 401)
+@@ -159,11 +159,11 @@
+ static void swap_bytes( char *number, size_t numbersize )
+ {
+   int i;
+-  for (i=0; i&lt;numbersize/2; i++)
++  for ( i = 0 ; i &lt; numbersize / 2 ; i ++ )
+   {
+-    char temp = number[i];
+-    number[i] = number[numbersize-1-i];
+-    number[numbersize-1-i] = temp;
++    char temp = number[ i ];
++    number[ i ] = number[ numbersize - 1 - i ];
++    number[ numbersize - 1 - i ] = temp;
+   }
+ }
+ 
+@@ -180,7 +180,7 @@
+   TRANSPORT_VERIFY_OPEN;
+   transport_read_buffer ( tpt, ub.b, 4 );
+   if( tpt-&gt;net_little != tpt-&gt;loc_little )
+-    swap_bytes( (char *)ub.b, 4 );
++    swap_bytes( ( char * )ub.b, 4 );
+   return ub.i;
+ }
+ 
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2009-08-19 19:18:45 UTC (rev 400)
++++ trunk/src/platform/lm3s/platform_conf.h	2009-08-20 02:31:32 UTC (rev 401)
+@@ -37,7 +37,10 @@
+ // Auxiliary libraries that will be compiled for this platform
+ 
+ // The name of the platform specific libs table
++// FIXME: should handle partial or no inclusion of platform specific modules per conf.py
++#ifdef ENABLE_DISP
+ #define PS_LIB_TABLE_NAME   &quot;lm3s&quot;
++#endif
+ 
+ #ifdef FORLM3S6918
+ #define PWMLINE
+@@ -51,6 +54,12 @@
+ #define NETLINE
+ #endif
+ 
++#ifdef PS_LIB_TABLE_NAME
++#define PLATLINE _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
++#else
++#define PLATLINE
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
+@@ -67,7 +76,7 @@
+   _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
+   _ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
+-  _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
++  PLATLINE
+ 
+ // *****************************************************************************
+ // Configuration data
+@@ -157,9 +166,9 @@
+ // (start address and end address)
+ #define MEM_START_ADDRESS     { ( void* )end }
+ #ifdef FORLM3S9B92
++  #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + 0x18000 - STACK_SIZE_TOTAL - 1 ) }
++#else
+   #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + 0x10000 - STACK_SIZE_TOTAL - 1 ) }
+-#else
+-  #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + 0x18000 - STACK_SIZE_TOTAL - 1 ) }
+ #endif
+ 
+ // *****************************************************************************
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000356.html">[Elua-svn] r400 - in trunk: . romfs src/lua src/modules	src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000358.html">[Elua-svn] r402 - tags/pre0.6/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#357">[ date ]</a>
+              <a href="thread.html#357">[ thread ]</a>
+              <a href="subject.html#357">[ subject ]</a>
+              <a href="author.html#357">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

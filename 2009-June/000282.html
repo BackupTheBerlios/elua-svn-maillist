@@ -1,0 +1,247 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r326 - in tags/pre0.6: doc/luadoc romfs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r326%20-%20in%20tags/pre0.6%3A%20doc/luadoc%20romfs&In-Reply-To=%3C200906290027.n5T0Rm6q030677%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000281.html">
+   <LINK REL="Next"  HREF="000283.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r326 - in tags/pre0.6: doc/luadoc romfs</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r326%20-%20in%20tags/pre0.6%3A%20doc/luadoc%20romfs&In-Reply-To=%3C200906290027.n5T0Rm6q030677%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r326 - in tags/pre0.6: doc/luadoc romfs">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Jun 29 02:27:48 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000281.html">[Elua-svn] r325 - tags/pre0.6/doc/luadoc
+</A></li>
+        <LI>Next message: <A HREF="000283.html">[Elua-svn] r327 - tags/pre0.6/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#282">[ date ]</a>
+              <a href="thread.html#282">[ thread ]</a>
+              <a href="subject.html#282">[ subject ]</a>
+              <a href="author.html#282">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-29 02:27:45 +0200 (Mon, 29 Jun 2009)
+New Revision: 326
+
+Modified:
+   tags/pre0.6/doc/luadoc/refman_gen_adc.lua
+   tags/pre0.6/romfs/adcpoll.lua
+   tags/pre0.6/romfs/adcscope.lua
+Log:
+Touchups for documentation &amp; comments for adc* scripts from romfs.
+
+Modified: tags/pre0.6/doc/luadoc/refman_gen_adc.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/refman_gen_adc.lua	2009-06-28 18:44:37 UTC (rev 325)
++++ tags/pre0.6/doc/luadoc/refman_gen_adc.lua	2009-06-29 00:27:45 UTC (rev 326)
+@@ -7,7 +7,7 @@
+   title = &quot;eLua reference manual - ADC&quot;,
+ 
+   -- Menu name
+-  menu_name = &quot;ADC&quot;,
++  menu_name = &quot;adc&quot;,
+ 
+   -- Overview
+   overview = [[This module contains functions that access analog to digital converter (ADC) peripherals. ]],
+@@ -38,7 +38,7 @@
+         &quot;$id$ - ADC channel ID.&quot;,
+         &quot;$count$ - optional parameter to indicate number of samples to return. If not included, all available samples are returned.&quot;
+       },
+-      ret = &quot;$samples$ - table containing integer conversion values&quot;
++      ret = &quot;$samples$ - table containing integer conversion values. If not enough samples are available, remaining indices will be nil.&quot;
+     },
+     { sig = &quot;#adc.insertsamples#( id, table, idx, count )&quot;,
+       desc = &quot;Write multiple samples to a table.&quot;,
+@@ -47,7 +47,7 @@
+         &quot;$id$ - ADC channel ID.&quot;,
+         &quot;$table$ - table to write samples to. Values at $table$[$idx$] to $table$[$idx$ + $count$ -1] will be overwritten with samples.&quot;,
+         &quot;$idx$ - first index to use for writing samples&quot;,
+-        &quot;$count$ - number of samples to return. If not enough samples are available (after blocking, if enabled) nil is written to indexes that would have received samples.&quot;
++        &quot;$count$ - number of samples to return. If not enough samples are available (after blocking, if enabled) remaining values will be nil.&quot;
+       }
+     },
+     { sig = &quot;maxval = #adc.maxval#( id )&quot;,
+
+Modified: tags/pre0.6/romfs/adcpoll.lua
+===================================================================
+--- tags/pre0.6/romfs/adcpoll.lua	2009-06-28 18:44:37 UTC (rev 325)
++++ tags/pre0.6/romfs/adcpoll.lua	2009-06-29 00:27:45 UTC (rev 326)
+@@ -1,3 +1,4 @@
++-- Acquire ADC samples using a timer with polling for available samples
+ 
+ if pd.board() == &quot;ET-STM32&quot; then
+   timer = 2
+@@ -9,16 +10,17 @@
+   adcsmoothing = {4, 64, 32, 16}
+ end
+ 
++-- Setup ADC and start sampling
+ for i, v in ipairs(adcchannels) do
+-  adc.setblocking(v,0)
+-  adc.setsmoothing(v,adcsmoothing[i])
+-  adc.setclock(v, 4 ,timer)
++  adc.setblocking(v,0) -- no blocking on any channels
++  adc.setsmoothing(v,adcsmoothing[i]) -- set smoothing from adcsmoothing table
++  adc.setclock(v, 4 ,timer) -- get 4 samples per second, per channel
+ end
+ 
+-adc.sample(adcchannels,128)
++adc.sample(adcchannels,128) -- start sampling on all channels
+ 
++-- Draw static text on terminal
+ term.clrscr()
+-
+ term.gotoxy(1,1)
+ term.putstr(&quot;ADC Status:&quot;)
+ term.gotoxy(1,3)
+@@ -26,23 +28,23 @@
+ term.gotoxy(1,#adcchannels+5)
+ term.putstr(&quot;Press ESC to exit.&quot;)
+ 
++-- use some locals for speed
+ local sample = adc.sample
+ local getsample = adc.getsample
+ local samplesready = adc.samplesready
+-local i, v
+-local tsample
++local i, v, tsample
+ 
+ while true do
+   for i, v in ipairs(adcchannels) do
+-    tsample = getsample(v)
+-    if not (tsample == nil) then
++    tsample = getsample(v) -- try to get a sample
++    if not (tsample == nil) then -- if we have a new sample, then update display
+     	term.gotoxy(1,i+3)
+     	term.putstr(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i], tsample))
+     end
+-    if adc.isdone(v) == 1 then adc.sample(v,128) end
++    if adc.isdone(v) == 1 then adc.sample(v,128) end -- if samples have run out, start collection again
+   end
+   key = term.getch( term.NOWAIT )
+-  if key == term.KC_ESC then break end
++  if key == term.KC_ESC then break end -- exit if user hits Escape
+ end
+ 
+ term.clrscr()
+
+Modified: tags/pre0.6/romfs/adcscope.lua
+===================================================================
+--- tags/pre0.6/romfs/adcscope.lua	2009-06-28 18:44:37 UTC (rev 325)
++++ tags/pre0.6/romfs/adcscope.lua	2009-06-29 00:27:45 UTC (rev 326)
+@@ -1,3 +1,6 @@
++-- Acquire ADC samples as quickly as possible, without the use of a timer
++--  provides statistics on time and memory usage while running
++
+ if pd.board() == &quot;ET-STM32&quot; then
+   adcchannels = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}
+   adcsmoothing = {4, 4, 4, 4, 16, 16, 16, 16, 32, 32, 32, 32, 64, 128, 64, 128}
+@@ -8,14 +11,15 @@
+   numiter = 200
+ end
+ 
++-- Setup ADC
+ for i, v in ipairs(adcchannels) do
+-  adc.setblocking(v,1)
+-  adc.setclock(v,0)
+-  adc.setsmoothing(v,adcsmoothing[i])
++  adc.setblocking(v,1) -- block, waiting for samples when an adc.get* function is used
++  adc.setclock(v,0) -- set clock to zero: no timer, acquire samples as fast as possible
++  adc.setsmoothing(v,adcsmoothing[i]) -- apply moving average filter using lengths from adcsmoothing
+ end
+ 
++-- Draw static text on terminal
+ term.clrscr()
+-
+ term.gotoxy(1,1)
+ term.putstr(&quot;ADC Status:&quot;)
+ term.gotoxy(1,3)
+@@ -23,36 +27,39 @@
+ term.gotoxy(1,#adcchannels+7)
+ term.putstr(&quot;Press ESC to exit.&quot;)
+ 
++-- use some locals for speed
+ local adcvals = {}
+-local key, stime, etime, dtime
++local key, stime, etime, dtime, i, v
+ local sample = adc.sample
+ local insertsamples = adc.insertsamples
+ local tread = tmr.read
+ local tstart = tmr.start
+-local i, v
+ 
+ while true do
+-  stime = tstart(0)
+-  for j=1,numiter do 
++  stime = tstart(0) -- start timer
++  for j=1,numiter do -- acuire numiter samples
+     sample(adcchannels, 1)
+     for i, v in ipairs(adcchannels) do
+-      insertsamples(v,adcvals,i,1)
++      insertsamples(v,adcvals,i,1) -- for each iteration j, get samples and put them in adcvals
+     end
+   end
+-  etime = tread(0)
+-  dtime = tmr.diff(0,etime,stime)/numiter
++  etime = tread(0) -- get cycle end time
++  dtime = tmr.diff(0,etime,stime)/numiter -- compute average acquisition time per cycle
+   
++  -- draw last acquired samples on the console
+   term.gotoxy(1,4)
+   for i, v in ipairs(adcchannels) do
+     term.putstr(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
+     term.gotoxy(1,i+4)
+   end
++  
++  -- draw acquisition statistics
+   term.putstr(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
+ 	term.gotoxy(1,#adcchannels+5)
+ 	term.putstr(string.format(&quot;Mem:  %03.2f (kB)\n&quot;,collectgarbage(&quot;count&quot;)))
+ 
+   key = term.getch( term.NOWAIT )
+-  if key == term.KC_ESC then break end
++  if key == term.KC_ESC then break end -- exit if user hits Escape
+ end
+ 
+ term.clrscr()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000281.html">[Elua-svn] r325 - tags/pre0.6/doc/luadoc
+</A></li>
+	<LI>Next message: <A HREF="000283.html">[Elua-svn] r327 - tags/pre0.6/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#282">[ date ]</a>
+              <a href="thread.html#282">[ thread ]</a>
+              <a href="subject.html#282">[ subject ]</a>
+              <a href="author.html#282">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

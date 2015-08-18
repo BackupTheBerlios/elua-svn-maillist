@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r353 - trunk/src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r353%20-%20trunk/src/modules&In-Reply-To=%3C200907041710.n64HAhbK002632%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000317.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r353 - trunk/src/modules</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r353%20-%20trunk/src/modules&In-Reply-To=%3C200907041710.n64HAhbK002632%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r353 - trunk/src/modules">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Jul  4 19:10:43 CEST 2009</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000317.html">[Elua-svn] r354 - in trunk/src/platform/stm32: . FWLib/library	FWLib/library/inc FWLib/library/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#309">[ date ]</a>
+              <a href="thread.html#309">[ thread ]</a>
+              <a href="subject.html#309">[ subject ]</a>
+              <a href="author.html#309">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-07-04 19:10:41 +0200 (Sat, 04 Jul 2009)
+New Revision: 353
+
+Added:
+   trunk/src/modules/can.c
+Log:
+Forgot to commit this.
+
+Added: trunk/src/modules/can.c
+===================================================================
+--- trunk/src/modules/can.c	2009-06-30 02:58:52 UTC (rev 352)
++++ trunk/src/modules/can.c	2009-07-04 17:10:41 UTC (rev 353)
+@@ -0,0 +1,84 @@
++// Module for interfacing Lua code with a Controller Area Network (CAN)
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;auxmods.h&quot;
++#include &quot;lrotable.h&quot;
++
++// Lua: setup( id, clock )
++static int can_setup( lua_State* L )
++{
++  unsigned id;
++  u32 clock, res;
++  
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( can, id );
++  clock = luaL_checkinteger( L, 2 );
++  res = platform_can_setup( id, clock );
++  lua_pushinteger( L, res );
++  return 1;
++}
++
++// Lua: send( id, canid, canidtype, message )
++static int can_send( lua_State* L )
++{
++  size_t len;
++  int id, canid, idtype;
++  const char *data;
++  
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( can, id );
++  canid = luaL_checkinteger( L, 2 );
++  idtype = luaL_checkinteger( L, 3 );
++  data = luaL_checklstring (L, 4, &amp;len);
++  if ( len &gt; PLATFORM_CAN_MAXLEN )
++    return luaL_error( L, &quot;message exceeds max length&quot; );
++  
++  platform_can_send( id, canid, idtype, len, ( const u8 * )data );
++  
++  return 0;
++}
++
++// Lua: canid, canidtype, message = recv( id )
++static int can_recv( lua_State* L )
++{
++  u8 len;
++  int id;
++  u32 canid;
++  u8  idtype, data[ 8 ];
++  
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( can, id );
++  
++  platform_can_recv( id, &amp;canid, &amp;idtype, &amp;len, data );
++  lua_pushinteger( L, canid );
++  lua_pushinteger( L, idtype );
++  lua_pushlstring (L, ( const char * )data, ( size_t )len);
++  
++  return 3;
++}
++
++
++// Module function map
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++const LUA_REG_TYPE can_map[] = 
++{
++  { LSTRKEY( &quot;setup&quot; ),  LFUNCVAL( can_setup ) },
++  { LSTRKEY( &quot;send&quot; ),  LFUNCVAL( can_send ) },  
++  { LSTRKEY( &quot;recv&quot; ),  LFUNCVAL( can_recv ) },
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_can( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_register( L, AUXLIB_CAN, can_map );
++  
++  return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0  
++}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000317.html">[Elua-svn] r354 - in trunk/src/platform/stm32: . FWLib/library	FWLib/library/inc FWLib/library/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#309">[ date ]</a>
+              <a href="thread.html#309">[ thread ]</a>
+              <a href="subject.html#309">[ subject ]</a>
+              <a href="author.html#309">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

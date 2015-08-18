@@ -1,0 +1,200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r61 - in trunk: inc src/platform/at91sam7x	src/platform/lm3s src/platform/lpc288x
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r61%20-%20in%20trunk%3A%20inc%20src/platform/at91sam7x%0A%09src/platform/lm3s%20src/platform/lpc288x&In-Reply-To=%3C200808192021.m7JKLAFs027468%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000015.html">
+   <LINK REL="Next"  HREF="000017.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r61 - in trunk: inc src/platform/at91sam7x	src/platform/lm3s src/platform/lpc288x</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r61%20-%20in%20trunk%3A%20inc%20src/platform/at91sam7x%0A%09src/platform/lm3s%20src/platform/lpc288x&In-Reply-To=%3C200808192021.m7JKLAFs027468%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r61 - in trunk: inc src/platform/at91sam7x	src/platform/lm3s src/platform/lpc288x">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Aug 19 22:21:10 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000015.html">[Elua-svn] r60 - trunk/src/platform/at91sam7x
+</A></li>
+        <LI>Next message: <A HREF="000017.html">[Elua-svn] r62 - trunk/src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#16">[ date ]</a>
+              <a href="thread.html#16">[ thread ]</a>
+              <a href="subject.html#16">[ subject ]</a>
+              <a href="author.html#16">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-08-19 22:21:10 +0200 (Tue, 19 Aug 2008)
+New Revision: 61
+
+Modified:
+   trunk/inc/utils.h
+   trunk/src/platform/at91sam7x/platform.c
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lpc288x/platform.c
+   trunk/src/platform/lpc288x/uart.c
+Log:
+fixed a few unsigned-&gt;signed overflows
+
+Modified: trunk/inc/utils.h
+===================================================================
+--- trunk/inc/utils.h	2008-08-19 19:23:47 UTC (rev 60)
++++ trunk/inc/utils.h	2008-08-19 20:21:10 UTC (rev 61)
+@@ -1,8 +1,8 @@
+-// Different utilities
++// General purpose function/macros
+ 
+ #ifndef __UTILS_H__
+ #define __UTILS_H__
+ 
+-int utils_get_uart_key();
++#define ABSDIFF( x, y ) ( ( x ) &gt;= ( y ) ? ( x ) - ( y ) : ( y ) - ( x ) )
+ 
+ #endif
+
+Modified: trunk/src/platform/at91sam7x/platform.c
+===================================================================
+--- trunk/src/platform/at91sam7x/platform.c	2008-08-19 19:23:47 UTC (rev 60)
++++ trunk/src/platform/at91sam7x/platform.c	2008-08-19 20:21:10 UTC (rev 61)
+@@ -16,9 +16,8 @@
+ #include &lt;string.h&gt;
+ #include &lt;ctype.h&gt;
+ #include &lt;stdio.h&gt;
++#include &quot;utils.h&quot;
+ 
+-#define PABS( x ) ( ( x ) &gt;= 0 ? ( x ) : -( x ) )
+-
+ // *****************************************************************************
+ // std functions
+ 
+@@ -287,7 +286,7 @@
+   unsigned i, mini = 0;
+   
+   for( i = 0; i &lt; 5; i ++ )
+-    if( PABS( clock - BOARD_MCK / clkdivs[ i ] ) &lt; PABS( clock - BOARD_MCK / clkdivs[ mini ] ) )
++    if( ABSDIFF( clock, BOARD_MCK / clkdivs[ i ] ) &lt; ABSDIFF( clock, BOARD_MCK / clkdivs[ mini ] ) )
+       mini = i;
+   TC_Configure( ( AT91S_TC* )timer_base[ id ], mini | AT91C_TC_WAVE );  
+   return BOARD_MCK / clkdivs[ mini ];
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2008-08-19 19:23:47 UTC (rev 60)
++++ trunk/src/platform/lm3s/platform.c	2008-08-19 20:21:10 UTC (rev 61)
+@@ -23,6 +23,7 @@
+ #include &quot;ssi.h&quot;
+ #include &quot;timer.h&quot;
+ #include &quot;pwm.h&quot;
++#include &quot;utils.h&quot;
+ 
+ // *****************************************************************************
+ // std function
+@@ -439,7 +440,6 @@
+ // PWMs
+ 
+ #define PLATFORM_NUM_PWMS               6
+-#define PABS( x )                       ( ( x ) &lt; 0 ? -( x ) : ( x ) )
+ 
+ // SYSCTL div data and actual div factors
+ const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
+@@ -479,7 +479,7 @@
+   
+   sysclk = SysCtlClockGet();
+   for( i = min_i = 0; i &lt; sizeof( pwm_div_data ) / sizeof( u8 ); i ++ )
+-    if( PABS( clock - sysclk / pwm_div_data[ i ] ) &lt; PABS( clock - sysclk / pwm_div_data[ min_i ] ) )
++    if( ABSDIFF( clock, sysclk / pwm_div_data[ i ] ) &lt; ABSDIFF( clock, sysclk / pwm_div_data[ min_i ] ) )
+       min_i = i;
+   SysCtlPWMClockSet( pwm_div_ctl[ min_i ] );
+   return sysclk / pwm_div_data[ min_i ];
+
+Modified: trunk/src/platform/lpc288x/platform.c
+===================================================================
+--- trunk/src/platform/lpc288x/platform.c	2008-08-19 19:23:47 UTC (rev 60)
++++ trunk/src/platform/lpc288x/platform.c	2008-08-19 20:21:10 UTC (rev 61)
+@@ -13,6 +13,7 @@
+ #include &quot;lpc288x.h&quot;
+ #include &quot;target.h&quot;
+ #include &quot;uart.h&quot;
++#include &quot;utils.h&quot;
+ 
+ // *****************************************************************************
+ // std functions
+@@ -189,7 +190,6 @@
+ static const vu_ptr tmr_ctrl[] = { &amp;T0CTRL, &amp;T1CTRL };
+ static const vu_ptr tmr_clr[] = { &amp;T0CLR, &amp;T1CLR };
+ static const unsigned tmr_prescale[] = { 1, 16, 256, 1 };
+-#define TABS( x ) ( ( x ) &lt; 0 ? -( x ) : ( x ) )
+ 
+ // Helper: get timer clock
+ static u32 platform_timer_get_clock( unsigned id )
+@@ -203,7 +203,7 @@
+   unsigned i, mini = 0;
+   
+   for( i = 0; i &lt; 3; i ++ )
+-    if( TABS( clock - MAIN_CLOCK / tmr_prescale[ i ] ) &lt; TABS( clock - MAIN_CLOCK / tmr_prescale[ mini ] ) )
++    if( ABSDIFF( clock, MAIN_CLOCK / tmr_prescale[ i ] ) &lt; ABSDIFF( clock, MAIN_CLOCK / tmr_prescale[ mini ] ) )
+       mini = i;
+   *tmr_ctrl[ id ] = ( *tmr_ctrl[ id ] &amp; ~0xB ) | ( mini &lt;&lt; 2 );
+   return MAIN_CLOCK / tmr_prescale[ mini ];
+
+Modified: trunk/src/platform/lpc288x/uart.c
+===================================================================
+--- trunk/src/platform/lpc288x/uart.c	2008-08-19 19:23:47 UTC (rev 60)
++++ trunk/src/platform/lpc288x/uart.c	2008-08-19 20:21:10 UTC (rev 61)
+@@ -7,9 +7,8 @@
+ #include &lt;reent.h&gt;
+ #include &lt;errno.h&gt;
+ #include &lt;string.h&gt;
++#include &quot;utils.h&quot;
+ 
+-#define LABS( x ) ( ( x ) &lt; 0 ? -( x ) : ( x ) )
+-
+ // Structure with UART baud/parameters 
+ // Computed used Philip's &quot;baud rate calculator&quot; XLS file
+ 
+@@ -68,7 +67,7 @@
+   
+   // Find correct baud
+   for( i = minpos = 0; i &lt; sizeof( uart_baudinfo ) / sizeof( UART_BAUDDATA ); i ++ )
+-    if( LABS( baud - uart_baudinfo[ i ].baud ) &lt; LABS( baud - uart_baudinfo[ minpos ].baud ) )
++    if( ABSDIFF( baud, uart_baudinfo[ i ].baud ) &lt; ABSDIFF( baud, uart_baudinfo[ minpos ].baud ) )
+       minpos = i;
+   pdata = uart_baudinfo + minpos;
+       
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000015.html">[Elua-svn] r60 - trunk/src/platform/at91sam7x
+</A></li>
+	<LI>Next message: <A HREF="000017.html">[Elua-svn] r62 - trunk/src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#16">[ date ]</a>
+              <a href="thread.html#16">[ thread ]</a>
+              <a href="subject.html#16">[ subject ]</a>
+              <a href="author.html#16">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

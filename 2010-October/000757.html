@@ -1,0 +1,1181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r804 - trunk/src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r804%20-%20trunk/src/platform/str9&In-Reply-To=%3C20101013221910.1A5DF481153%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000756.html">
+   <LINK REL="Next"  HREF="000758.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r804 - trunk/src/platform/str9</H1>
+    <B>jbsnyder at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r804%20-%20trunk/src/platform/str9&In-Reply-To=%3C20101013221910.1A5DF481153%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r804 - trunk/src/platform/str9">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Oct 14 00:19:10 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000756.html">[Elua-svn] r803 - trunk/src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000758.html">[Elua-svn] r805 - trunk/src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#757">[ date ]</a>
+              <a href="thread.html#757">[ thread ]</a>
+              <a href="subject.html#757">[ subject ]</a>
+              <a href="author.html#757">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-10-14 00:19:09 +0200 (Thu, 14 Oct 2010)
+New Revision: 804
+
+Added:
+   trunk/src/platform/str9/91x_adc.c
+   trunk/src/platform/str9/91x_adc.h
+Modified:
+   trunk/src/platform/str9/91x_conf.h
+   trunk/src/platform/str9/conf.py
+   trunk/src/platform/str9/interrupt.c
+   trunk/src/platform/str9/platform.c
+   trunk/src/platform/str9/platform_conf.h
+Log:
+ADC implemented, not fully tested.
+
+Added: trunk/src/platform/str9/91x_adc.c
+===================================================================
+--- trunk/src/platform/str9/91x_adc.c	                        (rev 0)
++++ trunk/src/platform/str9/91x_adc.c	2010-10-13 22:19:09 UTC (rev 804)
+@@ -0,0 +1,590 @@
++/******************** (C) COPYRIGHT 2006 STMicroelectronics ********************
++* File Name          : 91x_adc.c
++* Author             : MCD Application Team
++* Date First Issued  : 05/18/2006 : Version 1.0
++* Description        : This file provides all the ADC software functions.
++********************************************************************************
++* History:
++* 05/24/2006 : Version 1.1
++* 05/18/2006 : Version 1.0
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS WITH
++* CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME. AS
++* A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT, INDIRECT
++* OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE CONTENT
++* OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING INFORMATION
++* CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++
++/* Standard include ----------------------------------------------------------*/
++#include &quot;91x_adc.h&quot;
++#include &quot;91x_scu.h&quot;
++/* Include of other module interface headers ---------------------------------*/
++/* Local includes ------------------------------------------------------------*/
++/* Private typedef -----------------------------------------------------------*/
++/* Private define ------------------------------------------------------------*/
++
++/* ADC mask */
++#define   ADC_FLAG_MASK           0x001F     /* ADC Flag Mask           */
++#define   ADC_RESULT_MASK         0x03FF     /* ADC Result Mask         */
++#define   ADC_SCAN_MODE_MASK      0x0020     /* ADC Sacn Mode Mask      */
++#define   ADC_STANDBY_MODE_MASK   0x0008     /* ADC Standby Mode Mask   */
++#define   ADC_CMD_MASK            0x0002     /* ADC Command Mask        */
++#define   ADC_CHANNEL_MASK        0xFE3F     /* ADC Channel Select Mask */
++/* Private macro -------------------------------------------------------------*/
++/* Private variables ---------------------------------------------------------*/
++/* Private function prototypes -----------------------------------------------*/
++/* Interface functions -------------------------------------------------------*/
++/* Private functions ---------------------------------------------------------*/
++
++/*******************************************************************************
++* Function Name  : ADC_DeInit
++* Description    : Deinitialize the ADC module registers to their default reset
++*                  values
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void ADC_DeInit(void)
++{
++  /* Reset the ADC registers values */
++  SCU_APBPeriphReset(__ADC,ENABLE);
++  SCU_APBPeriphReset(__ADC,DISABLE);
++}
++
++/*******************************************************************************
++* Function Name  : ADC_Init
++* Description    : Initializes ADC  peripheral according to the specified
++*                  parameters in the ADC_InitTypeDef structure.
++* Input          : ADC_InitStruct: pointer to a ADC_InitTypeDef structure that
++*                  contains the configuration information for the specified
++*                  ADC peripheral.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void ADC_Init(ADC_InitTypeDef* ADC_InitStruct)
++{
++  /* Set the low threshold of the watchdog */
++  ADC-&gt;LTR = ADC_InitStruct-&gt;ADC_WDG_Low_Threshold;
++
++  /* Set the high threshold of the watchdog */
++  ADC-&gt;HTR = ADC_InitStruct-&gt;ADC_WDG_High_Threshold;
++
++    
++  /* Channel 0 conversion mode */
++  ADC-&gt;CCR &amp;= 0xFFFC; 
++  ADC-&gt;CCR |= ADC_InitStruct-&gt;ADC_Channel_0_Mode;
++  
++  /* Channel 1 conversion mode */
++  ADC-&gt;CCR &amp;= 0xFFF3; 
++  ADC-&gt;CCR |= ADC_InitStruct-&gt;ADC_Channel_1_Mode &lt;&lt; 0x2;
++
++  /* Channel 2 conversion mode */
++  ADC-&gt;CCR &amp;= 0xFFCF;
++  ADC-&gt;CCR |= ADC_InitStruct-&gt;ADC_Channel_2_Mode &lt;&lt; 0x4;
++ 
++  /* Channel 3 conversion mode */
++  ADC-&gt;CCR &amp;= 0xFF3F; 
++  ADC-&gt;CCR |= ADC_InitStruct-&gt;ADC_Channel_3_Mode &lt;&lt; 0x6;
++
++  /* Channel 4 conversion mode */
++  ADC-&gt;CCR &amp;= 0xFCFF; 
++  ADC-&gt;CCR |= ADC_InitStruct-&gt;ADC_Channel_4_Mode &lt;&lt; 0x8;
++
++  /* Channel 5 conversion mode */
++  ADC-&gt;CCR &amp;= 0xF3FF; 
++  ADC-&gt;CCR |= ADC_InitStruct-&gt;ADC_Channel_5_Mode &lt;&lt; 0xA;
++
++  /* Channel 6 conversion mode */
++  ADC-&gt;CCR &amp;= 0xCFFF; 
++  ADC-&gt;CCR |= ADC_InitStruct-&gt;ADC_Channel_6_Mode &lt;&lt; 0xC;
++
++  /* Channel 7 conversion mode */
++  ADC-&gt;CCR &amp;= 0x3FFF; 
++  ADC-&gt;CCR |= ADC_InitStruct-&gt;ADC_Channel_7_Mode &lt;&lt; 0xE;
++
++  /* Select the channel to be converted */
++  ADC-&gt;CR &amp;= ADC_CHANNEL_MASK;
++  ADC-&gt;CR |= ADC_InitStruct-&gt;ADC_Select_Channel &lt;&lt; 0x6;
++
++  /* Enable/disable the scan mode */
++  if (ADC_InitStruct-&gt;ADC_Scan_Mode == ENABLE)
++  {
++    /* Enable the scan mode */
++    ADC-&gt;CR |= ADC_SCAN_MODE_MASK;
++  }
++  else
++  {
++    /* Disable the scan mode */
++    ADC-&gt;CR &amp;= ~ADC_SCAN_MODE_MASK;
++  }
++
++  /* Configure the conversion mode */
++  if (ADC_InitStruct-&gt;ADC_Conversion_Mode == ADC_Continuous_Mode)
++  {
++    /* ADC continuous mode */
++    ADC-&gt;CR |= ADC_Continuous_Mode;
++  }
++  else
++  {
++    /* ADC single mode */
++    ADC-&gt;CR &amp;= ADC_Single_Mode;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : ADC_StructInit
++* Description    : Fills each ADC_InitStruct member with its reset value.
++* Input          : ADC_InitStruct : pointer to a ADC_InitTypeDef structure
++*                   which will be initialized.
++* Output         : None
++* Return         : None.
++*******************************************************************************/
++void ADC_StructInit(ADC_InitTypeDef* ADC_InitStruct)
++{
++  ADC_InitStruct-&gt;ADC_WDG_High_Threshold = 0x0000;
++  ADC_InitStruct-&gt;ADC_WDG_Low_Threshold  = 0x0000;
++  ADC_InitStruct-&gt;ADC_Channel_0_Mode     = ADC_No_Conversion;
++  ADC_InitStruct-&gt;ADC_Channel_1_Mode     = ADC_No_Conversion;
++  ADC_InitStruct-&gt;ADC_Channel_2_Mode     = ADC_No_Conversion;
++  ADC_InitStruct-&gt;ADC_Channel_3_Mode     = ADC_No_Conversion;
++  ADC_InitStruct-&gt;ADC_Channel_4_Mode     = ADC_No_Conversion;
++  ADC_InitStruct-&gt;ADC_Channel_5_Mode     = ADC_No_Conversion;
++  ADC_InitStruct-&gt;ADC_Channel_6_Mode     = ADC_No_Conversion;
++  ADC_InitStruct-&gt;ADC_Channel_7_Mode     = ADC_No_Conversion;
++  ADC_InitStruct-&gt;ADC_Select_Channel     = ADC_Channel_0;
++  ADC_InitStruct-&gt;ADC_Scan_Mode          = DISABLE;
++  ADC_InitStruct-&gt;ADC_Conversion_Mode    = ADC_Single_Mode;
++}
++
++/*******************************************************************************
++* Function Name  : ADC_PrescalerConfig
++* Description    : This routine is used to configure the ADC prescaler value.
++* Input          : ADC_Prescaler: specifies the prescaler value. This parameter
++*                  can be a value from 0x0 to 0xFF.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void ADC_PrescalerConfig(u8 ADC_Prescaler)
++{
++  ADC-&gt;PRS &amp;= 0xFF00;
++  ADC-&gt;PRS |= ADC_Prescaler;
++
++}
++/*******************************************************************************
++* Function Name  : ADC_GetPrescalerValue
++* Description    : This routine is used to get the ADC prescaler value.
++* Input          : None
++* Output         : None
++* Return         : The prescaler value.
++*******************************************************************************/
++u8 ADC_GetPrescalerValue(void)
++{
++  return ADC-&gt;PRS &amp; 0x00FF;
++}
++/*******************************************************************************
++* Function Name  : ADC_GetFlagStatus
++* Description    : Checks whether the specified ADC flag is set or not.
++* Input          : ADC_Flag: flag to check.
++*                  This parameter can be one of the following values:
++*                     - ADC_FLAG_OV_CH_0: Conversion overflow status for 
++*                                         channel 0.
++*                     - ADC_FLAG_OV_CH_1: Conversion overflow status for
++*                                         channel 1.
++*                     - ADC_FLAG_OV_CH_2: Conversion overflow status for
++*                                         channel 2.
++*                     - ADC_FLAG_OV_CH_3: Conversion overflow status for
++*                                         channel 3.
++*                     - ADC_FLAG_OV_CH_4: Conversion overflow status for
++*                                         channel 4.
++*                     - ADC_FLAG_OV_CH_5: Conversion overflow status for
++*                                         channel 5.
++*                     - ADC_FLAG_OV_CH_6: Conversion overflow status for
++*                                         channel 6.
++*                     - ADC_FLAG_OV_CH_7: Conversion overflow status for
++*                                         channel 7.
++*                     - ADC_FLAG_ECV:     End of conversion status.
++*                     - ADC_FLAG_AWD:     Analog watchdog status.
++* Output         : None
++* Return         : The NewState of the ADC_Flag (SET or RESET).
++*******************************************************************************/
++FlagStatus ADC_GetFlagStatus(u16 ADC_Flag)
++{
++  u8 AdcReg = 0, FlagPos = 0;
++  
++  /* Get the ADC register index */
++  AdcReg = ADC_Flag &gt;&gt; 5;
++
++  /* Get the flag position */
++  FlagPos = ADC_Flag &amp; ADC_FLAG_MASK;
++
++  if(AdcReg == 1) /* The flag to check is in CR register */
++  {
++    if((ADC-&gt;CR &amp; (1&lt;&lt;FlagPos))!= RESET)
++    {
++      return SET;
++    }
++    else
++    {
++      return RESET;
++    }
++  }
++  else if(AdcReg == 6) /* The flag to check is in DR0 register */
++  {
++    if((ADC-&gt;DR0 &amp; (1&lt;&lt;FlagPos))!= RESET)
++    {
++      return SET;
++    }
++    else
++    {
++      return RESET;
++    }
++  }
++  else if(AdcReg == 7) /* The flag to check is in DR1 register */
++  {
++    if((ADC-&gt;DR1 &amp; (1&lt;&lt;FlagPos))!= RESET)
++    {
++      return SET;
++    }
++    else
++    {
++      return RESET;
++    }
++  }
++  else if(AdcReg == 8) /* The flag to check is in DR2 register */
++  {
++    if((ADC-&gt;DR2 &amp; (1&lt;&lt;FlagPos))!= RESET)
++    {
++      return SET;
++    }
++    else
++    {
++      return RESET;
++    }
++  }
++  else if(AdcReg == 9) /* The flag to check is in DR3 register */
++  {
++    if((ADC-&gt;DR3 &amp; (1&lt;&lt;FlagPos))!= RESET)
++    {
++      return SET;
++    }
++    else
++    {
++      return RESET;
++    }
++  }
++
++  else if(AdcReg == 0xA) /* The flag to check is in DR4 register */
++  {
++    if((ADC-&gt;DR4 &amp; (1&lt;&lt;FlagPos))!= RESET)
++    {
++      return SET;
++    }
++    else
++    {
++      return RESET;
++    }
++  }
++  else if(AdcReg == 0xB) /* The flag to check is in DR5 register */
++  {
++    if((ADC-&gt;DR5 &amp; (1&lt;&lt;FlagPos))!= RESET)
++    {
++      return SET;
++    }
++    else
++    {
++      return RESET;
++    }
++  }
++  else if(AdcReg == 0xC) /* The flag to check is in DR6 register */
++  {
++    if((ADC-&gt;DR6 &amp; (1&lt;&lt;FlagPos))!= RESET)
++    {
++      return SET;
++    }
++    else
++    {
++      return RESET;
++    }
++  }
++  else /* (AdcReg == 0xD), The flag to check is in DR7 register */
++  {
++    if((ADC-&gt;DR7 &amp; (1&lt;&lt;FlagPos))!= RESET)
++    {
++      return SET;
++    }
++    else
++    {
++      return RESET;
++    }
++  }
++}
++
++/*******************************************************************************
++* Function Name  : ADC_ClearFlag
++* Description    : Clears the ADC Flag passed as a parameter.
++* Input          : ADC_Flag: flag to clear.
++*                  This parameter can be one of the following values:
++*                     - ADC_FLAG_ECV: End of conversion status.
++*                     - ADC_FLAG_AWD: Analog watchdog status.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void ADC_ClearFlag(u16 ADC_Flag)
++{  
++  /* Clear the correspondent flag */
++  ADC-&gt;CR |= (1&lt;&lt;(ADC_Flag &amp; ADC_FLAG_MASK));
++}
++
++/*******************************************************************************
++* Function Name  : ADC_GetConversionValue
++* Description    : Read the result of conversion from the appropriate data 
++*                  register.
++* Input          : ADC_Channel: the correspondent channel of the ADC peripheral.
++*                  This parameter can be one of the following values:
++*                     - ADC_Channel_0: ADC channel 0.
++*                     - ADC_Channel_1: ADC channel 1.
++*                     - ADC_Channel_2: ADC channel 2.
++*                     - ADC_Channel_3: ADC channel 3.
++*                     - ADC_Channel_4: ADC channel 4.
++*                     - ADC_Channel_5: ADC channel 5.
++*                     - ADC_Channel_6: ADC channel 6.
++*                     - ADC_Channel_7: ADC channel 7.
++* Output         : None
++* Return         : The result of the conversion for the specific channel.
++*******************************************************************************/
++u16 ADC_GetConversionValue(u16 ADC_Channel)
++{
++  u16 ADC_Conversion_Value = 0;
++
++  switch (ADC_Channel)
++  {
++    case (ADC_Channel_0):
++      /* Get the conversion value of the channel 0 */
++      ADC_Conversion_Value = ADC-&gt;DR0 &amp; ADC_RESULT_MASK;
++      break;
++
++    case (ADC_Channel_1):
++      /* Get the conversion value of the channel 1 */
++      ADC_Conversion_Value = ADC-&gt;DR1 &amp; ADC_RESULT_MASK;
++      break;
++
++    case (ADC_Channel_2):
++      /* Get the conversion value of the channel 2 */
++      ADC_Conversion_Value = ADC-&gt;DR2 &amp; ADC_RESULT_MASK;
++      break;
++
++    case (ADC_Channel_3):
++      /* Get the conversion value of the channel 3 */
++      ADC_Conversion_Value = ADC-&gt;DR3 &amp; ADC_RESULT_MASK;
++      break;
++
++    case (ADC_Channel_4):
++      /* Get the conversion value of the channel 4 */
++      ADC_Conversion_Value = ADC-&gt;DR4 &amp; ADC_RESULT_MASK;
++      break;
++
++    case (ADC_Channel_5):
++      /* Get the conversion value of the channel 5 */
++      ADC_Conversion_Value = ADC-&gt;DR5 &amp; ADC_RESULT_MASK;
++      break;
++ 
++    case (ADC_Channel_6):
++      /* Get the conversion value of the channel 6 */
++      ADC_Conversion_Value = ADC-&gt;DR6 &amp; ADC_RESULT_MASK;
++      break;
++
++    case (ADC_Channel_7):
++      /* Get the conversion value of the channel 7 */
++      ADC_Conversion_Value = ADC-&gt;DR7 &amp; ADC_RESULT_MASK;
++      break;
++
++    default:
++      break;
++  }
++
++  return(ADC_Conversion_Value);
++}
++
++/*******************************************************************************
++* Function Name  : ADC_GetAnalogWatchdogResult
++* Description    : Return the result of the comparaison on the selected Analog 
++*                  Watchdog.
++* Input          : ADC_Channel: the correspondent channel of the ADC peripheral.
++*                  This parameter can be one of the following values:
++*                     - ADC_Channel_0: ADC channel 0.
++*                     - ADC_Channel_1: ADC channel 1.
++*                     - ADC_Channel_2: ADC channel 2.
++*                     - ADC_Channel_3: ADC channel 3.
++*                     - ADC_Channel_4: ADC channel 4.
++*                     - ADC_Channel_5: ADC channel 5.
++*                     - ADC_Channel_6: ADC channel 6.
++*                     - ADC_Channel_7: ADC channel 7.
++* Output         : None
++* Return         : The state of the comparision (SET or RESET).
++*******************************************************************************/
++FlagStatus ADC_GetAnalogWatchdogResult(u16 ADC_Channel)
++{
++  if (ADC-&gt;CRR &amp; (1&lt;&lt;ADC_Channel) != RESET)
++  {
++      return SET;
++  }
++  else
++  {
++    return RESET;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : ADC_ClearAnalogWatchdogResult
++* Description    : Clear the result of the comparaison on the selected Analog 
++*                  Watchdog.
++* Input          : ADC_Channel: the correspondent channel of the ADC peripheral.
++*                  This parameter can be one of the following values:
++*                     - ADC_Channel_0: ADC channel 0.
++*                     - ADC_Channel_1: ADC channel 1.
++*                     - ADC_Channel_2: ADC channel 2.
++*                     - ADC_Channel_3: ADC channel 3.
++*                     - ADC_Channel_4: ADC channel 4.
++*                     - ADC_Channel_5: ADC channel 5.
++*                     - ADC_Channel_6: ADC channel 6.
++*                     - ADC_Channel_7: ADC channel 7.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void ADC_ClearAnalogWatchdogResult(u16 ADC_Channel)
++{
++  /* Clear the correspondent watchdog result */
++  ADC-&gt;CRR = 1&lt;&lt;ADC_Channel;
++}
++
++/*******************************************************************************
++* Function Name  : ADC_GetWatchdogThreshold
++* Description    : Get the higher/lower thresholds values of the watchdog.
++* Input          : ADC_Threshold: the lower or the higher threshold.
++*                  This parameter can be one of the following values:
++*                     - ADC_HigherThreshold: The higher threshold.
++*                     - ADC_LowerThreshold: The lower threshold.
++* Output         : None
++* Return         : The selected threshold value.
++*******************************************************************************/
++u16 ADC_GetWatchdogThreshold(ADC_ThresholdType ADC_Threshold)
++{
++  u16 ADC_Threshold_Value = 0;
++
++  switch (ADC_Threshold)
++  {
++    case ADC_LowThreshold:
++      /* Get the low threshold of the watchdog */
++      ADC_Threshold_Value = ADC-&gt;LTR;
++      break;
++
++    case ADC_HighThreshold:
++      /* Get the high threshol of the watchdog */
++      ADC_Threshold_Value = ADC-&gt;HTR;
++      break;
++
++    default:
++      break;
++  }
++
++  return(ADC_Threshold_Value);
++}
++
++/*******************************************************************************
++* Function Name  : ADC_ITConfig
++* Description    : Enables or disables the specified ADC interrupts.
++* Input          : - ADC_IT: specifies the ADC interrupts sources to be enabled 
++*                    or disabled.
++*                    This parameter can be one of the following values:
++*                       - ADC_IT_EndOfConversion: End of conversion interrupt.
++*                       - ADC_IT_AnalogWDG: Analog watchdog interrupt.
++*                  - ADC_NewState: new state of the specified ADC interrupts.
++*                    (ADC_Newstate can be ENABLE or DISABLE).
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void ADC_ITConfig(u16 ADC_IT, FunctionalState ADC_NewState)
++{
++  if (ADC_NewState == ENABLE)
++  {
++    /* Enable the interrupt */
++    ADC-&gt;CR |= ADC_IT;
++  }
++  else
++  {
++    /* Disable the interrupt */
++    ADC-&gt;CR &amp;= ~ADC_IT;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : ADC_StandbyModeCmd
++* Description    : Enable or disable the standby mode.
++* Input          : ADC_NewState: new state of the ADC standby mode.
++*                  (ADC_Newstate can be ENABLE or DISABLE).
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void ADC_StandbyModeCmd(FunctionalState ADC_NewState)
++{
++  if (ADC_NewState == ENABLE)
++  {
++    /* Enable the standby mode */
++    ADC-&gt;CR |= ADC_STANDBY_MODE_MASK;
++  }
++  else
++  {
++    /* Disable the standby mode */
++    ADC-&gt;CR &amp;= ~ADC_STANDBY_MODE_MASK;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : ADC_Cmd
++* Description    : Power on or put in reset mode the ADC peripheral.
++* Input          : ADC_NewState: new state of the ADC peripheral.
++*                  (ADC_Newstate can be ENABLE or DISABLE).
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void ADC_Cmd(FunctionalState ADC_NewState)
++{
++  if (ADC_NewState == ENABLE)
++  {
++    /* Enable the ADC */
++    ADC-&gt;CR |= ADC_CMD_MASK;
++  }
++  else
++  {
++    /* Disable the ADC */
++    ADC-&gt;CR &amp;= ~ADC_CMD_MASK;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : ADC_ConversionCmd
++* Description    : Start or stop the ADC conversion in the selected mode.
++* Input          : ADC_Conversion: the conversion command.
++*                  This parameter can be one of the following values:
++*                     - ADC_Conversion_Start: Start the conversion.
++*                     - ADC_Conversion_Stop: Stop the Conversion.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void ADC_ConversionCmd(u16 ADC_Conversion)
++{
++  if (ADC_Conversion == ADC_Conversion_Start)
++  {
++    /* Start the ADC conversion */
++    ADC-&gt;CR |= ADC_Conversion_Start;
++  }
++  else
++  {
++    /* Stop the ADC conversion */
++    ADC-&gt;CR &amp;= ADC_Conversion_Stop;
++  }
++}
++
++/******************* (C) COPYRIGHT 2006 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str9/91x_adc.h
+===================================================================
+--- trunk/src/platform/str9/91x_adc.h	                        (rev 0)
++++ trunk/src/platform/str9/91x_adc.h	2010-10-13 22:19:09 UTC (rev 804)
+@@ -0,0 +1,124 @@
++/******************** (C) COPYRIGHT 2006 STMicroelectronics ********************
++* File Name          : 91x_adc.h
++* Author             : MCD Application Team
++* Date First Issued  : 05/18/2006 : Version 1.0
++* Description        : This file contains all the functions prototypes for the
++*                      ADC software library.
++********************************************************************************
++* History:
++* 05/24/2006 : Version 1.1
++* 05/18/2006 : Version 1.0
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS WITH
++* CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME. AS
++* A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT, INDIRECT
++* OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE CONTENT
++* OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING INFORMATION
++* CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++
++/* Define to prevent recursive inclusion ------------------------------------ */
++
++#ifndef __91x_ADC_H
++#define __91x_ADC_H
++
++/* Includes ------------------------------------------------------------------*/
++
++#include &quot;91x_map.h&quot;
++
++/* Exported types ------------------------------------------------------------*/
++
++/* ADC Init structure define */
++typedef struct
++{
++  u16 ADC_WDG_High_Threshold;
++  u16 ADC_WDG_Low_Threshold;
++  u16 ADC_Channel_0_Mode;
++  u16 ADC_Channel_1_Mode;
++  u16 ADC_Channel_2_Mode;
++  u16 ADC_Channel_3_Mode;
++  u16 ADC_Channel_4_Mode;
++  u16 ADC_Channel_5_Mode;
++  u16 ADC_Channel_6_Mode;
++  u16 ADC_Channel_7_Mode;
++  u16 ADC_Select_Channel;
++  FunctionalState ADC_Scan_Mode;
++  u16 ADC_Conversion_Mode;
++}ADC_InitTypeDef;
++
++/* ADC watchdog thresholds */
++typedef enum
++{
++  ADC_HighThreshold,
++  ADC_LowThreshold
++}ADC_ThresholdType;
++
++/* Exported constants --------------------------------------------------------*/
++
++/* ADC channels */
++#define   ADC_Channel_0     0x00      /* Channel 0 */
++#define   ADC_Channel_1     0x01      /* Channel 1 */
++#define   ADC_Channel_2     0x02      /* Channel 2 */
++#define   ADC_Channel_3     0x03      /* Channel 3 */
++#define   ADC_Channel_4     0x04      /* Channel 4 */
++#define   ADC_Channel_5     0x05      /* Channel 5 */
++#define   ADC_Channel_6     0x06      /* Channel 6 */
++#define   ADC_Channel_7     0x07      /* Channel 7 */
++
++/* ADC modes */
++#define   ADC_Continuous_Mode    0x0010 /* Continuous mode conversion */
++#define   ADC_Single_Mode        0xFFEF /* Single mode conversion     */
++
++/* ADC Flags */
++#define   ADC_FLAG_ECV         0x002F      /* End of Conversion Flag      */
++#define   ADC_FLAG_AWD         0x002E      /* Analog WatchDog Flag        */
++
++#define   ADC_FLAG_OV_CH_0     0x00CF      /* Overflow Flag for channel 0 */
++#define   ADC_FLAG_OV_CH_1     0x00EF      /* Overflow Flag for channel 1 */
++#define   ADC_FLAG_OV_CH_2     0x010F      /* Overflow Flag for channel 2 */
++#define   ADC_FLAG_OV_CH_3     0x012F      /* Overflow Flag for channel 3 */
++#define   ADC_FLAG_OV_CH_4     0x014F      /* Overflow Flag for channel 4 */
++#define   ADC_FLAG_OV_CH_5     0x016F      /* Overflow Flag for channel 5 */
++#define   ADC_FLAG_OV_CH_6     0x018F      /* Overflow Flag for channel 6 */
++#define   ADC_FLAG_OV_CH_7     0x01AF      /* Overflow Flag for channel 7 */
++
++/* ADC conversion modes */
++#define ADC_NoThreshold_Conversion      0x0003   /* Conversion w/o thresholds */
++#define ADC_LowThreshold_Conversion     0x0002   /* Low threshold conversion  */
++#define ADC_HighThreshold_Conversion    0x0001   /* High threshold conversion */
++#define ADC_No_Conversion               0x0000   /* No ADC conversion         */
++
++/* ADC interrupts */
++#define   ADC_IT_ECV     0x0400     /* End of Conversion Interrupt */
++#define   ADC_IT_AWD     0x0200     /* Analog Watchdog Interrupt   */
++
++/* ADC Start/Stop conversion */
++#define     ADC_Conversion_Start     0x0001     /* ADC start conversion */
++#define     ADC_Conversion_Stop      0xFFFE     /* ADC stop conversion  */
++
++/* Module private variables --------------------------------------------------*/
++/* Exported macro ------------------------------------------------------------*/
++/* Private functions ---------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++
++void ADC_DeInit(void);
++void ADC_Init(ADC_InitTypeDef* ADC_InitStruct);
++void ADC_StructInit(ADC_InitTypeDef* ADC_InitStruct);
++void ADC_PrescalerConfig(u8 ADC_Prescaler);
++u8 ADC_GetPrescalerValue(void);
++FlagStatus ADC_GetFlagStatus(u16 ADC_Flag);
++void ADC_ClearFlag(u16 ADC_Flag);
++u16 ADC_GetConversionValue(u16 ADC_Channel);
++FlagStatus ADC_GetAnalogWatchdogResult(u16 ADC_Channel);
++void ADC_ClearAnalogWatchdogResult(u16 ADC_Channel);
++u16 ADC_GetWatchdogThreshold(ADC_ThresholdType ADC_Threshold);
++void ADC_ITConfig(u16 ADC_IT, FunctionalState ADC_NewState);
++void ADC_StandbyModeCmd(FunctionalState ADC_NewState);
++void ADC_Cmd(FunctionalState ADC_NewState);
++void ADC_ConversionCmd(u16 ADC_Conversion);
++
++#endif /* __91x_ADC_H */
++
++/******************* (C) COPYRIGHT 2006 STMicroelectronics *****END OF FILE****/
++
+
+Modified: trunk/src/platform/str9/91x_conf.h
+===================================================================
+--- trunk/src/platform/str9/91x_conf.h	2010-10-10 22:24:36 UTC (rev 803)
++++ trunk/src/platform/str9/91x_conf.h	2010-10-13 22:19:09 UTC (rev 804)
+@@ -36,7 +36,7 @@
+ #define _VIC0
+ #define _VIC1
+ /************************* DMA *************************/
+-//#define _DMA
++#define _DMA
+ //#define _DMA_Channel0
+ //#define _DMA_Channel1
+ //#define _DMA_Channel2
+@@ -92,7 +92,7 @@
+ /************************* CAN *************************/
+ //#define _CAN
+ /************************* ADC *************************/
+-//#define _ADC
++#define _ADC
+ /************************* WDG *************************/
+ //#define _WDG
+ /************************* I2C *************************/
+
+Modified: trunk/src/platform/str9/conf.py
+===================================================================
+--- trunk/src/platform/str9/conf.py	2010-10-10 22:24:36 UTC (rev 803)
++++ trunk/src/platform/str9/conf.py	2010-10-13 22:19:09 UTC (rev 804)
+@@ -2,7 +2,7 @@
+ 
+ cpumode = ARGUMENTS.get( 'cpumode', 'arm' ).lower()
+ 
+-specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c 91x_vic.c interrupt.c str9_pio.c 91x_i2c.c 91x_wiu.c&quot;
++specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c 91x_vic.c interrupt.c str9_pio.c 91x_i2c.c 91x_wiu.c 91x_adc.c&quot;
+ 
+ # Check CPU
+ if comp[ 'cpu' ] == 'STR912FAW44':
+
+Modified: trunk/src/platform/str9/interrupt.c
+===================================================================
+--- trunk/src/platform/str9/interrupt.c	2010-10-10 22:24:36 UTC (rev 803)
++++ trunk/src/platform/str9/interrupt.c	2010-10-13 22:19:09 UTC (rev 804)
+@@ -174,9 +174,8 @@
+ * Function Name  : ADC_IRQHandler
+ * Description    : This function handles the ADC interrupt request
+ *******************************************************************************/
+-void ADC_IRQHandler(void)
+-{
+-}
++extern void ADC_IRQHandler(void);
++
+ /*******************************************************************************
+ * Function Name  : UART0_IRQHandler
+ * Description    : This function handles the UART0 interrupt request
+
+Modified: trunk/src/platform/str9/platform.c
+===================================================================
+--- trunk/src/platform/str9/platform.c	2010-10-10 22:24:36 UTC (rev 803)
++++ trunk/src/platform/str9/platform.c	2010-10-13 22:19:09 UTC (rev 804)
+@@ -21,12 +21,17 @@
+ #include &quot;lrotable.h&quot;
+ #include &quot;91x_i2c.h&quot;
+ #include &quot;91x_wiu.h&quot;
++#include &quot;buf.h&quot;
++#include &quot;elua_adc.h&quot;
++#include &quot;91x_adc.h&quot;
+ 
+ // ****************************************************************************
+ // Platform initialization
+ const GPIO_TypeDef* port_data[] = { GPIO0, GPIO1, GPIO2, GPIO3, GPIO4, GPIO5, GPIO6, GPIO7, GPIO8, GPIO9 };
+ static const TIM_TypeDef* timer_data[] = { TIM0, TIM1, TIM2, TIM3 };
+ 
++static void platform_setup_adcs();
++
+ static void platform_config_scu()
+ {     
+   volatile u16 i = 0xFFFF;
+@@ -47,9 +52,9 @@
+   /* Set the HCLK Clock to MCLK */
+   SCU_HCLKDivisorConfig(SCU_HCLK_Div1);
+   
+-  /* Enable VIC clock */
++  // Enable VIC clock
+   SCU_AHBPeriphClockConfig(__VIC, ENABLE);
+-  SCU_AHBPeriphReset(__VIC, DISABLE);  
++  SCU_AHBPeriphReset(__VIC, DISABLE);
+                  
+   // Enable the UART clocks
+   SCU_APBPeriphClockConfig(__UART_ALL, ENABLE);
+@@ -72,6 +77,9 @@
+   SCU_APBPeriphReset(__I2C0, DISABLE);
+   SCU_APBPeriphClockConfig(__I2C1, ENABLE);
+   SCU_APBPeriphReset(__I2C1, DISABLE);
++  
++  // Enable the ADC clocks
++  SCU_APBPeriphClockConfig(__ADC, ENABLE);
+ }
+ 
+ // Port/pin definitions of the eLua UART connection for different boards
+@@ -161,6 +169,11 @@
+     TIM_CounterCmd( base, TIM_START );
+   }
+   
++#ifdef BUILD_ADC
++  // Setup ADCs
++  platform_setup_adcs();
++#endif
++  
+   cmn_platform_init();
+ 
+   return PLATFORM_OK;
+@@ -381,6 +394,211 @@
+   return res;
+ }
+ 
++
++// *****************************************************************************
++// ADC specific functions and variables
++
++#ifdef BUILD_ADC
++
++ADC_InitTypeDef ADC_InitStructure;
++
++int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
++{
++  return 0; // This platform does not support direct timer triggering
++}
++
++void platform_adc_stop( unsigned id )
++{  
++  elua_adc_ch_state *s = adc_get_ch_state( id );
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  
++  s-&gt;op_pending = 0;
++  INACTIVATE_CHANNEL( d, id );
++
++  // If there are no more active channels, stop the sequencer
++  if( d-&gt;ch_active == 0 )    
++    d-&gt;running = 0;
++}
++
++
++void ADC_IRQHandler(void)
++{
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  elua_adc_ch_state *s;
++
++  if ( ADC_GetFlagStatus( ADC_FLAG_ECV ) )
++  {
++    d-&gt;seq_ctr = 0;
++    while( d-&gt;seq_ctr &lt; d-&gt;seq_len )
++    {
++      s = d-&gt;ch_state[ d-&gt;seq_ctr ];
++      d-&gt;sample_buf[ d-&gt;seq_ctr] = ( u16 )ADC_GetConversionValue( s-&gt;id );
++      s-&gt;value_fresh = 1;
++    
++      // Fill in smoothing buffer until warmed up
++      if ( s-&gt;logsmoothlen &gt; 0 &amp;&amp; s-&gt;smooth_ready == 0)
++	adc_smooth_data( s-&gt;id );
++#if defined( BUF_ENABLE_ADC )
++      else if ( s-&gt;reqsamples &gt; 1 )
++      {
++	buf_write( BUF_ID_ADC, s-&gt;id, ( t_buf_data* )s-&gt;value_ptr );
++	s-&gt;value_fresh = 0;
++      }
++#endif
++
++      // If we have the number of requested samples, stop sampling
++      if ( adc_samples_available( s-&gt;id ) &gt;= s-&gt;reqsamples &amp;&amp; s-&gt;freerunning == 0 )
++	platform_adc_stop( s-&gt;id );
++
++      d-&gt;seq_ctr++;
++    }
++    d-&gt;seq_ctr = 0;
++    ADC_ClearFlag( ADC_FLAG_ECV );
++  }
++  
++  if( d-&gt;running == 1 )
++    adc_update_dev_sequence( 0 );
++  
++  if ( d-&gt;clocked == 0 &amp;&amp; d-&gt;running == 1 )
++    ADC_ConversionCmd(ADC_Conversion_Start);
++   
++  VIC0-&gt;VAR = 0xFF;
++}
++
++static void platform_setup_adcs()
++{
++  unsigned id;
++  
++  for( id = 0; id &lt; NUM_ADC; id ++ )
++    adc_init_ch_state( id );
++  
++  VIC_Config(ADC_ITLine, VIC_IRQ, 0);
++  VIC_ITCmd(ADC_ITLine, ENABLE);
++  
++  ADC_StructInit(&amp;ADC_InitStructure);
++
++  /* Configure the ADC  structure in continuous mode conversion */
++  ADC_DeInit();             /* ADC Deinitialization */
++  ADC_InitStructure.ADC_Channel_0_Mode = ADC_NoThreshold_Conversion;
++  ADC_InitStructure.ADC_Scan_Mode = ENABLE;
++  ADC_InitStructure.ADC_Conversion_Mode = ADC_Single_Mode;
++  
++  ADC_Cmd( ENABLE );
++  ADC_PrescalerConfig( 0x2 );
++  ADC_Init( &amp;ADC_InitStructure );
++
++  ADC_ITConfig(ADC_IT_ECV, ENABLE);
++
++  platform_adc_setclock( 0, 0 );
++ 
++}
++
++
++// NOTE: On this platform, there is only one ADC, clock settings apply to the whole device
++u32 platform_adc_setclock( unsigned id, u32 frequency )
++{
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++  
++  // No clocked conversions supported
++  d-&gt;clocked = 0;
++
++  return 0;
++}
++
++const int adc_gpio_chan[] = { GPIO_ANAChannel0, GPIO_ANAChannel1, GPIO_ANAChannel2, GPIO_ANAChannel3, GPIO_ANAChannel4, GPIO_ANAChannel5, GPIO_ANAChannel6, GPIO_ANAChannel7 };
++
++// Prepare Hardware Channel
++int platform_adc_update_sequence( )
++{ 
++  elua_adc_dev_state *d = adc_get_dev_state( 0 );
++    
++  ADC_Cmd( DISABLE );
++  ADC_DeInit();
++  
++  ADC_InitStructure.ADC_Channel_0_Mode = ADC_No_Conversion;
++  ADC_InitStructure.ADC_Channel_1_Mode = ADC_No_Conversion;
++  ADC_InitStructure.ADC_Channel_2_Mode = ADC_No_Conversion;
++  ADC_InitStructure.ADC_Channel_3_Mode = ADC_No_Conversion;
++  ADC_InitStructure.ADC_Channel_4_Mode = ADC_No_Conversion;
++  ADC_InitStructure.ADC_Channel_5_Mode = ADC_No_Conversion;
++  ADC_InitStructure.ADC_Channel_6_Mode = ADC_No_Conversion;
++  ADC_InitStructure.ADC_Channel_7_Mode = ADC_No_Conversion;
++
++  d-&gt;seq_ctr = 0;
++  while( d-&gt;seq_ctr &lt; d-&gt;seq_len )
++  {
++    GPIO_ANAPinConfig( adc_gpio_chan[ d-&gt;ch_state[ d-&gt;seq_ctr ]-&gt;id ], ENABLE );
++
++    // This is somewhat terrible, but the API doesn't provide an alternative
++    switch( d-&gt;ch_state[ d-&gt;seq_ctr ]-&gt;id )
++    {
++      case 0:
++        ADC_InitStructure.ADC_Channel_0_Mode = ADC_NoThreshold_Conversion;
++        break;
++      case 1:
++        ADC_InitStructure.ADC_Channel_1_Mode = ADC_NoThreshold_Conversion;
++        break;
++      case 2:
++        ADC_InitStructure.ADC_Channel_2_Mode = ADC_NoThreshold_Conversion;
++        break;
++      case 3:
++        ADC_InitStructure.ADC_Channel_3_Mode = ADC_NoThreshold_Conversion;
++        break;
++      case 4:
++        ADC_InitStructure.ADC_Channel_4_Mode = ADC_NoThreshold_Conversion;
++        break;
++      case 5:
++        ADC_InitStructure.ADC_Channel_5_Mode = ADC_NoThreshold_Conversion;
++        break;
++      case 6:
++        ADC_InitStructure.ADC_Channel_6_Mode = ADC_NoThreshold_Conversion;
++        break;
++      case 7:
++        ADC_InitStructure.ADC_Channel_7_Mode = ADC_NoThreshold_Conversion;
++        break;
++    }
++    d-&gt;seq_ctr++;
++  }
++  d-&gt;seq_ctr = 0;
++  
++  ADC_Cmd( ENABLE );
++  ADC_PrescalerConfig( 0x2 );
++  ADC_Init( &amp;ADC_InitStructure );
++  
++  return PLATFORM_OK;
++}
++
++
++int platform_adc_start_sequence()
++{ 
++    elua_adc_dev_state *d = adc_get_dev_state( 0 );
++
++    // Only force update and initiate if we weren't already running
++    // changes will get picked up during next interrupt cycle
++    if ( d-&gt;running != 1 )
++    {
++      // Bail if we somehow were trying to set up clocked conversion
++      if( d-&gt;clocked == 1 )
++        return PLATFORM_ERR;
++
++      adc_update_dev_sequence( 0 );
++
++      d-&gt;running = 1;
++
++      ADC_ClearFlag(ADC_FLAG_ECV);
++
++      ADC_ITConfig(ADC_IT_ECV, ENABLE);
++
++      ADC_ConversionCmd( ADC_Conversion_Start );
++    }
++
++    return PLATFORM_OK;
++  }
++
++
++#endif // ifdef BUILD_ADC
++
++
+ // ****************************************************************************
+ // PWM functions
+ 
+
+Modified: trunk/src/platform/str9/platform_conf.h
+===================================================================
+--- trunk/src/platform/str9/platform_conf.h	2010-10-10 22:24:36 UTC (rev 803)
++++ trunk/src/platform/str9/platform_conf.h	2010-10-13 22:19:09 UTC (rev 804)
+@@ -17,6 +17,7 @@
+ #define BUILD_ROMFS
+ #define BUILD_TERM
+ #define BUILD_CON_GENERIC
++#define BUILD_ADC
+ //#define BUILD_RPC
+ #define BUILD_LUA_INT_HANDLERS
+ 
+@@ -47,10 +48,19 @@
+ #define NUM_UART              3
+ #define NUM_TIMER             4
+ #define NUM_PWM               4
+-#define NUM_ADC               0
++#define NUM_ADC               8
+ #define NUM_CAN               0
+ #define NUM_I2C               2
+ 
++// ADC Configuration Params
++#define ADC_BIT_RESOLUTION    10
++#define BUF_ENABLE_ADC
++#define ADC_BUF_SIZE          BUF_SIZE_2
++
++// These should be adjusted to support multiple ADC devices
++#define ADC_TIMER_FIRST_ID    0
++#define ADC_NUM_TIMERS        0
++
+ // RPC boot options
+ #define RPC_UART_ID           CON_UART_ID
+ #define RPC_TIMER_ID          CON_TIMER_ID
+@@ -84,6 +94,12 @@
+ // The name of the platform specific libs table
+ #define PS_LIB_TABLE_NAME   &quot;str9&quot;
+ 
++#ifdef BUILD_ADC
++#define ADCLINE _ROM( AUXLIB_ADC, luaopen_adc, adc_map )
++#else
++#define ADCLINE
++#endif
++
+ #if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+ #define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
+ #else
+@@ -96,6 +112,7 @@
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  ADCLINE\
+   _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+   _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
+   _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000756.html">[Elua-svn] r803 - trunk/src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000758.html">[Elua-svn] r805 - trunk/src/platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#757">[ date ]</a>
+              <a href="thread.html#757">[ thread ]</a>
+              <a href="subject.html#757">[ subject ]</a>
+              <a href="author.html#757">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

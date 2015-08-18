@@ -1,0 +1,385 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r829 - in branches/remotefs_int/src/platform: at91sam7x	lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r829%20-%20in%20branches/remotefs_int/src/platform%3A%20at91sam7x%0A%09lm3s&In-Reply-To=%3C20101121014205.EE0FC480E82%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000781.html">
+   <LINK REL="Next"  HREF="000783.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r829 - in branches/remotefs_int/src/platform: at91sam7x	lm3s</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r829%20-%20in%20branches/remotefs_int/src/platform%3A%20at91sam7x%0A%09lm3s&In-Reply-To=%3C20101121014205.EE0FC480E82%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r829 - in branches/remotefs_int/src/platform: at91sam7x	lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Nov 21 02:42:05 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000781.html">[Elua-svn] r828 - branches/remotefs_int/src/platform/at91sam7x
+</A></li>
+        <LI>Next message: <A HREF="000783.html">[Elua-svn] r830 - in branches/remotefs_int/doc: . en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#782">[ date ]</a>
+              <a href="thread.html#782">[ thread ]</a>
+              <a href="subject.html#782">[ subject ]</a>
+              <a href="author.html#782">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-21 02:42:05 +0100 (Sun, 21 Nov 2010)
+New Revision: 829
+
+Added:
+   branches/remotefs_int/src/platform/lm3s/platform_int.c
+Modified:
+   branches/remotefs_int/src/platform/at91sam7x/platform_int.c
+   branches/remotefs_int/src/platform/lm3s/conf.py
+   branches/remotefs_int/src/platform/lm3s/platform.c
+   branches/remotefs_int/src/platform/lm3s/platform_conf.h
+   branches/remotefs_int/src/platform/lm3s/startup_gcc.c
+Log:
+proper BUF_ENABLE_UART handling for LM3S platform (includes basic interrupt support)
+
+Modified: branches/remotefs_int/src/platform/at91sam7x/platform_int.c
+===================================================================
+--- branches/remotefs_int/src/platform/at91sam7x/platform_int.c	2010-11-20 23:34:29 UTC (rev 828)
++++ branches/remotefs_int/src/platform/at91sam7x/platform_int.c	2010-11-21 01:42:05 UTC (rev 829)
+@@ -46,7 +46,7 @@
+ 
+ static void __attribute__((naked)) uart0_rx_handler()
+ {
+-    INT_STUB( __uart0_rx_handler_helper );
++  INT_STUB( __uart0_rx_handler_helper );
+ }
+ 
+ void __uart1_rx_handler_helper()
+@@ -56,7 +56,7 @@
+ 
+ static void __attribute__((naked)) uart1_rx_handler()
+ {
+-    INT_STUB( __uart1_rx_handler_helper );
++  INT_STUB( __uart1_rx_handler_helper );
+ }
+ 
+ // ****************************************************************************
+
+Modified: branches/remotefs_int/src/platform/lm3s/conf.py
+===================================================================
+--- branches/remotefs_int/src/platform/lm3s/conf.py	2010-11-20 23:34:29 UTC (rev 828)
++++ branches/remotefs_int/src/platform/lm3s/conf.py	2010-11-21 01:42:05 UTC (rev 829)
+@@ -1,5 +1,5 @@
+ # Configuration file for the LM3S microcontroller
+-specific_files = &quot;startup_gcc.c platform.c uart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c&quot;
++specific_files = &quot;startup_gcc.c platform.c uart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c platform_int.c&quot;
+ 
+ if comp[ 'board' ] == 'EK-LM3S1968' or comp[ 'board' ] == 'EK-LM3S6965' or comp[ 'board' ] == 'EK-LM3S8962':
+   specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
+
+Modified: branches/remotefs_int/src/platform/lm3s/platform.c
+===================================================================
+--- branches/remotefs_int/src/platform/lm3s/platform.c	2010-11-20 23:34:29 UTC (rev 828)
++++ branches/remotefs_int/src/platform/lm3s/platform.c	2010-11-21 01:42:05 UTC (rev 829)
+@@ -277,52 +277,17 @@
+ // Different configurations for LM3S8962, LM3S6918 (2 UARTs) and LM3S6965, LM3S9B92 (3 UARTs)
+ 
+ // All possible LM3S uarts defs
+-static const u32 uart_base[] = { UART0_BASE, UART1_BASE, UART2_BASE };
++const u32 uart_base[] = { UART0_BASE, UART1_BASE, UART2_BASE };
+ static const u32 uart_sysctl[] = { SYSCTL_PERIPH_UART0, SYSCTL_PERIPH_UART1, SYSCTL_PERIPH_UART2 };
+ static const u32 uart_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTD_BASE, GPIO_PORTG_BASE };
+ static const u8 uart_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_0 | GPIO_PIN_1 };
+ 
+-#ifdef BUF_ENABLE_UART
+-void UARTIntHandler()
+-{
+-  u32 temp;
+-  int c;
+-
+-  temp = MAP_UARTIntStatus(uart_base[ CON_UART_ID ], true);
+-  MAP_UARTIntClear(uart_base[ CON_UART_ID ], temp);
+-  while( MAP_UARTCharsAvail( uart_base[ CON_UART_ID ] ) )
+-  {
+-    c = MAP_UARTCharGetNonBlocking( uart_base[ CON_UART_ID ] );
+-    buf_write( BUF_ID_UART, CON_UART_ID, ( t_buf_data* )&amp;c );
+-  }
+-}
+-#endif
+-
+-
+ static void uarts_init()
+ {
+   unsigned i;
+ 
+   for( i = 0; i &lt; NUM_UART; i ++ )
+     MAP_SysCtlPeripheralEnable(uart_sysctl[ i ]);
+-
+-  // Special case for UART 0
+-  // Configure the UART for 115,200, 8-N-1 operation.
+-  MAP_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+-  MAP_UARTConfigSetExpClk(UART0_BASE, SysCtlClockGet(), CON_UART_SPEED,
+-                     (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+-                      UART_CONFIG_PAR_NONE));
+-                      
+-                      
+-#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+-  // Enable buffering on the console UART
+-  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, BUF_DSIZE_U8 );
+-  // Set interrupt handler and interrupt flag on UART
+-  
+-  IntEnable(INT_UART0);
+-
+-  MAP_UARTIntEnable( uart_base[ CON_UART_ID ], UART_INT_RX | UART_INT_RT );
+-#endif
+ }
+ 
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+
+Modified: branches/remotefs_int/src/platform/lm3s/platform_conf.h
+===================================================================
+--- branches/remotefs_int/src/platform/lm3s/platform_conf.h	2010-11-20 23:34:29 UTC (rev 828)
++++ branches/remotefs_int/src/platform/lm3s/platform_conf.h	2010-11-21 01:42:05 UTC (rev 829)
+@@ -8,6 +8,7 @@
+ #include &quot;hw_types.h&quot;
+ #include &quot;stacks.h&quot;
+ #include &quot;sysctl.h&quot;
++#include &quot;elua_int.h&quot;
+ 
+ // *****************************************************************************
+ // Define here what components you want for this platform
+@@ -26,6 +27,7 @@
+ #define BUILD_ADC
+ #define BUILD_RPC
+ //#define BUILD_CON_TCP
++#define BUILD_C_INT_HANDLERS
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -154,8 +156,8 @@
+ #define NUM_CAN               0
+ 
+ // Enable RX buffering on UART
+-//#define BUF_ENABLE_UART
+-//#define CON_BUF_SIZE          BUF_SIZE_128
++#define BUF_ENABLE_UART
++#define CON_BUF_SIZE          BUF_SIZE_128
+ 
+ // ADC Configuration Params
+ #define ADC_BIT_RESOLUTION    10
+@@ -225,6 +227,10 @@
+ #define MEM_START_ADDRESS     { ( void* )end }
+ #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + SRAM_SIZE - STACK_SIZE_TOTAL - 1 ) }
+ 
++// Interrupt list
++#define INT_UART_RX           ELUA_INT_FIRST_ID
++#define INT_ELUA_LAST         INT_UART_RX
++
+ // *****************************************************************************
+ // CPU constants that should be exposed to the eLua &quot;cpu&quot; module
+ 
+@@ -278,6 +284,7 @@
+   _C( INT_USB0 ),\
+   _C( INT_PWM3 ),\
+   _C( INT_UDMA ),\
+-  _C( INT_UDMAERR )
++  _C( INT_UDMAERR ),\
++  _C( INT_UART_RX )
+ 
+ #endif // #ifndef __PLATFORM_CONF_H__
+
+Added: branches/remotefs_int/src/platform/lm3s/platform_int.c
+===================================================================
+--- branches/remotefs_int/src/platform/lm3s/platform_int.c	                        (rev 0)
++++ branches/remotefs_int/src/platform/lm3s/platform_int.c	2010-11-21 01:42:05 UTC (rev 829)
+@@ -0,0 +1,109 @@
++// AVR32 interrupt support
++
++#include &quot;platform_conf.h&quot;
++#if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
++
++// Generic headers
++#include &quot;platform.h&quot;
++#include &quot;elua_int.h&quot;
++#include &quot;common.h&quot;
++
++// Platform includes
++#ifdef FORLM3S9B92
++  #define TARGET_IS_TEMPEST_RB1
++
++  #include &quot;lm3s9b92.h&quot;
++#elif FORLM3S8962
++  #include &quot;lm3s8962.h&quot;
++#elif FORLM3S6965
++  #include &quot;lm3s6965.h&quot;
++#elif FORLM3S6918
++  #include &quot;lm3s6918.h&quot;
++#endif
++
++#include &quot;rom.h&quot;
++#include &quot;rom_map.h&quot;
++#include &quot;hw_ints.h&quot;
++#include &quot;uart.h&quot;
++#include &quot;interrupt.h&quot;
++
++// ****************************************************************************
++// Interrupt handlers
++
++// ----------------------------------------------------------------------------
++// UART_RX interrupt
++
++extern const u32 uart_base[]; 
++static const int uart_int_mask = UART_INT_RX | UART_INT_RT;
++ 
++static void uart_common_rx_handler( int resnum )
++{
++  MAP_UARTIntClear( uart_base[ resnum ], uart_int_mask );
++  while( MAP_UARTCharsAvail( uart_base[ resnum ] ) )  
++    cmn_int_handler( INT_UART_RX, resnum );  
++}
++
++void uart0_handler()
++{
++  uart_common_rx_handler( 0 );
++}
++
++void uart1_handler()
++{
++  uart_common_rx_handler( 1 );
++}
++
++void uart2_handler()
++{
++  uart_common_rx_handler( 2 );
++}
++
++// ****************************************************************************
++// Interrupt: INT_UART_RX
++
++static int int_uart_rx_get_status( elua_int_resnum resnum )
++{  
++  return ( MAP_UARTIntStatus( uart_base[ resnum ], false ) &amp; uart_int_mask ) == uart_int_mask ? 1 : 0;
++}
++
++static int int_uart_rx_set_status( elua_int_resnum resnum, int status )
++{
++  int prev = int_uart_rx_get_status( resnum );
++  
++  if( status == PLATFORM_CPU_ENABLE )
++    MAP_UARTIntEnable( uart_base[ resnum ], uart_int_mask );
++  else
++    MAP_UARTIntDisable( uart_base[ resnum ], uart_int_mask );  
++  return prev;
++}
++
++static int int_uart_rx_get_flag( elua_int_resnum resnum, int clear )
++{
++
++  int flag = ( UARTIntStatus( uart_base[ resnum ], false ) &amp; uart_int_mask ) == uart_int_mask ? 1 : 0;
++  
++  if( clear )
++    MAP_UARTIntClear( uart_base[ resnum ], uart_int_mask ); 
++  return flag;  
++}
++
++// ****************************************************************************
++// Interrupt initialization
++
++void platform_int_init()
++{
++  IntEnable( INT_UART0 );
++  IntEnable( INT_UART1 );
++  IntEnable( INT_UART2 );    
++}
++
++// ****************************************************************************
++// Interrupt table
++// Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
++
++const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
++{
++  { int_uart_rx_set_status, int_uart_rx_get_status, int_uart_rx_get_flag }
++};
++
++#endif // #if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
+
+Modified: branches/remotefs_int/src/platform/lm3s/startup_gcc.c
+===================================================================
+--- branches/remotefs_int/src/platform/lm3s/startup_gcc.c	2010-11-20 23:34:29 UTC (rev 828)
++++ branches/remotefs_int/src/platform/lm3s/startup_gcc.c	2010-11-21 01:42:05 UTC (rev 829)
+@@ -45,6 +45,11 @@
+ #include &quot;hw_memmap.h&quot;
+ #include &quot;platform_conf.h&quot;
+ 
++extern void uart0_handler();
++extern void uart1_handler();
++extern void uart2_handler();
++
++
+ //*****************************************************************************
+ //
+ // The entry point for the application.
+@@ -83,12 +88,16 @@
+     IntDefaultHandler,                      // GPIO Port C
+     IntDefaultHandler,                      // GPIO Port D
+     IntDefaultHandler,                      // GPIO Port E
+-#ifdef BUF_ENABLE_UART
+-    UARTIntHandler,                         // UART0 Rx and Tx
++#if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
++    uart0_handler,                          // UART0 Rx and Tx
+ #else
+     IntDefaultHandler,
+ #endif
++#if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
++    uart1_handler,                          // UART1 Rx and Tx
++#else
+     IntDefaultHandler,                      // UART1 Rx and Tx
++#endif    
+     IntDefaultHandler,                      // SSI0 Rx and Tx
+     IntDefaultHandler,                      // I2C0 Master and Slave
+     IntDefaultHandler,                      // PWM Fault
+@@ -122,7 +131,11 @@
+     IntDefaultHandler,                      // GPIO Port F
+     IntDefaultHandler,                      // GPIO Port G
+     IntDefaultHandler,                      // GPIO Port H
++#if defined( BUILD_C_INT_HANDLERS ) || defined( BUILD_LUA_INT_HANDLERS )
++    uart2_handler,                          // UART2 Rx and Tx
++#else    
+     IntDefaultHandler,                      // UART2 Rx and Tx
++#endif    
+     IntDefaultHandler,                      // SSI1 Rx and Tx
+     IntDefaultHandler,                      // Timer 3 subtimer A
+     IntDefaultHandler,                      // Timer 3 subtimer B
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000781.html">[Elua-svn] r828 - branches/remotefs_int/src/platform/at91sam7x
+</A></li>
+	<LI>Next message: <A HREF="000783.html">[Elua-svn] r830 - in branches/remotefs_int/doc: . en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#782">[ date ]</a>
+              <a href="thread.html#782">[ thread ]</a>
+              <a href="subject.html#782">[ subject ]</a>
+              <a href="author.html#782">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

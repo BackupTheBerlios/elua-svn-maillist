@@ -1,0 +1,270 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r305 - in branches/luarpc: . src/modules test
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r305%20-%20in%20branches/luarpc%3A%20.%20src/modules%20test&In-Reply-To=%3C200906172249.n5HMnfXj019477%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000260.html">
+   <LINK REL="Next"  HREF="000262.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r305 - in branches/luarpc: . src/modules test</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r305%20-%20in%20branches/luarpc%3A%20.%20src/modules%20test&In-Reply-To=%3C200906172249.n5HMnfXj019477%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r305 - in branches/luarpc: . src/modules test">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Jun 18 00:49:41 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000260.html">[Elua-svn] r304 - in branches/luarpc: . inc src/lua src/modules
+</A></li>
+        <LI>Next message: <A HREF="000262.html">[Elua-svn] r306 - in branches/luarpc: inc src/lua src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#261">[ date ]</a>
+              <a href="thread.html#261">[ thread ]</a>
+              <a href="subject.html#261">[ subject ]</a>
+              <a href="author.html#261">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-18 00:49:40 +0200 (Thu, 18 Jun 2009)
+New Revision: 305
+
+Added:
+   branches/luarpc/test/
+   branches/luarpc/test/test-rpc.lua
+Removed:
+   branches/luarpc/test-rpc.lua
+Modified:
+   branches/luarpc/src/modules/luarpc.c
+Log:
+Minor fixes + some additions to testing script.
+
+Modified: branches/luarpc/src/modules/luarpc.c
+===================================================================
+--- branches/luarpc/src/modules/luarpc.c	2009-06-17 22:49:25 UTC (rev 304)
++++ branches/luarpc/src/modules/luarpc.c	2009-06-17 22:49:40 UTC (rev 305)
+@@ -65,6 +65,36 @@
+   abort();
+ }
+ 
++/* enums for variable types, commands, and status codes */
++
++enum {
++  RPC_NIL=0,
++  RPC_NUMBER,
++  RPC_BOOLEAN,
++  RPC_STRING,
++  RPC_TABLE,
++  RPC_TABLE_END,
++  RPC_FUNCTION,
++  RPC_FUNCTION_END
++};
++
++enum
++{
++  RPC_CMD_CALL = 1,
++  RPC_CMD_GET,
++  RPC_CMD_CON,
++  RPC_CMD_NEWINDEX
++};
++
++enum
++{
++  RPC_READY = 64,
++  RPC_UNSUPPORTED_CMD
++};
++
++enum { RPC_PROTOCOL_VERSION = 3 };
++
++
+ /* return a string representation of an error number */
+ 
+ static const char * errorString (int n)
+@@ -233,33 +263,8 @@
+  * wrapped in a Try block.
+  */
+ 
+-enum {
+-  RPC_NIL=0,
+-  RPC_NUMBER,
+-  RPC_BOOLEAN,
+-  RPC_STRING,
+-  RPC_TABLE,
+-  RPC_TABLE_END,
+-  RPC_FUNCTION,
+-  RPC_FUNCTION_END
+-};
+ 
+-enum
+-{
+-  RPC_CMD_CALL = 1,
+-  RPC_CMD_GET,
+-  RPC_CMD_CON,
+-  RPC_CMD_NEWINDEX
+-};
+ 
+-enum
+-{
+-  RPC_READY = 64,
+-  RPC_UNSUPPORTED_CMD
+-};
+-
+-enum { RPC_PROTOCOL_VERSION = 3 };
+-
+ /* write a table at the given index in the stack. the index must be absolute
+  * (i.e. positive).
+  */
+
+Copied: branches/luarpc/test/test-rpc.lua (from rev 304, branches/luarpc/test-rpc.lua)
+===================================================================
+--- branches/luarpc/test-rpc.lua	2009-06-17 22:49:25 UTC (rev 304)
++++ branches/luarpc/test/test-rpc.lua	2009-06-17 22:49:40 UTC (rev 305)
+@@ -0,0 +1,55 @@
++function error_handler (message)
++	io.write (&quot;MY ERROR: &quot; .. message .. &quot;\n&quot;);
++end
++
++rpc.on_error (error_handler);
++
++slave,err = rpc.connect (&quot;/dev/tty.usbserial-ftCYPMYJ&quot;);
++--slave,err = rpc.connect (&quot;/dev/ttys0&quot;);
++
++print(&quot;Platform: &quot; .. slave.pd.platform())
++print(&quot;CPU: &quot; .. slave.pd.cpu())
++print(&quot;Board: &quot; .. slave.pd.board())
++print(&quot;CPU Clock: &quot; .. slave.cpu.clock()/1000000 .. &quot; MHz&quot;)
++
++function mirror( input ) return input end
++function squareval(x) return x^2 end
++test_local = {1, 2, 3, 3.143, &quot;234&quot;}
++test_local.sval = 23
++
++slave.mirror = mirror
++
++-- reflect parameters off mirror
++-- also requires that function serialization works
++assert(slave.mirror(42) == 42, &quot;integer return failed&quot;)
++assert(slave.mirror(&quot;this is a test!&quot;) == &quot;this is a test!&quot;, &quot;string return failed&quot;)
++assert(string.dump(slave.mirror(squareval)) == string.dump(squareval), &quot;function return failed&quot;)
++assert(slave.mirror(true) == true, &quot;bool return failed&quot;)
++
++slave.test = test_local
++
++-- get remote table
++assert(slave.test:get(), &quot;couldn't get remote table&quot;)
++
++
++-- check that we can get entry on remote table
++assert(test_local.sval == slave.test:get().sval, &quot;table field not equivalent&quot;)
++slave.collectgarbage(&quot;collect&quot;)
++print(slave.collectgarbage(&quot;count&quot;))
++
++adc = slave.adc
++
++adc.setblocking(0,1)
++adc.setclock(0, 64 ,2)
++
++adc.sample(0,128)
++print(slave.collectgarbage(&quot;count&quot;))
++while 1 do
++	retsamp = adc.getsample(0)
++	if not (retsamp == nil) then
++		print(retsamp)
++	else
++		print(slave.collectgarbage(&quot;count&quot;))
++		adc.sample(0,128)
++	end
++end
+\ No newline at end of file
+
+Deleted: branches/luarpc/test-rpc.lua
+===================================================================
+--- branches/luarpc/test-rpc.lua	2009-06-17 22:49:25 UTC (rev 304)
++++ branches/luarpc/test-rpc.lua	2009-06-17 22:49:40 UTC (rev 305)
+@@ -1,50 +0,0 @@
+-function error_handler (message)
+-	io.write (&quot;MY ERROR: &quot; .. message .. &quot;\n&quot;);
+-end
+-
+-rpc.on_error (error_handler);
+-
+-slave,err = rpc.connect (&quot;/dev/tty.usbserial-ftCYPMYJ&quot;);
+---slave,err = rpc.connect (&quot;/dev/ttys0&quot;);
+-
+-function mirror( input ) return input end
+-function squareval(x) return x^2 end
+-test_local = {1, 2, 3, 3.143, &quot;234&quot;}
+-test_local.sval = 23
+-
+-slave.mirror = mirror
+-
+--- reflect parameters off mirror
+--- also requires that function serialization works
+-assert(slave.mirror(42) == 42, &quot;integer return failed&quot;)
+-assert(slave.mirror(&quot;this is a test!&quot;) == &quot;this is a test!&quot;, &quot;string return failed&quot;)
+-assert(string.dump(slave.mirror(squareval)) == string.dump(squareval), &quot;function return failed&quot;)
+-assert(slave.mirror(true) == true, &quot;bool return failed&quot;)
+-
+-slave.test = test_local
+-
+--- get remote table
+-assert(slave.test:get(), &quot;couldn't get remote table&quot;)
+-
+-
+--- check that we can get entry on remote table
+-assert(test_local.sval == slave.test:get().sval, &quot;table field not equivalent&quot;)
+-slave.collectgarbage(&quot;collect&quot;)
+-print(slave.collectgarbage(&quot;count&quot;))
+-
+-adc = slave.adc
+-
+-adc.setblocking(0,1)
+-adc.setclock(0, 64 ,2)
+-
+-adc.sample(0,128)
+-print(slave.collectgarbage(&quot;count&quot;))
+-while 1 do
+-	retsamp = adc.getsample(0)
+-	if not (retsamp == nil) then
+-		print(retsamp)
+-	else
+-		print(slave.collectgarbage(&quot;count&quot;))
+-		adc.sample(0,128)
+-	end
+-end
+\ No newline at end of file
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000260.html">[Elua-svn] r304 - in branches/luarpc: . inc src/lua src/modules
+</A></li>
+	<LI>Next message: <A HREF="000262.html">[Elua-svn] r306 - in branches/luarpc: inc src/lua src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#261">[ date ]</a>
+              <a href="thread.html#261">[ thread ]</a>
+              <a href="subject.html#261">[ subject ]</a>
+              <a href="author.html#261">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

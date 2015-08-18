@@ -1,0 +1,266 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r240 - in trunk: inc romfs src src/modules	src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r240%20-%20in%20trunk%3A%20inc%20romfs%20src%20src/modules%0A%09src/platform/lm3s&In-Reply-To=%3C200903050706.n2576xgB021614%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000195.html">
+   <LINK REL="Next"  HREF="000197.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r240 - in trunk: inc romfs src src/modules	src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r240%20-%20in%20trunk%3A%20inc%20romfs%20src%20src/modules%0A%09src/platform/lm3s&In-Reply-To=%3C200903050706.n2576xgB021614%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r240 - in trunk: inc romfs src src/modules	src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Mar  5 08:06:59 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000195.html">[Elua-svn] r239 - in trunk/src: modules platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000197.html">[Elua-svn] r241 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#196">[ date ]</a>
+              <a href="thread.html#196">[ thread ]</a>
+              <a href="subject.html#196">[ subject ]</a>
+              <a href="author.html#196">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-03-05 08:06:59 +0100 (Thu, 05 Mar 2009)
+New Revision: 240
+
+Modified:
+   trunk/inc/platform.h
+   trunk/romfs/adcscope.lua
+   trunk/src/elua_adc.c
+   trunk/src/modules/adc.c
+   trunk/src/modules/auxmods.h
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/platform_conf.h
+Log:
+Added timer compatibility check.
+Smoothing resize checks that no operations are pending.
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2009-03-05 07:06:39 UTC (rev 239)
++++ trunk/inc/platform.h	2009-03-05 07:06:59 UTC (rev 240)
+@@ -201,6 +201,7 @@
+ 
+ // ADC Common Functions
+ int platform_adc_exists( unsigned id );
++int platform_adc_check_timer_id( unsigned id, unsigned timer_id );
+ u32 platform_adc_op( unsigned id, int op, u32 data );
+ 
+ // *****************************************************************************
+
+Modified: trunk/romfs/adcscope.lua
+===================================================================
+--- trunk/romfs/adcscope.lua	2009-03-05 07:06:39 UTC (rev 239)
++++ trunk/romfs/adcscope.lua	2009-03-05 07:06:59 UTC (rev 240)
+@@ -3,6 +3,7 @@
+ 
+ for i, v in ipairs(adcchannels) do
+   adc.setblocking(v,1)
++  adc.setclock(v,0)
+   adc.setsmoothing(v,adcsmoothing[i])
+ end
+ 
+
+Modified: trunk/src/elua_adc.c
+===================================================================
+--- trunk/src/elua_adc.c	2009-03-05 07:06:39 UTC (rev 239)
++++ trunk/src/elua_adc.c	2009-03-05 07:06:59 UTC (rev 240)
+@@ -43,29 +43,37 @@
+ }
+ 
+ // Update smoothing buffer length
+-// If new length differs from existing length, attempt to resize, then
+-// re-initialize buffer so that it is ready for new data.
++// If new length differs from existing length and no operations are pending, attempt to resize
++// Whether size is new or not, re-initialize buffers so that they are ready for new data.
+ int adc_update_smoothing( unsigned id, u8 loglen ) 
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+   
+-  if( loglen != s-&gt;logsmoothlen )
++  // Only attempt resize if samples aren't currently being collected
++  if ( s-&gt;op_pending == 0 )
+   {
+-    s-&gt;logsmoothlen = loglen;
++    if( loglen != s-&gt;logsmoothlen )
++    {
++      s-&gt;logsmoothlen = loglen;
+     
+-    // Allocate and zero new smoothing buffer
+-    if( ( s-&gt;smoothbuf = ( u16* )realloc( s-&gt;smoothbuf, ( SMOOTH_REALSIZE( s ) ) * sizeof( u16 ) ) ) == NULL )
+-    {
+-      s-&gt;logsmoothlen = 0;
+-      s-&gt;smoothidx = s-&gt;smooth_ready = s-&gt;smoothsum = 0;
+-      if( loglen != 0 )
+-        return PLATFORM_ERR;
++      // Allocate and zero new smoothing buffer
++      if( ( s-&gt;smoothbuf = ( u16* )realloc( s-&gt;smoothbuf, ( SMOOTH_REALSIZE( s ) ) * sizeof( u16 ) ) ) == NULL )
++      {
++        s-&gt;logsmoothlen = 0;
++        s-&gt;smoothidx = s-&gt;smooth_ready = s-&gt;smoothsum = 0;
++        if( loglen != 0 )
++          return PLATFORM_ERR;
++      }
+     }
+-
+-    // Zero out and mark as empty
++  
++    // Even if buffer isn't actually reconfigured, flush contents
+     adc_flush_smoothing( id );
++    buf_flush( BUF_ID_ADC, id );
++  
++    return PLATFORM_OK;
+   }
+-  return PLATFORM_OK;
++  else
++    return PLATFORM_ERR;
+ }
+ 
+ // Load oldest sample from the buffer, replace oldest value in smoothing ring
+@@ -181,6 +189,5 @@
+   }
+ }
+ 
+-
+ #endif
+ 
+
+Modified: trunk/src/modules/adc.c
+===================================================================
+--- trunk/src/modules/adc.c	2009-03-05 07:06:39 UTC (rev 239)
++++ trunk/src/modules/adc.c	2009-03-05 07:06:59 UTC (rev 240)
+@@ -38,6 +38,7 @@
+   {
+     timer_id = luaL_checkinteger( L, 3 );
+     MOD_CHECK_ID( timer, timer_id );
++    MOD_CHECK_RES_ID( adc, id, timer, timer_id );
+   }
+ 
+   platform_adc_op( id, PLATFORM_ADC_OP_SET_TIMER, timer_id );
+@@ -90,7 +91,6 @@
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( adc, id );
+   
+-  
+   length = luaL_checkinteger( L, 2 );
+   if ( !( length &amp; ( length - 1 ) ) )
+   {
+@@ -102,7 +102,6 @@
+   }
+   else
+     return luaL_error( L, &quot;length must be power of 2&quot; );
+-
+ }
+ 
+ // Lua: sample( id, count )
+
+Modified: trunk/src/modules/auxmods.h
+===================================================================
+--- trunk/src/modules/auxmods.h	2009-03-05 07:06:39 UTC (rev 239)
++++ trunk/src/modules/auxmods.h	2009-03-05 07:06:59 UTC (rev 240)
+@@ -48,4 +48,8 @@
+   if( !platform_ ## mod ## _exists( id ) )\
+     return luaL_error( L, #mod&quot; %d does not exist&quot;, ( unsigned )id )
+ 
++#define MOD_CHECK_RES_ID( mod, id, resmod, resid )\
++  if( !platform_ ## mod ## _check_ ## resmod ## _id( id, resid ) )\
++    return luaL_error( L, #resmod&quot; %d not valid with &quot; #mod &quot; %d&quot;, ( unsigned )resid, ( unsigned )id )
++    
+ #endif
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-03-05 07:06:39 UTC (rev 239)
++++ trunk/src/platform/lm3s/platform.c	2009-03-05 07:06:59 UTC (rev 240)
+@@ -372,6 +372,7 @@
+   {
+     case PLATFORM_TIMER_OP_START:
+       res = 0xFFFFFFFF;
++      TimerControlTrigger(base, TIMER_A, false);
+       TimerLoadSet( base, TIMER_A, 0xFFFFFFFF );
+       break;
+ 
+@@ -515,6 +516,11 @@
+ const static u32 adc_ctls[] = { ADC_CTL_CH0, ADC_CTL_CH1, ADC_CTL_CH2, ADC_CTL_CH3 };
+ const static u32 adc_ints[] = { INT_ADC0, INT_ADC1, INT_ADC2, INT_ADC3 };
+ 
++int platform_adc_check_timer_id( unsigned id, unsigned timer_id )
++{
++  return ( ( timer_id &gt;= ADC_TIMER_FIRST_ID ) &amp;&amp; ( timer_id &lt; ( ADC_TIMER_FIRST_ID + ADC_NUM_TIMERS ) ) );
++}
++
+ void platform_adc_stop( unsigned id )
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+@@ -592,7 +598,6 @@
+     ADCSequenceConfigure( ADC_BASE, id, ADC_TRIGGER_TIMER, id );
+ 
+     // Set up timer trigger
+-    TimerConfigure(timer_base[s-&gt;timer_id], TIMER_CFG_32_BIT_PER);
+     TimerLoadSet(timer_base[s-&gt;timer_id], TIMER_A, SysCtlClockGet() / frequency);
+     s-&gt;clocked = 1;
+     frequency = SysCtlClockGet() / TimerLoadGet(timer_base[s-&gt;timer_id], TIMER_A);
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2009-03-05 07:06:39 UTC (rev 239)
++++ trunk/src/platform/lm3s/platform_conf.h	2009-03-05 07:06:59 UTC (rev 240)
+@@ -118,11 +118,16 @@
+ #define BUF_ENABLE_UART
+ #define CON_BUF_SIZE          BUF_SIZE_128
+ 
+-// ADC Bit Depth for Built-in ADCs
++// ADC Configuration Params
+ #define ADC_BIT_RESOLUTION    10
+ #define BUF_ENABLE_ADC
+ #define ADC_BUF_SIZE          BUF_SIZE_2
+ 
++// These should be adjusted to support multiple ADC devices
++#define ADC_TIMER_FIRST_ID    0
++#define ADC_NUM_TIMERS        NUM_TIMER  
++
++
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         SysCtlClockGet()
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000195.html">[Elua-svn] r239 - in trunk/src: modules platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000197.html">[Elua-svn] r241 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#196">[ date ]</a>
+              <a href="thread.html#196">[ thread ]</a>
+              <a href="subject.html#196">[ subject ]</a>
+              <a href="author.html#196">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r681 - trunk/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r681%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C201001280009.o0S09GQl031759%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000636.html">
+   <LINK REL="Next"  HREF="000638.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r681 - trunk/src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r681%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C201001280009.o0S09GQl031759%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r681 - trunk/src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Jan 28 01:09:16 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000636.html">[Elua-svn] r680 - trunk/src/lua
+</A></li>
+        <LI>Next message: <A HREF="000638.html">[Elua-svn] r682 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#637">[ date ]</a>
+              <a href="thread.html#637">[ thread ]</a>
+              <a href="subject.html#637">[ subject ]</a>
+              <a href="author.html#637">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-01-28 01:09:14 +0100 (Thu, 28 Jan 2010)
+New Revision: 681
+
+Modified:
+   trunk/src/platform/lm3s/platform_conf.h
+Log:
+Fix for LM3S MMCFS build bug, thanks to Tim Sharples for pointing this out.
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2010-01-27 22:23:07 UTC (rev 680)
++++ trunk/src/platform/lm3s/platform_conf.h	2010-01-28 00:09:14 UTC (rev 681)
+@@ -167,32 +167,27 @@
+ #define MMCFS_TICK_HZ     4
+ #define MMCFS_TICK_MS     ( 1000 / MMCFS_TICK_HZ )
+ 
+-#ifdef ELUA_BOARD_EKLM3S6965
++#if defined( ELUA_BOARD_EKLM3S6965 )
+   // EK-LM3S6965
+   #define MMCFS_CS_PORT                3
+   #define MMCFS_CS_PIN                 0
+   #define MMCFS_SPI_NUM                0
+-#endif
+-
+-#ifdef ELUA_BOARD_EKLM3S8962
++#elif defined( ELUA_BOARD_EKLM3S8962 )
+   // EK-LM3S8962
+   #define MMCFS_CS_PORT                6
+   #define MMCFS_CS_PIN                 0
+   #define MMCFS_SPI_NUM                0
+-#endif
+-
+-#ifdef ELUA_BOARD_EAGLE100
++#elif defined( ELUA_BOARD_EAGLE100 )
+   // Eagle-100
+   #define MMCFS_CS_PORT                6
+   #define MMCFS_CS_PIN                 1
+   #define MMCFS_SPI_NUM                0
++#elif defined( BUILD_MMCFS ) &amp;&amp; !defined( MMCFS_SPI_NUM )
++  #warning &quot;MMCFS was enabled, but required SPI &amp; CS data are undefined, disabling MMCFS&quot;
++  #undef BUILD_MMCFS
+ #endif
+ 
+-#ifndef SDC_SPI_NUM
+-#undef BUILD_MMCFS
+-#endif
+ 
+-
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         SysCtlClockGet()
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000636.html">[Elua-svn] r680 - trunk/src/lua
+</A></li>
+	<LI>Next message: <A HREF="000638.html">[Elua-svn] r682 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#637">[ date ]</a>
+              <a href="thread.html#637">[ thread ]</a>
+              <a href="subject.html#637">[ subject ]</a>
+              <a href="author.html#637">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

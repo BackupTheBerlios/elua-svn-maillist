@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r599 - branches/pre0.7/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r599%20-%20branches/pre0.7/doc/en&In-Reply-To=%3C200912170336.nBH3alJt031673%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000554.html">
+   <LINK REL="Next"  HREF="000556.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r599 - branches/pre0.7/doc/en</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r599%20-%20branches/pre0.7/doc/en&In-Reply-To=%3C200912170336.nBH3alJt031673%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r599 - branches/pre0.7/doc/en">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Dec 17 04:36:47 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000554.html">[Elua-svn] r598 - branches/pre0.7/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000556.html">[Elua-svn] r600 - trunk/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#555">[ date ]</a>
+              <a href="thread.html#555">[ thread ]</a>
+              <a href="subject.html#555">[ subject ]</a>
+              <a href="author.html#555">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-17 04:36:46 +0100 (Thu, 17 Dec 2009)
+New Revision: 599
+
+Modified:
+   branches/pre0.7/doc/en/building.html
+Log:
+Documentation for building LuaRPC.
+
+Modified: branches/pre0.7/doc/en/building.html
+===================================================================
+--- branches/pre0.7/doc/en/building.html	2009-12-17 01:45:49 UTC (rev 598)
++++ branches/pre0.7/doc/en/building.html	2009-12-17 03:36:46 UTC (rev 599)
+@@ -68,7 +68,8 @@
+ #define BUILD_DHCPC
+ #define BUILD_DNS
+ #define BUILD_CON_GENERIC
+-#define BUILD_ADC&lt;/code&gt;&lt;/pre&gt;
++#define BUILD_ADC
++#define BUILD_RPC&lt;/code&gt;&lt;/pre&gt;
+ &lt;p&gt;The components that can be configured in &lt;b&gt;eLua&lt;/b&gt; are:&lt;/p&gt;
+ &lt;table class=&quot;table_center&quot;&gt;
+ &lt;tbody&gt;
+@@ -181,6 +182,14 @@
+ &lt;a href=&quot;building.html#static&quot;&gt;Static configuration data dependencies:&lt;/a&gt; &lt;b&gt;ADC_BIT_RESOLUTION, ADC_TIMER_FIRST_ID, ADC_NUM_TIMERS, BUF_ENABLE_ADC, ADC_BUF_SIZE&lt;/b&gt;
+ &lt;/td&gt;
+ &lt;/tr&gt;
++&lt;tr&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUILD_RPC&lt;/td&gt;
++&lt;td&gt;Define this to build support for LuaRPC. This must be enabled to use the &lt;a href=&quot;refman_gen_rpc.html&quot;&gt;rpc module&lt;/a&gt;, or the &lt;a href=&quot;arch_platform_rpc.html&quot;&gt;rpc platform interface&lt;/a&gt;.
++To enable:
++&lt;pre&gt;&lt;code&gt;#define BUILD_RPC&lt;/code&gt;&lt;/pre&gt;
++&lt;a href=&quot;building.html#static&quot;&gt;Static configuration data dependencies&lt;/a&gt; (ONLY if built with boot=luarpc): &lt;b&gt;RPC_UART_ID, RPC_TIMER_ID&lt;/b&gt;
++&lt;/td&gt;
++&lt;/tr&gt;
+ &lt;/tbody&gt;
+ &lt;/table&gt;
+ &lt;a name=&quot;confmodules&quot;&gt;&lt;h2&gt;Configuring modules&lt;/h2&gt;&lt;/a&gt;
+@@ -282,34 +291,33 @@
+ &lt;/tr&gt;
+ 
+ &lt;tr&gt;
+-&lt;&lt;&lt;&lt;&lt;&lt;&lt; .mine
+ &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUF_ENABLE_ADC&lt;/td&gt;
+-&lt;td&gt;If the &lt;a href=&quot;arch_platform_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, this controls whether or not the ADC will create a buffer so that more than one sample per channel can be held in a buffer before being returned through adc.getsample or adc.getsamples.  If disabled, only one conversion result will be buffered.  This option does NOT affect the behavior of the moving average filter.&lt;/td&gt;
++&lt;td&gt;If the &lt;a href=&quot;refman_gen_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, this controls whether or not the ADC will create a buffer so that more than one sample per channel can be held in a buffer before being returned through adc.getsample or adc.getsamples.  If disabled, only one conversion result will be buffered.  This option does NOT affect the behavior of the moving average filter.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;ADC_BUF_SIZE&lt;/td&gt;
+-&lt;td&gt;If the &lt;a href=&quot;arch_platform_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, and BUF_ENABLE_ADC is defined, this will define the default buffer length allocated at startup.  This does not limit buffer sizes, it only defines the default length.  Appropriate values range from BUF_SIZE_2 to BUF_SIZE_32768, with the numeric component at the end being in powers of 2.&lt;/td&gt;
+- &lt;/tr&gt;
+-
++&lt;td&gt;If the &lt;a href=&quot;refman_gen_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, and
++BUF_ENABLE_ADC is defined, this will define the default buffer length
++allocated at startup. This does not limit buffer sizes, it only defines the
++default length. Appropriate values range from BUF_SIZE_2 to BUF_SIZE_32768,
++with the numeric component at the end being in powers of 2.&lt;/td&gt;
++&lt;/tr&gt;
+ &lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;ADC_BIT_RESOLUTION&lt;br&gt;ADC_TIMER_FIRST_ID&lt;br&gt;ADC_NUM_TIMERS
+-=======
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;BUF_ENABLE_ADC&lt;/td&gt;
+-&lt;td&gt;If the &lt;a href=&quot;refman_gen_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, this controls whether or not the ADC will create a buffer so that more than one sample per channel can be held in a buffer before being returned through adc.getsample or adc.getsamples.  If disabled, only one conversion result will be buffered.  This option does NOT affect the behavior of the moving average filter.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;ADC_BIT_RESOLUTION
++&lt;/td&gt;
++&lt;td&gt;If the &lt;a href=&quot;refman_gen_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, this will
++define the number of bits per adc conversion result. This is used to determine
++the maximum conversion value that can be returned by the ADC.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;ADC_BUF_SIZE&lt;/td&gt;
+-&lt;td&gt;If the &lt;a href=&quot;refman_gen_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, and BUF_ENABLE_ADC is defined, this will define the default buffer length allocated at startup.  This does not limit buffer sizes, it only defines the default length.  Appropriate values range from BUF_SIZE_2 to BUF_SIZE_32768, with the numeric component at the end being in powers of 2.&lt;/td&gt;
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;RPC_UART_ID
++&lt;/td&gt;
++&lt;td&gt;If the &lt;a href=&quot;refman_gen_rpc.html&quot;&gt;rpc module&lt;/a&gt; is enabled and boot mode is set to luarpc, this selects which uart luarpc will listen on for incoming client connections.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;ADC_BIT_RESOLUTION
+-&gt;&gt;&gt;&gt;&gt;&gt;&gt; .r476
++&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;RPC_TIMER_ID
+ &lt;/td&gt;
+-&lt;&lt;&lt;&lt;&lt;&lt;&lt; .mine
+-&lt;td&gt;The ADC resolution in bits, the ID of the first timer and the total number of timers used by the ADC subsystem.&lt;/td&gt;
+-=======
+-&lt;td&gt;If the &lt;a href=&quot;refman_gen_adc.html&quot;&gt;adc module&lt;/a&gt; is enabled, this will define the number of bits per adc conversion result.  This is used to determine the maximum conversion value that can be returned by the ADC.&lt;/td&gt;
+-&gt;&gt;&gt;&gt;&gt;&gt;&gt; .r476
++&lt;td&gt;If the &lt;a href=&quot;refman_gen_rpc.html&quot;&gt;rpc module&lt;/a&gt; is enabled and boot mode is set to luarpc, this selects which timer will be used with the uart selected with RPC_UART_ID.&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;/tbody&gt;
+ &lt;/table&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000554.html">[Elua-svn] r598 - branches/pre0.7/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000556.html">[Elua-svn] r600 - trunk/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#555">[ date ]</a>
+              <a href="thread.html#555">[ thread ]</a>
+              <a href="subject.html#555">[ subject ]</a>
+              <a href="author.html#555">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

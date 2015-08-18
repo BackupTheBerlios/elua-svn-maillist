@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r507 - branches/eagle_mmc/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r507%20-%20branches/eagle_mmc/src/platform/lm3s&In-Reply-To=%3C200910302323.n9UNNKFF002283%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000462.html">
+   <LINK REL="Next"  HREF="000464.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r507 - branches/eagle_mmc/src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r507%20-%20branches/eagle_mmc/src/platform/lm3s&In-Reply-To=%3C200910302323.n9UNNKFF002283%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r507 - branches/eagle_mmc/src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Oct 31 00:23:20 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000462.html">[Elua-svn] r506 - in branches/eagle_mmc/src: fatfs platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000464.html">[Elua-svn] r508 - in trunk: . romfs src/platform
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#463">[ date ]</a>
+              <a href="thread.html#463">[ thread ]</a>
+              <a href="subject.html#463">[ subject ]</a>
+              <a href="author.html#463">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-10-31 00:23:20 +0100 (Sat, 31 Oct 2009)
+New Revision: 507
+
+Modified:
+   branches/eagle_mmc/src/platform/lm3s/mmc.c
+Log:
+Simplify startup sequence for MMCFS.
+
+Modified: branches/eagle_mmc/src/platform/lm3s/mmc.c
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/mmc.c	2009-10-30 23:10:38 UTC (rev 506)
++++ branches/eagle_mmc/src/platform/lm3s/mmc.c	2009-10-30 23:23:20 UTC (rev 507)
+@@ -161,18 +161,11 @@
+     unsigned int i;
+     /* Ensure CS is held high. */
+     DESELECT();
+-
+-    /* Switch the SPI TX line to a GPIO and drive it high too. */
+-    platform_pio_op( SDC_SPI_PORT, ( ( u32 ) 1 &lt;&lt; SDC_TX_PIN ), PLATFORM_IO_PIN_DIR_OUTPUT );
+-    platform_pio_op( SDC_SPI_PORT, ( ( u32 ) 1 &lt;&lt; SDC_TX_PIN ), PLATFORM_IO_PIN_SET );
+     
+     /* Send 10 bytes over the SSI. This causes the clock to wiggle the */
+     /* required number of times. */
+     for(i = 0 ; i &lt; 10 ; i++)
+         rcvr_spi();
+-
+-    /* Revert to hardware control of the SSI TX line. */
+-    platform_spi_setup( SDC_SPI_NUM, PLATFORM_SPI_MASTER, 400000, 0, 0, 8 );
+ }
+ 
+ /*-----------------------------------------------------------------------*/
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000462.html">[Elua-svn] r506 - in branches/eagle_mmc/src: fatfs platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000464.html">[Elua-svn] r508 - in trunk: . romfs src/platform
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#463">[ date ]</a>
+              <a href="thread.html#463">[ thread ]</a>
+              <a href="subject.html#463">[ subject ]</a>
+              <a href="author.html#463">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

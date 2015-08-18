@@ -1,0 +1,192 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r641 - in branches/pre0.7/doc: . en images
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r641%20-%20in%20branches/pre0.7/doc%3A%20.%20en%20images&In-Reply-To=%3C201001132302.o0DN28Dl015089%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000596.html">
+   <LINK REL="Next"  HREF="000598.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r641 - in branches/pre0.7/doc: . en images</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r641%20-%20in%20branches/pre0.7/doc%3A%20.%20en%20images&In-Reply-To=%3C201001132302.o0DN28Dl015089%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r641 - in branches/pre0.7/doc: . en images">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Jan 14 00:02:08 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000596.html">[Elua-svn] r640 - branches/pre0.7/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000598.html">[Elua-svn] r642 - in branches/pre0.7: inc src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#597">[ date ]</a>
+              <a href="thread.html#597">[ thread ]</a>
+              <a href="subject.html#597">[ subject ]</a>
+              <a href="author.html#597">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-01-14 00:02:04 +0100 (Thu, 14 Jan 2010)
+New Revision: 641
+
+Added:
+   branches/pre0.7/doc/en/installing_lpc2468.html
+   branches/pre0.7/doc/images/flashmagic.png
+   branches/pre0.7/doc/images/ft_prog_power.png
+   branches/pre0.7/doc/images/ft_prog_strings.png
+Modified:
+   branches/pre0.7/doc/docdata.lua
+   branches/pre0.7/doc/en/installing_lpc2888.html
+Log:
+added the tutorial for using the eLua demo board with eLua. yes, it has pictures :)
+
+Modified: branches/pre0.7/doc/docdata.lua
+===================================================================
+--- branches/pre0.7/doc/docdata.lua	2010-01-13 20:19:43 UTC (rev 640)
++++ branches/pre0.7/doc/docdata.lua	2010-01-13 23:02:04 UTC (rev 641)
+@@ -140,6 +140,7 @@
+       { &quot;STR7&quot;, &quot;installing_str7.html&quot; },
+       { &quot;STR9&quot;, &quot;installing_str9.html&quot; },
+       { &quot;STM32&quot;, &quot;installing_stm32.html&quot; },
++      { &quot;LPC2468&quot;, &quot;installing_lpc2468.html&quot; }
+     },
+   },        
+           
+
+Added: branches/pre0.7/doc/en/installing_lpc2468.html
+===================================================================
+--- branches/pre0.7/doc/en/installing_lpc2468.html	2010-01-13 20:19:43 UTC (rev 640)
++++ branches/pre0.7/doc/en/installing_lpc2468.html	2010-01-13 23:02:04 UTC (rev 641)
+@@ -0,0 +1,55 @@
++$$HEADER$$
++&lt;h3&gt;Installing &lt;b&gt;eLua&lt;/b&gt; on the LPC2468 CPU from NXP&lt;/h3&gt;
++&lt;p&gt;The &lt;a href=&quot;<A HREF="http://ics.nxp.com/products/lpc2000/lpc24xx/">http://ics.nxp.com/products/lpc2000/lpc24xx/</A>&quot;&gt;LPC2468 CPU&lt;/a&gt; from &lt;a href=&quot;<A HREF="http://www.nxp.com">http://www.nxp.com</A>&quot;&gt;NXP&lt;/a&gt; is one of the CPUs on which &lt;b&gt;eLua&lt;/b&gt; is very happy to run, because of its
++very generous resources: 512k of Flash and 96k of SRAM on-chip memory, loads of peripherals, up to 72MHz operating frequency, external memory bus and other goodies. &lt;b&gt;eLua&lt;/b&gt; is so happy with
++this chip, in fact, that a board designed specifically for &lt;b&gt;eLua&lt;/b&gt; was built around it. You can find the full specifications of the board 
++&lt;a href=&quot;<A HREF="http://www.giga.puc-rio.br/site/embedded/eluademoboard">http://www.giga.puc-rio.br/site/embedded/eluademoboard</A>&quot;&gt;here&lt;/a&gt;. This is the board that we're going to use in this tutorial.&lt;/p&gt;
++ &lt;h3&gt;Prerequisites&lt;/h3&gt; 
++ &lt;p&gt;Before you'll be able to use &lt;b&gt;eLua&lt;/b&gt; on the LPC2468 CPU, make sure that:&lt;/p&gt;
++ &lt;ul&gt;
++ &lt;li&gt;you're using Windows. Using this board under Linux or other operating systems should be possible, but we're going to cover only Windows here.&lt;/li&gt;
++ &lt;li&gt;you downloaded the latest FTDI VCP drivers from &lt;a href=&quot;<A HREF="http://www.ftdichip.com/Drivers/VCP.htm">http://www.ftdichip.com/Drivers/VCP.htm</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
++ &lt;li&gt;you downloaded and installed the FTDI FT_PROG tool from &lt;a href=&quot;<A HREF="http://www.ftdichip.com/Resources/Utilities.htm">http://www.ftdichip.com/Resources/Utilities.htm</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
++ &lt;li&gt;you downloaded and installed the Flash Magic programming software from &lt;a href=&quot;<A HREF="http://www.flashmagictool.com/">http://www.flashmagictool.com/</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
++ &lt;li&gt;you already have your &lt;b&gt;eLua&lt;/b&gt; image for the LPC2468 CPU (&lt;a href=&quot;building.html&quot;&gt;built&lt;/a&gt; or &lt;a href=&quot;downloads.html&quot;&gt;downloaded&lt;/a&gt;).&lt;/li&gt;
++ &lt;/ul&gt;
++ &lt;h3&gt;Burning &lt;b&gt;eLua&lt;/b&gt; to the LPC2468 using the Flash Magic software&lt;/h3&gt;
++ &lt;p&gt;Before actually downloading the &lt;b&gt;eLua&lt;/b&gt; image to the CPU, the board must be configured for proper USB operation (note that this should be done only once, not everytime you need to program
++ a new &lt;b&gt;eLua&lt;/b&gt; image). The steps for this procedure are listed below:&lt;/p&gt;
++&lt;ol&gt;
++  &lt;li&gt;make sure that jumper JP1 on the board is set to position &quot;USB&quot; (2-3) if you want to power your board from the USB bus.&lt;/li&gt;
++  &lt;li&gt;connect your board to the PC using an USB cable.&lt;/li&gt;
++  &lt;li&gt;if needed, install the FTDI drivers you downloaded earlier.&lt;/li&gt;
++  &lt;li&gt;once the drivers are properly installed, start the FTDI FT_PROG software downloaded earlier and choose &quot;Devices&quot;, &quot;Scan and Parse&quot;. If everything is OK, your device should show up in the 
++  left part of the FT_PROG window, under &quot;Device Tree&quot;.&lt;/li&gt;
++  &lt;li&gt;in &quot;Device Tree&quot;, select &quot;USB_Config_Descriptor&quot;, then enter &quot;500&quot; in the &quot;Max Bus Power&quot; field in the upper right part of the FT_PROG window. It should look like below:
++  &lt;img src=&quot;images/ft_prog_power.png&quot; alt=&quot;FT_PROG power settings&quot; style=&quot;margin-top: 10px;&quot; /&gt;
++  &lt;/li&gt;
++  &lt;li&gt;&lt;b&gt;(optional)&lt;/b&gt; now it's a good time to give your &lt;b&gt;eLua&lt;/b&gt; board a good description :) In &quot;Device Tree&quot;, select &quot;USB_String_Descriptors&quot;, then enter &quot;eluaproject.net&quot; in the 
++  &quot;Manufacturer&quot; field in the upper right part of the FT_PROG window, and &quot;eLua demo board&quot; in the &quot;Product Description&quot; field. It should look like below:
++  &lt;img src=&quot;images/ft_prog_strings.png&quot; alt=&quot;FT_PROG strings&quot; style=&quot;margin-top: 10px;&quot; /&gt;
++  &lt;/li&gt;
++  &lt;li&gt;choose &quot;Devices&quot;, &quot;Program&quot;. The new settings will be written to the FTDI chip internal memory, and the board will automatically re-enumerate.&lt;/li&gt;
++&lt;/ol&gt;
++&lt;p&gt;Once your board is properly configured (remember, you only need to do this ONCE!), follow the next steps to program your &lt;b&gt;eLua&lt;/b&gt; image to the board as many times as you need to:&lt;/p&gt;
++&lt;ol&gt;
++  &lt;li&gt;make sure that jumper JP1 on the board is set to position &quot;USB&quot; (2-3) if you want to power your board from the USB bus.&lt;/li&gt;
++  &lt;li&gt;make sure that JP2 (ISP), JP3 (RST), JP6 (RDX0) and JP7 (TDX0) are connected on the board.&lt;/li&gt;
++  &lt;li&gt;connect the board to the PC using an USB cable.&lt;/li&gt;
++  &lt;li&gt;find the serial port used by the board. Open &quot;Device Manager&quot; in Windows, go to &quot;Ports (COM &amp; LPT)&quot; and look for a serial port named &quot;USB serial port&quot; or something similar. If unsure,
++      simply unplug the board. The serial port that disappears from the list after unplugging the board is your board's serial port.&lt;/li&gt;
++  &lt;li&gt;start Flash Magic and click on &quot;Select Device&quot; under &quot;Step 1 - Communications&quot;. In the &quot;Device Database&quot; window that appears, select &quot;ARM7&quot; and then double click on &quot;LPC2468&quot; 
++  (&lt;b&gt;NOT&lt;/b&gt; &quot;LPC2468 Ethernet&quot;).&lt;/li&gt;
++  &lt;li&gt;select the COM port from step 4 in &quot;COM Port&quot;, set the baud rate to 230400, &quot;Interface&quot; to &quot;None (ISP)&quot;, and &quot;Oscillator (MHZ)&quot; to 12.&lt;/li&gt;
++  &lt;li&gt;under &quot;Step 2 - Erase&quot;, select &quot;Erase blocks used by Hex File&quot;.&lt;/li&gt;
++  &lt;li&gt;under &quot;Step 3 - Hex File&quot;, select your LPC2468 &lt;/b&gt;eLua&lt;/b&gt; hex file.&lt;/li&gt;
++  &lt;li&gt;&lt;b&gt;(optional)&lt;/b&gt; under &quot;Step 4 - Options&quot;, select &quot;Verify after programming&quot; if you want to verify your downloaded image.&lt;/li&gt;
++&lt;/ol&gt;
++&lt;p&gt;After all the steps above, the Flash Magic windows should look similar to the image below (my LPC2468 serial port is COM14):&lt;/p&gt;
++&lt;img src=&quot;images/flashmagic.png&quot; alt=&quot;Flash Magic Settings&quot; style=&quot;margin-left: 10px;&quot; /&gt;
++&lt;p&gt;All that's left to do is hit the &quot;Start&quot; button, and wait (the whole process takes a while). When it's finished, close Flash Magic and remove the JP2 (ISP) and JP3 (RST) jumpers from the
++board, then reset it.&lt;/p&gt;
++&lt;p&gt;That's it! You now have &lt;b&gt;eLua&lt;/b&gt; programmed on your board, so you can start your terminal emulator and enjoy it, as described in &lt;a href=&quot;using.html&quot;&gt;using eLua&lt;/a&gt;.&lt;/p&gt;
++
++$$FOOTER$$
++
+
+Modified: branches/pre0.7/doc/en/installing_lpc2888.html
+===================================================================
+--- branches/pre0.7/doc/en/installing_lpc2888.html	2010-01-13 20:19:43 UTC (rev 640)
++++ branches/pre0.7/doc/en/installing_lpc2888.html	2010-01-13 23:02:04 UTC (rev 641)
+@@ -1,5 +1,5 @@
+ $$HEADER$$
+-&lt;h3&gt;Installing &lt;b&gt;eLua&lt;/b&gt; with the LPC2888 CPU from NXP&lt;/h3&gt;
++&lt;h3&gt;Installing &lt;b&gt;eLua&lt;/b&gt; on the LPC2888 CPU from NXP&lt;/h3&gt;
+ &lt;p&gt;The &lt;a href=&quot;<A HREF="http://www.standardics.nxp.com/products/lpc2000/all/~LPC2888/">http://www.standardics.nxp.com/products/lpc2000/all/~LPC2888/</A>&quot;&gt;LPC2888 CPU&lt;/a&gt; from &lt;a href=&quot;<A HREF="http://www.nxp.com">http://www.nxp.com</A>&quot;&gt;NXP&lt;/a&gt; packs some interesting features: huge internal 1Mbyte flash memory,
+   on-chip USB 2.0 high speed interface, and the most complex (by far) clocking network that I've ever seen on an ATM7TDMI chip. Also, it implements the USB DFU (Device Firmware Update) profile over
+   its USB interface, so it's quite easy to program it in-circuit. I'm using the &lt;a href=&quot;<A HREF="http://www.olimex.com/dev/lpc-h2888.html">http://www.olimex.com/dev/lpc-h2888.html</A>&quot;&gt;Olimex LPC-H2888&lt;/a&gt; development board built around this chip, which packs
+
+Added: branches/pre0.7/doc/images/flashmagic.png
+===================================================================
+(Binary files differ)
+
+
+Property changes on: branches/pre0.7/doc/images/flashmagic.png
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: branches/pre0.7/doc/images/ft_prog_power.png
+===================================================================
+(Binary files differ)
+
+
+Property changes on: branches/pre0.7/doc/images/ft_prog_power.png
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+Added: branches/pre0.7/doc/images/ft_prog_strings.png
+===================================================================
+(Binary files differ)
+
+
+Property changes on: branches/pre0.7/doc/images/ft_prog_strings.png
+___________________________________________________________________
+Name: svn:mime-type
+   + application/octet-stream
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000596.html">[Elua-svn] r640 - branches/pre0.7/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000598.html">[Elua-svn] r642 - in branches/pre0.7: inc src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#597">[ date ]</a>
+              <a href="thread.html#597">[ thread ]</a>
+              <a href="subject.html#597">[ subject ]</a>
+              <a href="author.html#597">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

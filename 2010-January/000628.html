@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r672 - tags/v0.7/inc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r672%20-%20tags/v0.7/inc&In-Reply-To=%3C201001220551.o0M5phUP029425%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000627.html">
+   <LINK REL="Next"  HREF="000629.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r672 - tags/v0.7/inc</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r672%20-%20tags/v0.7/inc&In-Reply-To=%3C201001220551.o0M5phUP029425%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r672 - tags/v0.7/inc">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Jan 22 06:51:43 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000627.html">[Elua-svn] r671 - tags
+</A></li>
+        <LI>Next message: <A HREF="000629.html">[Elua-svn] r673 - in trunk: . doc doc/eluadoc doc/en doc/images	doc/pt inc inc/serial romfs src src/fatfs src/lua src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/lm3s	src/platform/lpc24xx src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/str7 src/platform/str9	src/serial test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#628">[ date ]</a>
+              <a href="thread.html#628">[ thread ]</a>
+              <a href="subject.html#628">[ subject ]</a>
+              <a href="author.html#628">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-01-22 06:51:36 +0100 (Fri, 22 Jan 2010)
+New Revision: 672
+
+Modified:
+   tags/v0.7/inc/luarpc_rpc.h
+Log:
+Fix compilation bug introduced while adding Win32 support for LuaRPC.
+
+Modified: tags/v0.7/inc/luarpc_rpc.h
+===================================================================
+--- tags/v0.7/inc/luarpc_rpc.h	2010-01-21 20:16:05 UTC (rev 671)
++++ tags/v0.7/inc/luarpc_rpc.h	2010-01-22 05:51:36 UTC (rev 672)
+@@ -92,11 +92,14 @@
+ 
+ /* Transport Connection Structure */
+ 
+-/* FIXME: should be cleaner */
+ typedef struct _Transport Transport;
+ struct _Transport 
+ {
++#ifdef ser_handler
+   ser_handler fd;
++#else
++  int fd;
++#endif
+   unsigned tmr_id;
+   u8     loc_little: 1,               // Local is little endian?
+          loc_armflt: 1,               // local float representation is arm float?
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000627.html">[Elua-svn] r671 - tags
+</A></li>
+	<LI>Next message: <A HREF="000629.html">[Elua-svn] r673 - in trunk: . doc doc/eluadoc doc/en doc/images	doc/pt inc inc/serial romfs src src/fatfs src/lua src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/lm3s	src/platform/lpc24xx src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/str7 src/platform/str9	src/serial test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#628">[ date ]</a>
+              <a href="thread.html#628">[ thread ]</a>
+              <a href="subject.html#628">[ subject ]</a>
+              <a href="author.html#628">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

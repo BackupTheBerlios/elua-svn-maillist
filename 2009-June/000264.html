@@ -1,0 +1,253 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r308 - in branches/luarpc: inc src src/modules test
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r308%20-%20in%20branches/luarpc%3A%20inc%20src%20src/modules%20test&In-Reply-To=%3C200906222314.n5MNEK7J030616%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000263.html">
+   <LINK REL="Next"  HREF="000265.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r308 - in branches/luarpc: inc src src/modules test</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r308%20-%20in%20branches/luarpc%3A%20inc%20src%20src/modules%20test&In-Reply-To=%3C200906222314.n5MNEK7J030616%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r308 - in branches/luarpc: inc src src/modules test">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Jun 23 01:14:20 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000263.html">[Elua-svn] r307 - in branches/luarpc: src/lua src/modules test
+</A></li>
+        <LI>Next message: <A HREF="000265.html">[Elua-svn] r309 - in branches/luarpc: inc src src/modules test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#264">[ date ]</a>
+              <a href="thread.html#264">[ thread ]</a>
+              <a href="subject.html#264">[ subject ]</a>
+              <a href="author.html#264">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-23 01:14:18 +0200 (Tue, 23 Jun 2009)
+New Revision: 308
+
+Modified:
+   branches/luarpc/inc/luarpc_rpc.h
+   branches/luarpc/src/luarpc_posix_serial.c
+   branches/luarpc/src/modules/luarpc.c
+   branches/luarpc/test/test-rpc.lua
+Log:
+Added error messages &amp; tweaking.
+
+Modified: branches/luarpc/inc/luarpc_rpc.h
+===================================================================
+--- branches/luarpc/inc/luarpc_rpc.h	2009-06-21 00:02:00 UTC (rev 307)
++++ branches/luarpc/inc/luarpc_rpc.h	2009-06-22 23:14:18 UTC (rev 308)
+@@ -82,7 +82,8 @@
+ 	ERR_NODATA	 = MAXINT - 103,
+ 	ERR_BADFNAME = MAXINT - 104,
+ 	ERR_DATALINK = MAXINT - 105,
+-	ERR_COMMAND  = MAXINT - 106
++	ERR_COMMAND  = MAXINT - 106,
++	ERR_HEADER   = MAXINT - 107
+ };
+ 
+ enum exception_type { done, nonfatal, fatal };
+
+Modified: branches/luarpc/src/luarpc_posix_serial.c
+===================================================================
+--- branches/luarpc/src/luarpc_posix_serial.c	2009-06-21 00:02:00 UTC (rev 307)
++++ branches/luarpc/src/luarpc_posix_serial.c	2009-06-22 23:14:18 UTC (rev 308)
+@@ -60,7 +60,7 @@
+   options.c_cflag     |= CS8;
+   
+   options.c_cc[VMIN]  = 0;
+-  options.c_cc[VTIME] = 10;
++  options.c_cc[VTIME] = 100;
+ 
+ 	tcsetattr(tpt-&gt;fd, TCSANOW, &amp;options);
+ 	fcntl(tpt-&gt;fd, F_SETFL, 0);
+
+Modified: branches/luarpc/src/modules/luarpc.c
+===================================================================
+--- branches/luarpc/src/modules/luarpc.c	2009-06-21 00:02:00 UTC (rev 307)
++++ branches/luarpc/src/modules/luarpc.c	2009-06-22 23:14:18 UTC (rev 308)
+@@ -109,6 +109,7 @@
+   case ERR_NODATA: return &quot;no data received when attempting to read&quot;;
+   case ERR_BADFNAME: return &quot;function name is too long&quot;;
+   case RPC_UNSUPPORTED_CMD: return &quot;an unsupported action was requested&quot;;
++	case ERR_HEADER: return &quot;header exchanged failed&quot;;
+   default: return transport_strerror (n);
+   }
+ }
+@@ -251,13 +252,13 @@
+     {
+       case 1: {
+         int8_t y = ( int8_t )x;
+-        transport_write_buffer( tpt, (char *)&amp;y, 1 );
++        transport_write_buffer( tpt, ( char * )&amp;y, 1 );
+       } break;
+       case 2: {
+         int16_t y = ( int16_t )x;
+         if( tpt-&gt;net_little != tpt-&gt;loc_little )
+           swap_bytes( ( char * )&amp;y, 2 );
+-        transport_write_buffer( tpt, (char *)&amp;y, 2 );
++        transport_write_buffer( tpt, ( char * )&amp;y, 2 );
+       } break;
+       case 4: {
+         int32_t y = ( int32_t )x;
+@@ -368,7 +369,6 @@
+   luaL_Buffer b;
+   DumpTargetInfo target;
+   
+-  int test=1;
+   target.little_endian=tpt-&gt;net_little;
+   target.sizeof_int=sizeof(int);
+   target.sizeof_strsize_t=sizeof(strsize_t);
+@@ -539,7 +539,7 @@
+       return 0;
+ 
+     default:
+-      e.errnum = ERR_PROTOCOL;
++      e.errnum = type;
+       e.type = fatal;
+       Throw( e );
+   }
+@@ -583,7 +583,7 @@
+       header[3] != 'C' ||
+       header[4] != RPC_PROTOCOL_VERSION )
+   {
+-    e.errnum = ERR_PROTOCOL;
++    e.errnum = ERR_HEADER;
+     e.type = nonfatal;
+     Throw( e );
+   }
+@@ -612,7 +612,7 @@
+       header[3] != 'C' ||
+       header[4] != RPC_PROTOCOL_VERSION )
+   {
+-    e.errnum = ERR_PROTOCOL;
++    e.errnum = ERR_HEADER;
+     e.type = nonfatal;
+     Throw( e );
+   }
+@@ -848,7 +848,7 @@
+   {
+     Try
+     {
+-      int i,len,n;
++      int i,n;
+       u32 nret,ret_code;
+       u8 cmdresp;
+ 
+
+Modified: branches/luarpc/test/test-rpc.lua
+===================================================================
+--- branches/luarpc/test/test-rpc.lua	2009-06-21 00:02:00 UTC (rev 307)
++++ branches/luarpc/test/test-rpc.lua	2009-06-22 23:14:18 UTC (rev 308)
+@@ -1,6 +1,5 @@
+ function error_handler (message)
+ 	io.write (&quot;MY ERROR: &quot; .. message .. &quot;\n&quot;);
+-	slave,err = rpc.connect (&quot;/dev/tty.usbserial-ftCYPMYJ&quot;);
+ end
+ 
+ rpc.on_error (error_handler);
+@@ -8,35 +7,33 @@
+ slave,err = rpc.connect (&quot;/dev/tty.usbserial-ftCYPMYJ&quot;);
+ --slave,err = rpc.connect (&quot;/dev/ttys0&quot;);
+ 
+-print(&quot;Platform: &quot; .. slave.pd.platform())
+-print(&quot;CPU: &quot; .. slave.pd.cpu())
+-print(&quot;Board: &quot; .. slave.pd.board())
+-print(&quot;CPU Clock: &quot; .. slave.cpu.clock()/1000000 .. &quot; MHz&quot;)
++-- print(&quot;Platform: &quot; .. slave.pd.platform())
++-- print(&quot;CPU: &quot; .. slave.pd.cpu())
++-- print(&quot;Board: &quot; .. slave.pd.board())
++-- print(&quot;CPU Clock: &quot; .. slave.cpu.clock()/1000000 .. &quot; MHz&quot;)
+ 
+ function mirror( input ) return input end
+-function squareval(x) return x^2 end
++function squareval(x) return x*x end
+ test_local = {1, 2, 3, 4, &quot;234&quot;}
+ test_local.sval = 23
++-- slave.mirror = mirror
+ 
+-slave.mirror = mirror
++for i = 1,100000 do math.sqrt(i) end
+ 
+ -- reflect parameters off mirror
+ -- also requires that function serialization works
+-assert(slave.mirror(42) == 42, &quot;integer return failed&quot;)
+-assert(slave.mirror(&quot;this is a test!&quot;) == &quot;this is a test!&quot;, &quot;string return failed&quot;)
+-assert(string.dump(slave.mirror(squareval)) == string.dump(squareval), &quot;function return failed&quot;)
+-assert(slave.mirror(true) == true, &quot;bool return failed&quot;)
++-- assert(slave.mirror(42) == 42, &quot;integer return failed&quot;)
++-- assert(slave.mirror(&quot;this is a test!&quot;) == &quot;this is a test!&quot;, &quot;string return failed&quot;)
++-- assert(string.dump(slave.mirror(squareval)) == string.dump(squareval), &quot;function return failed&quot;)
++-- assert(slave.mirror(true) == true, &quot;bool return failed&quot;)
+ 
+-slave.test = test_local
++-- slave.test = test_local
+ 
+ -- get remote table
+-assert(slave.test:get(), &quot;couldn't get remote table&quot;)
++-- assert(slave.test:get(), &quot;couldn't get remote table&quot;)
+ 
+-
+ -- check that we can get entry on remote table
+-assert(test_local.sval == slave.test:get().sval, &quot;table field not equivalent&quot;)
+-slave.collectgarbage(&quot;collect&quot;)
+-print(slave.collectgarbage(&quot;count&quot;))
++-- assert(test_local.sval == slave.test:get().sval, &quot;table field not equivalent&quot;)
+ 
+ adc = slave.adc
+ 
+@@ -45,12 +42,9 @@
+ 
+ adc.sample(0,128)
+ print(slave.collectgarbage(&quot;count&quot;))
+-while 1 do
++for i=1,128 do
+ 	retsamp = adc.getsample(0)
+ 	if not (retsamp == nil) then
+ 		print(retsamp)
+-	else
+-		print(slave.collectgarbage(&quot;count&quot;))
+-		adc.sample(0,128)
+ 	end
+-end
+\ No newline at end of file
++end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000263.html">[Elua-svn] r307 - in branches/luarpc: src/lua src/modules test
+</A></li>
+	<LI>Next message: <A HREF="000265.html">[Elua-svn] r309 - in branches/luarpc: inc src src/modules test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#264">[ date ]</a>
+              <a href="thread.html#264">[ thread ]</a>
+              <a href="subject.html#264">[ subject ]</a>
+              <a href="author.html#264">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

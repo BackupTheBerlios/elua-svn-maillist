@@ -1,0 +1,2135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r410 - in tags/pre0.6/doc: . eluadoc en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r410%20-%20in%20tags/pre0.6/doc%3A%20.%20eluadoc%20en&In-Reply-To=%3C200908252009.n7PK9mBx004832%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000365.html">
+   <LINK REL="Next"  HREF="000367.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r410 - in tags/pre0.6/doc: . eluadoc en</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r410%20-%20in%20tags/pre0.6/doc%3A%20.%20eluadoc%20en&In-Reply-To=%3C200908252009.n7PK9mBx004832%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r410 - in tags/pre0.6/doc: . eluadoc en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Aug 25 22:09:48 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000365.html">[Elua-svn] r409 - tags/pre0.6/doc
+</A></li>
+        <LI>Next message: <A HREF="000367.html">[Elua-svn] r411 - in trunk: inc src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#366">[ date ]</a>
+              <a href="thread.html#366">[ thread ]</a>
+              <a href="subject.html#366">[ subject ]</a>
+              <a href="author.html#366">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-08-25 22:09:46 +0200 (Tue, 25 Aug 2009)
+New Revision: 410
+
+Modified:
+   tags/pre0.6/doc/buildall.lua
+   tags/pre0.6/doc/docdata.lua
+   tags/pre0.6/doc/eluadoc.lua
+   tags/pre0.6/doc/eluadoc/arch_platform_adc.lua
+   tags/pre0.6/doc/eluadoc/arch_platform_eth.lua
+   tags/pre0.6/doc/eluadoc/arch_platform_pio.lua
+   tags/pre0.6/doc/eluadoc/arch_platform_pwm.lua
+   tags/pre0.6/doc/eluadoc/arch_platform_spi.lua
+   tags/pre0.6/doc/eluadoc/arch_platform_timers.lua
+   tags/pre0.6/doc/eluadoc/refman_gen_cpu.lua
+   tags/pre0.6/doc/eluadoc/refman_gen_net.lua
+   tags/pre0.6/doc/eluadoc/refman_gen_pack.lua
+   tags/pre0.6/doc/eluadoc/refman_gen_spi.lua
+   tags/pre0.6/doc/eluadoc/refman_gen_term.lua
+   tags/pre0.6/doc/eluadoc/refman_gen_uart.lua
+   tags/pre0.6/doc/en/arch_overview.html
+   tags/pre0.6/doc/en/tc_386.html
+   tags/pre0.6/doc/en/tc_arm.html
+   tags/pre0.6/doc/en/tc_cortex.html
+   tags/pre0.6/doc/en/tchainbuild.html
+   tags/pre0.6/doc/en/tut_bootpc.html
+   tags/pre0.6/doc/en/tut_bootstick.html
+   tags/pre0.6/doc/en/tut_openocd.html
+   tags/pre0.6/doc/en/tutorials.html
+   tags/pre0.6/doc/style1.css
+Log:
+more fixes to the documentation generator, approaching 100% XHTML 1.0 strict compliance
+
+Modified: tags/pre0.6/doc/buildall.lua
+===================================================================
+--- tags/pre0.6/doc/buildall.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/buildall.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -237,10 +237,11 @@
+   local menudata = &quot;&quot;
+   local lidx = langidx[ lang ]
+   for i = 1, #themenu do
++    local styledef =  i == #themenu and ' style=&quot;border-bottom-width: 0&quot;' or &quot;&quot;
+     local link = themenu[ i ][ link_idx ]
+     local name = get_menu_name( themenu[ i ], lang )
+     if not link then
+-      htmlstr = htmlstr .. string.format('      &lt;li class=&quot;sep&quot;&gt;%s&lt;/li&gt;\n', name )
++      htmlstr = htmlstr .. string.format('      &lt;li class=&quot;sep&quot;%s&gt;%s&lt;/li&gt;\n', styledef, name )
+     else
+       local relname = string.gsub( string.gsub( string.format( &quot;s_%d_%s&quot;, i, string.lower( get_base_link( link ) ) ), &quot;%s&quot;, &quot;_&quot; ), &quot;%.html&quot;, &quot;&quot; )
+       -- If we have a submenu, update the HTML menu content part
+@@ -256,13 +257,13 @@
+         if i == parentid then
+           -- If this is the parent, use a special style for it (&lt;a class=&quot;current&quot;&gt; or &lt;li class=&quot;current&quot;&gt;, depending on the item type)
+           if themenu[ i ][ submenu_idx ] then
+-            htmlstr = htmlstr .. string.format('      &lt;li&gt;&lt;a class=&quot;current&quot; href=&quot;%s&quot; rel=&quot;%s&quot;&gt;%s&lt;/a&gt;&lt;/li&gt;\n', get_link( lang, link ), relname, name )
++            htmlstr = htmlstr .. string.format('      &lt;li&gt;&lt;a class=&quot;current&quot; href=&quot;%s&quot; rel=&quot;%s&quot;%s&gt;%s&lt;/a&gt;&lt;/li&gt;\n', get_link( lang, link ), relname, styledef, name )
+           else
+-            htmlstr = htmlstr .. string.format('      &lt;li class=&quot;current&quot;&gt;%s&lt;/li&gt;\n', name )
++            htmlstr = htmlstr .. string.format('      &lt;li class=&quot;current&quot;%s&gt;%s&lt;/li&gt;\n', styledef, name )
+           end
+         else
+           local submenustr = themenu[ i ][ submenu_idx ] and string.format( ' rel=&quot;%s&quot;', relname ) or &quot;&quot;
+-          htmlstr = htmlstr .. string.format('      &lt;li&gt;&lt;a href=&quot;%s&quot;%s&gt;%s&lt;/a&gt;&lt;/li&gt;\n', get_link( lang, link ), submenustr, name )
++          htmlstr = htmlstr .. string.format('      &lt;li&gt;&lt;a href=&quot;%s&quot;%s%s&gt;%s&lt;/a&gt;&lt;/li&gt;\n', get_link( lang, link ), submenustr, styledef, name )
+         end
+       end
+     end
+@@ -365,9 +366,11 @@
+ 
+   -- Anticipate some common errors and fix them directly
+   orig = orig:gsub( &quot;&lt;br&gt;&quot;, &quot;&lt;br /&gt;&quot; )
+-  orig = orig:gsub( '(&lt;a name=[&quot;\'].-[&quot;\']&gt;)(.-)&lt;/a&gt;%s-\n', function( anchor, data )
++  orig = orig:gsub( '(&lt;a name=[&quot;\'][^\'&quot;]-[&quot;\']&gt;)([^\n]-)&lt;/a&gt;%s-\n', function( anchor, data )
+     return anchor:gsub( &quot;&gt;&quot;, &quot; /&gt;&quot; ) .. data .. &quot;\n&quot;
+   end )
++  orig = orig:gsub( '&lt;p&gt;&lt;pre&gt;&lt;code&gt;(.-)&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;', &quot;&lt;pre&gt;&lt;code&gt;%1&lt;/code&gt;&lt;/pre&gt;&quot; )
++  orig = orig:gsub( 'target=&quot;_blank&quot;', &quot;&quot; )
+ 
+   -- Generate actual data
+   local header = string.format( [[
+@@ -423,14 +426,16 @@
+ 
+ -- Argument check
+ local args = { ... }
++local destdir
+ if #args ~= 1 then
+-  print &quot;Usage: buildall &lt;dest_dir&gt;&quot;
+-  return
++  print &quot;Using 'dist/' as the destination directory&quot;
++  destdir = &quot;dist&quot;
++else
++  destdir = args[ 1 ]
+ end
+ 
+ -- Read the documentation data
+ themenu, translations, fixed = dofile( &quot;docdata.lua&quot; )
+-print( themenu, translation, fixed )
+ if not themenu or not translations or not fixed then
+   print &quot;docdata.lua doesn't return the proper data, aborting.&quot;
+   return
+@@ -454,7 +459,6 @@
+ 
+ -- If the destination directory doesn't exist, create it
+ -- If it exists, remove it
+-local destdir = args[ 1 ]
+ local attr = lfs.attributes( destdir )
+ if not attr then
+   if not lfs.mkdir( destdir ) then
+@@ -483,7 +487,7 @@
+     print( string.format( &quot;Processing %s %s...&quot;, fname, entry.item[ name_idx ] and &quot;&quot; or &quot;(hidden entry)&quot; ) )
+     local res, err = gen_html_page( fname, lang )
+     if not res then
+-      print( err )
++      print( &quot;***&quot; .. err )
+     else
+       local g = io.open( string.format( &quot;%s/%s_%s&quot;, destdir, lang, fname ), &quot;wb&quot; )
+       if not g then
+
+Modified: tags/pre0.6/doc/docdata.lua
+===================================================================
+--- tags/pre0.6/doc/docdata.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/docdata.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -118,6 +118,22 @@
+   -- &quot;FAQ&quot;
+   { &quot;FAQ&quot;, &quot;faq.html&quot; },
+ 
++  -- &quot;Tutorials&quot;
++  { &quot;Tutorials&quot;, &quot;tutorials.html&quot;,
++    {
++      { &quot;Booting on a PC&quot;, &quot;tut_bootpc.html&quot; },
++      { &quot;Booting from an USB stick&quot;, &quot;tut_bootstick.html&quot; },
++      { &quot;Building toolchains&quot;, &quot;tchainbuild.html&quot;,
++        {
++          { &quot;ARM7 and ARM9&quot;, &quot;tc_arm.html&quot; },
++          { &quot;Cortex-M3&quot;, &quot;tc_cortex.html&quot; },
++          { &quot;i386&quot;, &quot;tc_386.html&quot; }
++        }
++      },
++      { &quot;Using OpenOCD&quot;, &quot;tut_openocd.html&quot; }
++    }
++  },
++
+   -- &quot;eLua internals&quot; (menu separator)
+   { &quot;eLua internals&quot; },
+ 
+
+Modified: tags/pre0.6/doc/eluadoc/arch_platform_adc.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/arch_platform_adc.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/arch_platform_adc.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -18,7 +18,7 @@
+     { sig = &quot;int #platform_adc_exists#( unsigned id );&quot;,
+       desc = [[Checks if the platform has the hardware ADC specified as argument. Implemented in %src/common.c%, it uses the $NUM_ADC$ macro that must be defined in the
+   platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). For example:&lt;/p&gt;
+-  ~#define NUM_ADC   1      $// The platform has 1 ADC interface$~&lt;/p&gt; ]],
++  ~#define NUM_ADC   1      $// The platform has 1 ADC interface$~&lt;p&gt; ]],
+       args = &quot;$id$ - SPI interface ID&quot;,
+       ret = &quot;1 if the SPI interface exists, 0 otherwise&quot;
+     },
+
+Modified: tags/pre0.6/doc/eluadoc/arch_platform_eth.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/arch_platform_eth.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/arch_platform_eth.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -9,7 +9,7 @@
+   menu_name = &quot;Ethernet&quot;,
+ 
+   -- Overview
+-  overview = [[&lt;font color=&quot;red&quot;&gt;$NOTE$: TCP/IP support is experimental in eLua. Although functional, it's quite incomplete at the moment.&lt;/font&gt;&lt;/p&gt;
++  overview = [[&lt;span style=&quot;color: red;&quot;&gt;$NOTE$: TCP/IP support is experimental in eLua. Although functional, it's quite incomplete at the moment.&lt;/span&gt;&lt;/p&gt;
+   &lt;p&gt;This part of the platform interface groups functions related to accessing the Ethernet interface (internal or external) of the CPU. Note that unlike the
+   other parts of the platform interface this one is dedicated for TCP/IP support and thus it does not correspond directly to an eLua module, although
+   the @##@net module@ is implemented with functions that rely on this part of the platform interface. Currently only
+
+Modified: tags/pre0.6/doc/eluadoc/arch_platform_pio.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/arch_platform_pio.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/arch_platform_pio.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -57,13 +57,13 @@
+     { sig = &quot;int #platform_pio_has_pin#( unsigned port, unsigned pin );&quot;,
+       desc = [[Checks if the platform has the hardware port and pin specified as arguments. Implemented in %src/common.c%, it uses the $NUM_PIO$ macro to check the validity
+   of the port and the $PIO_PINS_PER_PORT$ or $PIO_PIN_ARRAY$ macros to check the validity of the pin. The macros must be defined in the platform's $platform_conf.h$ file
+-  (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details).
++  (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details).&lt;/p&gt;
+   &lt;ul&gt;
+     &lt;li&gt;use $PIO_PINS_PER_PORT$ when all the ports of the MCU have the same number of pins. For example:
+       ~#define PIO_PINS_PER_PORT    8   $// Each port has 8 pins$~&lt;/li&gt;
+     &lt;li&gt;use $PIO_PIN_ARRAY$ when different ports of the MCU have different number of pins. For example:
+       ~#define PIO_PIN_ARRAY    { 4, 4, 2, 6 } $// Port 0 has 4 pins, port 1 has 4 pins, port 2 has 2 pins, port 3 has 6 pins$~&lt;/li&gt;
+-  &lt;/ul&gt;]],
++  &lt;/ul&gt;&lt;p&gt;]],
+       args = 
+       {
+         &quot;$port$ - the port ID&quot;,
+@@ -75,7 +75,7 @@
+     { sig = &quot;const char* #platform_pio_get_prefix#( unsigned port );&quot;,
+       desc = [[Get the port prefix. Used to establish if the port notation uses numbers (P0, P1, P2...) or letters (PA, PB, PC...). Implemented in %src/common.c%, it uses the 
+   $PIO_PREFIX$ macro that must be defined in the platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). The value of this macro can be either '0' (for
+-  numeric notation) or 'A' (for letter notation). For example:
++  numeric notation) or 'A' (for letter notation). For example:&lt;/p&gt;
+   ~#define PIO_PREFIX    'A'   $// Use PA, PB, PC ... for port notation$~&lt;p&gt;]],
+       args = &quot;$port$ - the port ID&quot;,
+       ret = &quot;the port prefix (either '0' or 'A')&quot;,  
+
+Modified: tags/pre0.6/doc/eluadoc/arch_platform_pwm.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/arch_platform_pwm.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/arch_platform_pwm.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -60,7 +60,7 @@
+     &lt;li&gt;$PLATFORM_PWM_OP_STOP$: stops PWM generation on the specified channel.&lt;/li&gt;  
+     &lt;li&gt;$PLATFORM_PWM_OP_SET_CLOCK$: sets the $base$ clock of the specified PWM channel (which will be used to generate the frequencies requested by 
+         @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_pwm_setup at platform_pwm_setup</A>@) to $data$ hertz.&lt;/li&gt;
+-    &lt;li&gt;$PLATFORM_PWM_OP_GET_CLOCK$: get the $base$ clock of the specified PWM channel.&lt;/liA&gt;
++    &lt;li&gt;$PLATFORM_PWM_OP_GET_CLOCK$: get the $base$ clock of the specified PWM channel.&lt;/li&gt;
+   &lt;/ul&gt;]],
+         &quot;$data$ - when used with $op$ == $PLATFORM_PWM_OP_SET_CLOCK$ it is used to specify the value of the base clock. Not used with other operations.&quot;
+       },
+
+Modified: tags/pre0.6/doc/eluadoc/arch_platform_spi.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/arch_platform_spi.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/arch_platform_spi.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -41,13 +41,13 @@
+     { sig = &quot;int #platform_spi_exists#( unsigned id );&quot;,
+       desc = [[Checks if the platform has the hardware SPI specified as argument. Implemented in %src/common.c%, it uses the $NUM_SPI$ macro that must be defined in the
+   platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). For example:&lt;/p&gt;
+-  ~#define NUM_SPI   1      $// The platform has 1 SPI interface$~&lt;/p&gt; ]],
++  ~#define NUM_SPI   1      $// The platform has 1 SPI interface$~&lt;p&gt; ]],
+       args = &quot;$id$ - SPI interface ID&quot;,
+       ret = &quot;1 if the SPI interface exists, 0 otherwise&quot;
+     },
+ 
+     { sig = &quot;u32 #platform_spi_setup#( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits );&quot;,
+-      desc = [[This function is used to initialize the parameters of the SPI interface. &lt;br&gt;&lt;font color=&quot;red&quot;&gt;$NOTE$&lt;/font&gt;: currently, only master SPI mode is implemented in eLua.]],
++      desc = [[This function is used to initialize the parameters of the SPI interface. &lt;span class=&quot;warning&quot;&gt;NOTE&lt;/span&gt;: currently, only master SPI mode is implemented in eLua.]],
+       args = 
+       {
+         &quot;$id$ - SPI interface ID&quot;,
+
+Modified: tags/pre0.6/doc/eluadoc/arch_platform_timers.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/arch_platform_timers.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/arch_platform_timers.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -50,7 +50,7 @@
+       desc = [[Waits on a timer, then returns. This function is &quot;split&quot; in two parts: a platform-independent part implemented in %src/common.c% (that
+   handles virtual timers) and a platform-dependent part that must be implemented by each platform in a function named @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_s_timer_delay at platform_s_timer_delay</A>@. This function handles both
+   hardware timer IDs and virtual timer IDs.&lt;br&gt;
+-  &lt;font color=&quot;red&quot;&gt;&lt;a name=&quot;limitations&quot;&gt;$IMPORTANT NOTE$&lt;/font&gt;&lt;/a&gt;: the real delay after executing this functions depends on a number of variables, most notably the base clock of the timer 
++  &lt;a name=&quot;limitations&quot; /&gt;&lt;span class=&quot;warning&quot;&gt;IMPORTANT NOTE&lt;/span&gt;: the real delay after executing this functions depends on a number of variables, most notably the base clock of the timer 
+   and the size of the timer counter register (32 bits on some platforms, 16 bits on most platforms, other values are less common). To ensure that the delay you're requesting is achievable, use 
+   @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_timer_op at platform_timer_op</A>@ with $PLATFORM_TIMER_OP_GET_MAX_DELAY$ and $PLATFORM_TIMER_OP_GET_MIN_DELAY$ to obtain the maximum and the minimum 
+   achievable wait times on your timer, respectively. Even if your delay is within these limits, the $precision$ of this function still varies a lot, mainly as a function of 
+@@ -145,14 +145,14 @@
+   {
+     { title = &quot;Virtual timers&quot;,
+       desc = 
+-  [[$Virtual timers$ were added to eLua to overcome some limitations:
++  [[$Virtual timers$ were added to eLua to overcome some limitations:&lt;/p&gt;
+   &lt;ul&gt;
+     &lt;li&gt;there are generally few hardware timers available, some of which might be dedicated (thus not usable directly by eLua).&lt;/li&gt;
+     &lt;li&gt;many times it is difficult to share a hardware timer between different parts of an application because of conflicting requirements. Generally it's not possible to have timers that can
+         achieve long delays and high accuracy at the same time (this is especially true for systems that have 16 bit or even smaller timers).&lt;/li&gt;
+-  &lt;/ul&gt;&lt;/p&gt;
++  &lt;/ul&gt;
+   &lt;p&gt;In this respect, $virtual timers$ are a set of timers that share a single hardware timer. It is possible, in this way, to have a hardware timer that can implement 4, 8 or more hardware
+-  timers. There are a few drawbacks to this approach:
++  timers. There are a few drawbacks to this approach:&lt;/p&gt;
+   &lt;ul&gt;
+     &lt;li&gt;the hardware timer used to implement the virtual timers must generally be dedicated. In fact in cat be still used in &quot;read only mode&quot;, which means that the only operations that can
+         be executed on it are $PLATFORM_TIMER_OP_READ$, $PLATFORM_TIMER_GET_CLOCK$, $PLATFORM_TIMER_OP_GET_MAX_DELAY$ and $PLATFORM_TIMER_OP_GET_MIN_DELAY$. However,
+@@ -160,8 +160,8 @@
+         an ID.&lt;/li&gt;
+     &lt;li&gt;the number of virtual timers and their base frequency are fixed at compile time.&lt;/li&gt;
+     &lt;li&gt;virtual timers are generally used for large delays with low accuracy, since their base frequency should be fairly low (see below).&lt;/li&gt;
+-  &lt;/ul&gt;&lt;/p&gt;
+-  &lt;p&gt;To $enable$ virtual timers:
++  &lt;/ul&gt;
++  &lt;p&gt;To $enable$ virtual timers:&lt;/p&gt;
+   &lt;ol&gt;
+     &lt;li&gt;edit $platform_conf.h$ (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details) and set $VTMR_NUM_TIMERS$ to the number of desired virtual timers and 
+        $VTMR_FREQ_HZ$ to the base frequency of the virtual timers (in hertz). For example:
+@@ -174,12 +174,12 @@
+   // add code to clear the timer interrupt flag here if needed
+   cmn_virtual_timer_cb();
+ }~&lt;/li&gt;
+-  &lt;/ol&gt;&lt;/p&gt;
++  &lt;/ol&gt;
+   &lt;p&gt;Note that because of step 2 above you are limited by practical constraints on the value of $VTMR_FREQ_HZ$. If set too high, the timer interrupt will fire too often, thus taking too much
+   CPU time. The maximum value depends largely on the hardware and the desired behaviour of the virtual timers, but in practice values larger than 10 might visibly change the behaviour of your 
+   system.&lt;/p&gt;
+   &lt;p&gt;To $use$ a virtual timer, identify it with the constant $VTMR_FIRST_ID$ (defined in %inc/common.h%) plus an offset. For example, $VTMR_FIRST_ID+0$ (or simply
+-  $VTMR_FIRST_ID$) is the ID of the first virtual timer in the system, and $VTMR_FIRST_ID+2$ is the ID of the third virtual timer in the system.&lt;/p&gt;
++  $VTMR_FIRST_ID$) is the ID of the first virtual timer in the system, and $VTMR_FIRST_ID+2$ is the ID of the third virtual timer in the system.
+   ]]
+     }
+   }
+
+Modified: tags/pre0.6/doc/eluadoc/refman_gen_cpu.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/refman_gen_cpu.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/refman_gen_cpu.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -30,7 +30,7 @@
+   _C( INT_GPIOA ),\
+   _C( INT_GPIOB ),\
+   .................
+-  _C( INT_UDMA )~&lt;p&gt;
++  _C( INT_UDMA )~
+ &lt;p&gt;It's worth to note that adding more constants does not increas RAM usage, only Flash usage, so you can expose as much constants as you need without worrying about RAM consumption.]]
+     },
+   },
+
+Modified: tags/pre0.6/doc/eluadoc/refman_gen_net.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/refman_gen_net.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/refman_gen_net.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -12,9 +12,9 @@
+   -- Overview
+   overview = [[This module contains functions for accessing a TCP/IP network from eLua. It can be enabled only if networking support is also enabled
+   (see @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">building.html at building</A>@ for details).&lt;/p&gt;
+-  &lt;p&gt;&lt;font color=&quot;red&quot;&gt;&lt;b&gt;NOTE:&lt;/b&gt;&lt;/font&gt; TCP/IP support is $experimental$ in eLua. While functional, it's still slow and suffers from a number of
++  &lt;p&gt;&lt;span class=&quot;warning&quot;&gt;NOTE:&lt;/span&gt; TCP/IP support is $experimental$ in eLua. While functional, it's still slow and suffers from a number of
+   other issues. It will most likely change a lot in the future, so expect major changes to this module as well.&lt;/p&gt;
+-  &lt;p&gt;&lt;font color=&quot;red&quot;&gt;&lt;b&gt;NOTE:&lt;/b&gt;&lt;/font&gt; currently, only TCP sockets are supported by eLua.]],
++  &lt;p&gt;&lt;span class=&quot;warning&quot;&gt;NOTE:&lt;/span&gt; currently, only TCP sockets are supported by eLua.]],
+ 
+   -- Structures
+   structures =
+@@ -83,7 +83,7 @@
+ 
+     { sig = &quot;socket = #net.socket#( type )&quot;,
+       desc = &quot;Create a socket for TCP/IP communication.&quot;,
+-      args = [[$type$ - can be either $net.SOCK_STREAM$ for TCP sockets or $net.SOCK_DGRAM$ for UDP sockets (&lt;font color=&quot;red&quot;&gt;&lt;b&gt;not yet supported&lt;/b&gt;&lt;/font&gt;).]],
++      args = [[$type$ - can be either $net.SOCK_STREAM$ for TCP sockets or $net.SOCK_DGRAM$ for UDP sockets (&lt;span class=&quot;warning&quot;&gt;not yet supported&lt;/span&gt;).]],
+       ret = &quot;The socket that will be used in subsequent operations.&quot;
+     },
+ 
+@@ -141,12 +141,11 @@
+       args = 
+       {
+         &quot;$sock$ - the socket.&quot;,
+-        [[$format$ - how to read the data. This can be either:&lt;/p&gt;
+-&lt;p&gt;
++        [[$format$ - how to read the data. This can be either:
+ &lt;ul&gt;
+   &lt;li&gt;$&quot;*l&quot;$: read a line (until the next '\n' character).&lt;/li&gt;
+   &lt;li&gt;$an integer$: read up to that many bytes.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;&lt;p&gt;]],
++&lt;/ul&gt;]],
+         [[$timer_id (optional)$ - the timer ID of the timer used to timeout the recv function after a specified time. If this is specified, $timeout$ must also
+ be specified.]],
+         [[$timeout (optional)$ - the timeout after which the recv function returns if no connection was requested. If this is specified, $timer_id$ must also
+
+Modified: tags/pre0.6/doc/eluadoc/refman_gen_pack.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/refman_gen_pack.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/refman_gen_pack.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -15,7 +15,7 @@
+ &lt;p&gt;Both methods of this module (@#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">pack at pack</A>@ and @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">unpack at unpack</A>@) use a $format string$ to describe how to pack/unpack the data. The format string contains one or more $data specifiers$, each
+ data specifier is applied to a single variable that must be packed/unpacked. The data specifier has the following general format:&lt;/p&gt;
+ ~[endianness]&lt;&lt;format specifier&gt;&gt;[count]~
+-&lt;p&gt;where:
++&lt;p&gt;where:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;$endianness$ is an optional endian flags that specifies how the numbers that are to be packed/unpacked are stored in memory. It can be either:
+   &lt;ol&gt;
+@@ -24,7 +24,7 @@
+     &lt;li&gt;$'='$ for native endian (the platform's endian order, default).&lt;/li&gt;
+   &lt;/ol&gt;&lt;/li&gt;
+   &lt;li&gt;$format specifier$ describes what kind of variable will be packed/unpacked. $The format specifier is case-sensitive$. The possible values of this parameter are summarized in the table below:
+-  &lt;p&gt;&lt;table class=&quot;table_center&quot;&gt;
++  &lt;table class=&quot;table_center&quot; style=&quot;margin-top: 4px; margin-bottom: 4px;&quot;&gt;
+   &lt;tbody&gt;
+   &lt;tr&gt;
+     &lt;th&gt;Format specifier&lt;/th&gt;
+@@ -94,10 +94,11 @@
+     &lt;td&gt;'L'   &lt;/td&gt;
+     &lt;td&gt;unsigned long&lt;/td&gt;
+   &lt;/tr&gt;  
+-  &lt;/table&gt;&lt;br&gt;&lt;/p&gt;&lt;/li&gt;
++  &lt;/tbody&gt;
++  &lt;/table&gt;&lt;/li&gt;
+   &lt;li&gt;$count$ is an optional counter for the $format specifier$. For example, $i5$ instructs the code to pack/unpack 5 integer variables, as opposed to $i$ that specifies a
+   single integer variable.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;]],
++&lt;/ul&gt;&lt;p&gt;]],
+ 
+   -- Functions
+   funcs = 
+
+Modified: tags/pre0.6/doc/eluadoc/refman_gen_spi.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/refman_gen_spi.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/refman_gen_spi.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -11,7 +11,7 @@
+ 
+   -- Overview
+   overview = [[This module contains functions for accessing the SPI interfaces of the eLua CPU.&lt;/p&gt;
+-  &lt;p&gt;&lt;font color=&quot;red&quot;&gt;&lt;b&gt;IMPORTANT&lt;/b&gt;&lt;/font&gt;: right now, only master SPI mode is implemented in eLua.]],
++  &lt;p&gt;&lt;span class=&quot;warning&quot;&gt;IMPORTANT&lt;/span&gt;: right now, only master SPI mode is implemented in eLua.]],
+ 
+   -- Functions
+   funcs = 
+
+Modified: tags/pre0.6/doc/eluadoc/refman_gen_term.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/refman_gen_term.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/refman_gen_term.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -86,11 +86,11 @@
+ 
+     { sig = &quot;ch = #term.getchar#( [ mode ] )&quot;,
+       desc = &quot;Read a char (a key press) from the terminal&quot;,
+-      args = [[$mode (optional)$ - terminal input mode. It can be either:
++      args = [[$mode (optional)$ - terminal input mode. It can be either:&lt;/p&gt;
+   &lt;ul&gt;
+     &lt;li&gt;$term.WAIT$ - wait for a key to be pressed, then return it. This is the default behaviour if $mode$ is not specified. &lt;/li&gt;
+     &lt;li&gt;$term.NOWAIT$ - if a key was pressed on the terminal return it, otherwise return -1.&lt;/li&gt;
+-  &lt;/ul&gt;]],
++  &lt;/ul&gt;&lt;p&gt;]],
+       ret = [[The char read from a terminal or -1 if no char is available. The 'char' can be an actual ASCII char, or a 'pseudo-char' which encodes special keys on
+   the keyboard. The list of the special chars and their meaning is given in the table below:&lt;/p&gt;
+ &lt;table style=&quot;text-align: left; margin-left: 2em;&quot;&gt;
+@@ -107,6 +107,7 @@
+   &lt;td&gt;$KC_DOWN$&lt;/td&gt;
+   &lt;td&gt;the DOWN key on the terminal&lt;/td&gt;
+ &lt;/tr&gt;
++&lt;tr&gt;
+   &lt;td&gt;$KC_LEFT$&lt;/td&gt;
+   &lt;td&gt;the LEFT key on the terminal&lt;/td&gt;
+ &lt;/tr&gt;
+
+Modified: tags/pre0.6/doc/eluadoc/refman_gen_uart.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/refman_gen_uart.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc/refman_gen_uart.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -59,13 +59,13 @@
+       args = 
+       {
+         &quot;$id$ - the ID of the serial port&quot;,
+-        [[$format$ - format of data to read. This can be either:&lt;/p&gt;
+-&lt;p&gt;&lt;ul&gt;
++        [[$format$ - format of data to read. This can be either:
++&lt;ul&gt;
+   &lt;li&gt;$'*l'$ - read until an end of line character (a $\n$) is found (the $\n$ is not returned) or a timeout occurs.&lt;/li&gt;
+   &lt;li&gt;$'*n'$ - read an integer. The integer can optionally have a sign. Reading continues until the first non-digit character is detected or a timeout occurs. This is the only case in which $read$ returns a number instead of an integer.&lt;/li&gt;
+   &lt;li&gt;$'*s'$ - read until a spacing character (like a space or a TAB) is found (the spacing character is not returned) or a timeout occurs.&lt;/li&gt;
+   &lt;li&gt;$a positive number$ - read at most this many characters before returning (reading can stop earlier if a timeout occurs).&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;&lt;p&gt;]],
++&lt;/ul&gt;]],
+         [[$timeout (optional)$ - timeout of the receive operation, can be either $uart.NO_TIMEOUT$ or 0 for non-blocking operation, $uart.INF_TIMEOUT$ for 
+ blocking operation, or a positive number that specifies the inter-char timeout in microseconds (in this case, the $timer_id$ parameter is also required). The default value of this argument is $uart.INF_TIMEOUT$]],
+         [[$timer_id (optional)$ - the ID of the timer for the receive operation, needed if the $timeout$ parameter specifies an actual timeout (that is,
+
+Modified: tags/pre0.6/doc/eluadoc.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc.lua	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/eluadoc.lua	2009-08-25 20:09:46 UTC (rev 410)
+@@ -20,19 +20,8 @@
+ }
+ 
+ -------------------------------------------------------------------------------
+--- Local variables
+-
+--- Paragraph indentation flag
+-local p_indent = false
+-
+--------------------------------------------------------------------------------
+ -- Generic helpers and doc text formatting functions
+ 
+--- Return a proper &lt;p&gt; tag based on the p_indent flag
+-local function get_p()
+-  return p_indent and '&lt;p class=&quot;doc&quot;&gt;' or '&lt;p&gt;'
+-end
+-
+ -- Format a name to a link by changing all the spaces to &quot;_&quot; and
+ -- making all letters lowercase
+ local function name2link( str )
+@@ -99,20 +88,13 @@
+   str = str:gsub( &quot;@(.-)@(.-)@&quot;, '&lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;' )
+ 
+   -- ^ref^text^ becomes &lt;a href=&quot;ref&quot;&gt;text&lt;/a&gt;
+-  str = str:gsub( &quot;%^(.-)%^(.-*)%^&quot;, '&lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;' )
++  str = str:gsub( &quot;%^(.-)%^(.-)%^&quot;, '&lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;' )
+ 
+   -- strings between two tildas (~~) get special code-like formatting
+-  str = str:gsub( &quot;~(.-)~&quot;, function( x )
+-    x = x:gsub( &quot;\n&quot;, &quot;&lt;br /&gt;&quot; )
+-    x = x:gsub( &quot;%s%s+&quot;, function( x ) return ( &quot;&nbsp;&quot; ):rep( #x ) end )
+-    return &quot;&lt;p&gt;&lt;code&gt;&quot; .. x .. &quot;&lt;/code&gt;&lt;/p&gt;&quot;
+-  end )
++  -- must keep '\n', so replace it with &quot;temps&quot; for now
++  str = str:gsub( &quot;~(.-)~&quot;, function( data ) return '&lt;pre class=&quot;code&quot;&gt;' .. data:gsub( &quot;\n&quot;, &quot;\006&quot; ) .. &quot;&lt;/pre&gt;&quot; end )
+   str = str:gsub( &quot;~~&quot;, &quot;~&quot; )
+ 
+-  if p_indent then
+-    str = str:gsub( &quot;&lt;p&gt;&quot;, '&lt;p class=&quot;doc&quot;&gt;' )
+-  end
+-
+   -- other &quot;\n&quot; chars should dissapear now
+   if not keepnl then  str = str:gsub( &quot;\n&quot;, &quot; &quot; ) end
+ 
+@@ -122,6 +104,7 @@
+   str = str:gsub( &quot;\003&quot;, &quot;@&quot; )
+   str = str:gsub( &quot;\004&quot;, &quot;%^&quot; )
+   str = str:gsub( &quot;\005&quot;, &quot;~&quot; )
++  str = str:gsub( &quot;\006&quot;, &quot;\n&quot; )
+ 
+   -- all done
+   return str
+@@ -170,13 +153,13 @@
+     if not r.overview then
+       return false, &quot;overview not found&quot;
+     end
+-    page = page .. '&lt;a name=&quot;overview&quot;&gt;&lt;h3&gt;Overview&lt;/h3&gt;&lt;/a&gt;\n&lt;p&gt;' .. format_string( r.overview ) .. &quot;&lt;/p&gt;\n\n&quot;
++    page = page .. '&lt;a name=&quot;overview&quot; /&gt;&lt;h3&gt;Overview&lt;/h3&gt;\n&lt;p&gt;' .. format_string( r.overview ) .. &quot;&lt;/p&gt;\n\n&quot;
+ 
+     -- process structures if needed
+     if r.structures then
+       local structures = r.structures
+       menu.structs = {}
+-      page = page .. '&lt;a name=&quot;structures&quot;&gt;&lt;h3&gt;Data structures, constants and types&lt;/h3&gt;&lt;/a&gt;\n'
++      page = page .. '&lt;a name=&quot;structures&quot; /&gt;&lt;h3&gt;Data structures, constants and types&lt;/h3&gt;\n'
+       for i = 1, #structures do
+         local s = structures[ i ]
+         menu.structs[ #menu.structs + 1 ] = s.name
+@@ -184,13 +167,10 @@
+           return false, &quot;structure without text, desc or name fields&quot;
+         end
+         -- text/name. The link name is ALWAYS the one in ENGLISH.
+-        page = page .. string.format( '&lt;a name=&quot;%s&quot;&gt;', name2link( res.en.menu.structs[ i ] ) )
+-        page = page .. &quot;&lt;pre&gt;&lt;code&gt;&quot; .. format_string( s.text, true ) .. &quot;&lt;/code&gt;&lt;/pre&gt;&quot;
+-        page = page .. &quot;&lt;/a&gt;&quot;
++        page = page .. string.format( '&lt;a name=&quot;%s&quot; /&gt;', name2link( res.en.menu.structs[ i ] ) )
++        page = page .. &quot;&lt;pre&gt;&lt;code&gt;&quot; .. format_string( s.text, true ) .. &quot;&lt;/code&gt;&lt;/pre&gt;\n&quot;
+         -- description
+-        p_indent = true
+-        page = page .. &quot;\n&lt;p class=\&quot;doc\&quot;&gt;&quot; .. format_string( s.desc ) .. &quot;&lt;/p&gt;\n\n&quot;
+-        p_indent = false
++        page = page .. '&lt;div class=&quot;docdiv&quot;&gt;\n&lt;p&gt;' .. format_string( s.desc ) .. &quot;&lt;/p&gt;\n&lt;/div&gt;\n\n&quot;
+       end 
+     end
+ 
+@@ -199,7 +179,7 @@
+       return false, &quot;funcs not found&quot;
+     end
+     local funcs = r.funcs
+-    page = page .. '&lt;a name=&quot;funcs&quot;&gt;&lt;h3&gt;Functions&lt;/h3&gt;&lt;/a&gt;\n'
++    page = page .. '&lt;a name=&quot;funcs&quot; /&gt;&lt;h3&gt;Functions&lt;/h3&gt;\n&lt;div class=&quot;docdiv&quot;&gt;\n'
+     menu.funcs = {}
+     for i = 1, #funcs do
+       local f = funcs[ i ]
+@@ -212,46 +192,44 @@
+       end
+       menu.funcs[ #menu.funcs + 1 ] = funcname
+       -- signature
+-      page = page .. string.format( '&lt;a name=&quot;%s&quot;&gt;', funcname )
++      page = page .. string.format( '&lt;a name=&quot;%s&quot; /&gt;', funcname )
+       page = page .. &quot;&lt;pre&gt;&lt;code&gt;&quot; .. f.sig:gsub( '#', '' ) .. &quot;&lt;/code&gt;&lt;/pre&gt;&quot;
+-      page = page .. &quot;&lt;/a&gt;&quot;
+       -- description
+-      p_indent = true
+-      page = page .. &quot;\n&lt;p class=\&quot;doc\&quot;&gt;&quot; .. dot( format_string( f.desc ) ) .. &quot;&lt;/p&gt;\n&quot;
++      page = page .. &quot;\n&lt;p&gt;&quot; .. dot( format_string( f.desc ) ) .. &quot;&lt;/p&gt;\n&quot;
+       -- arguments
+-      page = page .. &quot;&lt;p class=\&quot;doc\&quot;&gt;&lt;b&gt;Arguments&lt;/b&gt;: &quot;
++      page = page .. &quot;&lt;p&gt;&lt;b&gt;Arguments&lt;/b&gt;: &quot;
+       if f.args then
+         local a = f.args
+         if type( a ) == &quot;string&quot; or ( type( a ) == &quot;table&quot; and #a == 1 ) then
+           local text = type( a ) == &quot;string&quot; and a or a[ 1 ]
+-          page = page .. dot( format_string( text ) )
++          page = page .. dot( format_string( text ) ) .. &quot;&lt;/p&gt;&quot;
+         else
+-          page = page .. &quot;\n&lt;ul&gt;\n&quot;
++          page = page .. &quot;&lt;/p&gt;\n&lt;ul&gt;\n&quot;
+           for i = 1, #a do page = page .. &quot;  &lt;li&gt;&quot; .. dot( format_string( a[ i ] ) ) .. &quot;&lt;/li&gt;\n&quot; end
+           page = page .. &quot;&lt;/ul&gt;&quot;
+         end
+       else
+-        page = page .. &quot;none.&quot;
++        page = page .. &quot;none.&lt;/p&gt;&quot;
+       end
+-      page = page .. &quot;&lt;/p&gt;\n&quot;
++      page = page .. &quot;\n&quot;
+       -- return value
+-      page = page .. &quot;&lt;p class=\&quot;doc\&quot;&gt;&lt;b&gt;Returns&lt;/b&gt;: &quot;
++      page = page .. &quot;&lt;p&gt;&lt;b&gt;Returns&lt;/b&gt;: &quot;
+       if f.ret then
+         local r = f.ret
+         if type( r ) == &quot;string&quot; or ( type( r ) == &quot;table&quot; and #r == 1 ) then
+           local text = type( r ) == &quot;string&quot; and r or r[ 1 ]
+-          page = page .. dot( format_string( text ) )
++          page = page .. dot( format_string( text ) ) .. &quot;&lt;/p&gt;&quot;
+         else
+-          page = page .. &quot;\n&lt;ul&gt;\n&quot;
++          page = page .. &quot;&lt;/p&gt;\n&lt;ul&gt;\n&quot;
+           for i = 1, #r do page = page .. &quot;  &lt;li&gt;&quot; .. dot( format_string( r[ i ] ) ) .. &quot;&lt;/li&gt;\n&quot; end
+           page = page .. &quot;&lt;/ul&gt;&quot;
+         end
+       else
+-        page = page .. &quot;nothing.&quot;
++        page = page .. &quot;nothing.&lt;/p&gt;&quot;
+       end
+-      page = page .. &quot;&lt;/p&gt;\n\n&quot;
+-      p_indent = false
++      page = page .. &quot;\n\n&quot;
+     end
++    page = page .. &quot;&lt;/div&gt;\n&quot;
+ 
+     -- aux data (if any)
+     if r.auxdata then
+@@ -264,17 +242,19 @@
+           return false, &quot;auxdata without title or desc&quot;
+         end
+         -- the link name is ALWAYS the one in ENGLISH
+-        page = page .. string.format( '&lt;a name=&quot;%s&quot;&gt;', name2link( res.en.menu.auxdata[ i ] ) )
++        page = page .. string.format( '&lt;a name=&quot;%s&quot; /&gt;', name2link( res.en.menu.auxdata[ i ] ) )
+         page = page .. &quot;&lt;h3&gt;&quot; .. a.title .. &quot;&lt;/h3&gt;&quot;
+-        page = page .. &quot;&lt;/a&gt;&quot;
+         page = page .. &quot;\n&lt;p&gt;&quot; .. format_string( a.desc ) .. &quot;&lt;/p&gt;\n\n&quot;
+       end
+     end
+ 
+     -- footer
+     page = page .. &quot;$$FOOTER$$\n&quot;
++    -- Cleanup: remove &quot;&lt;p&gt;&lt;/p&gt;&quot; (which might appear due to formatting)
++    page = page:gsub( &quot;&lt;p&gt;%s-&lt;/p&gt;&quot;, &quot;&quot; )
+     res[ lang ].page = page
+   end
++
+   return res
+ end
+ 
+
+Modified: tags/pre0.6/doc/en/arch_overview.html
+===================================================================
+--- tags/pre0.6/doc/en/arch_overview.html	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/en/arch_overview.html	2009-08-25 20:09:46 UTC (rev 410)
+@@ -1,18 +1,13 @@
+ $$HEADER$$
+-&lt;a name=&quot;structure&quot;&gt;&lt;h3&gt;eLua architecture overview&lt;/h3&gt;&lt;/a&gt;
++&lt;a name=&quot;structure&quot; /&gt;&lt;h3&gt;eLua architecture overview&lt;/h3&gt;
+ &lt;p&gt;The overall logical structure of &lt;b&gt;eLua&lt;/b&gt; is shown in the image below:&lt;/p&gt;
+-&lt;map name=&quot;arch&quot;&gt;
+-&lt;area href=&quot;arch_overview.html#common&quot; title=&quot;Commond code&quot; shape=rect coords=&quot;0, 402, 537, 540&quot;&gt;
+-&lt;area href=&quot;arch_overview.html#platform&quot; title=&quot;Platform interface&quot; shape=rect coords=&quot;0, 198, 537, 336&quot;&gt;
+-&lt;area href=&quot;arch_overview.html#platforms&quot; title=&quot;Platforms&quot; shape=rect coords=&quot;9, 0, 537, 132&quot;&gt;
+-&lt;/map&gt;
+-&lt;p align=&quot;center&quot;&gt;&lt;img src=&quot;../images/elua_arch.png&quot; usemap=&quot;#arch&quot; border=0&gt;&lt;/img&gt;&lt;/p&gt;
++&lt;p style=&quot;text-align: center; valign:middle;&quot;&gt;&lt;img src=&quot;images/elua_arch.png&quot; style=&quot;border: 0;&quot; alt=&quot;eLua architecture&quot;&gt;&lt;/img&gt;&lt;/p&gt;
+ &lt;p&gt;&lt;b&gt;eLua&lt;/b&gt; uses the notion of &lt;b&gt;platform&lt;/b&gt; to denote a group of &lt;b&gt;CPUs&lt;/b&gt; that share the same core structure, although their specific silicon
+   implementation might differ in terms of intergrated peripherals, internal memory and other such attributes. An &lt;b&gt;eLua&lt;/b&gt; port implements one or 
+   more CPUs from a given platform. For example, the &lt;b&gt;lm3s port&lt;/b&gt; of &lt;b&gt;eLua&lt;/b&gt; runs on LM3S8962, LM3S6965 and LM3S6918 CPUs, all of them part of the 
+   &lt;b&gt;lm3s&lt;/b&gt; platform. Refer to &lt;a href=&quot;status.html&quot;&gt;the status page&lt;/a&gt; for a full list of platforms and CPUs on which &lt;b&gt;eLua&lt;/b&gt; runs.&lt;/p&gt;
+ &lt;p&gt;As can be seen from this image, &lt;b&gt;eLua&lt;/b&gt; tries to be as portable as possible between different platforms by using a few simple design
+-rules:
++rules:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;all code that is platform-independent is &lt;b&gt;common code&lt;/b&gt; and it should be written in ANSI C as much as possible, this makes it highly portable
+   among different architectures and compilers, just like Lua itself. &lt;/li&gt;
+@@ -24,20 +19,20 @@
+   to group only common attributes of different platforms. If one needs to access the specific functionality on a given platform (like the loopback support
+   mentioned before) it can do so by using a &lt;b&gt;platform module&lt;/b&gt;. These are of course platform specific, and their goal is to fill the gap between the
+   platform interface and the full set of features provided by a platform.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
+-&lt;a name=&quot;common&quot;&gt;&lt;h3&gt;Common (generic) code&lt;/h3&gt;&lt;/a&gt;
+-&lt;p&gt;The following gives an incomplete set of items that can be classified as &lt;b&gt;common code&lt;/b&gt;:
++&lt;/ul&gt;
++&lt;a name=&quot;common&quot; /&gt;&lt;h3&gt;Common (generic) code&lt;/h3&gt;
++&lt;p&gt;The following gives an incomplete set of items that can be classified as &lt;b&gt;common code&lt;/b&gt;:&lt;/p&gt;
+   &lt;ul&gt;
+     &lt;li&gt;the Lua code itself (obviously) plus the &lt;a href=&quot;arch_ltr.html&quot;&gt;LTR patch&lt;/a&gt;.&lt;/li&gt;
+     &lt;li&gt;all the &lt;b&gt;components&lt;/b&gt; in &lt;b&gt;eLua&lt;/b&gt; (like the ROM file system, the XMODEM receive code, the &lt;b&gt;eLua&lt;/b&gt; shell, the TCP/IP stack and others).
+     &lt;/li&gt;
+     &lt;li&gt;all the &lt;b&gt;generic modules&lt;/b&gt;, which are Lua modules used to expose the functionality of the platform to Lua.&lt;/li&gt;
+     &lt;li&gt;generic &lt;b&gt;peripheral support code&lt;/b&gt;, like the ADC support code (&lt;i&gt;src/common/elua_adc.c&lt;/i&gt;) that is &lt;b&gt;independent&lt;/b&gt; of the actual ADC
+-      hardware.
+-    &lt;li&gt;libc code (for example allocators and Newlib stubs).
+-  &lt;/ul&gt;&lt;/p&gt;
++      hardware.&lt;/li&gt;
++    &lt;li&gt;libc code (for example allocators and Newlib stubs).&lt;/li&gt;
++  &lt;/ul&gt;
+ &lt;p&gt;This should give you a pretty good idea about what &quot;common code&quot; means in this context. Note that the generic code layer should be as &quot;greedy&quot; as 
+-possible; that is, it should absorb as much common code as possible. For example:
++possible; that is, it should absorb as much common code as possible. For example:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;if you want to add a new file system to &lt;b&gt;eLua&lt;/b&gt;, this should definitely be generic code. It's likely that this kind of code will have
+   dependencies related to the physical medium on which this file system resides. If you're lucky, you can solve these dependencies using only the functions 
+@@ -46,7 +41,7 @@
+   all platform that want to use your new file system. This gives the code maximum portability.&lt;/li&gt;
+   &lt;li&gt;if you want to add a driver for a specific ADC chip that works over SPI, the same observations apply: write it as common code as much as you can,
+   and use the &lt;a href=&quot;elua_platform.html&quot;&gt;platform interface&lt;/a&gt; for the specific SPI functions you need.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
++&lt;/ul&gt;
+ &lt;p&gt;When designing and implementing a new component, keep in mind other &lt;b&gt;eLua&lt;/b&gt; design goal: &lt;b&gt;flexibility&lt;/b&gt;. The user should be able to 
+   select which components are part of its &lt;b&gt;eLua&lt;/b&gt; binary image (as described &lt;a href=&quot;building.html&quot;&gt;here&lt;/a&gt;), and the implementation should take
+   this into consideration. The same thing holds for the generic modules: the user must have a way to choose the set of modules he needs.&lt;/p&gt;
+@@ -55,7 +50,7 @@
+   over a large variety of physical transports (RS-232 for PC, SPI for a separate LCD/keyboard board, a radio link and so on) so it uses pointers for its 
+   send/receive functions (see &lt;a href=&quot;arch_con_term.html&quot;&gt;this link&lt;/a&gt; for more details). The impact on speed and resource consumption is minimum, but 
+   it matters a lot in the portability department.&lt;/p&gt;
+-&lt;a name=&quot;platform&quot;&gt;&lt;h3&gt;Platform interface&lt;/h3&gt;&lt;/a&gt;
++&lt;a name=&quot;platform&quot; /&gt;&lt;h3&gt;Platform interface&lt;/h3&gt;
+ &lt;p&gt;Used properly, the platform interface allows writing extremely portable code over a large variety of different platforms, both from C and from Lua. 
+   An important property of the platform interface is that it tries to group only &lt;b&gt;common&lt;/b&gt; attributes of different platforms (as much as possible). 
+   For example, if a platform supported by &lt;b&gt;eLua&lt;/b&gt; has an UART that can work in loopback mode, but the others don't, loopback support won't be included 
+@@ -65,11 +60,11 @@
+   to implement a generic module and neeeds access to peripherals. An example was given in the previous section: implementing a new file system.&lt;/p&gt;
+ &lt;p&gt;The platform interface definition is always in the &lt;i&gt;inc/platform.h&lt;/i&gt; header file. For a full description of its functions, check
+   &lt;a href=&quot;arch_platform.html&quot;&gt;the platform interface documentation.&lt;/a&gt;&lt;/p&gt;
+-&lt;a name=&quot;platforms&quot;&gt;&lt;h3&gt;Platforms and ports&lt;/h3&gt;&lt;/a&gt;
++&lt;a name=&quot;platforms&quot; /&gt;&lt;h3&gt;Platforms and ports&lt;/h3&gt;
+ &lt;p&gt;All the platforms that run &lt;b&gt;eLua&lt;/b&gt; (and that implement the platform interface) are implemened in this conceptual layer. A &lt;b&gt;port&lt;/b&gt; is a full
+   &lt;b&gt;eLua&lt;/b&gt; implementation on a given platform. The two terms can generally be used interchangeably.&lt;/p&gt;
+ &lt;p&gt;A port can (and generally will) contain specific peripheral drivers, many times taken directly from the platform's CPU support
+-   package. These drivers are used to implement the platform interface. Note that:
++   package. These drivers are used to implement the platform interface. Note that:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;a port isn't required to implement &lt;b&gt;all&lt;/b&gt; the platform interface functions, just the ones it needs. As explained 
+   &lt;a href=&quot;building.html&quot;&gt;here&lt;/a&gt;, the user must have full control over what's getting built into this &lt;b&gt;eLua&lt;/b&gt; image. If you don't need the SPI
+@@ -78,70 +73,70 @@
+   eases the implmentation of some modules (such as the timer module) and also implements common features that are tied to the platform interface,
+   but have a common behaviour on all platforms (for example virtual timers, see &lt;a href=&quot;&quot;&gt;##here&lt;/a&gt; for details). You probably won't need to modify 
+   if you're writing platform specific code, but it's best to keep in mind what it does.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
++&lt;/ul&gt;
+ &lt;p&gt;A platform implementation might also contain one or more &lt;b&gt;platform dependent modules&lt;/b&gt;. As already exaplained, their purpose is to allow Lua
+   to use the full potential of the platform peripherals, not only the functionality covered by the platform interface, as well as functionality that
+   is so specific to the platform that it's not even covered by the platform interface. By convention, all the platform dependent modules should be 
+   grouped inside a single module that has the same name as the platform itself. If the platform dependent module augments the functionality of a 
+-  module already found in the platform interface, it should have the same name, otherwise it should be given a different, but meaningful name. For example:
++  module already found in the platform interface, it should have the same name, otherwise it should be given a different, but meaningful name. For example:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;if implementing new functionality on the UART module of the LM3S platform, the corresponding module should be called &lt;b&gt;lm3s.uart&lt;/b&gt;.&lt;/li&gt;
+   &lt;li&gt;if implementing a peripheral driver that for some reason should be specific to the platform on the LPC2888 platform, for example its dual audio
+   DAC, give it a meaningful name, for example &lt;b&gt;lpc288x.audiodac&lt;/b&gt;.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
++&lt;/ul&gt;
+ &lt;h2&gt;Structure of a port&lt;/h2&gt;
+ &lt;p&gt;All the code for platform &lt;i&gt;name&lt;/i&gt; (including peripheral drivers) must reside in a directory called &lt;i&gt;src/platform/&lt;name&gt;&lt;/i&gt; (for example
+ &lt;i&gt;src/platform/lm3s&lt;/i&gt; for the &lt;i&gt;lm3s&lt;/i&gt; platform). Each such platform-specific subdirectory must contain at least these files:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;&lt;b&gt;type.h&lt;/b&gt;: this defines the &quot;specific data types&quot;, which are integer types with a specific size (see &lt;a href=&quot;arch_coding.html&quot;&gt;coding style&lt;/a&gt; 
+       for details. An example from the &lt;b&gt;i386&lt;/b&gt; platform:
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;typedef unsigned char u8;
++&lt;pre&gt;&lt;code&gt;typedef unsigned char u8;
+ typedef signed char s8;
+ typedef unsigned short u16;
+ typedef signed short s16;
+ typedef unsigned long u32;
+ typedef signed long s32;
+ typedef unsigned long long u64;
+-typedef signed long long s64;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++typedef signed long long s64;&lt;/code&gt;&lt;/pre&gt;
+   &lt;/li&gt;
+   &lt;li&gt;&lt;b&gt;conf.py&lt;/b&gt;: this is the platform specific build configuration file, used by the &lt;a href=&quot;building.html&quot;&gt;build system&lt;/a&gt; for a number of purposes:
+ &lt;ul&gt;
+     &lt;li&gt;to get the list of platform-specific files that will be compiled in the &lt;b&gt;eLua&lt;/b&gt; image. They are exported in the &lt;i&gt;specific_files&lt;/i&gt; string,
+       separated by spaces, and must be prepended with the relative path to the platform subdirectory. An example from the &lt;b&gt;i386&lt;/b&gt; platform:
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;specific_files = &quot;boot.s common.c descriptor_tables.c gdt.s interrupt.s isr.c kb.c  monitor.c timer.c platform.c&quot;
++&lt;pre&gt;&lt;code&gt;specific_files = &quot;boot.s common.c descriptor_tables.c gdt.s interrupt.s isr.c kb.c  monitor.c timer.c platform.c&quot;
+ # Prepend with path
+-specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )&lt;/code&gt;&lt;/pre&gt;
+     &lt;/li&gt;
+     &lt;li&gt;to get the full command lines of the different toolchain utilities (linker, assembler, compiler) used to compile &lt;b&gt;eLua&lt;/b&gt;. They must be declared
+       inside the &lt;i&gt;tools&lt;/i&gt; variable, in a separate dictinoary which key is the same as the platform name, and with specific names for each tool in turn:
+       &lt;b&gt;cccom&lt;/b&gt; for the compiler, &lt;b&gt;linkcom&lt;/b&gt; for the linker and &lt;b&gt;ascom&lt;/b&gt; for the assembler.
+       For example, this is how the &lt;i&gt;tools&lt;/i&gt; variable is defined for the &lt;b&gt;i386&lt;/b&gt; platform:
+- &lt;p&gt;&lt;pre&gt;&lt;code&gt;# Toolset data
++ &lt;pre&gt;&lt;code&gt;# Toolset data
+  tools[ 'i386' ] = {}
+  tools[ 'i386' ][ 'cccom' ] = &quot;%s %s %s -march=i386 -mfpmath=387 -m32 -ffunction-sections -fdata-sections -fno-builtin -fno-stack-protector %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], opt, local_include, cdefs )
+  tools[ 'i386' ][ 'linkcom' ] = &quot;%s -nostartfiles -nostdlib -march=i386 -mfpmath=387 -m32 -T %s -Wl,--gc-sections -Wl,-e,start -Wl,--allow-multiple-definition -o $TARGET $SOURCES -lc -lgcc -lm %s&quot; % ( toolset[ 'compile' ], ldscript, local_libs )
+- tools[ 'i386' ][ 'ascom' ] = &quot;%s -felf $SOURCE&quot; % toolset[ 'asm' ]&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;     
++ tools[ 'i386' ][ 'ascom' ] = &quot;%s -felf $SOURCE&quot; % toolset[ 'asm' ]&lt;/code&gt;&lt;/pre&gt;
+   Note how the definition of &lt;b&gt;tools&lt;/b&gt; uses the definition of &lt;b&gt;toolset&lt;/b&gt;, a dictionary with the names of the tools in the current toolchain. This
+   is also part of the &lt;b&gt;eLua&lt;/b&gt; build system and is documented &lt;a href=&quot;toolchains.html&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
+   &lt;li&gt;to get the name of a &lt;b&gt;programmning function&lt;/b&gt; which receives the name of the &lt;b&gt;eLua&lt;/b&gt; executable file (the result of the build step) and 
+   produces a file suitable for programming on the corresponding hardware platform. The name of this function should also be set in the &lt;i&gt;tools&lt;/i&gt; 
+   dictionary, as shown below (example taken from the &lt;b&gt;str7&lt;/b&gt; platform):
+- &lt;p&gt;&lt;pre&gt;&lt;code&gt;# Programming function for STR7
++ &lt;pre&gt;&lt;code&gt;# Programming function for STR7
+  def progfunc_str7( target, source, env ):
+    outname = output + &quot;.elf&quot;
+    os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+    print &quot;Generating binary image...&quot;
+    os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
+            
+-   tools[ 'str7' ][ 'progfunc' ] = progfunc_str7&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt; 
++   tools[ 'str7' ][ 'progfunc' ] = progfunc_str7&lt;/code&gt;&lt;/pre&gt;
+   Note, once again, how this function uses the same &lt;i&gt;toolset&lt;/i&gt; variable mentioned in the previous paragraph.
+   &lt;/li&gt;
+   &lt;/ul&gt;
+   &lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;stacks.h&lt;/b&gt;: by convention, the stack(s) size(s) used in the system are declared in this file. An example taken from the &lt;b&gt;at91sam7x&lt;/b&gt; platform is given below:
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;#define  STACK_SIZE_USR   2048
++&lt;pre&gt;&lt;code&gt;#define  STACK_SIZE_USR   2048
+ #define  STACK_SIZE_IRQ   64
+-#define  STACK_SIZE_TOTAL ( STACK_SIZE_USR + STACK_SIZE_IRQ )&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;
++#define  STACK_SIZE_TOTAL ( STACK_SIZE_USR + STACK_SIZE_IRQ )&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;platform.c&lt;/b&gt;: by convention, the &lt;a href=&quot;arch_platform.html&quot;&gt;platform interface&lt;/a&gt; is implemented in this file. It also contains the platform-specific
+   initialization function (&lt;i&gt;platform_init&lt;/i&gt;, see the description of the &lt;a href=&quot;elua_arch.html#boot&quot;&gt;eLua boot process&lt;/a&gt; for details).&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;platform_conf.h&lt;/b&gt;: this is the platform configuration file, used to give information about both the platform itself and the build configuration for the 
+@@ -153,7 +148,7 @@
+   &lt;li&gt;the &lt;b&gt;static configuration data&lt;/b&gt; (see &lt;a href=&quot;building.html&quot;&gt;building eLua&lt;/a&gt; for details).&lt;/li&gt;
+   &lt;li&gt;the &lt;b&gt;number of peripherals&lt;/b&gt; on your CPU. See an example below (taken from &lt;b&gt;lm3s&lt;/b&gt;) that also shows how to differentiate between different CPUs that belong to the same 
+   platform; the &lt;b&gt;FORxxxx&lt;/b&gt; macros are defined in &lt;b&gt;conf.py&lt;/b&gt;):
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;&lt;/code&gt;// Number of resources (0 if not available/not implemented)
++&lt;pre&gt;&lt;code&gt;// Number of resources (0 if not available/not implemented)
+ #define NUM_PIO               7
+ #define NUM_SPI               1
+ #ifdef FORLM3S6965
+@@ -167,18 +162,18 @@
+ #else
+   #define NUM_PWM             0
+ #endif  
+-#define NUM_ADC               4&lt;/pre&gt;&lt;/p&gt;&lt;/li&gt;
++#define NUM_ADC               4&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;b&gt;specific peripheral configuration&lt;/b&gt;: this includes (but it not limited to) enabling buffering on UART, enabling and setting up virtual timers, setting PIO configuration and so on.
+-  All these parameters are described in detail in the &lt;a href=&quot;arch_platform.html&quot;&gt;platform interface section&lt;/a&gt;.
++  All these parameters are described in detail in the &lt;a href=&quot;arch_platform.html&quot;&gt;platform interface section&lt;/a&gt;.&lt;/li&gt;
+   &lt;li&gt;&lt;b&gt;memory configuration&lt;/b&gt;: describes the regions of free RAM in the system, which will be later used by the standard system allocator (malloc/realloc/free). Two macros
+   (&lt;b&gt;MEM_START_ADDRESS&lt;/b&gt; and &lt;b&gt;MEM_END_ADDRESS&lt;/b&gt;) define two arrays with the beginning and the end of all the free RAM memory in the system. If your board has external RAM memory, you 
+   should define it here. If not, you can only use the internal memory, and you'll generally need to use the linker-defined symbol &lt;b&gt;end&lt;/b&gt; to find out where your free memory starts. Following 
+   is an example from the &lt;b&gt;ATEVK1100&lt;/b&gt; (AVR32) board that has both on-chip and external RAM:
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;// Allocator data: define your free memory zones here in two arrays
++&lt;pre&gt;&lt;code&gt;// Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+ #define MEM_START_ADDRESS     { ( void* )end, ( void* )SDRAM }
+ #define MEM_END_ADDRESS       { ( void* )( 0x10000 - STACK_SIZE_TOTAL - 1 ), ( void* )( SDRAM + SDRAM_SIZE - 1 ) }
+-&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;/code&gt;&lt;/pre&gt;
+   &lt;/li&gt;
+ &lt;/ul&gt;
+   If you want to take a look at a real life example of a &lt;b&gt;platform_conf.h&lt;/b&gt; file, see for example &lt;i&gt;src/platform/lm3s/platform_conf.h&lt;/i&gt;.
+@@ -186,18 +181,18 @@
+   &lt;li&gt;&lt;b&gt;networking configuration&lt;/b&gt;: if you need TCP/IP on your board, you need to add networking support to &lt;b&gt;eLua&lt;/b&gt; (see &lt;a href=&quot;building.html&quot;&gt;
+   building&lt;/a&gt; for a list of configuration options related to TCP/IP). You also need to have another file, called &lt;b&gt;uip-conf.h&lt;/b&gt; that configures uIP
+   (the TCP/IP stack in &lt;b&gt;eLua&lt;/b&gt;) for your specific architecture. See &lt;a href=&quot;arch_tcpip.html&quot;&gt;TCP/IP in eLua&lt;/a&gt; for details.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
+-&lt;p&gt;Besides the required files, the most common scenario is to include other platform specific files in your port:
++&lt;/ul&gt;
++&lt;p&gt;Besides the required files, the most common scenario is to include other platform specific files in your port:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;&lt;b&gt;a &quot;startup sequence&quot;&lt;/b&gt;, generally written in assembler, that does very low level
+   intialization, sets the stack pointer, zeroes the BSS section, copies ROM to 
+   RAM for the DATA section, and then jumps to main.&lt;/li&gt;
+-  &lt;li&gt;a &lt;b&gt;linker command file&lt;/b&gt;.
++  &lt;li&gt;a &lt;b&gt;linker command file&lt;/b&gt;.&lt;/li&gt;
+   &lt;li&gt;the &lt;b&gt;CPU support package&lt;/b&gt; generally comes from the CPU manufacturer, and includes code
+   for accessing peripherals, configuring the core, setting up interrupts and so on.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
+-&lt;a name=&quot;boot&quot;&gt;&lt;h3&gt;eLua boot process&lt;/h3&gt;&lt;/a&gt;
+-&lt;p&gt;This is what happens when you power up your &lt;b&gt;eLua&lt;/b&gt; board:
++&lt;/ul&gt;
++&lt;a name=&quot;boot&quot; /&gt;&lt;h3&gt;eLua boot process&lt;/h3&gt;
++&lt;p&gt;This is what happens when you power up your &lt;b&gt;eLua&lt;/b&gt; board:&lt;/p&gt;
+ &lt;ol&gt;
+   &lt;li&gt;the platform initialization code is executed. This is the code that does very low level platform setup (if needed), copies ROM to RAM, zeroes out
+   the BSS section, sets up the stack pointer and jumps to &lt;b&gt;main&lt;/b&gt;.&lt;/li&gt;
+
+Modified: tags/pre0.6/doc/en/tc_386.html
+===================================================================
+--- tags/pre0.6/doc/en/tc_386.html	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/en/tc_386.html	2009-08-25 20:09:46 UTC (rev 410)
+@@ -1,53 +1,48 @@
+-&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+-&lt;html&gt;&lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot;/&gt; 
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;Building GCC for i386&lt;/title&gt;
+-
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
+-&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++$$HEADER$$
+ &lt;h3&gt;Building GCC for i386&lt;/h3&gt;
+ &lt;p&gt;At first, the idea of an i386 &quot;cross&quot; compiler under Linux seems
+ strange. After all, you're already running Linux on a i386 compatible
+ architecture. But the compiler is sometimes tied in misterious ways
+-with the operating system it's running on (see for example &lt;a htarget=&quot;_blank&quot; ref=&quot;<A HREF="http://wiki.osdev.org/GCC_Cross-Compiler">http://wiki.osdev.org/GCC_Cross-Compiler</A>&quot;&gt;this page&lt;/a&gt;
++with the operating system it's running on (see for example &lt;a href=&quot;<A HREF="http://wiki.osdev.org/GCC_Cross-Compiler">http://wiki.osdev.org/GCC_Cross-Compiler</A>&quot;&gt;this page&lt;/a&gt;
+ for some possible symptoms). And after all, you want to use Newlib, not
+ libc, and to customize your development environment as much as
+ possible. This tutorial will show you how to do that.&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;strong&gt;DISCLAIMER: I'm by no means a specialist in the
++&lt;p&gt;&lt;span class=&quot;warning&quot;&gt;DISCLAIMER&lt;/span&gt;: I'm by no means a specialist in the
+ GCC/newlib/binutils compilation process. I'm sure that there are better
+ ways to accomplish what I'm describing here, however I just wanted a
+ quick and dirty way to build a toolchain, I have no intention in
+ becoming too intimate with the build process. If you think that what I
+ did is wrong, innacurate, or simply outrageously ugly, feel free to 
+ &lt;a href=&quot;overview.html#contacts&quot;&gt;contact us&lt;/a&gt; and I'll make the necessary corrections. 
+-And of course, this tutorial comes without any guarantees whatsoever.&lt;/strong&gt;&lt;/p&gt;
++And of course, this tutorial comes without any guarantees whatsoever.&lt;/p&gt;
+ 
+ &lt;h2&gt;Prerequisites&lt;/h2&gt;
+ &lt;p&gt;To build your toolchain you'll need:&lt;/p&gt;
+ 
+ &lt;ul&gt;
+ &lt;li&gt;&lt;b&gt;GNU binutils&lt;/b&gt;: as I'm writing this, the latest binutils version is 2.19.1, which
+-I'll be using in this tutorial. get it from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://ftp.gnu.org/gnu/binutils/">http://ftp.gnu.org/gnu/binutils/</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
++I'll be using in this tutorial. get it from &lt;a  href=&quot;<A HREF="http://ftp.gnu.org/gnu/binutils/">http://ftp.gnu.org/gnu/binutils/</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;GCC&lt;/b&gt;:as I'm writing this, the latest GCC version is
+-4.3.3, which I'll be using for this tutorial. Download it from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://gcc.gnu.org/mirrors.html">http://gcc.gnu.org/mirrors.html</A>&quot;&gt;here&lt;/a&gt; after choosing a suitable mirror.&lt;/li&gt;
++4.3.3, which I'll be using for this tutorial. Download it from &lt;a  href=&quot;<A HREF="http://gcc.gnu.org/mirrors.html">http://gcc.gnu.org/mirrors.html</A>&quot;&gt;here&lt;/a&gt; after choosing a suitable mirror.&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;Newlib&lt;/b&gt;: as I'm writing this, the latest official Newlib version is 1.17.0, which I'll be using for this tutorial.
+-Download it from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="ftp://sources.redhat.com/pub/newlib/index.html">ftp://sources.redhat.com/pub/newlib/index.html</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
++Download it from &lt;a  href=&quot;<A HREF="ftp://sources.redhat.com/pub/newlib/index.html">ftp://sources.redhat.com/pub/newlib/index.html</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
+ &lt;li&gt;The tutorial assumes that you're using bash as your shell. If you use
+-something else, you might need to adjust some shell-specific commands. &lt;/li&gt;&lt;/ul&gt;&lt;/p&gt;
++something else, you might need to adjust some shell-specific commands. &lt;/li&gt;&lt;/ul&gt;
++
+ &lt;p&gt;You need some support programs/libraries in order to compile the toolchain. To install them:&lt;/p&gt;
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ sudo apt-get install flex bison libgmp3-dev libmpfr-dev autoconf texinfo build-essential&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ sudo apt-get install flex bison libgmp3-dev libmpfr-dev autoconf texinfo build-essential&lt;/code&gt;&lt;/pre&gt;
+ &lt;p&gt;Next, decide where you want to install your toolchain. They
+ generally go in &lt;i&gt;/usr/local/&lt;/i&gt;, so I'm going to assume
+ &lt;i&gt;/usr/local/cross-i686&lt;/i&gt; for this tutorial. To save yourself some
+ typing, set this path into a shell variable:&lt;/p&gt;
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ export TOOLPATH=/usr/local/cross-i686&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ export TOOLPATH=/usr/local/cross-i686&lt;/code&gt;&lt;/pre&gt;
+ 
+-&lt;h2&gt;&#8250; Step 1: binutils&lt;/h2&gt;
++&lt;h2&gt;Step 1: binutils&lt;/h2&gt;
+ 
+ &lt;p&gt;This is the easiest step: unpack, configure, build.&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ tar -xvjf binutils-2.19.1.tar.bz2
++&lt;pre&gt;&lt;code&gt;$ tar -xvjf binutils-2.19.1.tar.bz2
+ $ cd binutils-2.19.1
+ $ mkdir build
+ $ cd build
+@@ -55,7 +50,7 @@
+ $ make all
+ $ sudo make install
+ $ export PATH=${TOOLPATH}/bin:$PATH
+-$ cd ../..&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$ cd ../..&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;Now you have your i386 &quot;binutils&quot; (assembler, linker, disassembler ...) in your PATH. &lt;/p&gt;
+ 
+@@ -64,9 +59,9 @@
+ &lt;p&gt;In this step we build a &quot;basic&quot; GCC (that is, a GCC without any
+ support libs, which we'll use in order to build all the libraries for
+ our target). Let's compile it (and note that the install step is 
+-a bit different from Newlib's):&lt;/p?
++a bit different from Newlib's):&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ tar -xvjf gcc-4.3.3.tar.bz2
++&lt;pre&gt;&lt;code&gt;$ tar -xvjf gcc-4.3.3.tar.bz2
+ $ cd gcc-4.3.3
+ $ mkdir build
+ $ cd build
+@@ -76,7 +71,7 @@
+ # export PATH=/usr/local/cross-i686/bin:$PATH
+ # make install-gcc
+ # exit
+-$ cd ../..&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$ cd ../..&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;h2&gt;Step 3: Newlib&lt;/h2&gt;
+ 
+@@ -86,7 +81,7 @@
+ executable, so I added the &quot;-ffunction-sections -fdata-sections&quot; flags
+ to allow the linker to perform dead code stripping:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ tar -xvzf newlib-1.17.0.tar.gz
++&lt;pre&gt;&lt;code&gt;$ tar -xvzf newlib-1.17.0.tar.gz
+ $ cd newlib-1.17.0
+ $ mkdir build
+ $ cd build
+@@ -96,17 +91,17 @@
+ # export PATH=/usr/local/cross-i686/bin:$PATH
+ # make install
+ # exit 
+-$ cd ../..&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$ cd ../..&lt;/code&gt;&lt;/pre&gt;
+ 
+-&lt;p&gt;Some notes about the flags used in the above sequence:
++&lt;p&gt;Some notes about the flags used in the above sequence:&lt;/p&gt;
+ 
+ &lt;ul&gt;
+   &lt;li&gt;&lt;code&gt;--disable-newlib-supplied-syscalls&lt;/code&gt;: this deserves a page of its own, but I won't cover it here. For an explanation, see for example 
+-  &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://openhardware.net/Embedded_ARM/NewLib_Stubs/">http://openhardware.net/Embedded_ARM/NewLib_Stubs/</A>&quot;&gt;this page&lt;/a&gt;&lt;/li&gt;
++  &lt;a  href=&quot;<A HREF="http://openhardware.net/Embedded_ARM/NewLib_Stubs/">http://openhardware.net/Embedded_ARM/NewLib_Stubs/</A>&quot;&gt;this page&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;code&gt;-DPREFER_SIZE_OVER_SPEED -D__OPTIMIZE_SIZE__&lt;/code&gt;: compile Newlib for size, not for speed (these are Newlib specific).&lt;/li&gt;
+   &lt;li&gt;&lt;code&gt;-Os -fomit-frame-pointer&lt;/code&gt;: tell GCC to optimize for size, not for speed.&lt;/li&gt;
+   &lt;li&gt;&lt;code&gt;-D__BUFSIZ__=256&lt;/code&gt;: again Newlib specific, this is the buffer size allocated by default for files opened via fopen(). The default is 1024, which I find too much
+-   for &lt;b&gt;eLua&lt;/b&gt;, so I'm using 256 here. Of course, you can change this value.&lt;/li&gt;&lt;/ul&gt;&lt;/p&gt;
++   for &lt;b&gt;eLua&lt;/b&gt;, so I'm using 256 here. Of course, you can change this value.&lt;/li&gt;&lt;/ul&gt;
+ 
+ &lt;h2&gt;Step 4: full GCC&lt;/h2&gt;
+ 
+@@ -115,10 +110,10 @@
+ (most notably libgcc.a). Fortunately this is simpler that the Newlib
+ compilation step:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ cd gcc-4.3.3/build
++&lt;pre&gt;&lt;code&gt;$ cd gcc-4.3.3/build
+ $ make all
+ $ sudo make install
+-&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;h2&gt;Step 5: all done!&lt;/h2&gt;
+ 
+@@ -126,4 +121,4 @@
+ it :) After you do, you'll be able to boot &lt;b&gt;eLua&lt;/b&gt; directly on your PC, as
+ described &lt;a href=&quot;tut_bootpc.html&quot;&gt;here&lt;/a&gt;, but you won't need to download the ELF file from the &lt;b&gt;eLua&lt;/b&gt; project page, since you just generated it using your own toolchain!
+ If you need further clarification, or if the above instructions didn't work for you, feel free to &lt;a href=&quot;overview.html#contacts&quot;&gt;contact us&lt;/a&gt;.&lt;/p&gt;
+-&lt;/body&gt;&lt;/html&gt;
++$$FOOTER$$
+
+Modified: tags/pre0.6/doc/en/tc_arm.html
+===================================================================
+--- tags/pre0.6/doc/en/tc_arm.html	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/en/tc_arm.html	2009-08-25 20:09:46 UTC (rev 410)
+@@ -1,10 +1,4 @@
+-&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+-&lt;html&gt;&lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot;/&gt; 
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;Building GCC for ARM&lt;/title&gt;
+-
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
+-&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++$$HEADER$$
+ &lt;h3&gt;Building GCC for ARM&lt;/h3&gt;
+ 
+ &lt;p&gt; This tutorial explains how you can create a GCC+Newlib toolchain
+@@ -14,16 +8,16 @@
+ ARM CPUs. Please note that you can also use a
+ pre-built toolchain to compile &lt;b&gt;eLua&lt;/b&gt; (see &lt;a href=&quot;toolchains.html&quot;&gt;toolchains&lt;/a&gt; for details) so building
+ one yourself is not strictly required. This tutorial is similar to many others you'll find on the
+-Internet (particulary the one from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.gnuarm.com/">http://www.gnuarm.com/</A>&quot;&gt;gnuarm&lt;/a&gt;, on which it's based), but it's a bit more detailed and shows some &quot;tricks&quot; 
++Internet (particulary the one from &lt;a  href=&quot;<A HREF="http://www.gnuarm.com/">http://www.gnuarm.com/</A>&quot;&gt;gnuarm&lt;/a&gt;, on which it's based), but it's a bit more detailed and shows some &quot;tricks&quot; 
+ (specifying parameters at compile time) you can use when compiling Newlib.&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;strong&gt;DISCLAIMER: I'm by no means a specialist in the
++&lt;p&gt;&lt;span class=&quot;warning&quot;&gt;DISCLAIMER&lt;/span&gt;: I'm by no means a specialist in the
+ GCC/newlib/binutils compilation process. I'm sure that there are better
+ ways to accomplish what I'm describing here, however I just wanted a
+ quick and dirty way to build a toolchain, I have no intention in
+ becoming too intimate with the build process. If you think that what I
+ did is wrong, innacurate, or simply outrageously ugly, feel free to &lt;a href=&quot;overview.html#contacts&quot;&gt;contact us&lt;/a&gt; and 
+-I'll make the necessary corrections. And of course, this tutorial comes without any guarantees whatsoever.&lt;/strong&gt;&lt;/p&gt;
++I'll make the necessary corrections. And of course, this tutorial comes without any guarantees whatsoever.&lt;/p&gt;
+ 
+ &lt;h2&gt;Prerequisites&lt;/h2&gt;
+ &lt;p&gt;To build your toolchain you'll need:&lt;/p&gt;
+@@ -36,30 +30,30 @@
+ system already has a &quot;basic&quot; native toolchain installed (gcc/make and
+ related).This is true for Ubuntu after installation. Again, you might
+ need to check your specific distribution.&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;GNU binutils&lt;/b&gt;: get it from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://ftp.gnu.org/gnu/binutils/">http://ftp.gnu.org/gnu/binutils/</A>&quot;&gt;here&lt;/a&gt;.
++&lt;li&gt;&lt;b&gt;GNU binutils&lt;/b&gt;: get it from &lt;a  href=&quot;<A HREF="http://ftp.gnu.org/gnu/binutils/">http://ftp.gnu.org/gnu/binutils/</A>&quot;&gt;here&lt;/a&gt;.
+ At the moment of writing this, the latest versions is 2.19.1, but it refuses to compile for ARM. Same goes for
+ 2.19. In fact, the only newer version of Binutils that seems to work properly is 
+-2.19.50, it can be downloaded from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="ftp://sourceware.org/pub/binutils/snapshots/">ftp://sourceware.org/pub/binutils/snapshots/</A>&quot;&gt;here&lt;/a&gt;.
++2.19.50, it can be downloaded from &lt;a  href=&quot;<A HREF="ftp://sourceware.org/pub/binutils/snapshots/">ftp://sourceware.org/pub/binutils/snapshots/</A>&quot;&gt;here&lt;/a&gt;.
+ This is the version that we are going to use in this tutorial.&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;GCC&lt;/b&gt;:as I'm writing this, the latest GCC version is
+-4.3.3, which I'll be using for this tutorial. Download it from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://gcc.gnu.org/mirrors.html">http://gcc.gnu.org/mirrors.html</A>&quot;&gt;here&lt;/a&gt; after choosing a suitable mirror.&lt;/li&gt;
++4.3.3, which I'll be using for this tutorial. Download it from &lt;a  href=&quot;<A HREF="http://gcc.gnu.org/mirrors.html">http://gcc.gnu.org/mirrors.html</A>&quot;&gt;here&lt;/a&gt; after choosing a suitable mirror.&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;Newlib&lt;/b&gt;: as I'm writing this, the latest official Newlib version is 1.17.0, which I'll be using for this tutorial.
+-Download it from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="ftp://sources.redhat.com/pub/newlib/index.html">ftp://sources.redhat.com/pub/newlib/index.html</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
++Download it from &lt;a  href=&quot;<A HREF="ftp://sources.redhat.com/pub/newlib/index.html">ftp://sources.redhat.com/pub/newlib/index.html</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
+ &lt;li&gt;The tutorial assumes that you're using bash as your shell. If you use
+-something else, you might need to adjust some shell-specific commands. &lt;/li&gt;&lt;/ul&gt;&lt;/p&gt;
++something else, you might need to adjust some shell-specific commands. &lt;/li&gt;&lt;/ul&gt;
+ &lt;p&gt;You need some support programs/libraries in order to compile the toolchain. To install them:&lt;/p&gt;
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ sudo apt-get install flex bison libgmp3-dev libmpfr-dev autoconf texinfo build-essential&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ sudo apt-get install flex bison libgmp3-dev libmpfr-dev autoconf texinfo build-essential&lt;/code&gt;&lt;/pre&gt;
+ &lt;p&gt;Next, decide where you want to install your toolchain. They
+ generally go in &lt;i&gt;/usr/local/&lt;/i&gt;, so I'm going to assume
+ &lt;i&gt;/usr/local/cross-arm&lt;/i&gt; for this tutorial. To save yourself some
+ typing, set this path into a shell variable:&lt;/p&gt;
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ export TOOLPATH=/usr/local/cross-arm&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ export TOOLPATH=/usr/local/cross-arm&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;h2&gt;Step 1: binutils&lt;/h2&gt;
+ 
+ &lt;p&gt;This is the easiest step: unpack, configure, build.&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ tar -xvjf binutils-2.19.50.tar.bz2
++&lt;pre&gt;&lt;code&gt;$ tar -xvjf binutils-2.19.50.tar.bz2
+ $ cd binutils-2.19.50
+ $ mkdir build
+ $ cd build
+@@ -67,7 +61,7 @@
+ $ make all
+ $ sudo make install
+ $ export PATH=${TOOLPATH}/bin:$PATH
+-$ cd ../..&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$ cd ../..&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;Now you have your ARM &quot;binutils&quot; (assembler, linker, disassembler ...) in your PATH. &lt;/p&gt;
+ 
+@@ -76,9 +70,9 @@
+ &lt;p&gt;In this step we build a &quot;basic&quot; GCC (that is, a GCC without any
+ support libs, which we'll use in order to build all the libraries for
+ our target). Let's compile it (and note that the install step is 
+-a bit different from Newlib's):&lt;/p?
++a bit different from Newlib's):&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ tar -xvjf gcc-4.3.3.tar.bz2
++&lt;pre&gt;&lt;code&gt;$ tar -xvjf gcc-4.3.3.tar.bz2
+ $ cd gcc-4.3.3
+ $ mkdir build
+ $ cd build
+@@ -88,7 +82,7 @@
+ # export PATH=/usr/local/cross-arm/bin:$PATH
+ # make install-gcc
+ # exit
+-$ cd ../..&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$ cd ../..&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;h2&gt;Step 3: Newlib&lt;/h2&gt;
+ 
+@@ -98,7 +92,7 @@
+ executable, so I added the &quot;-ffunction-sections -fdata-sections&quot; flags
+ to allow the linker to perform dead code stripping:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ tar -xvzf newlib-1.17.0.tar.gz
++&lt;pre&gt;&lt;code&gt;$ tar -xvzf newlib-1.17.0.tar.gz
+ $ cd newlib-1.17.0
+ $ mkdir build
+ $ cd build
+@@ -108,17 +102,18 @@
+ # export PATH=/usr/local/cross-arm/bin:$PATH
+ # make install
+ # exit 
+-$ cd ../..&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$ cd ../..&lt;/code&gt;&lt;/pre&gt;
+ 
+-&lt;p&gt;Some notes about the flags used in the above sequence:
++&lt;p&gt;Some notes about the flags used in the above sequence:&lt;/p&gt;
+ 
+ &lt;ul&gt;
+   &lt;li&gt;&lt;code&gt;--disable-newlib-supplied-syscalls&lt;/code&gt;: this deserves a page of its own, but I won't cover it here. For an explanation, see for example 
+-  &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://openhardware.net/Embedded_ARM/NewLib_Stubs/">http://openhardware.net/Embedded_ARM/NewLib_Stubs/</A>&quot;&gt;this page&lt;/a&gt;&lt;/li&gt;
++  &lt;a  href=&quot;<A HREF="http://openhardware.net/Embedded_ARM/NewLib_Stubs/">http://openhardware.net/Embedded_ARM/NewLib_Stubs/</A>&quot;&gt;this page&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;code&gt;-DPREFER_SIZE_OVER_SPEED -D__OPTIMIZE_SIZE__&lt;/code&gt;: compile Newlib for size, not for speed (these are Newlib specific).&lt;/li&gt;
+   &lt;li&gt;&lt;code&gt;-Os -fomit-frame-pointer&lt;/code&gt;: tell GCC to optimize for size, not for speed.&lt;/li&gt;
+   &lt;li&gt;&lt;code&gt;-D__BUFSIZ__=256&lt;/code&gt;: again Newlib specific, this is the buffer size allocated by default for files opened via fopen(). The default is 1024, which I find too much
+-   for &lt;b&gt;eLua&lt;/b&gt;, so I'm using 256 here. Of course, you can change this value.&lt;/li&gt;&lt;/ul&gt;&lt;/p&gt;
++   for &lt;b&gt;eLua&lt;/b&gt;, so I'm using 256 here. Of course, you can change this value.&lt;/li&gt;
++&lt;/ul&gt;
+ 
+ &lt;h2&gt;Step 4: full GCC&lt;/h2&gt;
+ 
+@@ -127,13 +122,14 @@
+ (most notably libgcc.a). Fortunately this is simpler that the Newlib
+ compilation step:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ cd gcc-4.3.3/build
++&lt;pre&gt;&lt;code&gt;$ cd gcc-4.3.3/build
+ $ make all
+ $ sudo make install
+-&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;h2&gt;Step 5: all done!&lt;/h2&gt;
+ 
+ &lt;p&gt;Now you can finally enjoy your ARM toolchain, and compile &lt;b&gt;eLua&lt;/b&gt; with it :)
+ If you need further clarification, or if the above instructions didn't work for you, feel free to &lt;a href=&quot;overview.html#contacts&quot;&gt;contact us&lt;/a&gt;.&lt;/p&gt;
+-&lt;/body&gt;&lt;/html&gt;
++$$FOOTER$$
++
+
+Modified: tags/pre0.6/doc/en/tc_cortex.html
+===================================================================
+--- tags/pre0.6/doc/en/tc_cortex.html	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/en/tc_cortex.html	2009-08-25 20:09:46 UTC (rev 410)
+@@ -1,17 +1,10 @@
+-&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+-&lt;html&gt;&lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot;/&gt; 
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;Bulding GCC for Cortex&lt;/title&gt;
+-
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
+-&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
+-
++$$HEADER$$
+ &lt;h3&gt;Building GCC for Cortex&lt;/h3&gt;
+ &lt;p&gt;This tutorial explains how you can create a GCC+Newlib toolchain
+ that can be used to compile programs for the Cortex (Thumb2)
+ architecture, thus making it possible to use GCC to compile programs
+-for the increasingly number of Cortex CPUs out there (&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.luminarymicro.com/">http://www.luminarymicro.com/</A>&quot;&gt;Luminary Micro&lt;/a&gt;,  i
+-&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.st.com/mcu/inchtml-pages-stm32.html">http://www.st.com/mcu/inchtml-pages-stm32.html</A>&quot;&gt;ST&lt;/a&gt;, with new Cortex CPUs being announced by Atmel and other companies). I
++for the increasingly number of Cortex CPUs out there (&lt;a  href=&quot;<A HREF="http://www.luminarymicro.com/">http://www.luminarymicro.com/</A>&quot;&gt;Luminary Micro&lt;/a&gt;,  i
++&lt;a  href=&quot;<A HREF="http://www.st.com/mcu/inchtml-pages-stm32.html">http://www.st.com/mcu/inchtml-pages-stm32.html</A>&quot;&gt;ST&lt;/a&gt;, with new Cortex CPUs being announced by Atmel and other companies). I
+ am writing this tutorial because I needed to work on a Cortex CPU for
+ the eLua project and I couldn't find anywhere a complete set of
+ instructions for building GCC for this architecture. You'll need such a
+@@ -19,16 +12,16 @@
+ pre-built toolchain to compile &lt;b&gt;eLua&lt;/b&gt; (see &lt;a href=&quot;toolchains.html&quot;&gt;toolchains&lt;/a&gt; for details) so building
+ one yourself is not strictly required.&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;strong&gt;DISCLAIMER: I'm by no means a specialist in the
++&lt;p&gt;&lt;span class=&quot;warning&quot;&gt;DISCLAIMER&lt;/span&gt;: I'm by no means a specialist in the
+ GCC/newlib/binutils compilation process. I'm sure that there are better
+ ways to accomplish what I'm describing here, however I just wanted a
+ quick and dirty way to build a toolchain, I have no intention in
+ becoming too intimate with the build process. If you think that what I
+ did is wrong, innacurate, or simply outrageously ugly, feel free to &lt;a href=&quot;overview.html#contacts&quot;&gt;contact us&lt;/a&gt; and I'll make the necessary corrections. 
+-And of course, this tutorial comes without any guarantees whatsoever.&lt;/strong&gt;&lt;/p&gt;
++And of course, this tutorial comes without any guarantees whatsoever.&lt;/p&gt;
+ 
+ &lt;h2&gt;Prerequisites&lt;/h2&gt;
+-&lt;p&gt;To build your toolchain you'll need:
++&lt;p&gt;To build your toolchain you'll need:&lt;/p&gt;
+ 
+ &lt;ul&gt;&lt;li&gt;&lt;b&gt;a computer running Linux&lt;/b&gt;: I use Ubuntu, but any Linux
+ will do as long as you know how to find the equivalent of &quot;apt-get&quot; for
+@@ -37,30 +30,30 @@
+ system already has a &quot;basic&quot; native toolchain installed (gcc/make and
+ related). This is true for Ubuntu after installation. Again, you might
+ need to check your specific distribution.&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;GNU binutils&lt;/b&gt;: get it from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://ftp.gnu.org/gnu/binutils/">http://ftp.gnu.org/gnu/binutils/</A>&quot;&gt;here&lt;/a&gt;.
++&lt;li&gt;&lt;b&gt;GNU binutils&lt;/b&gt;: get it from &lt;a  href=&quot;<A HREF="http://ftp.gnu.org/gnu/binutils/">http://ftp.gnu.org/gnu/binutils/</A>&quot;&gt;here&lt;/a&gt;.
+ At the moment of writing this, the latest versions is 2.19.1, but it refuses to compile for ARM. Same goes for
+ 2.19. In fact, the only newer version of Binutils that seems to work properly is 
+-2.19.50, it can be downloaded from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="ftp://sourceware.org/pub/binutils/snapshots/">ftp://sourceware.org/pub/binutils/snapshots/</A>&quot;&gt;here&lt;/a&gt;.
++2.19.50, it can be downloaded from &lt;a  href=&quot;<A HREF="ftp://sourceware.org/pub/binutils/snapshots/">ftp://sourceware.org/pub/binutils/snapshots/</A>&quot;&gt;here&lt;/a&gt;.
+ This is the version that we are going to use in this tutorial.&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;GCC&lt;/b&gt;:as I'm writing this, the latest GCC version is
+-4.3.3, which I'll be using for this tutorial. Download it from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://gcc.gnu.org/mirrors.html">http://gcc.gnu.org/mirrors.html</A>&quot;&gt;here&lt;/a&gt; after choosing a suitable mirror.&lt;/li&gt;
++4.3.3, which I'll be using for this tutorial. Download it from &lt;a  href=&quot;<A HREF="http://gcc.gnu.org/mirrors.html">http://gcc.gnu.org/mirrors.html</A>&quot;&gt;here&lt;/a&gt; after choosing a suitable mirror.&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;Newlib&lt;/b&gt;: as I'm writing this, the latest official Newlib version is 1.17.0, which I'll be using for this tutorial.
+-Download it from &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="ftp://sources.redhat.com/pub/newlib/index.html">ftp://sources.redhat.com/pub/newlib/index.html</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
++Download it from &lt;a  href=&quot;<A HREF="ftp://sources.redhat.com/pub/newlib/index.html">ftp://sources.redhat.com/pub/newlib/index.html</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
+ &lt;li&gt;The tutorial assumes that you're using bash as your shell. If you use
+-something else, you might need to adjust some shell-specific commands. &lt;/li&gt;&lt;/ul&gt;&lt;/p&gt;
++something else, you might need to adjust some shell-specific commands. &lt;/li&gt;&lt;/ul&gt;
+ &lt;p&gt;You need some support programs/libraries in order to compile the toolchain. To install them:&lt;/p&gt;
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ sudo apt-get install flex bison libgmp3-dev libmpfr-dev autoconf texinfo build-essential&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ sudo apt-get install flex bison libgmp3-dev libmpfr-dev autoconf texinfo build-essential&lt;/code&gt;&lt;/pre&gt;
+ &lt;p&gt;Next, decide where you want to install your toolchain. They
+ generally go in &lt;i&gt;/usr/local/&lt;/i&gt;, so I'm going to assume
+ &lt;i&gt;/usr/local/cross-cortex&lt;/i&gt; for this tutorial. To save yourself some
+ typing, set this path into a shell variable:&lt;/p&gt;
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ export TOOLPATH=/usr/local/cross-cortex&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ export TOOLPATH=/usr/local/cross-cortex&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;h2&gt;Step 1: binutils&lt;/h2&gt;
+ 
+ &lt;p&gt;This is the easiest step: unpack, configure, build.&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ tar -xvjf binutils-2.19.50.tar.bz2
++&lt;pre&gt;&lt;code&gt;$ tar -xvjf binutils-2.19.50.tar.bz2
+ $ cd binutils-2.19.50
+ $ mkdir build
+ $ cd build
+@@ -68,7 +61,7 @@
+ $ make all
+ $ sudo make install
+ $ export PATH=${TOOLPATH}/bin:$PATH
+-$ cd ../..&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$ cd ../..&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;Now you have your ARM &quot;binutils&quot; (assembler, linker, disassembler ...) in your PATH. They are fully capable of handling Thumb2.&lt;/p&gt;
+ 
+@@ -77,9 +70,9 @@
+ &lt;p&gt;In this step we build a &quot;basic&quot; GCC (that is, a GCC without any
+ support libs, which we'll use in order to build all the libraries for
+ our target). Let's compile it (and note that the install step is 
+-a bit different from Newlib's):&lt;/p?
++a bit different from Newlib's):&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ tar -xvjf gcc-4.3.3.tar.bz2
++&lt;pre&gt;&lt;code&gt;$ tar -xvjf gcc-4.3.3.tar.bz2
+ $ cd gcc-4.3.3
+ $ mkdir build
+ $ cd build
+@@ -89,14 +82,14 @@
+ # export PATH=/usr/local/cross-cortex/bin:$PATH
+ # make install-gcc
+ # exit
+-$ cd ../..&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$ cd ../..&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;h2&gt;Step 3: Newlib&lt;/h2&gt;
+ 
+ &lt;p&gt;Some modifications are in order before we start compiling. Namely, we need to tell Newlib to skip some of its
+ libraries when compiling (I'm using &lt;b&gt;vim&lt;/b&gt; to edit, feel free to use your editor of choice instead):&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ tar -xvzf newlib-1.17.0.tar.gz
++&lt;pre&gt;&lt;code&gt;$ tar -xvzf newlib-1.17.0.tar.gz
+ $ cd newlib-1.17.0
+ $ vim configure.ac
+ 
+@@ -122,7 +115,7 @@
+ well with 2.61 (the version of autoconf on the system that gave the
+ error). If this happens to you, first execute &lt;i&gt;autoconf --version&lt;/i&gt; to
+ find the actual version of your autoconf, then do this:&lt;/b&gt;
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ vim config/override.m4
++$ vim config/override.m4
+ 
+ &lt;b&gt;Look for this line:&lt;/b&gt;
+   [m4_define([_GCC_AUTOCONF_VERSION], [2.59])])
+@@ -130,7 +123,7 @@
+ &lt;b&gt;And replace [2.59] with your actual version ([2.61] in my case).
+ Save the modified file and exit the text editor.&lt;/b&gt; 
+ 
+-$ autoconf&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$ autoconf&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;Once again, now we're ready to actually compile Newlib. But we need
+@@ -142,7 +135,7 @@
+ wanted to keep what's needed from it in the final executable, I added
+ the &quot;-ffunction-sections -fdata-sections&quot; flags to allow the linker to
+ perform dead code stripping:&lt;/p&gt;
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ mkdir build
++&lt;pre&gt;&lt;code&gt;$ mkdir build
+ $ cd build
+ $ ../configure --target=arm-elf --prefix=$TOOLPATH --enable-interwork --disable-newlib-supplied-syscalls --with-gnu-ld --with-gnu-as --disable-shared
+ $ make CFLAGS_FOR_TARGET=&quot;-ffunction-sections -fdata-sections -DPREFER_SIZE_OVER_SPEED -D__OPTIMIZE_SIZE__ -Os -fomit-frame-pointer -mcpu=cortex-m3 -mthumb -D__thumb2__ -D__BUFSIZ__=256&quot; CCASFLAGS=&quot;-mcpu=cortex-m3 -mthumb -D__thumb2__&quot;
+@@ -150,18 +143,18 @@
+ # export PATH=/usr/local/cross-cortex/bin:$PATH
+ # make install
+ # exit 
+-$ cd ../..&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
+-&lt;p&gt;Some notes about the flags used in the above sequence:
++$ cd ../..&lt;/code&gt;&lt;/pre&gt;
++&lt;p&gt;Some notes about the flags used in the above sequence:&lt;/p&gt;
+ 
+ &lt;ul&gt;&lt;li&gt;&lt;code&gt;--disable-newlib-supplied-syscalls:&lt;/code&gt; this deserves a page of its own, but I won't cover it here. 
+-  For an explanation, see for example &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://openhardware.net/Embedded_ARM/NewLib_Stubs/">http://openhardware.net/Embedded_ARM/NewLib_Stubs/</A>&quot;&gt;this page&lt;/a&gt;.&lt;/li&gt;
++  For an explanation, see for example &lt;a  href=&quot;<A HREF="http://openhardware.net/Embedded_ARM/NewLib_Stubs/">http://openhardware.net/Embedded_ARM/NewLib_Stubs/</A>&quot;&gt;this page&lt;/a&gt;.&lt;/li&gt;
+ &lt;li&gt;&lt;code&gt;-DPREFER_SIZE_OVER_SPEED -D__OPTIMIZE_SIZE__:&lt;/code&gt; compile Newlib for size, not for speed (these are Newlib specific).&lt;/li&gt;
+ &lt;li&gt;&lt;code&gt;-mcpu=cortex-m3 -mthumb:&lt;/code&gt; this tells GCC that you want to compile for Cortex. Note that you need both flags.&lt;/li&gt;
+ &lt;li&gt;&lt;code&gt;-D__thumb2__:&lt;/code&gt; again, this is Newlib specific, and seems to be required when compiling Newlib for Cortex.&lt;/li&gt;
+ &lt;li&gt;&lt;code&gt;-Os -fomit-frame-pointer:&lt;/code&gt; tell GCC to optimize for size, not for speed.&lt;/li&gt;
+ &lt;li&gt;&lt;code&gt;-D__BUFSIZ__=256:&lt;/code&gt;again Newlib specific, this is the buffer size allocated by default for
+ files opened via fopen(). The default is 1024, which I find too much
+-for &lt;b&gt;eLua&lt;/b&gt;, so I'm using 256 here. Of course, you can change this value.&lt;/li&gt;&lt;/ul&gt;&lt;/p&gt;
++for &lt;b&gt;eLua&lt;/b&gt;, so I'm using 256 here. Of course, you can change this value.&lt;/li&gt;&lt;/ul&gt;
+ 
+ 
+ &lt;h2&gt;Step 4: full GCC&lt;/h2&gt;
+@@ -170,16 +163,16 @@
+ (most notably libgcc.a). Fortunately this is simpler that the Newlib
+ compilation step, as long as you remember that we want to build our
+ compiler support libraries for the Cortex architecture:&lt;/p&gt;
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ cd gcc-4.3.3/build
++&lt;pre&gt;&lt;code&gt;$ cd gcc-4.3.3/build
+ $ make CFLAGS=&quot;-mcpu=cortex-m3 -mthumb&quot; CXXFLAGS=&quot;-mcpu=cortex-m3 -mthumb&quot; LIBCXXFLAGS=&quot;-mcpu=cortex-m3 -mthumb&quot; all
+ $ sudo make install
+-&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;h2&gt;All Done!&lt;/h2&gt;
+ &lt;p&gt;Phew! That was quite a disturbing tutorial, with all that confusing
+ flags lurking in every single shell line :) But at this point you
+-should have a fully functional Cortex GCC toolchain, which seems to be
+-something very rare, so enjoy it with pride.
++should have a fully functional Cortex GCC toolchain, so enjoy it!
+ If you need further clarification, or if the above instructions didn't
+ work for you, feel free to &lt;a href=&quot;overview.html#contacts&quot;&gt;contact us&lt;/a&gt;.&lt;/p&gt;
+-&lt;/body&gt;&lt;/html&gt;
++$$FOOTER$$
++
+
+Modified: tags/pre0.6/doc/en/tchainbuild.html
+===================================================================
+--- tags/pre0.6/doc/en/tchainbuild.html	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/en/tchainbuild.html	2009-08-25 20:09:46 UTC (rev 410)
+@@ -1,18 +1,13 @@
+-&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+-&lt;html&gt;&lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot;/&gt; 
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;Toolchain building tutorials&lt;/title&gt;
+-
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
+-&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++$$HEADER$$
+ &lt;h3&gt;Toolchain building tutorials&lt;/h3&gt;
+ &lt;p&gt;Although not strictly required, you can roll your own toolchain that can be used to build &lt;b&gt;eLua&lt;/b&gt;. As explained &lt;a href=&quot;toolchains.html&quot;&gt;here&lt;/a&gt;, &lt;b&gt;eLua&lt;/b&gt; can generally be built with
+-ready-made toolchains (with the exception of the i386 port), but you might still want to build your own toolchain for various reasons:
++ready-made toolchains (with the exception of the i386 port), but you might still want to build your own toolchain for various reasons:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;have a better control over the compilation options of different libraries (most notably libc).&lt;/li&gt;
+   &lt;li&gt;use a specific version of gcc/newlib.&lt;/li&gt;
+   &lt;li&gt;your toolchain might generate smaller code than a pre-built toolchain.&lt;/li&gt;
+   &lt;li&gt;get familiar with the binutils/gcc/newlib build system (not related to &lt;b&gt;eLua&lt;/b&gt;, but still a good reason).&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
++&lt;/ul&gt;
+ &lt;p&gt;Three separate tutorials explain the procedure of building a regular ARM toolchain, a Cortex-M3 toolchain and an i386 toolchain, respectively.&lt;/p&gt;
+-&lt;/body&gt;&lt;/html&gt;
++$$FOOTER$$
++
+
+Modified: tags/pre0.6/doc/en/tut_bootpc.html
+===================================================================
+--- tags/pre0.6/doc/en/tut_bootpc.html	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/en/tut_bootpc.html	2009-08-25 20:09:46 UTC (rev 410)
+@@ -1,10 +1,4 @@
+-&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+-&lt;html&gt;&lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot;/&gt; 
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;Booting your PC in eLua&lt;/title&gt;
+-
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
+-&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++$$HEADER$$
+ &lt;h3&gt;Booting your PC in eLua&lt;/h3&gt;
+ &lt;p&gt;That's right: after following this tutorial, your PC will boot
+ directly into Lua! No OS there (this explains why the boot process is
+@@ -14,8 +8,8 @@
+ 
+ &lt;h2&gt;Details&lt;/h2&gt;
+ 
+-&lt;p&gt;Booting &lt;b&gt;eLua&lt;/b&gt; involves using the well known &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.gnu.org/software/grub/">http://www.gnu.org/software/grub/</A>&quot;&gt;GRUB&lt;/a&gt; that will be used to load 
+-a &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.gnu.org/software/grub/manual/multiboot/">http://www.gnu.org/software/grub/manual/multiboot/</A>&quot;&gt;multiboot&lt;/a&gt;
++&lt;p&gt;Booting &lt;b&gt;eLua&lt;/b&gt; involves using the well known &lt;a  href=&quot;<A HREF="http://www.gnu.org/software/grub/">http://www.gnu.org/software/grub/</A>&quot;&gt;GRUB&lt;/a&gt; that will be used to load 
++a &lt;a  href=&quot;<A HREF="http://www.gnu.org/software/grub/manual/multiboot/">http://www.gnu.org/software/grub/manual/multiboot/</A>&quot;&gt;multiboot&lt;/a&gt;
+ compliant ELF file that contains our &lt;b&gt;eLua&lt;/b&gt; code. The code runs in protected mode, so you
+ have access to your whole memory. The code does not access any kind of
+ storage device (HDD, CDROM, floppy), so if you're worried that it might
+@@ -25,41 +19,41 @@
+ (be sure to use the hardware reset though, CTRL+ALT+DEL is not handled
+ by the code). But just in case, see also the next section.&lt;/p&gt;
+ 
+-&lt;h2&gt;Disclaimer&lt;/h2&gt;
++&lt;h2 style=&quot;background-color: orangered;&quot;&gt;Disclaimer&lt;/h2&gt;
+ 
+-&lt;p&gt;&lt;strong&gt;As already mentioned, the code won't try to access any kind
++&lt;p&gt;As already mentioned, the code won't try to access any kind
+ of storage (HDD, CDROM, floppy), not even for reading, so you don't
+ need to worry about that. Also it doesn't try to reprogram your video
+ card registers, so it can't harm it or your monitor. It only implements
+ a &quot;protected mode keyboard driver&quot; that can't physically damage
+ anything in your system. In short, I made every effort to make the code
+-as harmless as possible. I tested it on 5 different computers and in 2 &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.virtualbox.org/">http://www.virtualbox.org/</A>&quot;&gt;VirtualBox&lt;/a&gt;
++as harmless as possible. I tested it on 5 different computers and in 2 &lt;a  href=&quot;<A HREF="http://www.virtualbox.org/">http://www.virtualbox.org/</A>&quot;&gt;VirtualBox&lt;/a&gt;
+ emulators, and nothing bad happened. That said, there are no warranties
+ of any kind. In the very unlikely event that something bad does happen
+ to your system, you have my sincere sympathy, but I can't be held
+-responsible for that.&lt;/strong&gt;&lt;/p&gt;
++responsible for that.&lt;/p&gt;
+ 
+ &lt;h2&gt;Prerequisites&lt;/h2&gt;
+ 
+-&lt;p&gt;To boot your computer in Lua you'll need:
++&lt;p&gt;To boot your computer in Lua you'll need:&lt;/p&gt;
+ 
+ &lt;ul&gt;
+ &lt;li&gt;a 386 or better computer running Linux. I actually tested
+ this only on Pentium class computers, but it should run on a 386
+ without problems.&lt;/li&gt;
+-&lt;li&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.gnu.org/software/grub/">http://www.gnu.org/software/grub/</A>&quot;&gt;GRUB&lt;/a&gt;.
++&lt;li&gt;&lt;a  href=&quot;<A HREF="http://www.gnu.org/software/grub/">http://www.gnu.org/software/grub/</A>&quot;&gt;GRUB&lt;/a&gt;.
+ Since you're running Linux, chances are you're already using GRUB as
+ your bootloader. If not, you must install it. You don't need to install
+ it on your HDD; a floppy, an USB stick or even a CDROM will work as
+ well. I won't cover the GRUB installation procedure here, just google
+ for &quot;install grub on floppy/usb/cdrom&quot; and you'll sure find what you're
+-looking for. You can try for example &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://orgs.man.ac.uk/documentation/grub/grub_3.html">http://orgs.man.ac.uk/documentation/grub/grub_3.html</A>&quot;&gt;here&lt;/a&gt;, 
+-&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.freesoftwaremagazine.com/articles/grub_intro/">http://www.freesoftwaremagazine.com/articles/grub_intro/</A>&quot;&gt;here&lt;/a&gt; or 
+-&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.mayrhofer.eu.org/Default.aspx?pageindex=6&amp;pageid=45">http://www.mayrhofer.eu.org/Default.aspx?pageindex=6&amp;pageid=45</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
++looking for. You can try for example &lt;a  href=&quot;<A HREF="http://orgs.man.ac.uk/documentation/grub/grub_3.html">http://orgs.man.ac.uk/documentation/grub/grub_3.html</A>&quot;&gt;here&lt;/a&gt;, 
++&lt;a  href=&quot;<A HREF="http://www.freesoftwaremagazine.com/articles/grub_intro/">http://www.freesoftwaremagazine.com/articles/grub_intro/</A>&quot;&gt;here&lt;/a&gt; or 
++&lt;a  href=&quot;<A HREF="http://www.mayrhofer.eu.org/Default.aspx?pageindex=6&amp;amp;pageid=45">http://www.mayrhofer.eu.org/Default.aspx?pageindex=6&amp;pageid=45</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
+ &lt;li&gt;The &lt;b&gt;eLua&lt;/b&gt; i386 ELF file, see &lt;a href=&quot;downloads.html&quot;&gt;here&lt;/a&gt; for instructions on how to obtain it. OR &lt;a href=&quot;downloads.html&quot;&gt;download the eLua source distribution&lt;/a&gt; and compile it 
+   for the i386 architecture using a toolchain that you can build by following &lt;a href=&quot;tc_386.html&quot;&gt;this tutorial&lt;/a&gt;.&lt;/li&gt;
+ &lt;li&gt;a text editor to edit your GRUB configuration file.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
++&lt;/ul&gt;
+ 
+ &lt;p&gt;The rest of this tutorial assumes that you're using Linux with GRUB,
+ and that GRUB is located in &lt;i&gt;/boot/grub&lt;/i&gt;, which is true for many Linux
+@@ -68,14 +62,14 @@
+ &lt;h2&gt;Let's do this&lt;/h2&gt;
+ 
+ &lt;p&gt;First, copy the eLua ELF file to your &quot;/boot&quot; directory:&lt;/p&gt;
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ sudo cp surprise /boot&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ sudo cp surprise /boot&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;Next you need to add another entry to your GRUB menu file (&lt;i&gt;/boot/grub/menu.lst&lt;/i&gt;). Edit it and add this entry:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;  title eLua
++&lt;pre&gt;&lt;code&gt;  title eLua
+   root (hd0,0)
+   kernel /boot/elua_lua_i386.elf &lt;b&gt;(change this if the eLua file name is different)&lt;/b&gt;
+-  boot&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++  boot&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;You may need to modify the &lt;i&gt;root (hd0,0)&lt;/i&gt; line above to match your
+@@ -83,11 +77,11 @@
+ for the entry that boots your Linux kernel. It should look similar to
+ this:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;  title           Ubuntu, kernel 2.6.20-16-generic
++&lt;pre&gt;&lt;code&gt;  title           Ubuntu, kernel 2.6.20-16-generic
+   &lt;b&gt;root            (hd0,2)&lt;/b&gt;
+   kernel          /boot/vmlinuz-2.6.20-16-generic
+   initrd          /boot/initrd.img-2.6.20-16-generic
+-  savedefault&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++  savedefault&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;After you find it, simply use the &lt;i&gt;root (hdx,y)&lt;/i&gt; line from that entry
+@@ -98,4 +92,5 @@
+ instructions on how to use your newly installed self-booting programming language :)&lt;/p&gt;
+ &lt;p&gt;As usual, if you need more details, you can &lt;a href=&quot;overview.html#contacts&quot;&gt;contact us&lt;/a&gt;.
+ Also, if you want to go one step ahead and have you own USB stick that boots &lt;b&gt;eLua&lt;/b&gt;, check &lt;a href=&quot;tut_bootstick.html&quot;&gt;this tutorial&lt;/a&gt;.&lt;/p&gt;
+-&lt;/body&gt;&lt;/html&gt;
++$$FOOTER$$
++
+
+Modified: tags/pre0.6/doc/en/tut_bootstick.html
+===================================================================
+--- tags/pre0.6/doc/en/tut_bootstick.html	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/en/tut_bootstick.html	2009-08-25 20:09:46 UTC (rev 410)
+@@ -1,10 +1,4 @@
+-&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+-&lt;html&gt;&lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot;/&gt; 
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;Booting eLua from an USB stick&lt;/title&gt;
+-
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
+-&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++$$HEADER$$
+ &lt;h3&gt;Booting eLua from an USB stick&lt;/h3&gt;
+ &lt;p&gt;This is follow up of &lt;a href=&quot;tut_bootpc.html&quot;&gt;this tutorial&lt;/a&gt;.
+ After completing it you'll be able to boot &lt;b&gt;eLua&lt;/b&gt; directly from your USB
+@@ -15,16 +9,16 @@
+ don't use anymore, and/or the shear geekness of this idea makes you
+ feel curious, this tutorial is definitely for you :)&lt;/p&gt;
+ 
+-&lt;h2&gt;Disclaimer&lt;/h2&gt;
++&lt;h2 style=&quot;background-color: orangered;&quot;&gt;Disclaimer&lt;/h2&gt;
+ 
+-&lt;p&gt;&lt;strong&gt;As mentioned &lt;a href=&quot;tut_bootpc.html&quot;&gt;here&lt;/a&gt;,
++&lt;p&gt;As mentioned &lt;a href=&quot;tut_bootpc.html&quot;&gt;here&lt;/a&gt;,
+ the code won't try to access any kind of storage (HDD, CDROM, floppy),
+ not even for reading, so you don't need to worry about that. Also it
+ doesn't try to reprogram your video card registers, so it can't harm it
+ or your monitor. It only implements a &quot;protected mode keyboard driver&quot;
+ that can't physically damage anything in your system. In short, I made
+ every effort to make the code as harmless as possible. I tested it on 5
+-different computers and in 2 &lt;a htarget=&quot;_blank&quot; ref=&quot;<A HREF="http://www.virtualbox.org/">http://www.virtualbox.org/</A>&quot;&gt;VirtualBox&lt;/a&gt;
++different computers and in 2 &lt;a href=&quot;<A HREF="http://www.virtualbox.org/">http://www.virtualbox.org/</A>&quot;&gt;VirtualBox&lt;/a&gt;
+ emulators, and nothing bad happened. That said, there are no warranties
+ of any kind. In the very unlikely event that something bad does happen
+ to your system, you have my sincere sympathy, but I can't be held
+@@ -32,17 +26,17 @@
+ your HDD by failing the GRUB installation procedure (even though, once
+ again, this shouldn't be possible unless you really insist on messing
+ it up). If you're new to computers or Linux, this tutorial might not be for you.
+-Your call.&lt;/strong&gt;&lt;/p&gt;
++Your call.&lt;/p&gt;
+ 
+ &lt;h2&gt;Prerequisites&lt;/h2&gt;
+ 
+-&lt;p&gt;To have your own bootable &lt;b&gt;eLua&lt;/b&gt; USB stick you'll need:
++&lt;p&gt;To have your own bootable &lt;b&gt;eLua&lt;/b&gt; USB stick you'll need:&lt;/p&gt;
+ 
+ &lt;ul&gt;&lt;li&gt;an USB stick. I tested this on an 128M USB stick, because
+ it's the smallest I could find. You should be OK with a 4M stick or
+ even a 2M stick&lt;/li&gt;
+ &lt;li&gt;a computer running Linux. I use Ubuntu, but any other distribution is fine.&lt;/li&gt;
+-&lt;li&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.gnu.org/software/grub/">http://www.gnu.org/software/grub/</A>&quot;&gt;GRUB&lt;/a&gt;.
++&lt;li&gt;&lt;a  href=&quot;<A HREF="http://www.gnu.org/software/grub/">http://www.gnu.org/software/grub/</A>&quot;&gt;GRUB&lt;/a&gt;.
+ Since you're running Linux, chances are you're already using GRUB as
+ your bootloader. If not, you must install it on your HDD, or at least
+ know how to install it directly on the USB stick. I won't go into
+@@ -50,7 +44,7 @@
+ GRUB. This tutorial assumes that you're using GRUB as your bootloader.&lt;/li&gt;
+ &lt;li&gt;The &lt;b&gt;eLua&lt;/b&gt; i386 ELF file, see &lt;a href=&quot;downloads.html&quot;&gt;here&lt;/a&gt; for instructions on how to obtain it. OR &lt;a href=&quot;downloads.html&quot;&gt;download the eLua source distribution&lt;/a&gt; and compile it 
+   for the i386 architecture using a toolchain that you can build by following &lt;a href=&quot;tc_386.html&quot;&gt;this tutorial&lt;/a&gt;.&lt;/li&gt;
+-&lt;li&gt;a text editor to edit your GRUB configuration file.&lt;/li&gt;&lt;/ul&gt;&lt;/p&gt;
++&lt;li&gt;a text editor to edit your GRUB configuration file.&lt;/li&gt;&lt;/ul&gt;
+ 
+ 
+ &lt;p&gt;The rest of this tutorial assumes that you're using Linux with GRUB,
+@@ -71,38 +65,38 @@
+ looked at the original partition table of my &lt;b&gt;eLua&lt;/b&gt; USB stick and it scared me to
+ death, so I had to follow this procedure. In short, you'll need to
+ delete all the partitions from your stick, create a new partition, and
+-then format it. For a step by step tutorial check &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.4p8.com/eric.brasseur/suse9.1_usb_stick.html">http://www.4p8.com/eric.brasseur/suse9.1_usb_stick.html</A>&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
++then format it. For a step by step tutorial check &lt;a  href=&quot;<A HREF="http://www.4p8.com/eric.brasseur/suse9.1_usb_stick.html">http://www.4p8.com/eric.brasseur/suse9.1_usb_stick.html</A>&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+ &lt;h2&gt;Install GRUB on your stick&lt;/h2&gt;
+ 
+ &lt;p&gt;First, mount your freshly formatted stick (I'm going to assume that the mount directory is &lt;i&gt;/mnt&lt;/i&gt;):&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ sudo mount /dev/sda1 /mnt&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ sudo mount /dev/sda1 /mnt&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;(of course, you'll need to change &lt;i&gt;/dev/sda1&lt;/i&gt; to reflect the physical location of your USB stick. You should know the physical location from the previous step).
+ Then copy the required GRUB files to your stick:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ cd /mnt
++&lt;pre&gt;&lt;code&gt;$ cd /mnt
+ $ mkdir boot
+ $ mkdir boot/grub
+ $ cd /boot/grub
+-$ cp stage1 fat_stage1_5 stage2 /mnt/boot/grub&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++$ cp stage1 fat_stage1_5 stage2 /mnt/boot/grub&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;Copy the &lt;b&gt;eLua&lt;/b&gt; ELF file (&lt;i&gt;elua_lua_i386.elf&lt;/i&gt; in this example, change the name if needed) to the GRUB directory as well:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ cp elua_lua_i386.elf /mnt/boot/grub&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ cp elua_lua_i386.elf /mnt/boot/grub&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;Create a &lt;i&gt;menu.lst&lt;/i&gt; file for GRUB with you favorite text editori (I'm using vim):&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ cd /mnt/boot/grub
++&lt;pre&gt;&lt;code&gt;$ cd /mnt/boot/grub
+ $ vim menu.lst
+   title eLua
+   root (hd0,0)
+   kernel /boot/grub/elua_lua_i386.elf 
+-  boot&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++  boot&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;Now it's time to actually install GRUB on the stick.&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ sudo -s -H
++&lt;pre&gt;&lt;code&gt;$ sudo -s -H
+ # grub
+ 
+ &lt;b&gt;Now we need to find the GRUB name of our USB stick. We'll use the &quot;find&quot; command from
+@@ -127,10 +121,11 @@
+   Running &quot;install /boot/grub/stage1 (hd2) (hd2)1+15 p (hd2,0)/boot/grub/stage2
+   /boot/grub/menu.lst&quot;... succeeded
+   Done.
+-grub&gt; quit&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++grub&gt; quit&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;That's it! Now reboot your computer, make sure that your BIOS is set
+ to boot from USB, and enjoy! See &lt;a href=&quot;using.html&quot;&gt;using eLua&lt;/a&gt; for
+ instructions on how to use your new toy :).&lt;/p&gt;
+ &lt;p&gt;As usual, if you need more details, you can &lt;a href=&quot;overview.html#contacts&quot;&gt;contact us&lt;/a&gt;.&lt;/p&gt;
+-&lt;/body&gt;&lt;/html&gt;
++$$FOOTER$$
++
+
+Modified: tags/pre0.6/doc/en/tut_openocd.html
+===================================================================
+--- tags/pre0.6/doc/en/tut_openocd.html	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/en/tut_openocd.html	2009-08-25 20:09:46 UTC (rev 410)
+@@ -1,29 +1,23 @@
+-&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+-&lt;html&gt;&lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot;/&gt; 
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;Using OpenOCD&lt;/title&gt;
+-
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
+-&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++$$HEADER$$
+ &lt;h3&gt;Using OpenOCD&lt;/h3&gt;
+-&lt;p&gt;This section presents &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://openocd.berlios.de">http://openocd.berlios.de</A>&quot;&gt;OpenOCD&lt;/a&gt;, a tool used to program &lt;b&gt;eLua&lt;/b&gt; on some of its targets. 
++&lt;p&gt;This section presents &lt;a  href=&quot;<A HREF="http://openocd.berlios.de">http://openocd.berlios.de</A>&quot;&gt;OpenOCD&lt;/a&gt;, a tool used to program &lt;b&gt;eLua&lt;/b&gt; on some of its targets. 
+ If you'd rather skip the long and boring OpenOCD introduction and
+-skip directly to the OpenOCD script downloads, use the links below.
++skip directly to the OpenOCD script downloads, use the links below.&lt;/p&gt;
+ 
+ &lt;ul&gt;
+   &lt;li&gt;&lt;a href=&quot;#str9files&quot;&gt;Configuration files for STR9-comStick&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#lpc2888files&quot;&gt;Configuration files for LPC2888&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#str7files&quot;&gt;Configuration files for STR7&lt;/a&gt;&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
++&lt;/ul&gt;
+ 
+ &lt;h2&gt;About OpenOCD&lt;/h2&gt;
+ 
+-&lt;p&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://openocd.berlios.de">http://openocd.berlios.de</A>&quot;&gt;OpenOCD&lt;/a&gt; is an open source tool that can be used to connect to a CPU's 
+-&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://en.wikipedia.org/wiki/JTAG">http://en.wikipedia.org/wiki/JTAG</A>&quot;&gt;JTAG&lt;/a&gt;
++&lt;p&gt;&lt;a  href=&quot;<A HREF="http://openocd.berlios.de">http://openocd.berlios.de</A>&quot;&gt;OpenOCD&lt;/a&gt; is an open source tool that can be used to connect to a CPU's 
++&lt;a  href=&quot;<A HREF="http://en.wikipedia.org/wiki/JTAG">http://en.wikipedia.org/wiki/JTAG</A>&quot;&gt;JTAG&lt;/a&gt;
+ interface. Using OpenOCD and a physical JTAG connection allows you to
+ burn the on-chip flash memory of your CPU (or to load your code
+ directly to RAM), to read the internal CPU memory (Flash/RAM) and to
+-use &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://sourceware.org/gdb/">http://sourceware.org/gdb/</A>&quot;&gt;gdb&lt;/a&gt; or other debuggers to debug your code.
++use &lt;a  href=&quot;<A HREF="http://sourceware.org/gdb/">http://sourceware.org/gdb/</A>&quot;&gt;gdb&lt;/a&gt; or other debuggers to debug your code.
+ Needless to say, this is a very handy tool (and especially handy if
+ your CPU happens to be built around an ARM core, since in this case you
+ can be almost certain that it has a JTAG interface that you can use).
+@@ -41,7 +35,7 @@
+ only for targets that lack a proper firmware burning tool. If you need
+ to debug your code, however, you probably want to use OpenOCD, since
+ the alternatives aren't cheap.
+-To summarize, you can forget about OpenOCD when:
++To summarize, you can forget about OpenOCD when:&lt;/p&gt;
+ 
+ &lt;ul&gt;
+   &lt;li&gt;your CPU manufacturer provides a special tool for
+@@ -53,15 +47,15 @@
+ figure out exactly what's the problem can work wonders. I can't
+ remember when was the last time I used gdb for debugging, since &quot;LED
+ debugging&quot; was all I needed. &lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
++&lt;/ul&gt;
+ 
+-&lt;p&gt;On the other hand, you should probably use OpenOCD when:
++&lt;p&gt;On the other hand, you should probably use OpenOCD when:&lt;/p&gt;
+ 
+ &lt;ul&gt;
+   &lt;li&gt;your CPU manufacturer doesn't provide a special tool for firmware burning (or it does, but it's not what you need).&lt;/li&gt;
+   &lt;li&gt;you're using Linux, MacOS or another OS that is not supported by the firmware burning tool.&lt;/li&gt;
+   &lt;li&gt;you need to do some serious debugging in order to understand what's wrong with your application.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
++&lt;/ul&gt;
+ 
+ &lt;p&gt;If you decided that you don't need OpenOCD after all, now it's a
+ good time to navigate away from this page and save yourself from some
+@@ -73,9 +67,9 @@
+ firmware burning. And, before we begin, please read and understand the
+ next paragraph.&lt;/p&gt;
+ 
+-&lt;h2&gt;Disclaimer&lt;/h2&gt;
++&lt;h2 style=&quot;background-color: orangered;&quot;&gt;Disclaimer&lt;/h2&gt;
+ 
+-&lt;p&gt;&lt;b&gt;Using OpenOCD improperly may force your CPU to behave
++&lt;p&gt;Using OpenOCD improperly may force your CPU to behave
+ unexpectedly. While physically damaging your CPU as a result of using
+ OpenOCD is very hard to accomplish, you might end up with a locked
+ chip, or you might erase a memory area that was not supposed to be
+@@ -84,18 +78,19 @@
+ I'm going to provide, make sure that you know what you're doing. Also,
+ I'm not at all an OpenOCD expert, so my configuration scripts might
+ have errors, even though I tested them. In short, this tutorial comes
+-without any guarantees whatsoever.&lt;/b&gt;&lt;/p&gt;
++without any guarantees whatsoever.&lt;/p&gt;
++
+ &lt;h2&gt;Getting OpenOCD&lt;/h2&gt;
+ 
+ &lt;p&gt;If you're on Windows, the best way to get OpenOCD already compiled and ready to run is to 
+-visit the &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.yagarto.de/">http://www.yagarto.de/</A>&quot;&gt;Yagarto home page&lt;/a&gt;.
++visit the &lt;a  href=&quot;<A HREF="http://www.yagarto.de/">http://www.yagarto.de/</A>&quot;&gt;Yagarto home page&lt;/a&gt;.
+ They provide a very nice OpenOCD installer, and they seem to keep up
+ with OpenOCD progress (the versions on the Yagarto site are not
+ &quot;bleeding edge&quot;, but there are quite fresh nevertheless). If you're on
+ Linux, you can always use apt-get or your distribution-specific package
+ manager:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ sudo apt-get install openocd&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ sudo apt-get install openocd&lt;/code&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;There is a catch here though: the OpenOCD version that I get from
+ apt-get is dated 2007-09-05, while the Yagarto OpenOCD version is from
+@@ -105,9 +100,9 @@
+ introduction, the meaning and parameters of different commands might
+ change between OpenOCD version, so if you want to use the Yagarto
+ version on your non Windows system, you'll have to build it from source
+-(see below).&lt;br&gt;
+-The main resource on how to build OpenOCD from source is the &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://openfacts.berlios.de/index-en.phtml?title=Building_OpenOCD">http://openfacts.berlios.de/index-en.phtml?title=Building_OpenOCD</A>&quot;&gt;OpenOCD build page&lt;/a&gt; 
+-from the OpenOCD wiki. Also, a very good tutorial can be found &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://forum.sparkfun.com/viewtopic.php?t=11221">http://forum.sparkfun.com/viewtopic.php?t=11221</A>&quot;&gt;here&lt;/a&gt;.
++(see below).&lt;/p&gt;
++&lt;p&gt;The main resource on how to build OpenOCD from source is the &lt;a  href=&quot;<A HREF="http://openfacts.berlios.de/index-en.phtml?title=Building_OpenOCD">http://openfacts.berlios.de/index-en.phtml?title=Building_OpenOCD</A>&quot;&gt;OpenOCD build page&lt;/a&gt; 
++from the OpenOCD wiki. Also, a very good tutorial can be found &lt;a  href=&quot;<A HREF="http://forum.sparkfun.com/viewtopic.php?t=11221">http://forum.sparkfun.com/viewtopic.php?t=11221</A>&quot;&gt;here&lt;/a&gt;.
+ I'm not going to provide step by step build instructions, since the two
+ links that I mentioned cover this very well, and the build process is
+ relatively straightforward. However, since both tutorials describe how
+@@ -115,11 +110,11 @@
+ modification do build the Yagarto version instead. The modification is
+ in the SVN checkout step. Replace this step:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ svn checkout <A HREF="svn://svn.berlios.de/openocd/trunk&lt;br">svn://svn.berlios.de/openocd/trunk&lt;br</A>&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ svn checkout <A HREF="svn://svn.berlios.de/openocd/trunk&lt;/code">svn://svn.berlios.de/openocd/trunk&lt;/code</A>&gt;&lt;/pre&gt;
+ 
+ &lt;p&gt;with this step ('717' is the SVN revision of the Yagarto OpenOCD build):&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ svn checkout &lt;b&gt;-r 717&lt;/b&gt; <A HREF="svn://svn.berlios.de/openocd/trunk&lt;br">svn://svn.berlios.de/openocd/trunk&lt;br</A>&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ svn checkout &lt;b&gt;-r 717&lt;/b&gt; <A HREF="svn://svn.berlios.de/openocd/trunk&lt;/code">svn://svn.berlios.de/openocd/trunk&lt;/code</A>&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;Follow the rest of the build instructions, and in the end you should have a working OpenOCD.&lt;/p&gt;
+@@ -131,13 +126,13 @@
+ described in the previous section) and listing the
+ trunk/src/target/target directory:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;$ ls trunk/src/target/target
++&lt;pre&gt;&lt;code&gt;$ ls trunk/src/target/target
+ at91eb40a.cfg
+ at91r40008.cfg
+ ....
+ str9comstick.cfg
+ ....
+-&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;If this listing has something that looks like your CPU name, you're lucky. OpenOCD has support for LPC from NXP, AT91SAM cfrom Atmel, STR7/STR9 from ST, and many others.&lt;/p&gt;
+@@ -153,27 +148,27 @@
+ &lt;/ul&gt;
+ 
+ &lt;p&gt;In some cases, your CPU board might provide a built in JTAG adapter. For example, 
+-my &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.luminarymicro.com/products/lm3s8962_can_ethernet_evaluation_kit.html">http://www.luminarymicro.com/products/lm3s8962_can_ethernet_evaluation_kit.html</A>&quot;&gt;LM3S8962&lt;/a&gt;
++my &lt;a  href=&quot;<A HREF="http://www.luminarymicro.com/products/lm3s8962_can_ethernet_evaluation_kit.html">http://www.luminarymicro.com/products/lm3s8962_can_ethernet_evaluation_kit.html</A>&quot;&gt;LM3S8962&lt;/a&gt;
+ board provides both an USB-to-JTAG and an USB-to-serial converter built
+ on board, switching between them automagically. The same is true for my
+-&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.hitex.com/index.php?id=383">http://www.hitex.com/index.php?id=383</A>&quot;&gt;STR9-comStick&lt;/a&gt;. 
+-On the other hand, my &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.olimex.com/dev/sam7-ex256.html">http://www.olimex.com/dev/sam7-ex256.html</A>&quot;&gt;SAM7-EX256&lt;/a&gt; board has only a JTAG connector, I need a separate JTAG adapter to connect to it. 
+-I'm using &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.olimex.com/dev/arm-usb-tiny.html">http://www.olimex.com/dev/arm-usb-tiny.html</A>&quot;&gt;ARM-USB-TINY&lt;/a&gt; from Olimex, but there are other affordable USB-to-JTAG adapters out there, 
+-like the &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.amontec.com/jtagkey-tiny.shtml">http://www.amontec.com/jtagkey-tiny.shtml</A>&quot;&gt;Amontec JTAGKey-Tiny&lt;/a&gt;. Not to mention that you can 
+-&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.hs-augsburg.de/%7Ehhoegl/proj/usbjtag/usbjtag.html">http://www.hs-augsburg.de/%7Ehhoegl/proj/usbjtag/usbjtag.html</A>&quot;&gt;build your own&lt;/a&gt;. Although USB is my interface of choice, you'll find JTAG adapters for
++&lt;a  href=&quot;<A HREF="http://www.hitex.com/index.php?id=383">http://www.hitex.com/index.php?id=383</A>&quot;&gt;STR9-comStick&lt;/a&gt;. 
++On the other hand, my &lt;a  href=&quot;<A HREF="http://www.olimex.com/dev/sam7-ex256.html">http://www.olimex.com/dev/sam7-ex256.html</A>&quot;&gt;SAM7-EX256&lt;/a&gt; board has only a JTAG connector, I need a separate JTAG adapter to connect to it. 
++I'm using &lt;a  href=&quot;<A HREF="http://www.olimex.com/dev/arm-usb-tiny.html">http://www.olimex.com/dev/arm-usb-tiny.html</A>&quot;&gt;ARM-USB-TINY&lt;/a&gt; from Olimex, but there are other affordable USB-to-JTAG adapters out there, 
++like the &lt;a  href=&quot;<A HREF="http://www.amontec.com/jtagkey-tiny.shtml">http://www.amontec.com/jtagkey-tiny.shtml</A>&quot;&gt;Amontec JTAGKey-Tiny&lt;/a&gt;. Not to mention that you can 
++&lt;a  href=&quot;<A HREF="http://www.hs-augsburg.de/%7Ehhoegl/proj/usbjtag/usbjtag.html">http://www.hs-augsburg.de/%7Ehhoegl/proj/usbjtag/usbjtag.html</A>&quot;&gt;build your own&lt;/a&gt;. Although USB is my interface of choice, you'll find JTAG adapters for
+ PC LPT ports too. The good news is that once you buy a JTAG adapter,
+ chances are that it will work with many boards with different CPUs,
+ since the JTAG connector layout is standardized and the JTAG adapters
+-are generally able to work with different voltages.&lt;br&gt;
+-To actually use OpenOCD, the next thing you'll need is a configuration file. The
++are generally able to work with different voltages.&lt;/p&gt;
++&lt;p&gt;To actually use OpenOCD, the next thing you'll need is a configuration file. The
+ configuration file is the one that lets OpenOCD know about your setup,
+-such as:
++such as:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;the kind of JTAG interface that you're using.&lt;/li&gt;
+   &lt;li&gt;the actual hardware platform you're using (ATM7TDMI, ARM966 and so on).&lt;/li&gt;
+   &lt;li&gt;the memory configuration of your CPU (flash banks).&lt;/li&gt;
+   &lt;li&gt;the script used to program the flash memory.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
++&lt;/ul&gt;
+ 
+ 
+ &lt;p&gt;Presenting a list of all the possible configuration options and
+@@ -185,25 +180,25 @@
+ we need to tell OpenOCD that we're using a the STR9-comStick
+ USB-to-JTAG adapter:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;interface ft2232
++&lt;pre&gt;&lt;code&gt;interface ft2232
+ ft2232_device_desc &quot;STR9-comStick A&quot;
+ ft2232_layout comstick
+ ft2232_vid_pid 0x0640 0x002C
+ jtag_speed 4
+ jtag_nsrst_delay 100
+ jtag_ntrst_delay 100
+-&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;Also, OpenOCD needs to know what's our target and its memory layout:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;target arm966e little run_and_init 1 arm966e
++&lt;pre&gt;&lt;code&gt;target arm966e little run_and_init 1 arm966e
+ run_and_halt_time 0 50
+ 
+ working_area 0 0x50000000 32768 nobackup
+ 
+ flash bank str9x 0x00000000 0x00080000 0 0 0
+-flash bank str9x 0x00080000 0x00008000 0 0 0&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++flash bank str9x 0x00080000 0x00008000 0 0 0&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;This tells OpenOCD that our target is an ARM966-E running in little
+@@ -213,30 +208,30 @@
+ of our script file (this is the file that is used to pysically program
+ the CPU memory):&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;#Script used for FLASH programming
+-target_script 0 reset str91x_flashprogram.script&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;#Script used for FLASH programming
++target_script 0 reset str91x_flashprogram.script&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;The contents of the str91x_flashprogram.script is very target-dependent:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;wait_halt
++&lt;pre&gt;&lt;code&gt;wait_halt
+ str9x flash_config 0 4 2 0 0x80000
+ flash protect 0 0 7 off
+ flash erase_sector 0 0 7
+ flash write_bank 0 main.bin 0
+ reset run
+ sleep 10
+-shutdown&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++shutdown&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;I'm not even going to attempt to explain this one :) Basically it
+ unprotects the flash, erases it, writes the contents of &quot;main.bin&quot; to
+ flash, and then resets the CPU. If you need to flash a file with a
+ different name, the only thing you need to modify is the &quot;main.bin&quot; in
+-the &quot;flash write_bank&quot; line.&lt;br&gt;
+-To use all this, you need to tell OpenOCD to use our configuration file:&lt;/p&gt;
++the &quot;flash write_bank&quot; line.&lt;/p&gt;
++&lt;p&gt;To use all this, you need to tell OpenOCD to use our configuration file:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;openocd-ftd2xx -f comstick.cfg&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;openocd-ftd2xx -f comstick.cfg&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;(&lt;b&gt;note&lt;/b&gt;: under Windows, the OpenOCD executable name is often
+@@ -244,30 +239,28 @@
+ the actualy name with your executable).&lt;/p&gt;
+ &lt;p&gt;That's it for your OpenOCD crash course. I realise that there's much
+ more to learn, so here's a list of links with much better information
+-on the subject:
++on the subject:&lt;/p&gt;
+ 
+ &lt;ul&gt;
+-  &lt;li&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.hs-augsburg.de/%7Ehhoegl/proj/openocd/oocd-quickref.pdf">http://www.hs-augsburg.de/%7Ehhoegl/proj/openocd/oocd-quickref.pdf</A>&quot;&gt;OpenOCD quick reference&lt;/a&gt; card. (slightly outdated)&lt;/li&gt;
+-  &lt;li&gt;&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://openfacts.berlios.de/index-en.phtml?title=OpenOCD_scripts">http://openfacts.berlios.de/index-en.phtml?title=OpenOCD_scripts</A>&quot;&gt;OpenOCD configuration examples&lt;/a&gt; from the official OpenOCD wiki.&lt;/li&gt;
+-  &lt;li&gt;An excellent page about using &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.siwawi.arubi.uni-kl.de/avr_projects/arm_projects/openocd_intro/index.html">http://www.siwawi.arubi.uni-kl.de/avr_projects/arm_projects/openocd_intro/index.html</A>&quot;&gt;OpenOCD with ARM controllers&lt;/a&gt;, with lots 
++  &lt;li&gt;&lt;a  href=&quot;<A HREF="http://www.hs-augsburg.de/%7Ehhoegl/proj/openocd/oocd-quickref.pdf">http://www.hs-augsburg.de/%7Ehhoegl/proj/openocd/oocd-quickref.pdf</A>&quot;&gt;OpenOCD quick reference&lt;/a&gt; card. (slightly outdated)&lt;/li&gt;
++  &lt;li&gt;&lt;a  href=&quot;<A HREF="http://openfacts.berlios.de/index-en.phtml?title=OpenOCD_scripts">http://openfacts.berlios.de/index-en.phtml?title=OpenOCD_scripts</A>&quot;&gt;OpenOCD configuration examples&lt;/a&gt; from the official OpenOCD wiki.&lt;/li&gt;
++  &lt;li&gt;An excellent page about using &lt;a  href=&quot;<A HREF="http://www.siwawi.arubi.uni-kl.de/avr_projects/arm_projects/openocd_intro/index.html">http://www.siwawi.arubi.uni-kl.de/avr_projects/arm_projects/openocd_intro/index.html</A>&quot;&gt;OpenOCD with ARM controllers&lt;/a&gt;, with lots 
+   of real life examples.&lt;/li&gt;
+-  &lt;li&gt;An interesting &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://forum.sparkfun.com/viewtopic.php?p=42079">http://forum.sparkfun.com/viewtopic.php?p=42079</A>&quot;&gt;topic on the SparkFun forum&lt;/a&gt; about STR9 and OpenOCD.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
++  &lt;li&gt;An interesting &lt;a  href=&quot;<A HREF="http://forum.sparkfun.com/viewtopic.php?p=42079">http://forum.sparkfun.com/viewtopic.php?p=42079</A>&quot;&gt;topic on the SparkFun forum&lt;/a&gt; about STR9 and OpenOCD.&lt;/li&gt;
++&lt;/ul&gt;
+ 
+ 
+-&lt;p&gt;&lt;a name=&quot;str9files&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+-&lt;h2&gt;##Configuration files for STR9-comStick&lt;/h2&gt;
++&lt;a name=&quot;str9files&quot; /&gt;&lt;h2&gt;##Configuration files for STR9-comStick&lt;/h2&gt;
+ 
+ &lt;p&gt;Download them below:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/comstick.cfg">http://elua.berlios.de/other/comstick.cfg</A>&quot;&gt;comstick.cfg&lt;/a&gt;&lt;/p&gt;
++&lt;ul&gt;
++  &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/comstick.cfg">http://elua.berlios.de/other/comstick.cfg</A>&quot;&gt;comstick.cfg&lt;/a&gt;&lt;/li&gt;
++  &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str91x_flashprogram.script">http://elua.berlios.de/other/str91x_flashprogram.script</A>&quot;&gt;str91x_flashprogram.script&lt;/a&gt;&lt;/li&gt;
++  &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/comrst.cfg">http://elua.berlios.de/other/comrst.cfg</A>&quot;&gt;comrst.cfg&lt;/a&gt;&lt;/li&gt;
++  &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str91x_reset.script">http://elua.berlios.de/other/str91x_reset.script</A>&quot;&gt;str91x_reset.script&lt;/a&gt;&lt;/li&gt;
++&lt;/ul&gt;
+ 
+-&lt;p&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str91x_flashprogram.script">http://elua.berlios.de/other/str91x_flashprogram.script</A>&quot;&gt;str91x_flashprogram.script&lt;/a&gt;&lt;/p&gt;
+-
+-&lt;p&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/comrst.cfg">http://elua.berlios.de/other/comrst.cfg</A>&quot;&gt;comrst.cfg&lt;/a&gt;&lt;/p&gt;
+-
+-&lt;p&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str91x_reset.script">http://elua.berlios.de/other/str91x_reset.script</A>&quot;&gt;str91x_reset.script&lt;/a&gt;&lt;/p&gt;
+-
+ &lt;p&gt;The &lt;b&gt;comstick.cfg&lt;/b&gt; configuration file is for prorgramming the
+ STR9-comStick. &lt;b&gt;comrst.cfg&lt;/b&gt; is for resetting it. The comStick has a very
+ interesting habit: after you power it (via USB) it does not start
+@@ -279,12 +272,11 @@
+ the CPU RESET line isn't properly handled by the on-board USB-to-JTAG
+ converter, and the only solution I have for this is to execute this
+ script everytime you power the board and everytime you need to do a
+-RESET.&lt;br&gt;
+-Also, be sure to modify &lt;b&gt;str91x_flashprogram.script&lt;/b&gt; if your image name is
++RESET.&lt;/p&gt;
++&lt;p&gt;Also, be sure to modify &lt;b&gt;str91x_flashprogram.script&lt;/b&gt; if your image name is
+ not &lt;b&gt;main.bin&lt;/b&gt;&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;a name=&quot;lpc2888files&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+-&lt;h2&gt;##Configuration files for LPC2888&lt;/h2&gt;
++&lt;a name=&quot;lpc2888files&quot; /&gt;&lt;h2&gt;##Configuration files for LPC2888&lt;/h2&gt;
+ 
+ &lt;p&gt;LPC2888 is quite a different animal. I couldn't find any &quot;official&quot;
+ LPC2888 configuration file for OpenOCD, so I had to learn how to write
+@@ -301,41 +293,41 @@
+ corresponding line (&lt;i&gt;flash write_bank 0 main.bin 0&lt;/i&gt;), then invoke openocd
+ like this:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;openocd -f lpc2888.cfg&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;openocd -f lpc2888.cfg&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+-&lt;p&gt;I'm using &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.olimex.com/dev/arm-usb-tiny.html">http://www.olimex.com/dev/arm-usb-tiny.html</A>&quot;&gt;ARM-USB-TINY&lt;/a&gt;
++&lt;p&gt;I'm using &lt;a  href=&quot;<A HREF="http://www.olimex.com/dev/arm-usb-tiny.html">http://www.olimex.com/dev/arm-usb-tiny.html</A>&quot;&gt;ARM-USB-TINY&lt;/a&gt;
+ from Olimex, but it should be easy to use the script with any other
+ JTAG adapter (don't forget to change the script to match your adapter).&lt;/p&gt;
+ 
+-&lt;h2&gt;&lt;a name=&quot;str7files&quot;&gt;##Configuration files for STR711FR2 (STR7 from ST)&lt;/a&gt;&lt;/h2&gt;
++&lt;a name=&quot;str7files&quot; /&gt;&lt;h2&gt;#Configuration files for STR711FR2 (STR7 from ST)&lt;/h2&gt;
+ 
+ &lt;p&gt;Download them below:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str7prg.cfg">http://elua.berlios.de/other/str7prg.cfg</A>&quot;&gt;str7prg.cfg&lt;/a&gt;&lt;/p&gt;
++&lt;ul&gt;
++  &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str7prg.cfg">http://elua.berlios.de/other/str7prg.cfg</A>&quot;&gt;str7prg.cfg&lt;/a&gt;&lt;/li&gt;
++  &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str7_flashprogram.script">http://elua.berlios.de/other/str7_flashprogram.script</A>&quot;&gt;str7_flashprogram.script&lt;/a&gt;&lt;/li&gt;
++  &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str7rst.cfg">http://elua.berlios.de/other/str7rst.cfg</A>&quot;&gt;str7rst.cfg&lt;/a&gt;&lt;/li&gt;
++  &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str7_reset.script">http://elua.berlios.de/other/str7_reset.script</A>&quot;&gt;str7_reset.script&lt;/a&gt;&lt;/li&gt;
++&lt;/ul&gt;
+ 
+-&lt;p&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str7_flashprogram.script">http://elua.berlios.de/other/str7_flashprogram.script</A>&quot;&gt;str7_flashprogram.script&lt;/a&gt;&lt;/p&gt;
+-
+-&lt;p&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str7rst.cfg">http://elua.berlios.de/other/str7rst.cfg</A>&quot;&gt;str7rst.cfg&lt;/a&gt;&lt;/p&gt;
+-
+-&lt;p&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str7_reset.script">http://elua.berlios.de/other/str7_reset.script</A>&quot;&gt;str7_reset.script&lt;/a&gt;&lt;/p&gt;
+-
+ &lt;p&gt;For STR7 I'm using the Yagarto OpenOCD build for Windows (repository
+ version 717, as described at the beginning of this tutorial). The
+ &lt;b&gt;str7prg.cfg&lt;/b&gt; configuration file is for prorgramming the STR9-comStick.
+ &lt;b&gt;str7rst.cfg&lt;/b&gt; is for resetting it (you probably won't need this one). I'm using a STR711FR2 heard board from
+-&lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.sctec.com.br/content/view/101/30/">http://www.sctec.com.br/content/view/101/30/</A>&quot;&gt;ScTec&lt;/a&gt; to
++&lt;a  href=&quot;<A HREF="http://www.sctec.com.br/content/view/101/30/">http://www.sctec.com.br/content/view/101/30/</A>&quot;&gt;ScTec&lt;/a&gt; to
+ which I attached a few LEDs and a MAX3232 TTL to RS232 converter for
+ the serial communication. The board comes with its own JTAG adadpter,
+ but it uses a parallel interface, and since my computer doesn't have
+-one, I used the &lt;a target=&quot;_blank&quot; href=&quot;<A HREF="http://www.olimex.com/dev/arm-usb-tiny.html">http://www.olimex.com/dev/arm-usb-tiny.html</A>&quot;&gt;ARM-USB-TINY&lt;/a&gt; from Olimex. To use them, invoke the OpenOCD executable like this:&lt;/p&gt;
++one, I used the &lt;a  href=&quot;<A HREF="http://www.olimex.com/dev/arm-usb-tiny.html">http://www.olimex.com/dev/arm-usb-tiny.html</A>&quot;&gt;ARM-USB-TINY&lt;/a&gt; from Olimex. To use them, invoke the OpenOCD executable like this:&lt;/p&gt;
+ 
+-&lt;p&gt;&lt;pre&gt;&lt;code&gt;openocd-ftd2xx -f str7prg.cfg&lt;br&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;openocd-ftd2xx -f str7prg.cfg&lt;/code&gt;&lt;/pre&gt;
+ 
+ 
+ &lt;p&gt;(&lt;b&gt;note&lt;/b&gt;: under Windows, the OpenOCD executable name is often
+ &quot;openocd-ftd2xx&quot;. Under Linux it's simply &quot;openocd&quot;. Replace it with
+-the actualy name with your executable).&lt;br&gt;
+-Also, be sure to modify &lt;b&gt;str7_flashprogram.script&lt;/b&gt; if your image name is
++the actualy name with your executable).&lt;/p&gt;
++&lt;p&gt;Also, be sure to modify &lt;b&gt;str7_flashprogram.script&lt;/b&gt; if your image name is
+ not &lt;b&gt;main.bin&lt;/b&gt;&lt;/p&gt;
+-&lt;/body&gt;&lt;/html&gt;
++$$FOOTER$$
++
+
+Modified: tags/pre0.6/doc/en/tutorials.html
+===================================================================
+--- tags/pre0.6/doc/en/tutorials.html	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/en/tutorials.html	2009-08-25 20:09:46 UTC (rev 410)
+@@ -1,15 +1,10 @@
+-&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
+-&lt;html&gt;&lt;head&gt;
+-&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot;/&gt; 
+-&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;Tutorials&lt;/title&gt;
+-
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
+-&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++$$HEADER$$
+ &lt;h3&gt;Tutorials&lt;/h3&gt;
+-&lt;p&gt;This section contains information about different tools and procedures related to &lt;b&gt;eLua&lt;/b&gt;:
++&lt;p&gt;This section contains information about different tools and procedures related to &lt;b&gt;eLua&lt;/b&gt;:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;building toolchains that can be used to build &lt;b&gt;eLua&lt;/b&gt; itself.&lt;/li&gt;
+   &lt;li&gt;running the standalone &lt;b&gt;eLua&lt;/b&gt; (i386) version in different scenarios.&lt;/li&gt;
+   &lt;li&gt;using OpenOCD to program &lt;b&gt;eLua&lt;/b&gt; to various hardware platforms.&lt;/li&gt;
+-&lt;/ul&gt;&lt;/p&gt;
+-&lt;/body&gt;&lt;/html&gt;
++&lt;/ul&gt;
++$$FOOTER$$
++
+
+Modified: tags/pre0.6/doc/style1.css
+===================================================================
+--- tags/pre0.6/doc/style1.css	2009-08-25 11:42:25 UTC (rev 409)
++++ tags/pre0.6/doc/style1.css	2009-08-25 20:09:46 UTC (rev 410)
+@@ -155,3 +155,30 @@
+   border: 0px solid black;
+ }
+ 
++/*******************************************************************************
++ * Other styles
++ ******************************************************************************/
++
++.docdiv {
++  padding-left: 1em;
++}
++
++.docdiv pre {
++  margin-left: 0;
++}
++
++.code {
++  border: 0;
++  padding: 4px;
++  background-color: white;
++  font-family: &quot;Courier New&quot;,Courier,monospace;
++  font-size: 90%;
++  padding-left: 1em;
++  overflow: auto;
++}
++
++.warning {
++  color: red;
++  font-weight: bold;
++}
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000365.html">[Elua-svn] r409 - tags/pre0.6/doc
+</A></li>
+	<LI>Next message: <A HREF="000367.html">[Elua-svn] r411 - in trunk: inc src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#366">[ date ]</a>
+              <a href="thread.html#366">[ thread ]</a>
+              <a href="subject.html#366">[ subject ]</a>
+              <a href="author.html#366">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

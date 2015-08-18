@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r615 - branches/pre0.7/src/lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r615%20-%20branches/pre0.7/src/lua&In-Reply-To=%3C200912260316.nBQ3GadA000858%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000570.html">
+   <LINK REL="Next"  HREF="000572.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r615 - branches/pre0.7/src/lua</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r615%20-%20branches/pre0.7/src/lua&In-Reply-To=%3C200912260316.nBQ3GadA000858%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r615 - branches/pre0.7/src/lua">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Dec 26 04:16:36 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000570.html">[Elua-svn] r614 - in branches/pre0.7/src: lua modules platform/lm3s	platform/lpc24xx platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000572.html">[Elua-svn] r616 - in branches/pre0.7/src/platform: at91sam7x avr32	lpc288x str7 str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#571">[ date ]</a>
+              <a href="thread.html#571">[ thread ]</a>
+              <a href="subject.html#571">[ subject ]</a>
+              <a href="author.html#571">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-26 04:16:34 +0100 (Sat, 26 Dec 2009)
+New Revision: 615
+
+Modified:
+   branches/pre0.7/src/lua/linit.c
+   branches/pre0.7/src/lua/lrotable.c
+Log:
+Fix pre-processor changes that were rolled back by mmc branch.
+
+Modified: branches/pre0.7/src/lua/linit.c
+===================================================================
+--- branches/pre0.7/src/lua/linit.c	2009-12-26 03:16:23 UTC (rev 614)
++++ branches/pre0.7/src/lua/linit.c	2009-12-26 03:16:34 UTC (rev 615)
+@@ -15,7 +15,7 @@
+ #include &quot;lrotable.h&quot;
+ #include &quot;luaconf.h&quot;
+ 
+-#if defined(ELUA_PLATFORM) &amp;&amp; !defined(LUA_CROSS_COMPILER)
++#ifndef LUA_CROSS_COMPILER
+ #include &quot;platform_conf.h&quot;
+ #endif
+ 
+
+Modified: branches/pre0.7/src/lua/lrotable.c
+===================================================================
+--- branches/pre0.7/src/lua/lrotable.c	2009-12-26 03:16:23 UTC (rev 614)
++++ branches/pre0.7/src/lua/lrotable.c	2009-12-26 03:16:34 UTC (rev 615)
+@@ -125,7 +125,7 @@
+ }
+ 
+ /* Return 1 if the given pointer is a rotable */
+-#if defined(ELUA_PLATFORM) &amp;&amp; defined(LUA_META_ROTABLES)
++#ifdef LUA_META_ROTABLES
+ extern char stext[];
+ extern char etext[];
+ int luaR_isrotable(void *p) {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000570.html">[Elua-svn] r614 - in branches/pre0.7/src: lua modules platform/lm3s	platform/lpc24xx platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000572.html">[Elua-svn] r616 - in branches/pre0.7/src/platform: at91sam7x avr32	lpc288x str7 str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#571">[ date ]</a>
+              <a href="thread.html#571">[ thread ]</a>
+              <a href="subject.html#571">[ subject ]</a>
+              <a href="author.html#571">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

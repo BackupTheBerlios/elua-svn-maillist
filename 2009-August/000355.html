@@ -1,0 +1,244 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r399 - in tags/pre0.6: romfs src/lua src/modules	src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r399%20-%20in%20tags/pre0.6%3A%20romfs%20src/lua%20src/modules%0A%09src/platform/lm3s&In-Reply-To=%3C200908191854.n7JIsNGP006158%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000354.html">
+   <LINK REL="Next"  HREF="000356.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r399 - in tags/pre0.6: romfs src/lua src/modules	src/platform/lm3s</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r399%20-%20in%20tags/pre0.6%3A%20romfs%20src/lua%20src/modules%0A%09src/platform/lm3s&In-Reply-To=%3C200908191854.n7JIsNGP006158%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r399 - in tags/pre0.6: romfs src/lua src/modules	src/platform/lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Aug 19 20:54:23 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000354.html">[Elua-svn] r398 - tags/pre0.6/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000356.html">[Elua-svn] r400 - in trunk: . romfs src/lua src/modules	src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#355">[ date ]</a>
+              <a href="thread.html#355">[ thread ]</a>
+              <a href="subject.html#355">[ subject ]</a>
+              <a href="author.html#355">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-08-19 20:54:22 +0200 (Wed, 19 Aug 2009)
+New Revision: 399
+
+Modified:
+   tags/pre0.6/romfs/logo.lua
+   tags/pre0.6/romfs/pong.lua
+   tags/pre0.6/src/lua/linit.c
+   tags/pre0.6/src/modules/bitarray.c
+   tags/pre0.6/src/platform/lm3s/platform.c
+   tags/pre0.6/src/platform/lm3s/platform_conf.h
+Log:
+disp changed to lm3s.disp (platform specific)
+
+Modified: tags/pre0.6/romfs/logo.lua
+===================================================================
+--- tags/pre0.6/romfs/logo.lua	2009-08-19 17:08:47 UTC (rev 398)
++++ tags/pre0.6/romfs/logo.lua	2009-08-19 18:54:22 UTC (rev 399)
+@@ -1,3 +1,5 @@
++local disp = lm3s.disp
++
+ disp.init( 1000000 )
+ disp.clear()
+ 
+
+Modified: tags/pre0.6/romfs/pong.lua
+===================================================================
+--- tags/pre0.6/romfs/pong.lua	2009-08-19 17:08:47 UTC (rev 398)
++++ tags/pre0.6/romfs/pong.lua	2009-08-19 18:54:22 UTC (rev 399)
+@@ -1,5 +1,7 @@
+ require(&quot;LM3S&quot;)
+ 
++local disp = lm3s.disp
++
+ function drawPaddle( y, color )
+   disp.print(&quot;|&quot;, 0, y,   color)
+   disp.print(&quot;|&quot;, 0, y+4, color)
+
+Modified: tags/pre0.6/src/lua/linit.c
+===================================================================
+--- tags/pre0.6/src/lua/linit.c	2009-08-19 17:08:47 UTC (rev 398)
++++ tags/pre0.6/src/lua/linit.c	2009-08-19 18:54:22 UTC (rev 399)
+@@ -19,6 +19,8 @@
+ #include &quot;platform_conf.h&quot;
+ #endif
+ 
++extern int luaopen_platform( lua_State *L );
++
+ static const luaL_Reg lualibs[] = {
+   {&quot;&quot;, luaopen_base},
+   {LUA_LOADLIBNAME, luaopen_package},
+@@ -59,7 +61,7 @@
+ #if defined(LUA_PLATFORM_LIBS_ROM) &amp;&amp; LUA_OPTIMIZE_MEMORY == 2
+ #undef _ROM
+ #define _ROM( name, openf, table ) { name, table },
+-LUA_PLATFORM_LIBS_ROM
++  LUA_PLATFORM_LIBS_ROM
+ #endif
+ #endif
+   {NULL, NULL}
+@@ -73,3 +75,4 @@
+     lua_call(L, 1, 0);
+   }
+ }
++
+
+Modified: tags/pre0.6/src/modules/bitarray.c
+===================================================================
+--- tags/pre0.6/src/modules/bitarray.c	2009-08-19 17:08:47 UTC (rev 398)
++++ tags/pre0.6/src/modules/bitarray.c	2009-08-19 18:54:22 UTC (rev 399)
+@@ -1,4 +1,4 @@
+-// Module that implements a fixed size bit array
++  // Module that implements a fixed size bit array
+ 
+ #include &quot;lua.h&quot;
+ #include &quot;lualib.h&quot;
+@@ -327,8 +327,7 @@
+ #else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+   luaL_newmetatable( L, META_NAME );
+   luaL_register( L, NULL, bitarray_mt_map );
+-  luaL_register( L, AUXLIB_
+-  BITARRAY, bitarray_map );  
++  luaL_register( L, AUXLIB_BITARRAY, bitarray_map );  
+   return 1;
+ #endif // #if LUA_OPTIMIZE_MEMORY &gt; 0  
+ }
+
+Modified: tags/pre0.6/src/platform/lm3s/platform.c
+===================================================================
+--- tags/pre0.6/src/platform/lm3s/platform.c	2009-08-19 17:08:47 UTC (rev 398)
++++ tags/pre0.6/src/platform/lm3s/platform.c	2009-08-19 18:54:22 UTC (rev 399)
+@@ -16,6 +16,9 @@
+ #include &quot;platform_conf.h&quot;
+ #include &quot;common.h&quot;
+ #include &quot;math.h&quot;
++#include &quot;lua.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ // Platform specific includes
+ #include &quot;hw_ints.h&quot;
+@@ -873,3 +876,46 @@
+ {
+ }
+ #endif // #ifdef ELUA_UIP
++
++// ****************************************************************************
++// Platform specific modules go here
++
++#ifdef ENABLE_DISP
++
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++extern const LUA_REG_TYPE disp_map[];
++
++const LUA_REG_TYPE platform_map[] =
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;disp&quot; ), LROVAL( disp_map ) },
++#endif
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_platform( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_register( L, PS_LIB_TABLE_NAME, luaopen_platform );
++
++  // Setup the new tables (pin and port) inside pio
++  lua_newtable( L );
++  luaL_register( L, NULL, disp_map );
++  lua_setfield( L, -2, &quot;disp&quot; );
++
++  return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
++}
++
++#else // #ifdef ENABLE_DISP
++
++LUALIB_API int luaopen_platform( lua_State *L )
++{
++  return 0;
++}
++
++#endif // #ifdef ENABLE_DISP
++
+
+Modified: tags/pre0.6/src/platform/lm3s/platform_conf.h
+===================================================================
+--- tags/pre0.6/src/platform/lm3s/platform_conf.h	2009-08-19 17:08:47 UTC (rev 398)
++++ tags/pre0.6/src/platform/lm3s/platform_conf.h	2009-08-19 18:54:22 UTC (rev 399)
+@@ -35,13 +35,8 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
+-#ifdef ENABLE_DISP
+-#define AUXLIB_DISP   &quot;disp&quot;
+-LUALIB_API int ( luaopen_disp )( lua_State* L );
+-#define DISPLINE _ROM( AUXLIB_DISP, luaopen_disp, disp_map )
+-#else
+-#define DISPLINE
+-#endif
++// The name of the platform specific libs table
++#define PS_LIB_TABLE_NAME   &quot;lm3s&quot;
+ 
+ #ifdef FORLM3S6918
+ #define PWMLINE
+@@ -69,9 +64,9 @@
+   NETLINE\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
+-  DISPLINE\
+-  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+-  
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
++  _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
++
+ // *****************************************************************************
+ // Configuration data
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000354.html">[Elua-svn] r398 - tags/pre0.6/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000356.html">[Elua-svn] r400 - in trunk: . romfs src/lua src/modules	src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#355">[ date ]</a>
+              <a href="thread.html#355">[ thread ]</a>
+              <a href="subject.html#355">[ subject ]</a>
+              <a href="author.html#355">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

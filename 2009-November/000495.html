@@ -1,0 +1,276 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r539 - in trunk: doc doc/eluadoc inc src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r539%20-%20in%20trunk%3A%20doc%20doc/eluadoc%20inc%20src/modules&In-Reply-To=%3C200911142256.nAEMuNQK026138%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000494.html">
+   <LINK REL="Next"  HREF="000496.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r539 - in trunk: doc doc/eluadoc inc src/modules</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r539%20-%20in%20trunk%3A%20doc%20doc/eluadoc%20inc%20src/modules&In-Reply-To=%3C200911142256.nAEMuNQK026138%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r539 - in trunk: doc doc/eluadoc inc src/modules">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Nov 14 23:56:23 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000494.html">[Elua-svn] r538 - in branches/eagle_mmc: . romfs src/lua	src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000496.html">[Elua-svn] r540 - trunk/src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#495">[ date ]</a>
+              <a href="thread.html#495">[ thread ]</a>
+              <a href="subject.html#495">[ subject ]</a>
+              <a href="author.html#495">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-11-14 23:56:23 +0100 (Sat, 14 Nov 2009)
+New Revision: 539
+
+Added:
+   trunk/doc/eluadoc/refman_gen_can.lua
+Modified:
+   trunk/doc/eluadoc.lua
+   trunk/inc/platform.h
+   trunk/src/modules/can.c
+Log:
+Add initial refman entry for can module.
+
+Added: trunk/doc/eluadoc/refman_gen_can.lua
+===================================================================
+--- trunk/doc/eluadoc/refman_gen_can.lua	2009-11-11 03:20:40 UTC (rev 538)
++++ trunk/doc/eluadoc/refman_gen_can.lua	2009-11-14 22:56:23 UTC (rev 539)
+@@ -0,0 +1,136 @@
++-- eLua reference manual - CAN module
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - CAN module&quot;,
++
++  -- Menu name
++  menu_name = &quot;can&quot;,
++
++  -- Overview
++  overview = [[This module contains functions for accessing the CAN interfaces of the eLua CPU]],
++  
++  -- Structures
++  structures =
++  {
++    { text = [[// eLua CAN ID types
++enum
++{
++  ELUA_CAN_ID_STD = 0,      // exported as $net.ID_STD$
++  ELUA_CAN_ID_EXT,          // exported as $can.ID_EXT$
++};]],
++      name = &quot;CAN ID types&quot;,
++      desc = &quot;These are the CAN identifier types supported by eLua. Standard identifiers are 11 bits in length, extended identifiers are 29 bits.&quot;,
++    }
++  },
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;clock = #can.setup#( id, clock )&quot;,
++      desc = &quot;Setup the CAN interface&quot;,
++      args = 
++      {
++        &quot;$id$ - the ID of the CAN interface.&quot;,
++        &quot;$clock$ - the clock of the CAN interface.&quot;,
++      },
++      ret = &quot;The actual clock set on the CAN interface. Depending on the hardware, this might have a different value than the $clock$ parameter.&quot;
++    },
++
++    { sig = &quot;#can.send#( id, canid, canidtype, message )&quot;,
++      desc = &quot;Send message over the CAN bus.&quot;,
++      args = 
++      {
++        &quot;$id$ - the ID of the CAN interface.&quot;,
++        &quot;$canid$ - CAN identifier number.&quot;,
++        &quot;$canidtype$ - identifier type as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">can_id_types at here</A>@.&quot;,
++        &quot;$message$ - message in string format, 8 or fewer bytes.&quot;
++      },
++    },
++
++    { sig = &quot;canid, canidtype, message = #can.recv#( id )&quot;,
++      desc = &quot;Receive CAN bus message.&quot;,
++      args =
++      {
++        &quot;$id$ - the ID of the CAN interface.&quot;,
++      },
++      ret =
++      {
++        &quot;$canid$ - CAN identifier number.&quot;,
++        &quot;$canidtype$ - identifier type as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">can_id_types at here</A>@.&quot;,
++        &quot;$message$ - message in string format, 8 or fewer bytes.&quot;
++      }
++    }
++   
++  },
++}
++
++data_pt = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - CAN module&quot;,
++
++  -- Menu name
++  menu_name = &quot;can&quot;,
++
++  -- Overview
++  overview = [[This module contains functions for accessing the CAN interfaces of the eLua CPU]],
++  
++  -- Structures
++  structures =
++  {
++    { text = [[// eLua CAN ID types
++enum
++{
++  ELUA_CAN_ID_STD = 0,      // exported as $net.ID_STD$
++  ELUA_CAN_ID_EXT,          // exported as $can.ID_EXT$
++};]],
++      name = &quot;CAN ID types&quot;,
++      desc = &quot;These are the CAN identifier types supported by eLua. Standard identifiers are 11 bits in length, extended identifiers are 29 bits.&quot;,
++    }
++  },
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;clock = #can.setup#( id, clock )&quot;,
++      desc = &quot;Setup the CAN interface&quot;,
++      args = 
++      {
++        &quot;$id$ - the ID of the CAN interface.&quot;,
++        &quot;$clock$ - the clock of the CAN interface.&quot;,
++      },
++      ret = &quot;The actual clock set on the CAN interface. Depending on the hardware, this might have a different value than the $clock$ parameter.&quot;
++    },
++
++    { sig = &quot;#can.send#( id, canid, canidtype, message )&quot;,
++      desc = &quot;Send message over the CAN bus.&quot;,
++      args = 
++      {
++        &quot;$id$ - the ID of the CAN interface.&quot;,
++        &quot;$canid$ - CAN identifier number.&quot;,
++        &quot;$canidtype$ - identifier type as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">can_id_types at here</A>@.&quot;,
++        &quot;$message$ - message in string format, 8 or fewer bytes.&quot;
++      },
++    },
++
++    { sig = &quot;canid, canidtype, message = #can.recv#( id )&quot;,
++      desc = &quot;Receive CAN bus message.&quot;,
++      args =
++      {
++        &quot;$id$ - the ID of the CAN interface.&quot;,
++      },
++      ret =
++      {
++        &quot;$canid$ - CAN identifier number.&quot;,
++        &quot;$canidtype$ - identifier type as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">can_id_types at here</A>@.&quot;,
++        &quot;$message$ - message in string format, 8 or fewer bytes.&quot;
++      }
++    }
++   
++  },
++}
++
+
+Modified: trunk/doc/eluadoc.lua
+===================================================================
+--- trunk/doc/eluadoc.lua	2009-11-11 03:20:40 UTC (rev 538)
++++ trunk/doc/eluadoc.lua	2009-11-14 22:56:23 UTC (rev 539)
+@@ -15,7 +15,7 @@
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+-  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot; },
++  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot;, &quot;can&quot; },
+   refman_ps_lm3s = { &quot;disp&quot; }
+ }
+ 
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2009-11-11 03:20:40 UTC (rev 538)
++++ trunk/inc/platform.h	2009-11-14 22:56:23 UTC (rev 539)
+@@ -72,6 +72,13 @@
+ // Maximum length for any CAN message
+ #define PLATFORM_CAN_MAXLEN                   8
+ 
++// eLua CAN ID types
++enum
++{
++  ELUA_CAN_ID_STD = 0,
++  ELUA_CAN_ID_EXT
++};
++
+ int platform_can_exists( unsigned id );
+ u32 platform_can_setup( unsigned id, u32 clock );
+ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data );
+
+Modified: trunk/src/modules/can.c
+===================================================================
+--- trunk/src/modules/can.c	2009-11-11 03:20:40 UTC (rev 538)
++++ trunk/src/modules/can.c	2009-11-14 22:56:23 UTC (rev 539)
+@@ -69,6 +69,10 @@
+   { LSTRKEY( &quot;setup&quot; ),  LFUNCVAL( can_setup ) },
+   { LSTRKEY( &quot;send&quot; ),  LFUNCVAL( can_send ) },  
+   { LSTRKEY( &quot;recv&quot; ),  LFUNCVAL( can_recv ) },
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;ID_STD&quot; ), LNUMVAL( ELUA_CAN_ID_STD ) },
++  { LSTRKEY( &quot;ID_EXT&quot; ), LNUMVAL( ELUA_CAN_ID_EXT ) },
++#endif
+   { LNILKEY, LNILVAL }
+ };
+ 
+@@ -79,6 +83,10 @@
+ #else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+   luaL_register( L, AUXLIB_CAN, can_map );
+   
++  // Module constants  
++  MOD_REG_NUMBER( L, &quot;ID_STD&quot;, ELUA_CAN_ID_STD );
++  MOD_REG_NUMBER( L, &quot;ID_EXT&quot;, ELUA_CAN_ID_EXT );
++  
+   return 1;
+ #endif // #if LUA_OPTIMIZE_MEMORY &gt; 0  
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000494.html">[Elua-svn] r538 - in branches/eagle_mmc: . romfs src/lua	src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000496.html">[Elua-svn] r540 - trunk/src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#495">[ date ]</a>
+              <a href="thread.html#495">[ thread ]</a>
+              <a href="subject.html#495">[ subject ]</a>
+              <a href="author.html#495">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

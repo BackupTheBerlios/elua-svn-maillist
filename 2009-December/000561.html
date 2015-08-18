@@ -1,0 +1,328 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r605 - in branches/pre0.7: doc/eluadoc doc/en src	src/modules src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r605%20-%20in%20branches/pre0.7%3A%20doc/eluadoc%20doc/en%20src%0A%09src/modules%20src/platform/stm32&In-Reply-To=%3C200912231904.nBNJ4jJY013350%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000560.html">
+   <LINK REL="Next"  HREF="000562.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r605 - in branches/pre0.7: doc/eluadoc doc/en src	src/modules src/platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r605%20-%20in%20branches/pre0.7%3A%20doc/eluadoc%20doc/en%20src%0A%09src/modules%20src/platform/stm32&In-Reply-To=%3C200912231904.nBNJ4jJY013350%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r605 - in branches/pre0.7: doc/eluadoc doc/en src	src/modules src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Dec 23 20:04:45 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000560.html">[Elua-svn] r604 - in branches/pre0.7: . doc doc/en src/lua
+</A></li>
+        <LI>Next message: <A HREF="000562.html">[Elua-svn] r606 - branches/pre0.7/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#561">[ date ]</a>
+              <a href="thread.html#561">[ thread ]</a>
+              <a href="subject.html#561">[ subject ]</a>
+              <a href="author.html#561">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-23 20:04:44 +0100 (Wed, 23 Dec 2009)
+New Revision: 605
+
+Modified:
+   branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua
+   branches/pre0.7/doc/en/arch_overview.html
+   branches/pre0.7/doc/en/using.html
+   branches/pre0.7/src/main.c
+   branches/pre0.7/src/modules/luarpc.c
+   branches/pre0.7/src/platform/stm32/platform_conf.h
+Log:
+LuaRPC:
+- additional documentation
+- support for using remote variables as parameters with remote calls (without
+  the need to transmit data in the parameters)
+- ensure that uart gets intialized on boot for boot=luarpc
+
+Modified: branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua
+===================================================================
+--- branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua	2009-12-23 00:11:21 UTC (rev 604)
++++ branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua	2009-12-23 19:04:44 UTC (rev 605)
+@@ -32,8 +32,8 @@
+     &lt;/li&gt;
+   &lt;/ul&gt;
+   &lt;/p&gt;
+-  
+-  &lt;p&gt;&lt;span class=&quot;warning&quot;&gt;IMPORTANT&lt;/span&gt;: This module is considered experimental. It currently works over a 
++
++  &lt;p&gt;&lt;span class=&quot;warning&quot;&gt;NOTE&lt;/span&gt;: This module is considered experimental. It currently works over a 
+   serial port with eLua targets and on desktop systems implementing POSIX serial communications (Linux, Mac OS X, etc).
+   ]],
+ 
+
+Modified: branches/pre0.7/doc/en/arch_overview.html
+===================================================================
+--- branches/pre0.7/doc/en/arch_overview.html	2009-12-23 00:11:21 UTC (rev 604)
++++ branches/pre0.7/doc/en/arch_overview.html	2009-12-23 19:04:44 UTC (rev 605)
+@@ -202,7 +202,8 @@
+   &lt;li&gt;&lt;b&gt;main&lt;/b&gt; then initializes the rest of the system: the ROM file system, XMODEM, and term.&lt;/li&gt;
+   &lt;li&gt;if &lt;b&gt;/rom/autorun.lua&lt;/b&gt; (which is a file called &lt;b&gt;autorun.lua&lt;/b&gt; in the &lt;a href=&quot;arch_romfs.html&quot;&gt;ROM file system&lt;/a&gt;) is found, it is
+   executed. If it returns after execution, or if it isn't found, the boot process continues with the next step.&lt;/li&gt;
+-  &lt;li&gt;if the &lt;a href=&quot;using.html#shell&quot;&gt;shell&lt;/a&gt; was compiled in the image, it is started, otherwise a standard Lua interpreter is started.&lt;/li&gt;
++  &lt;li&gt;if boot is set to 'standard' and the &lt;a href=&quot;using.html#shell&quot;&gt;shell&lt;/a&gt; was compiled in the image, it is started, in the absence of the shell, a standard Lua interpreter is started.&lt;/li&gt;
++  &lt;li&gt;if boot is set to 'luarpc' an rpc server is started.&lt;/li&gt;
+ &lt;/ol&gt;
+ $$FOOTER$$
+ 
+
+Modified: branches/pre0.7/doc/en/using.html
+===================================================================
+--- branches/pre0.7/doc/en/using.html	2009-12-23 00:11:21 UTC (rev 604)
++++ branches/pre0.7/doc/en/using.html	2009-12-23 19:04:44 UTC (rev 605)
+@@ -224,5 +224,71 @@
+   &lt;li&gt;write it to an sd/mmc card and, if your board supports it, execute it
+   from there.&lt;/li&gt;
+ &lt;/ul&gt;
++
++&lt;a name=&quot;rpc&quot;&gt;&lt;h3&gt;Controlling eLua with LuaRPC&lt;/h3&gt;&lt;/a&gt;
++&lt;p&gt;&lt;i&gt;Remote procedure calls&lt;/i&gt; (RPC) allow one program to communicate with another and call functions or subroutines within the second program. For example one might want to programmatically control an array of LEDs connected to an eLua embedded device from a desktop Lua state.  A simple implementation might be a protocol that would allow one to send commands numeric or text-based commands that would cause code to be executed in eLua that would change the state of the LEDs. As one needs new commands to change these LEDs, one would need to upload a new Lua program to handle changing functionality.  In contrast to this ad-hoc method for remote calls, LuaRPC provides one with much more flexible control over remote state.&lt;/p&gt;
++  &lt;p&gt;When a client is connected to a LuaRPC server, it can interact with it in the following ways:&lt;/p&gt;
++&lt;ul&gt;
++  &lt;li&gt;assign values to new or existing variables in the server state&lt;/li&gt;
++  &lt;li&gt;get values from variables in the server state&lt;/li&gt;
++  &lt;li&gt;call functions to be executed on the server side using parameters of serializable types, with return values being sent back to the client&lt;/li&gt;
++  &lt;li&gt;create local userdata helpers (aliases) which provide short-hand access to remote state&lt;/li&gt;
++&lt;/ul&gt;
++&lt;p&gt;In terms of our LED example, one could directly call pio module functions from the desktop side, experimenting with responses. If the experimentation developed into a program this could be tested both on the desktop side and on the microcontroller by making aliases to eLua modules in local Lua state. Such aliasing can be done as follows (from desktop Linux):&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;slave,err = rpc.connect(&quot;/dev/ttyUSB0&quot;)
++pio = slave.pio -- pio in the local state is now a helper
++
++function set_port_val(val)
++  pio.port.setdir( pio.OUTPUT, pio.PB )
++  pio.port.setval( val, pio.PB )
++end
++
++set_port_val(23)&lt;/pre&gt;&lt;/code&gt;
++&lt;p&gt;When we run this locally, calling and indexing helpers are translated into appropriate actions on the server.  If we were done with modifications to the above function and wanted it to execute in eLua rather than using local aliases which will result in a great deal of RPC traffic every time the function is called, we can send the function to the remote side:&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;-- send bytecode to target
++slave.set_port_val = set_port_val 
++
++-- call function on server device
++slave.set_port_val(23)&lt;/pre&gt;&lt;/code&gt;
++
++&lt;p&gt;The above should work even when the server or client is integer-only but the other end of the connection is using floating point, or if one side is not of the same endianness as the other.&lt;/p&gt;
++
++&lt;p&gt;While this example is trivial, it serves to illustrate a compelling development paradigm that gives one a great deal of flexibility for development and testing with an embedded target.&lt;/p&gt;
++
++&lt;p&gt;Most Lua types can be transferred between the client and server states.  The following list indicates which ones can be transferred, and where there can be issues:&lt;/p&gt;
++
++&lt;table style=&quot;text-align: left;&quot; class=&quot;table_center&quot;&gt;
++&lt;tbody&gt;
++&lt;tr&gt;
++  &lt;th style=&quot;text-align: left;&quot;&gt;Serializable Types&lt;/th&gt;
++  &lt;th style=&quot;text-align: center;&quot;&gt;Exceptions&lt;/th&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;numbers&lt;/td&gt;
++  &lt;td&gt;&nbsp;&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;strings&lt;/td&gt;
++  &lt;td&gt;&nbsp;&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;booleans&lt;/td&gt;
++  &lt;td&gt;&nbsp;&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;tables&lt;/td&gt;
++  &lt;td&gt;no circular references&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;functions&lt;/td&gt;
++  &lt;td&gt;no upvalues&lt;/td&gt;
++&lt;/tr&gt;
++&lt;tr&gt;
++  &lt;td&gt;nil&lt;/td&gt;
++  &lt;td&gt;&nbsp;&lt;/td&gt;
++&lt;/tr&gt;
++&lt;/tbody&gt;
++&lt;/table&gt;
++&lt;p&gt;
+ $$FOOTER$$
+ 
+
+Modified: branches/pre0.7/src/main.c
+===================================================================
+--- branches/pre0.7/src/main.c	2009-12-23 00:11:21 UTC (rev 604)
++++ branches/pre0.7/src/main.c	2009-12-23 19:04:44 UTC (rev 605)
+@@ -33,10 +33,19 @@
+   #define RPC_TIMER_ID    CON_TIMER_ID
+ #endif
+ 
++#ifndef RPC_TIMER_ID
++  #define RPC_UART_SPEED  CON_UART_SPEED
++#endif
++
+ void boot_rpc( void )
+ {
+   lua_State *L = lua_open();
+   luaL_openlibs(L);  /* open libraries */
++  
++  // Set up UART for 8N1 w/ adjustable baud rate
++  platform_uart_setup( RPC_UART_ID, RPC_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
++  
++  // Start RPC Server
+   lua_getglobal( L, &quot;rpc&quot; );
+   lua_getfield( L, -1, &quot;server&quot; );
+   lua_pushnumber( L, RPC_UART_ID );
+
+Modified: branches/pre0.7/src/modules/luarpc.c
+===================================================================
+--- branches/pre0.7/src/modules/luarpc.c	2009-12-23 00:11:21 UTC (rev 604)
++++ branches/pre0.7/src/modules/luarpc.c	2009-12-23 19:04:44 UTC (rev 605)
+@@ -90,7 +90,8 @@
+   RPC_TABLE,
+   RPC_TABLE_END,
+   RPC_FUNCTION,
+-  RPC_FUNCTION_END
++  RPC_FUNCTION_END,
++  RPC_REMOTE
+ };
+ 
+ // RPC Commands
+@@ -397,6 +398,8 @@
+ }
+ 
+ 
++static void helper_remote_index( Helper *helper );
++
+ // write a variable at the given index in the stack. the index must be absolute
+ // (i.e. positive).
+ 
+@@ -445,7 +448,12 @@
+       break;
+ 
+     case LUA_TUSERDATA:
+-      luaL_error( L, &quot;userdata transmission unsupported&quot; );
++      if( lua_isuserdata( L, var_index ) &amp;&amp; ismetatable_type( L, var_index, &quot;rpc.helper&quot; ) )
++      {
++        transport_write_u8( tpt, RPC_REMOTE );
++        helper_remote_index( ( Helper * )lua_touserdata( L, var_index ) );        
++      } else
++        luaL_error( L, &quot;userdata transmission unsupported&quot; );
+       break;
+ 
+     case LUA_TTHREAD:
+@@ -493,7 +501,29 @@
+   }
+ }
+ 
++static void read_index( Transport *tpt, lua_State *L )
++{
++  u32 len;
++  char *funcname;
++  char *token = NULL;
++  
++  len = transport_read_u32( tpt ); // variable name length
++  funcname = ( char * )alloca( len + 1 );
++  transport_read_string( tpt, funcname, len );
++  funcname[ len ] = 0;
++  
++  token = strtok( funcname, &quot;.&quot; );
++  lua_getglobal( L, token );
++  token = strtok( NULL, &quot;.&quot; );
++  while( token != NULL )
++  {
++    lua_getfield( L, -1, token );
++    lua_remove( L, -2 );
++    token = strtok( NULL, &quot;.&quot; );
++  }
++}
+ 
++
+ // read a variable and push in onto the stack. this returns 1 if a &quot;normal&quot;
+ // variable was read, or 0 if an end-table or end-function marker was read (in which case
+ // nothing is pushed onto the stack).
+@@ -540,6 +570,10 @@
+     case RPC_FUNCTION_END:
+       return 0;
+ 
++    case RPC_REMOTE:
++      read_index( tpt, L );
++      break;
++
+     default:
+       e.errnum = type;
+       e.type = fatal;
+@@ -1158,6 +1192,7 @@
+   while( token != NULL )
+   {
+     lua_getfield( L, -1, token );
++    lua_remove( L, -2 );
+     token = strtok( NULL, &quot;.&quot; );
+   }
+   stackpos = lua_gettop( L ) - 1;
+@@ -1234,6 +1269,7 @@
+   while( token != NULL )
+   {
+     lua_getfield( L, -1, token );
++    lua_remove( L, -2 );
+     token = strtok( NULL, &quot;.&quot; );
+   }
+ 
+@@ -1268,6 +1304,7 @@
+     while( token != NULL )
+     {
+       lua_getfield( L, -1, token );
++      lua_remove( L, -2 );
+       token = strtok( NULL, &quot;.&quot; );
+     }
+     read_variable( tpt, L ); // key
+
+Modified: branches/pre0.7/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/pre0.7/src/platform/stm32/platform_conf.h	2009-12-23 00:11:21 UTC (rev 604)
++++ branches/pre0.7/src/platform/stm32/platform_conf.h	2009-12-23 19:04:44 UTC (rev 605)
+@@ -116,6 +116,7 @@
+ // RPC  
+ #define RPC_UART_ID           CON_UART_ID
+ #define RPC_TIMER_ID          CON_TIMER_ID
++#define RPC_UART_SPEED        CON_UART_SPEED
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ u32 platform_s_cpu_get_frequency();
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000560.html">[Elua-svn] r604 - in branches/pre0.7: . doc doc/en src/lua
+</A></li>
+	<LI>Next message: <A HREF="000562.html">[Elua-svn] r606 - branches/pre0.7/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#561">[ date ]</a>
+              <a href="thread.html#561">[ thread ]</a>
+              <a href="subject.html#561">[ subject ]</a>
+              <a href="author.html#561">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r372 - in branches/eagle_mmc: . src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r372%20-%20in%20branches/eagle_mmc%3A%20.%20src/platform/lm3s&In-Reply-To=%3C200907301811.n6UIBkgD002927%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000329.html">
+   <LINK REL="Next"  HREF="000328.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r372 - in branches/eagle_mmc: . src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r372%20-%20in%20branches/eagle_mmc%3A%20.%20src/platform/lm3s&In-Reply-To=%3C200907301811.n6UIBkgD002927%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r372 - in branches/eagle_mmc: . src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Jul 30 20:11:46 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000329.html">[Elua-svn] r371 - in branches/eagle_mmc: . doc doc/en doc/luadoc	doc/pt doc/wb doc/wb_img docs inc inc/newlib romfs src	src/lua src/modules src/newlib src/platform	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/stm32/FWLib	src/platform/stm32/FWLib/library/inc	src/platform/stm32/FWLib/library/src src/platform/str7	src/platform/str9 test
+</A></li>
+        <LI>Next message: <A HREF="000328.html">[Elua-svn] r373 - branches/eagle_mmc/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#327">[ date ]</a>
+              <a href="thread.html#327">[ thread ]</a>
+              <a href="subject.html#327">[ subject ]</a>
+              <a href="author.html#327">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-07-30 20:11:45 +0200 (Thu, 30 Jul 2009)
+New Revision: 372
+
+Modified:
+   branches/eagle_mmc/SConstruct
+   branches/eagle_mmc/src/platform/lm3s/conf.py
+   branches/eagle_mmc/src/platform/lm3s/platform.c
+   branches/eagle_mmc/src/platform/lm3s/platform_conf.h
+Log:
+Fix some merge issues.
+
+Modified: branches/eagle_mmc/SConstruct
+===================================================================
+--- branches/eagle_mmc/SConstruct	2009-07-30 18:10:13 UTC (rev 371)
++++ branches/eagle_mmc/SConstruct	2009-07-30 18:11:45 UTC (rev 372)
+@@ -267,7 +267,7 @@
+ 
+ # FatFs files
+ app_files = app_files + &quot;src/mmcfs.c src/fatfs/ff.c &quot;
+-local_include = local_include + &quot; -Isrc/fatfs&quot;
++local_include += ['src/fatfs']
+ 
+ # Lua module files
+ module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c can.c luarpc.c&quot;
+
+Modified: branches/eagle_mmc/src/platform/lm3s/conf.py
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/conf.py	2009-07-30 18:10:13 UTC (rev 371)
++++ branches/eagle_mmc/src/platform/lm3s/conf.py	2009-07-30 18:11:45 UTC (rev 372)
+@@ -1,5 +1,5 @@
+ # Configuration file for the LM3S microcontroller
+-specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c&quot;
++specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c mmc.c&quot;
+ 
+ if boardname == 'EK-LM3S6965' or boardname == 'EK-LM3S8962':
+   specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
+
+Modified: branches/eagle_mmc/src/platform/lm3s/platform.c
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/platform.c	2009-07-30 18:10:13 UTC (rev 371)
++++ branches/eagle_mmc/src/platform/lm3s/platform.c	2009-07-30 18:11:45 UTC (rev 372)
+@@ -39,7 +39,7 @@
+ #include &quot;elua_net.h&quot;
+ #include &quot;dhcpc.h&quot;
+ #include &quot;buf.h&quot;
+-#ifdef BUILD_DISP_RIT
++#ifdef ENABLE_DISP
+ #include &quot;rit128x96x4.h&quot;
+ #endif
+ #include &quot;disp.h&quot;
+@@ -237,12 +237,7 @@
+ 
+ // ****************************************************************************
+ // UART
+-&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD:src/platform/lm3s/platform.c
+-// LM3S8962, LM3S6918 (2 UARTs)
+-// LM3S6965 (3 UARTs)
+-=======
+ // Different configurations for LM3S8962, LM3S6918 (2 UARTs) and LM3S6965 (3 UARTs)
+-&gt;&gt;&gt;&gt;&gt;&gt;&gt; remotes/trunk:src/platform/lm3s/platform.c
+ 
+ // All possible LM3S uarts defs
+ static const u32 uart_base[] = { UART0_BASE, UART1_BASE, UART2_BASE };
+@@ -341,11 +336,7 @@
+ 
+ // ****************************************************************************
+ // Timers
+-&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD:src/platform/lm3s/platform.c
+-// LM3S8962, LM3S6965, LM3S6918 (4 timers)
+-=======
+ // Same on LM3S8962, LM3S6965 and LM3S6918 (4 timers)
+-&gt;&gt;&gt;&gt;&gt;&gt;&gt; remotes/trunk:src/platform/lm3s/platform.c
+ 
+ // All possible LM3S timers defs
+ static const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE };
+@@ -410,13 +401,8 @@
+ 
+ // ****************************************************************************
+ // PWMs
+-&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD:src/platform/lm3s/platform.c
+-// LM3S8962, LM3S6965 (6 PWM ports)
+-// LM3S6918 (0 PWM ports)
+-=======
+ // Similar on LM3S8962 and LM3S6965
+ // LM3S6918 has no PWM
+-&gt;&gt;&gt;&gt;&gt;&gt;&gt; remotes/trunk:src/platform/lm3s/platform.c
+ 
+ // SYSCTL div data and actual div factors
+ const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
+@@ -700,7 +686,7 @@
+   return PLATFORM_OK;
+ }
+ 
+-#ifdef BUILD_DISP_RIT
++#ifdef ENABLE_DISP
+ // ****************************************************************************
+ // OLED Display specific functions
+ //
+
+Modified: branches/eagle_mmc/src/platform/lm3s/platform_conf.h
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/platform_conf.h	2009-07-30 18:10:13 UTC (rev 371)
++++ branches/eagle_mmc/src/platform/lm3s/platform_conf.h	2009-07-30 18:11:45 UTC (rev 372)
+@@ -73,22 +73,7 @@
+   _ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )\
+   DISPLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+-#else
+-// LM3S board without RIT display
+-#define LUA_PLATFORM_LIBS_ROM\
+-  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+-  _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
+-  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+-  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+-  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
+-  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+-  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+-  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+-  _ROM( AUXLIB_NET, luaopen_net, net_map )\
+-  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+-  _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
+-  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+-#endif
++
+   
+ // *****************************************************************************
+ // Configuration data
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000329.html">[Elua-svn] r371 - in branches/eagle_mmc: . doc doc/en doc/luadoc	doc/pt doc/wb doc/wb_img docs inc inc/newlib romfs src	src/lua src/modules src/newlib src/platform	src/platform/at91sam7x src/platform/avr32 src/platform/i386	src/platform/lm3s src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/stm32/FWLib	src/platform/stm32/FWLib/library/inc	src/platform/stm32/FWLib/library/src src/platform/str7	src/platform/str9 test
+</A></li>
+	<LI>Next message: <A HREF="000328.html">[Elua-svn] r373 - branches/eagle_mmc/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#327">[ date ]</a>
+              <a href="thread.html#327">[ thread ]</a>
+              <a href="subject.html#327">[ subject ]</a>
+              <a href="author.html#327">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

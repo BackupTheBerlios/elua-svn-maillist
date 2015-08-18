@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r425 - tags/pre0.6/doc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r425%20-%20tags/pre0.6/doc&In-Reply-To=%3C200909102119.n8ALJO30017437%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000380.html">
+   <LINK REL="Next"  HREF="000382.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r425 - tags/pre0.6/doc</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r425%20-%20tags/pre0.6/doc&In-Reply-To=%3C200909102119.n8ALJO30017437%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r425 - tags/pre0.6/doc">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Sep 10 23:19:24 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000380.html">[Elua-svn] r424 - in tags/pre0.6/doc: . eluadoc pt
+</A></li>
+        <LI>Next message: <A HREF="000382.html">[Elua-svn] r426 - in tags/pre0.6/doc: . pt
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#381">[ date ]</a>
+              <a href="thread.html#381">[ thread ]</a>
+              <a href="subject.html#381">[ subject ]</a>
+              <a href="author.html#381">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-09-10 23:19:23 +0200 (Thu, 10 Sep 2009)
+New Revision: 425
+
+Modified:
+   tags/pre0.6/doc/buildall.lua
+Log:
+small fix in the doc generator to handle multiple languages better
+
+Modified: tags/pre0.6/doc/buildall.lua
+===================================================================
+--- tags/pre0.6/doc/buildall.lua	2009-09-10 20:47:36 UTC (rev 424)
++++ tags/pre0.6/doc/buildall.lua	2009-09-10 21:19:23 UTC (rev 425)
+@@ -285,7 +285,7 @@
+ -------------------------------------------------------------------------------
+ -- Build the logo for a given language
+ 
+-local function gen_logo( lang )
++local function gen_logo( fname, lang )
+   local numl = #languages
+   local langdata = ''
+   for i = 1, numl do
+@@ -294,7 +294,7 @@
+     if lang:lower() == crtlang:lower() then 
+       langdata = langdata .. string.format('          &lt;td align=&quot;center&quot;&gt;&lt;h6 class=&quot;selected&quot;&gt;%s&lt;/h6&gt;&lt;/td&gt;\n', hlang )
+     else
+-      langdata = langdata .. string.format('          &lt;td align=&quot;center&quot;&gt;&lt;h6&gt;&lt;a href=&quot;%s_index.html&quot; class=&quot;lang&quot;&gt;%s&lt;/a&gt;&lt;/h6&gt;&lt;/td&gt;\n', crtlang:lower(), hlang )
++      langdata = langdata .. string.format('          &lt;td align=&quot;center&quot;&gt;&lt;h6&gt;&lt;a href=&quot;%s_%s&quot; class=&quot;lang&quot;&gt;%s&lt;/a&gt;&lt;/h6&gt;&lt;/td&gt;\n', crtlang:lower(), fname, hlang )
+     end
+   end
+ return string.format( [[
+@@ -389,7 +389,7 @@
+ 
+ &lt;body&gt;
+ ]], get_menu_title( item, lang ) )
+-  header = header .. gen_logo( lang ) .. &quot;\n&quot;
++  header = header .. gen_logo( fname, lang ) .. &quot;\n&quot;
+   local menuitems, menudata = gen_html_nav( parentid, lang )
+   header = header .. menuitems .. '&lt;div id=&quot;content&quot;&gt;\n'
+   local footer = string.format( [[
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000380.html">[Elua-svn] r424 - in tags/pre0.6/doc: . eluadoc pt
+</A></li>
+	<LI>Next message: <A HREF="000382.html">[Elua-svn] r426 - in tags/pre0.6/doc: . pt
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#381">[ date ]</a>
+              <a href="thread.html#381">[ thread ]</a>
+              <a href="subject.html#381">[ subject ]</a>
+              <a href="author.html#381">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

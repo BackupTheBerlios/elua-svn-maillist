@@ -1,0 +1,247 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r71 - in trunk: . src src/platform/lpc288x
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r71%20-%20in%20trunk%3A%20.%20src%20src/platform/lpc288x&In-Reply-To=%3C200809011321.m81DL75s018016%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000031.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r71 - in trunk: . src src/platform/lpc288x</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r71%20-%20in%20trunk%3A%20.%20src%20src/platform/lpc288x&In-Reply-To=%3C200809011321.m81DL75s018016%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r71 - in trunk: . src src/platform/lpc288x">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Sep  1 15:21:07 CEST 2008</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000031.html">[Elua-svn] r71 - in trunk: . src src/platform/lpc288x
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#26">[ date ]</a>
+              <a href="thread.html#26">[ thread ]</a>
+              <a href="subject.html#26">[ subject ]</a>
+              <a href="author.html#26">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-09-01 15:21:06 +0200 (Mon, 01 Sep 2008)
+New Revision: 71
+
+Modified:
+   trunk/SConstruct
+   trunk/src/platform/lpc288x/conf.py
+   trunk/src/shell.c
+Log:
+modified the build system. Also removed the 'mem' command from the shell, as it was very confusing
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2008-08-28 19:44:16 UTC (rev 70)
++++ trunk/SConstruct	2008-09-01 13:21:06 UTC (rev 71)
+@@ -1,6 +1,6 @@
+ import os, sys 
+ target = ARGUMENTS.get( 'target', 'lua' ).lower() 
+-cputype = ARGUMENTS.get( 'cpu', 'at91sam7x256' ).upper()
++cputype = ARGUMENTS.get( 'cpu', '' ).upper()
+ allocator = ARGUMENTS.get( 'allocator', '' ).lower()
+ boardname = ARGUMENTS.get( 'board' , '').upper()
+ 
+@@ -12,15 +12,48 @@
+               'lpc288x' : [ 'LPC2888' ]
+             }
+ 
+-# List of default board names
++# List of board/CPU combinations
+ board_list = { 'SAM7-EX256' : [ 'AT91SAM7X256', 'AT91SAM7X512' ],        
+                'EK-LM3S8962' : [ 'LM3S8962' ],
+                'EK-LM3S6965' : [ 'LM3S6965' ],
+-               'STR9-comStick' : [ 'STR912FW44' ],
++               'STR9-COMSTICK' : [ 'STR912FW44' ],
+                'PC' : [ 'I386' ],
+                'LPC-H2888' : [ 'LPC2888' ]
+             }
+ 
++# Variants: board = &lt;boardname&gt;
++#           cpu = &lt;cpuname&gt;
++#           board = &lt;boardname&gt; cpu=&lt;cpuname&gt;
++if boardname == '' and cputype == '':
++  print &quot;Must specifiy board, cpu, or both&quot;
++  sys.exit( -1 )
++elif boardname != '' and cputype != '':
++  # board = &lt;boardname&gt; cpu=&lt;cpuname&gt;
++  # Check if the board, cpu pair is correct
++  if not board_list.has_key( boardname ):
++    print &quot;Unknown board&quot;, boardname
++    sys.exit( -1 )
++  if not cputype in board_list[ boardname ]: 
++    print &quot;Invalid CPU %s for board %s&quot; % ( cputype, boardname )
++    sys.exit( -1 )
++elif boardname != '':
++  # board = &lt;boardname&gt;
++  # Find CPU
++  if not board_list.has_key( boardname ):
++    print &quot;Unknown board&quot;, boardname
++    sys.exit( -1 )  
++  cputype = board_list[ boardname ][ 0 ]
++else:  
++  # cpu = &lt;cputype&gt;
++  # Find board name
++  for b, v in board_list.items():
++    if cputype in v:
++      boardname = b
++      break
++  else:
++    print &quot;CPU %s not found&quot; % cputype
++    sys.exit( -1 )
++
+ platform = None        
+ # Look for the given CPU in the list of platforms            
+ for p, v in cpu_list.items():
+@@ -37,16 +70,6 @@
+     print
+   sys.exit( -1 )
+ 
+-# If the board is not specified, use the default value
+-if boardname == '':
+-  for b, v in board_list.items():
+-    if cputype in v:
+-      boardname = b
+-      break
+-  else:
+-    print &quot;Please specify a board&quot;
+-    sys.exit( -1 )
+-
+ # CPU/allocator mapping (if allocator not specified)
+ if allocator == '':
+   if cputype == 'LPC2888':
+@@ -58,7 +81,18 @@
+   print &quot;Allocator can be either 'newlib' or 'multiple'&quot;
+   sys.exit( -1 )
+ 
+-    
++# User report
++if not GetOption( 'clean' ):
++  print
++  print &quot;*********************************&quot;
++  print &quot;Compiling eLua ...&quot;
++  print &quot;CPU:         &quot;, cputype
++  print &quot;Board:       &quot;, boardname
++  print &quot;Platform:    &quot;, platform
++  print &quot;Allocator:   &quot;, allocator
++  print &quot;*********************************&quot;
++  print    
++
+ output = 'elua_' + target + '_' + cputype.lower()
+ cdefs = '-DELUA_CPU=%s -DELUA_BOARD=%s -DELUA_PLATFORM=%s' % ( cputype, boardname, platform.upper() )
+ if allocator == 'multiple':
+
+Modified: trunk/src/platform/lpc288x/conf.py
+===================================================================
+--- trunk/src/platform/lpc288x/conf.py	2008-08-28 19:44:16 UTC (rev 70)
++++ trunk/src/platform/lpc288x/conf.py	2008-09-01 13:21:06 UTC (rev 71)
+@@ -5,7 +5,7 @@
+ specific_files = &quot;lpc28xx.s platform.c target.c uart.c&quot;
+ 
+ # Check CPU
+-if cputype == 'lpc2888':
++if cputype == 'LPC2888':
+   ldscript = &quot;lpc2888.lds&quot;
+ else:
+   print &quot;Invalid LPC288x CPU %s&quot;, cputype
+
+Modified: trunk/src/shell.c
+===================================================================
+--- trunk/src/shell.c	2008-08-28 19:44:16 UTC (rev 70)
++++ trunk/src/shell.c	2008-09-01 13:21:06 UTC (rev 71)
+@@ -9,15 +9,8 @@
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+ #include &lt;stdlib.h&gt;
+-#include &lt;malloc.h&gt;
+ #include &quot;platform.h&quot;
+ 
+-#ifdef USE_MULTIPLE_ALLOCATOR
+-#include &quot;dlmalloc.h&quot;
+-#else
+-#include &lt;malloc.h&gt;
+-#endif
+-
+ #include &quot;build.h&quot;
+ #ifdef BUILD_SHELL
+ 
+@@ -50,7 +43,6 @@
+   printf( &quot;  lua [args] - run Lua with the given arguments\n&quot; );
+   printf( &quot;  recv - receive a file (XMODEM) and execute it\n&quot; );
+   printf( &quot;  ver - print eLua version\n&quot; );
+-  printf( &quot;  mem - RAM usage data\n&quot; );  
+   printf( &quot;  exit - exit from this shelll\n&quot; );
+ }
+ 
+@@ -166,24 +158,6 @@
+   printf( &quot;For more information go to <A HREF="http://elua.berlios.de\n">http://elua.berlios.de\n</A>&quot; );
+ }
+ 
+-static void shell_mem( char* args )
+-{
+-  unsigned i = 0;
+-  u32 lstart, lend;
+-  struct mallinfo allocdata;
+-  
+-  while( 1 )
+-  {
+-    if( ( lstart = ( u32 )platform_get_first_free_ram( i ) ) == 0 )
+-      break;
+-    lend = ( u32 )platform_get_last_free_ram( i );
+-    printf( &quot;Start:0x%08lX  Size:%8ld  &quot;, lstart, lend - lstart + 1 );
+-    allocdata = mallinfo();  
+-    printf( &quot;Used:%8ld Free:%8ld\n&quot;, ( long )allocdata.uordblks, ( long )allocdata.fordblks );      
+-    break;
+-  }
+-}
+-
+ // Insert shell commands here
+ static const SHELL_COMMAND shell_commands[] = 
+ {
+@@ -191,7 +165,6 @@
+   { &quot;lua&quot;, shell_lua },
+   { &quot;recv&quot;, shell_recv },
+   { &quot;ver&quot;, shell_ver },
+-  { &quot;mem&quot;, shell_mem },
+   { &quot;exit&quot;, NULL },
+   { NULL, NULL }
+ };
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000031.html">[Elua-svn] r71 - in trunk: . src src/platform/lpc288x
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#26">[ date ]</a>
+              <a href="thread.html#26">[ thread ]</a>
+              <a href="subject.html#26">[ subject ]</a>
+              <a href="author.html#26">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

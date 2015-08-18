@@ -1,0 +1,3365 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r103 - in trunk: . src/modules src/platform	src/platform/str7 src/uip
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r103%20-%20in%20trunk%3A%20.%20src/modules%20src/platform%0A%09src/platform/str7%20src/uip&In-Reply-To=%3C200810022121.m92LLehB015319%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000060.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r103 - in trunk: . src/modules src/platform	src/platform/str7 src/uip</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r103%20-%20in%20trunk%3A%20.%20src/modules%20src/platform%0A%09src/platform/str7%20src/uip&In-Reply-To=%3C200810022121.m92LLehB015319%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r103 - in trunk: . src/modules src/platform	src/platform/str7 src/uip">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Oct  2 23:21:40 CEST 2008</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000060.html">[Elua-svn] r104 - in trunk/src: . modules platform/str7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#59">[ date ]</a>
+              <a href="thread.html#59">[ thread ]</a>
+              <a href="subject.html#59">[ subject ]</a>
+              <a href="author.html#59">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-10-02 23:21:39 +0200 (Thu, 02 Oct 2008)
+New Revision: 103
+
+Added:
+   trunk/src/platform/str7/
+   trunk/src/platform/str7/71x_apb.c
+   trunk/src/platform/str7/71x_apb.h
+   trunk/src/platform/str7/71x_conf.h
+   trunk/src/platform/str7/71x_gpio.c
+   trunk/src/platform/str7/71x_gpio.h
+   trunk/src/platform/str7/71x_lib.h
+   trunk/src/platform/str7/71x_map.h
+   trunk/src/platform/str7/71x_rccu.c
+   trunk/src/platform/str7/71x_rccu.h
+   trunk/src/platform/str7/71x_type.h
+   trunk/src/platform/str7/71x_uart.c
+   trunk/src/platform/str7/71x_uart.h
+   trunk/src/platform/str7/build.h
+   trunk/src/platform/str7/conf.py
+   trunk/src/platform/str7/crt0.s
+   trunk/src/platform/str7/platform.c
+   trunk/src/platform/str7/platform_cpu.h
+   trunk/src/platform/str7/platform_libs.h
+   trunk/src/platform/str7/stacks.h
+   trunk/src/platform/str7/str711fr2.lds
+   trunk/src/platform/str7/type.h
+Modified:
+   trunk/SConstruct
+   trunk/src/modules/net.c
+   trunk/src/uip/resolv.c
+Log:
+added preliminary support for STR711FR2 (STR71x CPUs from ST)
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/SConstruct	2008-10-02 21:21:39 UTC (rev 103)
+@@ -9,7 +9,8 @@
+               'lm3s' : [ 'LM3S8962', 'LM3S6965' ], 
+               'str9' : [ 'STR912FW44' ],
+               'i386' : [ 'I386' ],
+-              'lpc288x' : [ 'LPC2888' ]
++              'lpc288x' : [ 'LPC2888' ],
++              'str7' : [ 'STR711FR2' ]
+             }
+ 
+ # List of board/CPU combinations
+@@ -18,7 +19,8 @@
+                'EK-LM3S6965' : [ 'LM3S6965' ],
+                'STR9-COMSTICK' : [ 'STR912FW44' ],
+                'PC' : [ 'I386' ],
+-               'LPC-H2888' : [ 'LPC2888' ]
++               'LPC-H2888' : [ 'LPC2888' ],
++               'MOD711' : [ 'STR711FR2' ]
+             }
+ 
+ # Variants: board = &lt;boardname&gt;
+
+Modified: trunk/src/modules/net.c
+===================================================================
+--- trunk/src/modules/net.c	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/modules/net.c	2008-10-02 21:21:39 UTC (rev 103)
+@@ -1,8 +1,5 @@
+ // Module for interfacing with network functions (elua_net.h)
+ 
+-#include &quot;build.h&quot;
+-#ifdef BUILD_UIP
+-
+ #include &quot;lua.h&quot;
+ #include &quot;lualib.h&quot;
+ #include &quot;lauxlib.h&quot;
+@@ -13,6 +10,9 @@
+ #include &lt;string.h&gt;
+ #include &lt;stddef.h&gt;
+ 
++#include &quot;build.h&quot;
++#ifdef BUILD_UIP
++
+ // Lua: sock, remoteip, err = accept( port, [ timer_id, timeout ] )
+ static int net_accept( lua_State *L )
+ {
+
+Added: trunk/src/platform/str7/71x_apb.c
+===================================================================
+--- trunk/src/platform/str7/71x_apb.c	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_apb.c	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,75 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_apb.c
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file provides all the APB firmware functions.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_apb.h&quot;
++
++/* Private typedef -----------------------------------------------------------*/
++/* Private define ------------------------------------------------------------*/
++/* Private macro -------------------------------------------------------------*/
++/* Private variables ---------------------------------------------------------*/
++/* Private function prototypes -----------------------------------------------*/
++/* Private functions ---------------------------------------------------------*/
++
++/*******************************************************************************
++* Function Name  : APB_ClockConfig
++* Description    : Enables/Disables the peripheral clock gating on the specified
++*                  APB bridge.
++* Input          : APBx: selects the APB bridge (APB1 or APB2)
++*                  NewState:
++*                  ENABLE : The peripheral clock is running
++*                  DISABLE : The peripheral clock is stopped
++*                  Periph: specifies the APB bridge peripheral. 
++* Output         : None.                    
++* Return         : None.
++*******************************************************************************/
++void APB_ClockConfig (APB_TypeDef *APBx, FunctionalState NewState,
++                      u16 Periph)
++{
++  if (NewState == ENABLE)
++  {
++    APBx-&gt;CKDIS &amp;= ~Periph;
++  }
++  else
++  {
++    APBx-&gt;CKDIS |= Periph;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : APB_SwResetConfig
++* Description    : Enables/disables the software reset for peripherals on the 
++                   specified APB bridge.
++* Input          : APBx: selects the APB bridge (APB1 or APB2)
++*                  ENABLE : The peripheral is kept under reset
++*                  DISABLE : The peripheral is reset by the system-wide reset
++*                  Periph: specifies the APB bridge peripheral. 
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void APB_SwResetConfig (APB_TypeDef *APBx, FunctionalState NewState,
++                        u16 Periph)
++{
++  if (NewState == ENABLE)
++  {
++    APBx-&gt;SWRES |= Periph;
++  }
++  else
++  {
++    APBx-&gt;SWRES &amp;= ~Periph;
++  }
++}
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_apb.h
+===================================================================
+--- trunk/src/platform/str7/71x_apb.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_apb.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,64 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_apb.h
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file contains all the functions prototypes for the
++*                      APB bridge firmware library.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Define to prevent recursive inclusion -------------------------------------*/
++#ifndef __71x_APB_H
++#define __71x_APB_H
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_map.h&quot;
++
++/* Exported types ------------------------------------------------------------*/
++/* Exported constants --------------------------------------------------------*/
++/* APB1 Peripherals */ 
++#define I2C0_Periph     0x0001 
++#define I2C1_Periph     0x0002 
++#define UART0_Periph    0x0008
++#define UART1_Periph    0x0010 
++#define UART2_Periph    0x0020 
++#define UART3_Periph    0x0040 
++#define USB_Periph      0x0080 
++#define CAN_Periph      0x0100 
++#define BSPI0_Periph    0x0200 
++#define BSPI1_Periph    0x0400 
++#define HDLC_Periph     0x2000 
++#define APB1_ALL_Periph 0x27FB
++
++/* APB2 Peripherals */ 
++#define XTI_Periph      0x0001 
++#define GPIO0_Periph    0x0004 
++#define GPIO1_Periph    0x0008 
++#define GPIO2_Periph    0x0010 
++#define ADC12_Periph    0x0040 
++#define CKOUT_Periph    0x0080 
++#define TIM0_Periph     0x0100 
++#define TIM1_Periph     0x0200 
++#define TIM2_Periph     0x0400 
++#define TIM3_Periph     0x0800 
++#define RTC_Periph      0x1000 
++#define EIC_Periph      0x4000
++#define APB2_ALL_Periph 0x5FDD
++
++/* Exported macro ------------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++void APB_ClockConfig (APB_TypeDef *APBx, FunctionalState NewState,
++                      u16 Periph);
++void APB_SwResetConfig (APB_TypeDef *APBx, FunctionalState NewState,
++                        u16 Periph);
++
++#endif  /* __71x_APB_H*/
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_conf.h
+===================================================================
+--- trunk/src/platform/str7/71x_conf.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_conf.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,13 @@
++// Configuration for STR7
++
++#ifndef __71X_CONF_H__
++#define __71X_CONF_H__
++
++#define _APB
++#define _GPIO
++#define _RCCU
++#define _UART
++
++#define RCCU_Main_Osc 4000000
++
++#endif
+
+Added: trunk/src/platform/str7/71x_gpio.c
+===================================================================
+--- trunk/src/platform/str7/71x_gpio.c	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_gpio.c	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,196 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_gpio.c
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file provides all the GPIO firmware functions.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_gpio.h&quot;
++
++/* Private typedef -----------------------------------------------------------*/
++/* Private define ------------------------------------------------------------*/
++/* Private macro -------------------------------------------------------------*/
++/* Private variables ---------------------------------------------------------*/
++/* Private function prototypes -----------------------------------------------*/
++/* Private functions ---------------------------------------------------------*/
++
++/*******************************************************************************
++* Function Name  : GPIO_Config
++* Description    : Configures the selected GPIO I/O pins according to the input
++*                  passed in parameter.
++* Input          : - GPIOx: selects the port to be configured (x can be 0,1 or 2).
++*                  - Port_Pins: this parameter specifies the port pin placement.
++*                  You can select more than one pin.
++*                  - Pins Mode: specifies the pin mode.
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void GPIO_Config (GPIO_TypeDef *GPIOx, u16 Port_Pins,
++                  GpioPinMode_TypeDef GPIO_Mode)
++{
++  switch (GPIO_Mode)
++  {
++    case GPIO_HI_AIN_TRI:
++      GPIOx-&gt;PC0 &amp;= ~Port_Pins;
++      GPIOx-&gt;PC1 &amp;= ~Port_Pins;
++      GPIOx-&gt;PC2 &amp;= ~Port_Pins;
++      break;
++
++    case GPIO_IN_TRI_TTL:
++      GPIOx-&gt;PC0 |= Port_Pins;
++      GPIOx-&gt;PC1 &amp;= ~Port_Pins;
++      GPIOx-&gt;PC2 &amp;= ~Port_Pins;
++      break;
++
++    case GPIO_IN_TRI_CMOS:
++      GPIOx-&gt;PC0 &amp;= ~Port_Pins;
++      GPIOx-&gt;PC1 |= Port_Pins;
++      GPIOx-&gt;PC2 &amp;= ~Port_Pins;
++      break;
++
++    case GPIO_IPUPD_WP:
++      GPIOx-&gt;PC0 |= Port_Pins;
++      GPIOx-&gt;PC1 |= Port_Pins;
++      GPIOx-&gt;PC2 &amp;= ~Port_Pins;
++      break;
++
++    case GPIO_OUT_OD:
++      GPIOx-&gt;PC0 &amp;= ~Port_Pins;
++      GPIOx-&gt;PC1 &amp;= ~Port_Pins;
++      GPIOx-&gt;PC2 |= Port_Pins;
++      break;
++
++    case GPIO_OUT_PP:
++      GPIOx-&gt;PC0 |= Port_Pins;
++      GPIOx-&gt;PC1 &amp;= ~Port_Pins;
++      GPIOx-&gt;PC2 |= Port_Pins;
++      break;
++
++    case GPIO_AF_OD:
++      GPIOx-&gt;PC0 &amp;= ~Port_Pins;
++      GPIOx-&gt;PC1 |= Port_Pins;
++      GPIOx-&gt;PC2 |= Port_Pins;
++      break;
++
++    case GPIO_AF_PP:
++      GPIOx-&gt;PC0 |= Port_Pins;
++      GPIOx-&gt;PC1 |= Port_Pins;
++      GPIOx-&gt;PC2 |= Port_Pins;
++      break;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : GPIO_BitRead
++* Description    : Reads the specified data port bit and returns its value.
++* Input          : - GPIOx: selects the port to be read. x can be 0, 1 or 2.
++*                  - Port_Pin: Specifies the pin to see the value.
++* Output         : None.
++* Return         : The selected port pin value.
++*******************************************************************************/
++u8 GPIO_BitRead(GPIO_TypeDef *GPIOx, u8 Port_Pin)
++{
++  return ((GPIOx-&gt;PD &gt;&gt; Port_Pin) &amp; 0x0001);
++}
++
++/*******************************************************************************
++* Function Name  : GPIO_ByteRead
++* Description    : Reads the specified data port byte and returns its value.
++* Input          : - GPIOx: selects the port to be read. x can be 0, 1 or 2.
++*                  - Port_Byte: specifies which byte to be read (upper or lower
++*                  eight bits)
++*                     - GPIO_MSB corresponds to the upper byte.
++*                     - GPIO_LSB corresponds to the lower byte.
++* Output         : None.
++* Return         : The GPIO_MSB or GPIO_LSB of the selected PD register.
++*******************************************************************************/
++u8 GPIO_ByteRead(GPIO_TypeDef *GPIOx, u8 Port_Byte)
++{
++  return (u8)(GPIOx-&gt;PD &gt;&gt; Port_Byte);
++}
++
++/*******************************************************************************
++* Function Name  : GPIO_WordRead
++* Description    : Reads the value of the specified GPIOx PD data port register
++*                  and returns its value.
++* Input          : - GPIOx: selects the port to be read. x can be 0, 1 or 2.
++* Output         : None.
++* Return         : The specified port data value.
++*******************************************************************************/
++u16 GPIO_WordRead(GPIO_TypeDef *GPIOx)
++{
++  return GPIOx-&gt;PD;
++}
++
++/*******************************************************************************
++* Function Name  : GPIO_BitWrite
++* Description    : Sets or clears the selected data port bit.
++* Input          : - GPIOx: selects the port. x can be 0, 1 or 2.
++*                  - Port_Pin: Pin number.
++*                  - Bit_Val: bit value (0 or 1).
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void GPIO_BitWrite(GPIO_TypeDef *GPIOx, u8 Port_Pin, u8 Bit_Val)
++{
++  if (Bit_Val &amp; 0x01)
++  {
++    GPIOx-&gt;PD |= 1 &lt;&lt; Port_Pin;
++  }
++  else
++  {
++    GPIOx-&gt;PD &amp;= ~(1 &lt;&lt; Port_Pin);
++  }
++}
++
++/*******************************************************************************
++* Function Name  : GPIO_ByteWrite
++* Description    : Write byte value to the selected GPIOx PD register.
++* Input          : - GPIOx: selects the port. x can be 0, 1 or 2.
++*                  - Port_Byte: specifies which byte to be written (upper or 
++                   lower eight bits)
++*                     - GPIO_MSB corresponds to the upper byte.
++*                     - GPIO_LSB corresponds to the lower byte.
++*                  - Port_Val: the value of the byte to be written.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void GPIO_ByteWrite(GPIO_TypeDef *GPIOx, u8 Port_Byte, u8 Port_Val)
++{
++     
++  if(Port_Byte)
++  {            
++   GPIOx-&gt;PD &amp;= 0x00FF;
++   GPIOx-&gt;PD |= (u16)Port_Val &lt;&lt; 8;
++  }
++  /* If LSB selected */
++ else
++  {
++   GPIOx-&gt;PD &amp;= 0xFF00;
++   GPIOx-&gt;PD |= Port_Val;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : GPIO_WordWrite
++* Description    : Writes a value in to the selected data port register.
++* Input          : - GPIOx: selects the port. x can be 0, 1 or 2.
++*                  - Port_Val: the value of the word to be written.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void GPIO_WordWrite(GPIO_TypeDef *GPIOx, u16 Port_Val)
++{
++  GPIOx-&gt;PD = Port_Val;
++}
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_gpio.h
+===================================================================
+--- trunk/src/platform/str7/71x_gpio.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_gpio.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,54 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_gpio.h
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file contains all the functions prototypes for the
++*                      GPIO firmware library.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Define to prevent recursive inclusion -------------------------------------*/
++#ifndef __71x_GPIO_H
++#define __71x_GPIO_H
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_map.h&quot;
++
++/* Exported types ------------------------------------------------------------*/
++typedef enum
++{
++  GPIO_HI_AIN_TRI,  /* HIGH IMPEDANCE ANALOG INPUT TRISTATE   */
++  GPIO_IN_TRI_TTL,  /* TRISTATE TTL INPUT                     */
++  GPIO_IN_TRI_CMOS, /* TRISTATE CMOS INPUT                    */
++  GPIO_IPUPD_WP,    /* PULL-UP/PULL-DOWN WEAK PUSH PULL INPUT */
++  GPIO_OUT_OD,      /* OPEN DRAIN OUTPUT                      */
++  GPIO_OUT_PP,      /* PUSH PULL OUTPUT                       */
++  GPIO_AF_OD,       /* OPEN DRAIN OUTPUT ALTERNATE FUNCTION   */
++  GPIO_AF_PP        /* PUSH-PULL OUTPUT ALTERNATE FUNCTION    */
++} GpioPinMode_TypeDef;
++
++/* Exported constants --------------------------------------------------------*/
++#define GPIO_LSB             0x00
++#define GPIO_MSB             0x08
++
++/* Exported macro ------------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++void GPIO_Config (GPIO_TypeDef *GPIOx, u16 Port_Pins,
++                  GpioPinMode_TypeDef GPIO_Mode);
++u8 GPIO_BitRead(GPIO_TypeDef *GPIOx, u8 Port_Pin);
++u8 GPIO_ByteRead(GPIO_TypeDef *GPIOx, u8 Port_Byte);
++u16 GPIO_WordRead(GPIO_TypeDef *GPIOx);
++void GPIO_BitWrite(GPIO_TypeDef *GPIOx, u8 Port_Pin, u8 Port_Val);
++void GPIO_ByteWrite(GPIO_TypeDef *GPIOx, u8 Port_Byte, u8 Port_Val);
++void GPIO_WordWrite(GPIO_TypeDef *GPIOx, u16 Port_Val);
++
++#endif /*__71x_GPIO_H*/
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_lib.h
+===================================================================
+--- trunk/src/platform/str7/71x_lib.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_lib.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,97 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_lib.h
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file includes the peripherals header files in the
++*                      user application.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Define to prevent recursive inclusion -------------------------------------*/
++#ifndef __71x_LIB_H
++#define __71x_LIB_H
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_map.h&quot;
++#include &quot;71x_conf.h&quot;
++
++
++#ifdef _ADC12
++#include &quot;71x_adc12.h&quot;
++#endif
++
++#ifdef _APB
++#include &quot;71x_apb.h&quot;
++#endif
++
++#ifdef _BSPI
++#include &quot;71x_bspi.h&quot;
++#endif
++
++#ifdef _CAN
++#include &quot;71x_can.h&quot;
++#endif
++
++#ifdef _EIC
++#include &quot;71x_eic.h&quot;
++#endif
++
++#ifdef _EMI
++#include &quot;71x_emi.h&quot;
++#endif
++
++#ifdef _GPIO
++#include &quot;71x_gpio.h&quot;
++#endif
++
++#ifdef _I2C
++#include &quot;71x_i2c.h&quot;
++#endif
++
++#ifdef _PCU
++#include &quot;71x_pcu.h&quot;
++#endif
++
++#ifdef _RCCU
++#include &quot;71x_rccu.h&quot;
++#endif
++
++#ifdef _RTC
++#include &quot;71x_rtc.h&quot;
++#endif
++
++#ifdef _TIM
++#include &quot;71x_tim.h&quot;
++#endif
++
++#ifdef _UART
++#include &quot;71x_uart.h&quot;
++#endif
++
++#ifdef _USB
++#endif
++
++#ifdef _WDG
++#include &quot;71x_wdg.h&quot;
++#endif
++
++#ifdef _XTI
++#include &quot;71x_xti.h&quot;
++#endif
++
++/* Exported types ------------------------------------------------------------*/
++/* Exported constants --------------------------------------------------------*/
++/* Exported macro ------------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++void debug(void);
++
++#endif /*__71x_LIB_H*/
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_map.h
+===================================================================
+--- trunk/src/platform/str7/71x_map.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_map.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,505 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_map.h
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : Peripherals memory mapping and registers structures
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Define to prevent recursive inclusion -------------------------------------*/
++#ifndef __71x_MAP_H
++#define __71x_MAP_H
++
++#ifndef EXT
++  #define EXT extern
++#endif /* EXT */
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_conf.h&quot;
++#include &quot;71x_type.h&quot;
++
++/* Exported types ------------------------------------------------------------*/
++/******************************************************************************/
++/*                          Peripheral registers structures                   */
++/******************************************************************************/
++
++/*------------------------ Analog to Digital Converter -----------------------*/
++typedef struct
++{
++  vu16 DATA0;
++  u16  EMPTY1[3];
++  vu16 DATA1;
++  u16  EMPTY2[3];
++  vu16 DATA2;
++  u16  EMPTY3[3];
++  vu16 DATA3;
++  u16  EMPTY4[3];
++  vu16 CSR;
++  u16  EMPTY5[7];
++  vu16 CPR;
++  u16  EMPTY6;
++} ADC12_TypeDef;
++
++/*------------------------ APB -----------------------------------------------*/
++typedef struct
++{
++  vu32 CKDIS;
++  vu32 SWRES;
++} APB_TypeDef;
++
++/*------------------------ Buffered Serial Peripheral Interface --------------*/
++typedef struct
++{
++  vu16 RXR;
++  u16  EMPTY1;
++  vu16 TXR;
++  u16  EMPTY2;
++  vu16 CSR1;
++  u16  EMPTY3;
++  vu16 CSR2;
++  u16  EMPTY4;
++  vu16 CLK;
++  u16  EMPTY5;
++} BSPI_TypeDef;
++
++/*------------------------ Controller Area Network ---------------------------*/
++typedef struct
++{
++  vu16 CRR;
++  u16  EMPTY1;
++  vu16 CMR;
++  u16  EMPTY2;
++  vu16 M1R;
++  u16  EMPTY3;
++  vu16 M2R;
++  u16  EMPTY4;
++  vu16 A1R;
++  u16  EMPTY5;
++  vu16 A2R;
++  u16  EMPTY6;
++  vu16 MCR;
++  u16  EMPTY7;
++  vu16 DA1R;
++  u16  EMPTY8;
++  vu16 DA2R;
++  u16  EMPTY9;
++  vu16 DB1R;
++  u16  EMPTY10;
++  vu16 DB2R;
++  u16  EMPTY11[27];
++} CAN_MsgObj_TypeDef;
++
++typedef struct
++{
++  vu16 CR;
++  u16  EMPTY1;
++  vu16 SR;
++  u16  EMPTY2;
++  vu16 ERR;
++  u16  EMPTY3;
++  vu16 BTR;
++  u16  EMPTY4;
++  vu16 IDR;
++  u16  EMPTY5;
++  vu16 TESTR;
++  u16  EMPTY6;
++  vu16 BRPR;
++  u16  EMPTY7[3];
++  CAN_MsgObj_TypeDef sMsgObj[2];
++  u16  EMPTY8[16];
++  vu16 TR1R;
++  u16  EMPTY9;
++  vu16 TR2R;
++  u16  EMPTY10[13];
++  vu16 ND1R;
++  u16  EMPTY11;
++  vu16 ND2R;
++  u16  EMPTY12[13];
++  vu16 IP1R;
++  u16  EMPTY13;
++  vu16 IP2R;
++  u16  EMPTY14[13];
++  vu16 MV1R;
++  u16  EMPTY15;
++  vu16 MV2R;
++  u16  EMPTY16;
++} CAN_TypeDef;
++
++/*------------------------ Enhanced Interrupt Controller ---------------------*/
++typedef struct
++{
++  vu32 ICR;
++  vu32 CICR;
++  vu32 CIPR;
++  u32  EMPTY1[3];
++  vu32 IVR;
++  vu32 FIR;
++  vu32 IER;
++  u32  EMPTY2[7];
++  vu32 IPR;
++  u32  EMPTY3[7];
++  vu32 SIR[32];
++} EIC_TypeDef;
++/*------------------------ External Memory Interface -------------------------*/
++typedef struct
++{
++  vu16 BCON0;
++  u16  EMPTY1;
++  vu16 BCON1;
++  u16  EMPTY2;
++  vu16 BCON2;
++  u16  EMPTY3;
++  vu16 BCON3;
++  u16  EMPTY4;
++} EMI_TypeDef;
++
++/*------------------------ General Purpose IO ports --------------------------*/
++typedef struct
++{
++  vu16 PC0;
++  u16  EMPTY1;
++  vu16 PC1;
++  u16  EMPTY2;
++  vu16 PC2;
++  u16  EMPTY3;
++  vu16 PD;
++  u16  EMPTY4;
++} GPIO_TypeDef;
++
++/*------------------------ I2C interface -------------------------------------*/
++typedef struct
++{
++  vu8  CR;
++  u8   EMPTY1[3];
++  vu8  SR1;
++  u8   EMPTY2[3];
++  vu8  SR2;
++  u8   EMPTY3[3];
++  vu8  CCR;
++  u8   EMPTY4[3];
++  vu8  OAR1;
++  u8   EMPTY5[3];
++  vu8  OAR2;
++  u8   EMPTY6[3];
++  vu8  DR;
++  u8   EMPTY7[3];
++  vu8  ECCR;
++  u8   EMPTY8[3];
++} I2C_TypeDef;
++
++/*------------------------ Power Reset Clock Control unit --------------------*/
++typedef struct
++{
++  vu32 CCR;
++  u32  EMPTY1;
++  vu32 CFR;
++  u32  EMPTY2[3];
++  vu32 PLL1CR;
++  vu32 PER;
++  vu32 SMR;
++} RCCU_TypeDef;
++
++typedef struct
++{
++  vu16 MDIVR;
++  u16  EMPTY1;
++  vu16 PDIVR;
++  u16  EMPTY2;
++  vu16 RSTR;
++  u16  EMPTY3;
++  vu16 PLL2CR;
++  u16  EMPTY4;
++  vu16 BOOTCR;
++  u16  EMPTY5;
++  vu16 PWRCR;
++  u16  EMPTY6;
++} PCU_TypeDef;
++
++/*------------------------ Real Time Clock -----------------------------------*/
++typedef struct
++{
++  vu16 CRH;
++  u16  EMPTY1;
++  vu16 CRL;
++  u16  EMPTY2;
++  vu16 PRLH;
++  u16  EMPTY3;
++  vu16 PRLL;
++  u16  EMPTY4;
++  vu16 DIVH;
++  u16  EMPTY5;
++  vu16 DIVL;
++  u16  EMPTY6;
++  vu16 CNTH;
++  u16  EMPTY7;
++  vu16 CNTL;
++  u16  EMPTY8;
++  vu16 ALRH;
++  u16  EMPTY9;
++  vu16 ALRL;
++} RTC_TypeDef;
++
++/*------------------------ TIM -----------------------------------------------*/
++typedef struct
++{
++  vu16 ICAR;
++  u16  EMPTY1;
++  vu16 ICBR;
++  u16  EMPTY2;
++  vu16 OCAR;
++  u16  EMPTY3;
++  vu16 OCBR;
++  u16  EMPTY4;
++  vu16 CNTR;
++  u16  EMPTY5;
++  vu16 CR1;
++  u16  EMPTY6;
++  vu16 CR2;
++  u16  EMPTY7;
++  vu16 SR;
++} TIM_TypeDef;
++
++/*------------------------ Universal Asynchronous Receiver Transmitter -------*/
++typedef struct
++{
++  vu16 BR;
++  u16  EMPTY1;
++  vu16 TxBUFR;
++  u16  EMPTY2;
++  vu16 RxBUFR;
++  u16  EMPTY3;
++  vu16 CR;
++  u16  EMPTY4;
++  vu16 IER;
++  u16  EMPTY5;
++  vu16 SR;
++  u16  EMPTY6;
++  vu16 GTR;
++  u16  EMPTY7;
++  vu16 TOR;
++  u16  EMPTY8;
++  vu16 TxRSTR;
++  u16  EMPTY9;
++  vu16 RxRSTR;
++  u16  EMPTY10;  
++} UART_TypeDef;
++
++typedef struct
++{
++  vu32 EP0R;
++  vu32 EP1R;
++  vu32 EP2R;
++  vu32 EP3R;
++  vu32 EP4R;
++  vu32 EP5R;
++  vu32 EP6R;
++  vu32 EP7R;
++  vu32 EP8R;
++  vu32 EP9R;
++  vu32 EP10R;
++  vu32 EP11R;
++  vu32 EP12R;
++  vu32 EP13R;
++  vu32 EP14R;
++  vu32 EP15R;
++  vu32 CNTR;
++  vu32 ISTR;
++  vu32 FNR;
++  vu32 DADDR;
++  vu32 BTABLE;
++} USB_TypeDef;
++
++/*------------------------ WATCHDOG ------------------------------------------*/
++typedef struct
++{
++  vu16 CR;
++  u16  EMPTY1;
++  vu16 PR;
++  u16  EMPTY2;
++  vu16 VR;
++  u16  EMPTY3;
++  vu16 CNT;
++  u16  EMPTY4;
++  vu16 SR;
++  u16  EMPTY5;
++  vu16 MR;
++  u16  EMPTY6;
++  vu16 KR;
++} WDG_TypeDef;
++
++/*------------------------ External Interrupt Controller ---------------------*/
++typedef struct
++{
++  vu8  SR;
++  u8   EMPTY1[7];
++  vu8  CTRL;
++  u8   EMPTY2[3];
++  vu8  MRH;
++  u8   EMPTY3[3];
++  vu8  MRL;
++  u8   EMPTY4[3];
++  vu8  TRH;
++  u8   EMPTY5[3];
++  vu8  TRL;
++  u8   EMPTY6[3];
++  vu8  PRH;
++  u8   EMPTY7[3];
++  vu8  PRL;
++} XTI_TypeDef;
++
++typedef struct
++{
++  vu32 CR0;
++  vu32 CR1;
++  vu32 DR0;
++  vu32 DR1;
++  vu32 AR;
++  vu32 ER;
++} FLASHR_TypeDef;
++
++
++/* IRQ vectors */
++typedef struct
++{
++  vu32 T0TIMI_IRQHandler;
++  vu32 RCCU_IRQHandler;
++  vu32 RTC_IRQHandler;
++  vu32 WDG_IRQHandler;
++  vu32 XTI_IRQHandler;
++  vu32 USBHP_IRQHandler;
++  vu32 I2C0ITERR_IRQHandler;
++  vu32 I2C1ITERR_IRQHandler;
++  vu32 UART0_IRQHandler;
++  vu32 UART1_IRQHandler;
++  vu32 UART2_IRQHandler;
++  vu32 UART3_IRQHandler;
++  vu32 BSPI0_IRQHandler;
++  vu32 BSPI1_IRQHandler;
++  vu32 I2C0_IRQHandler;
++  vu32 I2C1_IRQHandler;
++  vu32 CAN_IRQHandler;
++  vu32 ADC12_IRQHandler;
++  vu32 T1TIMI_IRQHandler;
++  vu32 T2TIMI_IRQHandler;
++  vu32 T3TIMI_IRQHandler;
++  u32  EMPTY1[3];
++  vu32 HDLC_IRQHandler;
++  vu32 USBLP_IRQHandler;
++  u32  EMPTY2[2];
++  vu32 T0TOI_IRQHandler;
++  vu32 T0OC1_IRQHandler;
++  vu32 T0OC2_IRQHandler;
++} IRQVectors_TypeDef;
++
++/******************************************************************************/
++/*                       Peripheral memory map                                */
++/******************************************************************************/
++#define RAM_BASE        0x20000000
++
++#define FLASHR_BASE     0x40100000
++#define EXTMEM_BASE     0x60000000
++#define RCCU_BASE       0xA0000000
++#define PCU_BASE        0xA0000040
++#define APB1_BASE       0xC0000000
++#define APB2_BASE       0xE0000000
++#define EIC_BASE        0xFFFFF800
++
++#define I2C0_BASE       (APB1_BASE + 0x1000)
++#define I2C1_BASE       (APB1_BASE + 0x2000)
++#define UART0_BASE      (APB1_BASE + 0x4000)
++#define UART1_BASE      (APB1_BASE + 0x5000)
++#define UART2_BASE      (APB1_BASE + 0x6000)
++#define UART3_BASE      (APB1_BASE + 0x7000)
++#define CAN_BASE        (APB1_BASE + 0x9000)
++#define BSPI0_BASE      (APB1_BASE + 0xA000)
++#define BSPI1_BASE      (APB1_BASE + 0xB000)
++#define USB_BASE        (APB1_BASE + 0x8800)
++
++#define XTI_BASE        (APB2_BASE + 0x101C)
++#define GPIO0_BASE      (APB2_BASE + 0x3000)
++#define GPIO1_BASE      (APB2_BASE + 0x4000)
++#define GPIO2_BASE      (APB2_BASE + 0x5000)
++#define ADC12_BASE      (APB2_BASE + 0x7000)
++#define TIM0_BASE       (APB2_BASE + 0x9000)
++#define TIM1_BASE       (APB2_BASE + 0xA000)
++#define TIM2_BASE       (APB2_BASE + 0xB000)
++#define TIM3_BASE       (APB2_BASE + 0xC000)
++#define RTC_BASE        (APB2_BASE + 0xD000)
++#define WDG_BASE        (APB2_BASE + 0xE000)
++
++#define EMI_BASE        (EXTMEM_BASE + 0x0C000000)
++
++#define FLASHR  ((FLASHR_TypeDef *)FLASHR_BASE)
++
++/*******************************************************************************
++                            Peripheral declaration
++*******************************************************************************/
++
++  #define ADC12               ((ADC12_TypeDef *)ADC12_BASE)
++
++  #define APB1                ((APB_TypeDef *)(APB1_BASE+0x10))
++
++  #define APB2                ((APB_TypeDef *)(APB2_BASE+0x10))
++
++  #define BSPI0               ((BSPI_TypeDef *)BSPI0_BASE)
++
++  #define BSPI1               ((BSPI_TypeDef *)BSPI1_BASE)
++
++  #define CAN                 ((CAN_TypeDef *)CAN_BASE)
++
++  #define EIC                 ((EIC_TypeDef *)EIC_BASE)
++
++  #define EMI                 ((EMI_TypeDef *)EMI_BASE)
++
++  #define GPIO0               ((GPIO_TypeDef *)GPIO0_BASE)
++
++  #define GPIO1               ((GPIO_TypeDef *)GPIO1_BASE)
++
++  #define GPIO2               ((GPIO_TypeDef *)GPIO2_BASE)
++
++  #define I2C0                ((I2C_TypeDef *)I2C0_BASE)
++
++  #define I2C1                ((I2C_TypeDef *)I2C1_BASE)
++
++  #define PCU                 ((PCU_TypeDef *)PCU_BASE)
++
++  #define RCCU                ((RCCU_TypeDef *)RCCU_BASE)
++
++  #define RTC                 ((RTC_TypeDef *)RTC_BASE)
++
++  #define TIM0                ((TIM_TypeDef *)TIM0_BASE)
++
++  #define TIM1                ((TIM_TypeDef *)TIM1_BASE)
++
++  #define TIM2                ((TIM_TypeDef *)TIM2_BASE)
++
++  #define TIM3                ((TIM_TypeDef *)TIM3_BASE)
++
++  #define UART0               ((UART_TypeDef *)UART0_BASE)
++
++  #define UART1               ((UART_TypeDef *)UART1_BASE)
++
++  #define UART2               ((UART_TypeDef *)UART2_BASE)
++
++  #define UART3               ((UART_TypeDef *)UART3_BASE)
++
++  #define WDG                 ((WDG_TypeDef *)WDG_BASE)
++
++  #define XTI                 ((XTI_TypeDef *)XTI_BASE)
++
++#define IIRQVectorsRQVectors ((IRQVectors_TypeDef *)&amp;T0TIMI_Addr)
++
++/* Exported constants --------------------------------------------------------*/
++/* Exported macro ------------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++    
++#endif  /*__71x_MAP_H*/
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_rccu.c
+===================================================================
+--- trunk/src/platform/str7/71x_rccu.c	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_rccu.c	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,617 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_rccu.c
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file provides all the RCCU firmware functions.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_rccu.h&quot;
++
++/* Private typedef -----------------------------------------------------------*/
++/* Private define ------------------------------------------------------------*/
++/* Private macro -------------------------------------------------------------*/
++/* Private variables ---------------------------------------------------------*/
++/* Private function prototypes -----------------------------------------------*/
++/* Private functions ---------------------------------------------------------*/
++
++/*******************************************************************************
++* Function Name  : RCCU_Div2Config
++* Description    : This routine is used to enable or disable the programmable
++*                  clock division of the CLOCK1 input clock signal by 2. It 
++*                  sets or clears the Div2 flag in the CLK_FLAG register.
++* Input          : - NewState: specifies whether the programmable divider can 
++*                     divide the CLOCK1 input clock signal by two or not.
++*                     it can be: 
++*                     ENABLE to enable the division by two of CLK signal. 
++*                     DISABLE to disable the division by two of CLK signal.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_Div2Config (FunctionalState NewState)
++{
++  /* CLK is divided by 2 */	
++  if (NewState == ENABLE)
++  {
++    RCCU-&gt;CFR |= RCCU_Div2_Mask;
++  }  
++  /* No division of CLK frequency */
++  else
++  {
++    RCCU-&gt;CFR &amp;= ~RCCU_Div2_Mask;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_Div2Status
++* Description    : This routine is used to get the current status of the
++*                  programmable clock division by two. It checks the status 
++*                  of the Div2 flag in the CLK_FLAG register.
++* Input          : None.
++* Output         : None.
++* Return         : The Div2 Flag status.
++*******************************************************************************/
++FlagStatus RCCU_Div2Status (void)
++{
++  if ((RCCU-&gt;CFR &amp; RCCU_Div2_Mask) == 0)
++  {
++    return RESET;
++  }
++  else
++  {
++    return SET;	
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_MCLKConfig
++* Description    : This routine is used to configure the MCLK clock divider.
++* Input          : - New_Clock: Specifies the MCLK clock divider value. 
++*                     it can be: 
++*                     RCCU_DEFAULT, RCCU_RCLK_2, RCCU_RCLK_4, RCCU_RCLK_8                   
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_MCLKConfig (RCCU_Clock_Div New_Clock)
++{
++  PCU-&gt;MDIVR = (PCU-&gt;MDIVR &amp; ~RCCU_FACT_Mask) | New_Clock;
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_PCLK1Config
++* Description    : Selects the division factor for RCLK to obtain the
++*                  PCLK1 clock for the APB1 fast peripherals (PCLK1).
++* Input          : - New_Clock : the new PCLK1 clock prescaler division value
++*                     it can be: 
++*                     RCCU_DEFAULT, RCCU_RCLK_2, RCCU_RCLK_4, RCCU_RCLK_8
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_PCLK1Config (RCCU_Clock_Div New_Clock)
++{
++  PCU-&gt;PDIVR = (PCU-&gt;PDIVR &amp; ~RCCU_FACT1_Mask) | New_Clock;
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_PCLK2Config
++* Description    : Selects the division factor for RCLK to obtain the
++*                  PCLK2 clock for the APB2 peripherals (PCLK2).
++* Input          : - New_Clock : the new PCLK2 clock prescaler division value
++*                     it can be: 
++*                     RCCU_DEFAULT, RCCU_RCLK_2, RCCU_RCLK_4, RCCU_RCLK_8
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_PCLK2Config (RCCU_Clock_Div New_Clock)
++{
++  PCU-&gt;PDIVR = (PCU-&gt;PDIVR &amp; ~RCCU_FACT2_Mask) | (New_Clock &lt;&lt; RCCU_FACT2_Index);
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_PLL1Config
++* Description    : Configures the PLL1 division and multiplication factors.
++* Input          : - New_Mul: the PLL1 multiplication factor it can be: 
++*                     RCCU_PLL1_Mul_12, RCCU_PLL1_Mul_16,RCCU_PLL1_Mul_20,
++*                     RCCU_PLL1_Mul_24
++*                  - New_Div: the PLL1 division factor it can be: 
++*                     RCCU_Div_1, RCCU_Div_2, RCCU_Div_3, RCCU_Div_4,RCCU_Div_5,
++*                     RCCU_Div_6, RCCU_Div_7
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_PLL1Config (RCCU_PLL1_Mul New_Mul, RCCU_PLL_Div New_Div)
++{
++  /* Turn off the PLL1 by setting bits DX[2:0] */
++  RCCU-&gt;PLL1CR = 0x0007;
++   
++  /* Set the PLL1 multiplication factor */
++  RCCU-&gt;PLL1CR =  New_Mul &lt;&lt; RCCU_MX_Index;
++
++  /* Set the PLL1 division factor */
++  RCCU-&gt;PLL1CR |=  New_Div;
++
++  /* Set the PLL1 FREF_RANGE bit according to the PLL1 input frequency */
++  if (RCCU_FrequencyValue(RCCU_CLK2) &gt; 3000000)
++  {
++    RCCU-&gt;PLL1CR |= RCCU_FREFRANGE_Mask;
++  }
++   
++  /* Set the CK2_16 Bit in the CFR to allow PLL1 to be selected */
++  RCCU-&gt;CFR |= RCCU_CK2_16_Mask;
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_PLL2Config
++* Description    : Configures the PLL2 division and multiplication factors.
++* Input          : - New_Mul: the PLL2 multplication factor it can be:
++*                     RCCU_PLL2_Mul_12, RCCU_PLL2_Mul_16, RCCU_PLL2_Mul_20,
++*                     RCCU_Mul_PLL2_28
++*                : - New_Div: the PLL2 division factor it can be:
++*                     RCCU_Div_1, RCCU_Div_2, RCCU_Div_3, RCCU_Div_4,
++*                     RCCU_Div_5, RCCU_Div_6, RCCU_Div_7
++*                  - HCLK_Clock: the clock value present on HCLK pin (in Hz).  
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_PLL2Config (RCCU_PLL2_Mul New_Mul, RCCU_PLL_Div New_Div,
++                       u32 HCLK_Clock)
++{
++  u32 Tmp = (PCU-&gt;PLL2CR &amp; ~RCCU_MX_Mask) | (New_Mul &lt;&lt; RCCU_MX_Index);
++  PCU-&gt;PLL2CR = (Tmp &amp; ~RCCU_DX_Mask) | (New_Div  | RCCU_PLLEN_Mask);
++  
++  /* Set the PLL2 FRQRNG bit according to the PLL2 input frequency */
++  if (HCLK_Clock &lt; 3000000)
++  {
++    PCU-&gt;PLL2CR &amp;= ~RCCU_FRQRNG_Mask;
++  }
++  else
++  {
++    PCU-&gt;PLL2CR |= RCCU_FRQRNG_Mask;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_RCLKSourceConfig
++* Description    : Selects the clock source for the RCLK.
++* Input          : - New_Clock: the RCLK clock source, it can be:
++*                     RCCU_PLL1_Output, RCCU_CLOCK2_16, RCCU_CLOCK2, RCCU_CK_AF                               
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_RCLKSourceConfig (RCCU_RCLK_Clocks New_Clock)
++{
++  switch (New_Clock)
++  {
++    case RCCU_CLOCK2:
++      /* Reset the CSU_CKSEL bit: CLK2 provides the system clock */
++      RCCU-&gt;CFR &amp;= ~RCCU_CSU_CKSEL_Mask;
++      /* Set the CK2_16 Bit in the CFR */
++      RCCU-&gt;CFR |= RCCU_CK2_16_Mask;
++      /* Deselect The CKAF */
++      RCCU-&gt;CCR   &amp;= ~RCCU_CKAF_SEL_Mask;
++      /* Switch off the PLL1 */
++      RCCU_PLL1Disable();
++      break;
++    
++    case RCCU_CLOCK2_16:
++      /* Reset the CK2_16 Bit in the CFR */
++      RCCU-&gt;CFR &amp;= ~RCCU_CK2_16_Mask;
++      /* Deselect The CKAF */
++      RCCU-&gt;CCR   &amp;= ~RCCU_CKAF_SEL_Mask;
++      break;
++
++    case RCCU_PLL1_Output:
++      /* Set the CK2_16 Bit in the CFR */
++      RCCU-&gt;CFR |= RCCU_CK2_16_Mask;
++      
++      /* If all DX bit are set the PLL lock flag in meaningless */
++      if ((RCCU-&gt;PLL1CR &amp; 0x0007) != 7)
++      {
++      	/* Waits the PLL1 to lock if DX bits are different from '111' */
++        while (!(RCCU-&gt;CFR &amp; RCCU_LOCK_Mask))
++        {}
++      }
++      /* Deselect The CKAF */
++      RCCU-&gt;CCR  &amp;= ~RCCU_CKAF_SEL_Mask;
++      /* Select The CSU_CKSEL */
++      RCCU-&gt;CFR |= RCCU_CSU_CKSEL_Mask;
++      break;
++    
++    case RCCU_CK_AF:
++      /* Set CKAF_SEL bit */
++      RCCU-&gt;CCR |= 0x04;
++      /* Switch off the PLL1 */
++      RCCU_PLL1Disable();
++      break;
++    
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_RCLKClockSource
++* Description    : Gets and returns the current clock source of the RCLK.
++* Input          : None.
++* Output         : None.
++* Return         : The current RCLK clock source which can be:
++*                  RCCU_PLL1_Output, RCCU_CLOCK2_16, RCCU_CLOCK2, RCCU_CK_AF
++*******************************************************************************/
++RCCU_RCLK_Clocks RCCU_RCLKClockSource (void)
++{
++  /* RCLK = CK_AF */
++  if (RCCU-&gt;CCR &amp; RCCU_CKAF_SEL_Mask)
++  {
++    return RCCU_CK_AF;
++  }
++  
++  /* RCLK = CLK2/16 */
++  else if ((RCCU-&gt;CFR &amp; RCCU_CK2_16_Mask) == 0)
++  {
++    return RCCU_CLOCK2_16;
++  }
++  
++  /* RCLK = PLL1 output */
++  else if (RCCU-&gt;CFR &amp; RCCU_CSU_CKSEL_Mask)
++  {
++    return RCCU_PLL1_Output;
++  }
++  
++  /* RCLK = CLK2 */
++  else 
++  {
++    return RCCU_CLOCK2;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_USBCLKConfig
++* Description    : Selects the clock source of the USB peripheral.
++* Input          : - New_Clock: the USB clock source it can be:
++*                     RCCU_PLL2_Output, RCCU_USBCK
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_USBCLKConfig (RCCU_USB_Clocks New_Clock)
++{
++  /* PLL2 is the clock source to the USB */
++  if (New_Clock == RCCU_PLL2_Output)
++  {
++    PCU-&gt;PLL2CR |= RCCU_USBEN_Mask;
++  }
++  
++  /* USBCLK pin is the clock source to the USB */
++  else 
++  {
++    PCU-&gt;PLL2CR &amp;= ~RCCU_USBEN_Mask;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_USBClockSource
++* Description    : Get the clock source of the USB peripheral.
++* Input          : None.
++* Output         : None.
++* Return         : RCCU_USB_Clocks
++*                  it can be: RCCU_PLL2_Output, RCCU_USBCK
++*******************************************************************************/
++RCCU_USB_Clocks RCCU_USBClockSource (void)
++{
++  if (PCU-&gt;PLL2CR &amp; RCCU_USBEN_Mask)
++  {
++    return RCCU_PLL2_Output;
++  }
++  else
++  {
++    return RCCU_USBCK;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_FrequencyValue
++* Description    : Computes and Returns any internal RCCU clock frequency
++*                  value passed in parametres.
++* Input          : - Internal_Clk: the RCCU internal clock to compute the
++*                    frequency.
++*                     it can be:
++*                     RCCU_CLK2, RCCU_RCLK, RCCU_MCLK, RCCU_PCLK2, RCCU_PCLK1
++* Output         : None.
++* Return         : The frequency value of the specified clock in Hz of the 
++*                  internal clock passed in parameter.
++*******************************************************************************/
++u32 RCCU_FrequencyValue (RCCU_Clocks Internal_Clk)
++{
++  u32 Tmp;
++  u8 Div = 0;
++  u8 Mul = 0;
++  RCCU_RCLK_Clocks CurrentRCLK;
++ 
++  if (RCCU_Div2Status() == SET)
++  {
++    Tmp = RCCU_Main_Osc / 2;	
++  }
++  else
++  {
++    Tmp = RCCU_Main_Osc;
++  }
++
++  if (Internal_Clk == RCCU_CLK2)
++  {
++    Div = 1;
++    Mul = 1;
++  }
++  
++  else
++  {
++    CurrentRCLK = RCCU_RCLKClockSource ();
++    switch (CurrentRCLK)
++    {
++      case RCCU_CLOCK2_16 :
++        Div = 16;
++        Mul = 1;
++        break;
++        
++      case RCCU_CLOCK2 :
++        Div = 1;
++        Mul = 1;
++        break;
++        
++      case RCCU_PLL1_Output :
++      
++       if ((RCCU-&gt;PLL1CR &amp; RCCU_DX_Mask)&amp;&amp;(RCCU-&gt;PLL1CR &amp; RCCU_FREEN_Mask))
++        {
++          if (RCCU-&gt;PLL1CR &amp; 0x10)
++          {
++            if (RCCU-&gt;PLL1CR &amp; RCCU_FREFRANGE_Mask)
++            {
++              Tmp = 250000;	
++            }
++            else
++            {
++              Tmp = 125000;	
++            }
++          }
++          else
++          {
++            if (RCCU-&gt;PLL1CR &amp; RCCU_FREFRANGE_Mask)
++            {
++              Tmp = 500000;	
++            }
++            else
++            {
++              Tmp = 250000;	
++            }
++          }
++          
++          Div = 1;
++          Mul = 1;
++        }
++        
++       else
++       {
++         Mul = (RCCU-&gt;PLL1CR &amp; RCCU_MX_Mask) &gt;&gt; RCCU_MX_Index;
++        
++         switch (Mul)
++         {
++           case 0:
++             Mul = 20;
++             break;
++            
++           case 1:
++             Mul = 12;
++             break;
++            
++           case 2:
++             Mul = 24;
++             break;
++            
++           case 3:
++             Mul = 16;
++             break;
++         }
++        
++        Div = (RCCU-&gt;PLL1CR &amp; RCCU_DX_Mask) + 1;
++        }
++        break;
++        
++      case RCCU_CK_AF :
++        Mul = 1;
++        Div = 1;
++        Tmp = RCCU_RTC_Osc;
++        break;
++    }
++  }
++
++  switch (Internal_Clk)
++  {
++    case RCCU_MCLK :
++      Div &lt;&lt;= PCU-&gt;MDIVR &amp; RCCU_FACT_Mask;
++      break;
++      
++    case RCCU_PCLK2 :
++      Div &lt;&lt;= (PCU-&gt;PDIVR &amp; RCCU_FACT2_Mask) &gt;&gt; RCCU_FACT2_Index;
++      break;
++
++    case RCCU_PCLK1 :
++      Div &lt;&lt;=  PCU-&gt;PDIVR &amp; 0x3;
++      break;
++  }
++
++  return (Tmp * Mul) / Div;
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_ITConfig
++* Description    : Configures the RCCU interrupts
++* Input          : - RCCU_IT: the RCCU interrption source it can be:
++*                     RCCU_CK2_16_IT, RCCU_CKAF_IT, RCCU_PLL1_LOCK_IT,
++*                     RCCU_STOP_IT
++*                  - NewState: the new status of the RCCU interrupt.
++*                     it can be:
++*                     ENABLE: to enable the specified interrupt.
++*                     DISABLE: to disable the specified interrupt.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_ITConfig (RCCU_Interrupts RCCU_IT, FunctionalState NewState)
++{
++  if (NewState == ENABLE)
++  {
++    RCCU-&gt;CCR |= RCCU_IT;
++  }
++  else
++  {
++    RCCU-&gt;CCR &amp;= ~RCCU_IT;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_FlagStatus
++* Description    : Checks whether the specified interrupt is enabled or
++*                  disabled.
++* Input          : - RCCU flag: the flag to see its status it can be:
++*                     RCCU_CK2_16_I, RCCU_CKAF_I, RCCU_PLL1_LOCK_I,
++*                     RCCU_CKAF_ST, RCCU_PLL1_LOCK, RCCU_STOP_I
++* Output         : None.
++* Return         : The flag status: SET or RESET
++*******************************************************************************/
++FlagStatus RCCU_FlagStatus (RCCU_Flags RCCU_flag)
++{
++  if (RCCU-&gt;CFR &amp; RCCU_flag)
++  {
++    return SET;
++  }
++  else
++  {
++    return RESET;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_FlagClear
++* Description    : Clears the specified interrupt flag in the RCCU registers 
++*                  passed in parameter.
++* Input          : - RCCU_Flags: the flag wich will be cleared it can be:
++*                     RCCU_PLL1_LOCK_I, RCCU_CKAF_I, RCCU_CK2_16_I, RCCU_STOP_I
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_FlagClear (RCCU_Flags RCCU_flag)
++{
++  RCCU-&gt;CFR |= RCCU_flag;
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_ResetSources
++* Description    : Returns the system reset source.
++* Input          : None.
++* Output         : None.
++* Return         : The reset source.
++*******************************************************************************/
++RCCU_ResetSources RCCU_ResetSource (void)
++{
++  switch (RCCU-&gt;CFR &amp; RCCU_ResetSources_Mask)
++  {
++    case 0x00000020:
++      return RCCU_SoftwareReset;
++    case 0x00000040:
++      return RCCU_WDGReset;
++    case 0x00000080:
++      return RCCU_RTCAlarmReset;
++    case 0x00000200:
++      return RCCU_LVDReset;
++    case 0x00000400:
++      return RCCU_WKPReset;
++    default :
++      return RCCU_ExternalReset;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_PLL1FreeRunningModeConfig
++* Description    : This function configures the PLL1 in free runnig mode.
++* Input          : - NewPll1FreeRunningMode: the new free running mode 
++*                     it can be:
++*                      RCCU_PLL1FreeRunning125, RCCU_PLL1FreeRunning250,
++*                      RCCU_PLL1FreeRunning500 
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_PLL1FreeRunningModeConfig(RCCU_PLL1FreeRunningModes
++                                    NewPll1FreeRunningMode)
++{
++  /* bits DX[2:0] (RCCU_PLL1CR) are set to 111, the PLL1 is switched off */
++  RCCU-&gt;PLL1CR = RCCU_DX_Mask; 
++                                    
++
++  switch (NewPll1FreeRunningMode)
++  {
++    case RCCU_PLL1FreeRunning250:
++    {
++         RCCU-&gt;PLL1CR |= RCCU_FREEN_Mask | RCCU_FREFRANGE_Mask 
++                         | (3 &lt;&lt; RCCU_MX_Index);              
++      break;
++    }
++    case RCCU_PLL1FreeRunning500:
++    {
++       RCCU-&gt;PLL1CR |= RCCU_FREEN_Mask | RCCU_FREFRANGE_Mask 
++                       | (2 &lt;&lt; RCCU_MX_Index);               
++      break;
++    }
++    default:
++    {
++        RCCU-&gt;PLL1CR |= RCCU_FREEN_Mask | (3 &lt;&lt; RCCU_MX_Index);                
++      break;
++    }
++  }
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_PLL1Disable
++* Description    : This function switch off the PLL1.
++* Input          : None.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_PLL1Disable(void)
++{
++  /* Stop the PLL1 DX[0..2]=111 and FREEN=0 */
++  RCCU-&gt;PLL1CR = RCCU_DX_Mask;
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_PLL2Disable
++* Description    : This function switch off the PLL2.
++* Input          : None.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_PLL2Disable(void)
++{
++  /* Stop the PLL2 DX[0..2]=111 */
++  PCU-&gt;PLL2CR |= RCCU_DX_Mask;
++}
++
++/*******************************************************************************
++* Function Name  : RCCU_GenerateSWReset
++* Description    : This function generates software reset.
++* Input          : None.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void RCCU_GenerateSWReset(void)
++{
++  /* SRESEN = 1  and EN_HALT = 1 */	
++  RCCU-&gt;CCR |=0x808;   
++  
++  /* HALT =1   ==&gt; software reset generation */
++  RCCU-&gt;SMR |=0x2;  
++}
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_rccu.h
+===================================================================
+--- trunk/src/platform/str7/71x_rccu.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_rccu.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,183 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_rccu.h
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file contains all the functions prototypes for the
++*                      RCCU firmware library.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Define to prevent recursive inclusion -------------------------------------*/
++#ifndef __71x_RCCU_H
++#define __71x_RCCU_H
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_map.h&quot;
++
++/* Exported types ------------------------------------------------------------*/
++typedef enum
++{
++  RCCU_DEFAULT = 0x00,
++  RCCU_RCLK_2  = 0x01,
++  RCCU_RCLK_4  = 0x02,
++  RCCU_RCLK_8  = 0x03
++} RCCU_Clock_Div;
++
++typedef enum
++{
++  RCCU_PLL1_Output,
++  RCCU_CLOCK2_16,
++  RCCU_CLOCK2,
++  RCCU_CK_AF
++} RCCU_RCLK_Clocks;
++
++typedef enum
++{
++  RCCU_PLL1_Mul_12 = 0x01,
++  RCCU_PLL1_Mul_16 = 0x03,
++  RCCU_PLL1_Mul_20 = 0x00,
++  RCCU_PLL1_Mul_24 = 0x02
++} RCCU_PLL1_Mul;
++
++typedef enum
++{
++  RCCU_PLL2_Mul_12 = 0x01,
++  RCCU_PLL2_Mul_16 = 0x03,
++  RCCU_PLL2_Mul_20 = 0x00,
++  RCCU_PLL2_Mul_28 = 0x02
++} RCCU_PLL2_Mul;
++
++typedef enum
++{
++  RCCU_Div_1 = 0x00,
++  RCCU_Div_2 = 0x01,
++  RCCU_Div_3 = 0x02,
++  RCCU_Div_4 = 0x03,
++  RCCU_Div_5 = 0x04,
++  RCCU_Div_6 = 0x05,
++  RCCU_Div_7 = 0x06
++} RCCU_PLL_Div;
++
++typedef enum
++{
++  RCCU_PLL2_Output = 0x01,
++  RCCU_USBCK       = 0x00
++} RCCU_USB_Clocks;
++
++typedef enum
++{
++  RCCU_CLK2,
++  RCCU_RCLK,
++  RCCU_MCLK,
++  RCCU_PCLK2,
++  RCCU_PCLK1
++} RCCU_Clocks;
++
++typedef enum
++{
++  RCCU_PLL1_LOCK_IT = 0x0080,
++  RCCU_CKAF_IT      = 0x0100,
++  RCCU_CK2_16_IT    = 0x0200,
++  RCCU_STOP_IT      = 0x0400
++} RCCU_Interrupts;
++
++typedef enum
++{
++  RCCU_PLL1_LOCK   = 0x0002,
++  RCCU_CKAF_ST     = 0x0004,
++  RCCU_PLL1_LOCK_I = 0x0800,
++  RCCU_CKAF_I      = 0x1000,
++  RCCU_CK2_16_I    = 0x2000,
++  RCCU_STOP_I      = 0x4000
++} RCCU_Flags;
++
++typedef enum
++{
++  RCCU_ExternalReset = 0x00000000,
++  RCCU_SoftwareReset = 0x00000020,
++  RCCU_WDGReset      = 0x00000040,
++  RCCU_RTCAlarmReset = 0x00000080,
++  RCCU_LVDReset      = 0x00000200,
++  RCCU_WKPReset      = 0x00000400
++}RCCU_ResetSources;
++
++typedef enum
++{
++  RCCU_PLL1FreeRunning125,
++  RCCU_PLL1FreeRunning250,
++  RCCU_PLL1FreeRunning500
++}RCCU_PLL1FreeRunningModes;
++
++/* Exported constants --------------------------------------------------------*/
++#define RCCU_Div2_Mask            0x00008000
++#define RCCU_Div2_Index           0x0F
++#define RCCU_FACT_Mask            0x0003
++
++#define RCCU_FACT1_Mask           0x0003
++
++#define RCCU_FACT2_Mask           0x0300
++#define RCCU_FACT2_Index          0x08
++
++#define RCCU_MX_Mask              0x00000030
++#define RCCU_MX_Index             0x04
++
++#define RCCU_DX_Mask              0x00000007
++
++#define RCCU_FREFRANGE_Mask       0x00000040
++
++#define RCCU_FRQRNG_Mask          0x00000040
++
++#define RCCU_FREEN_Mask           0x00000080
++
++#define RCCU_PLLEN_Mask           0x00000080
++
++#define RCCU_CSU_CKSEL_Mask       0x00000001
++
++#define RCCU_CK2_16_Mask          0x00000008
++
++#define RCCU_CKAF_SEL_Mask        0x00000004
++
++#define RCCU_LOCK_Mask            0x00000002
++
++#define RCCU_USBEN_Mask           0x0100
++#define RCCU_USBEN_Index          0x08
++#define RCCU_ResetSources_Mask    0x000006E0
++
++/* RTC Oscillator Frequency value = 32 768 Hz */
++#define RCCU_RTC_Osc              32768
++
++/* Exported macro ------------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++void RCCU_Div2Config (FunctionalState NewState);
++FlagStatus RCCU_Div2Status (void);
++void RCCU_MCLKConfig (RCCU_Clock_Div New_Clock);
++void RCCU_PCLK1Config (RCCU_Clock_Div New_Clock);
++void RCCU_PCLK2Config (RCCU_Clock_Div New_Clock);
++void RCCU_PLL1Config (RCCU_PLL1_Mul New_Mul, RCCU_PLL_Div New_Div);
++void RCCU_PLL2Config (RCCU_PLL2_Mul New_Mul, RCCU_PLL_Div New_Div,
++                      u32 HCLK_Clock);
++void RCCU_RCLKSourceConfig (RCCU_RCLK_Clocks New_Clock);
++RCCU_RCLK_Clocks RCCU_RCLKClockSource (void);
++void RCCU_USBCLKConfig (RCCU_USB_Clocks New_Clock);
++RCCU_USB_Clocks RCCU_USBClockSource (void);
++u32 RCCU_FrequencyValue (RCCU_Clocks Internal_Clk);
++void RCCU_ITConfig (RCCU_Interrupts RCCU_IT, FunctionalState NewState);
++FlagStatus RCCU_FlagStatus (RCCU_Flags RCCU_flag);
++void RCCU_FlagClear (RCCU_Flags RCCU_flag);
++RCCU_ResetSources RCCU_ResetSource (void);
++void RCCU_PLL1FreeRunningModeConfig(RCCU_PLL1FreeRunningModes
++                                    NewPll1FreeRunningMode);
++void RCCU_PLL1Disable(void);
++void RCCU_PLL2Disable(void);
++void RCCU_GenerateSWReset(void);
++
++#endif /*__71x_RCCU_H*/
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_type.h
+===================================================================
+--- trunk/src/platform/str7/71x_type.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_type.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,62 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_type.h
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file contains all the common data types.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Define to prevent recursive inclusion -------------------------------------*/
++#ifndef __71x_TYPE_H
++#define __71x_TYPE_H
++
++#include &quot;type.h&quot;
++
++/* Includes ------------------------------------------------------------------*/
++/* Exported types ------------------------------------------------------------*/
++
++typedef unsigned long  const uc32;  /* Read Only */
++typedef unsigned short const uc16;  /* Read Only */
++typedef unsigned char  const uc8;   /* Read Only */
++
++typedef signed long  const sc32;  /* Read Only */
++typedef signed short const sc16;  /* Read Only */
++typedef signed char  const sc8;   /* Read Only */
++
++
++typedef volatile unsigned long   vu32;
++typedef volatile unsigned short  vu16;
++typedef volatile unsigned char   vu8;
++
++typedef volatile unsigned long  const vuc32;  /* Read Only */
++typedef volatile unsigned short const vuc16;  /* Read Only */
++typedef volatile unsigned char  const vuc8;   /* Read Only */
++
++typedef volatile signed long   vs32;
++typedef volatile signed short  vs16;
++typedef volatile signed char   vs8;
++
++typedef volatile signed long  const vsc32;  /* Read Only */
++typedef volatile signed short const vsc16;  /* Read Only */
++typedef volatile signed char  const vsc8;   /* Read Only */
++
++typedef enum {FALSE = 0, TRUE = !FALSE} bool;
++
++typedef enum {RESET = 0, SET = !RESET} FlagStatus, ITStatus;
++
++typedef enum {DISABLE = 0, ENABLE = !DISABLE} FunctionalState;
++
++/* Exported constants --------------------------------------------------------*/
++/* Exported macro ------------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++
++#endif /*__71x_TYPE_H*/
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_uart.c
+===================================================================
+--- trunk/src/platform/str7/71x_uart.c	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_uart.c	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,598 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_uart.c
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file provides all the UART firmware functions
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_uart.h&quot;
++
++/* Private typedef -----------------------------------------------------------*/
++/* Private define ------------------------------------------------------------*/
++/* Private macro -------------------------------------------------------------*/
++/* Private variables ---------------------------------------------------------*/
++/* Private function prototypes -----------------------------------------------*/
++/* Private functions ---------------------------------------------------------*/
++
++/*******************************************************************************
++* Function Name  : UART_Init
++* Description    : This function initializes the selected UART registers to
++*                  their reset values.
++* Input          : - UARTx: selects the UART to be configured UART
++*                    (x can be 0,1, 2 or 3).
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_Init(UART_TypeDef *UARTx)
++{
++  UARTx-&gt;CR = 0x0000;
++  UARTx-&gt;IER = 0x0000;
++  (void)UARTx-&gt;RxBUFR;
++  UARTx-&gt;RxRSTR = 0xFFFF;
++  UARTx-&gt;TxRSTR = 0xFFFF;
++  UARTx-&gt;TOR = 0x0000;
++  UARTx-&gt;GTR = 0x0000;
++}
++
++/*******************************************************************************
++* Function Name  : UART_ModeConfig
++* Description    : This function configures the mode of the selected UART.
++* Input          : - UARTx: selects the UART to be configured
++*                    (x can be 0,1, 2 or 3).
++*                  - UART_Mode: selects the UART modeThe UART mode,
++*                    it can be one of the following parameters:
++*                    - UARTM_8D   for 8-bit data format
++*                    - UARTM_7D_P for 7-bit data + parity format
++*                    - UART_9D    for 9-bit data format
++*                    - UART_8D_W  for 8-bit data + wake-up bit format
++*                    - UART_8D_P  for 8-bit data + parity bit format
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_ModeConfig(UART_TypeDef *UARTx, UARTMode_TypeDef UART_Mode)
++{
++  UARTx-&gt;CR = (UARTx-&gt;CR &amp; 0xFFF8) | (u16)UART_Mode;
++}
++
++/*******************************************************************************
++* Function Name  : UART_BaudRateConfig
++* Description    : This function configures the baud rate of the selected UART.
++* Input          : - UARTx: selects the UART to be configured
++*                    (x can be 0,1, 2 or 3).
++*                  - BaudRate: The baudrate value in bps.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_BaudRateConfig(UART_TypeDef *UARTx, u32 BaudRate)
++{
++  u32 tmpBaudRate = 0;
++
++  /* Configure BaudRate */
++  tmpBaudRate = (u32)((RCCU_FrequencyValue(RCCU_PCLK1) * 10) / (16 * BaudRate));
++
++  /*Search the reload value (Integer)*/
++  if (tmpBaudRate - ((tmpBaudRate / 10) * 10) &lt; 5)
++  {
++    UARTx-&gt;BR = tmpBaudRate / 10;
++  }
++  else
++  {
++    UARTx-&gt;BR = (tmpBaudRate / 10) + 1;
++  }
++}
++
++
++/*******************************************************************************
++* Function Name  : UART_ParityConfig
++* Description    : This function configures the data parity of the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - Parity: the parity type, it can be:
++*                    - UART_EVEN_PARITY  for even parity configuration.
++*                    - UART_ODD_PARITY   for odd parity configuration.
++*                    - UART_NO_PARITY    for no parity configuration.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_ParityConfig(UART_TypeDef *UARTx, UARTParity_TypeDef Parity)
++{
++  UARTx-&gt;CR = (UARTx-&gt;CR &amp; 0xFFDF) | (u16)Parity;
++}
++
++/*******************************************************************************
++* Function Name  : UART_StopBitsConfig
++* Description    : This function configures the number of stop bits of the
++*                  selected UART.
++* Input          : - UARTx: selects the UART to be configured.
++*                    (x can be 0,1, 2 or 3).
++*                  - StopBits: the number of stop bits, it can be:
++*                    - UART_0_5_StopBits for 0.5 stop bit.
++*                    - UART_1_StopBits for 1 stop bit.
++*                    - UART_1_5_StopBits  for 1.5 stop bits.
++*                    - UART_2_StopBits for 2 stop bits.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_StopBitsConfig(UART_TypeDef *UARTx, UARTStopBits_TypeDef StopBits)
++{
++  UARTx-&gt;CR = (UARTx-&gt;CR &amp; 0xFFE7) | (u16)StopBits;
++}
++/*******************************************************************************
++* Function Name  : UART_Config
++* Description    : This function configures the Baud rate, parity mode, 
++*                  the number of stop bits and the UART mode of the selected 
++*                  UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - BaudRate: the baudrate value in bps.
++*                  - Parity: selects the parity type, it can be:
++                     - UART_EVEN_PARITY  for even parity configuration.
++*                    - UART_ODD_PARITY   for odd parity configuration.
++*                    - UART_NO_PARITY    for no parity configuration.
++*                  - StopBits: selects the number of the stop bits, it can be:
++*                    - UART_0_5_StopBits for 0.5 stop bit.
++*                    - UART_1_StopBits for 1 stop bit.
++*                    - UART_1_5_StopBits  for 1.5 stop bits.
++*                    - UART_2_StopBits for 2 stop bits.
++*                  - Mode: selects the UART mode, it can be one of the following 
++*                    parameters:
++*                    - UARTM_8D   for 8-bit data format.
++*                    - UARTM_7D_P for 7-bit data + parity format.
++*                    - UART_9D    for 9-bit data format.
++*                    - UART_8D_W  for 8-bit data + wake-up bit format.
++*                    - UART_8D_P  for 8-bit data + parity bit format.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_Config(UART_TypeDef *UARTx, u32 BaudRate, UARTParity_TypeDef Parity,
++                 UARTStopBits_TypeDef StopBits, UARTMode_TypeDef Mode)
++{
++  UART_ModeConfig(UARTx, Mode);
++  UART_BaudRateConfig(UARTx, BaudRate);
++  UART_ParityConfig(UARTx, Parity);
++  UART_StopBitsConfig(UARTx, StopBits);
++}
++
++/*******************************************************************************
++* Function Name  : UART_ItConfig
++* Description    : This function enables or disables one or several interrupt
++*                  sources of the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - UART_Flag: selects one or several UART interrupt source.
++*                  - NewState: specifies whether the interrupt source is 
++*                    enabled or disabled (ENABLE or DISABLE).
++* Output         : None.
++* Return         : None.
++* Note           : The UART interrupt flags are listed in the file uart.h
++*                  except UART_TxFull flag will have no effect when using 
++*                  this function.
++*******************************************************************************/
++void UART_ItConfig(UART_TypeDef *UARTx, u16 UART_Flag, FunctionalState NewState)
++{
++  if (NewState == ENABLE)
++  {
++    UARTx-&gt;IER |= UART_Flag;
++  }
++  else
++  {
++    UARTx-&gt;IER &amp;= ~UART_Flag;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : UART_FifoConfig
++* Description    : This function enables or disables the Rx and Tx FIFOs of
++*                  the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - NewState: specifies whether the FIFOs are enabled or
++*                    disabled (ENABLE or DISABLE).
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_FifoConfig(UART_TypeDef *UARTx, FunctionalState NewState)
++{
++  if (NewState == ENABLE)
++  {
++    UARTx-&gt;CR |= 0x0400;
++  }
++  else
++  {
++    UARTx-&gt;CR &amp;= ~0x0400;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : UART_FifoReset
++* Description    : This function resets the Rx and the Tx FIFOs of the
++*                  selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - FIFO: Selects the FIFO to reset, it can be:
++*                    - UART_RxFIFO
++*                    - UART_TxFIFO
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_FifoReset(UART_TypeDef *UARTx, UARTFIFO_TypeDef FIFO)
++{
++  if (FIFO == UART_RxFIFO)
++  {
++    UARTx-&gt;RxRSTR = 0xFFFF;
++  }
++  else
++  {
++    UARTx-&gt;TxRSTR = 0xFFFF;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : UART_LoopBackConfig
++* Description    : This function enables or disables the loop back mode of
++*                  the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - NewState: specifies whether the loop back is enabled
++*                    or disabled (ENABLE or DISABLE).
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_LoopBackConfig(UART_TypeDef *UARTx, FunctionalState NewState)
++{
++  if (NewState == ENABLE)
++  {
++    UARTx-&gt;CR |= 0x0040;
++  }
++  else
++  {
++    UARTx-&gt;CR &amp;= ~0x0040;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : UART_TimeOutPeriodConfig
++* Description    : This function configures the UART Time Out Period of the
++*                  selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - TimeOutPeriod: the time-out period value.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_TimeOutPeriodConfig(UART_TypeDef *UARTx, u16 TimeOutPeriod)
++{
++  UARTx-&gt;TOR = TimeOutPeriod;
++}
++
++/*******************************************************************************
++* Function Name  : UART_GuardTimeConfig
++* Description    : This function configures the UART Guard Time.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - GuardTime: the guard time value.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_GuardTimeConfig(UART_TypeDef *UARTx, u16 GuardTime)
++{
++  UARTx-&gt;GTR = GuardTime;
++}
++/*******************************************************************************
++* Function Name  : UART_RxConfig
++* Description    : This function enables or disables the selected UART data
++*                  reception.
++* Input          : - UARTx: selects the UART to be configured
++*                    (x can be 0,1, 2 or 3).
++*                  - NewState: specifies whether the reception is enabled or
++*                    disabled (ENABLE or DISABLE).
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_RxConfig(UART_TypeDef *UARTx, FunctionalState NewState)
++{
++  if (NewState == ENABLE)
++  {
++    UARTx-&gt;CR |= 0x0100;
++  }
++  else
++  {
++    UARTx-&gt;CR &amp;= ~0x0100;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : UART_OnOffConfig
++* Description    : This function sets On/Off the selected UART.
++* Input          : - UARTx: selects the UART to be configured
++*                    (x can be 0,1, 2 or 3).
++*                  - NewState: ENABLE or DISABLE.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_OnOffConfig(UART_TypeDef *UARTx, FunctionalState NewState)
++{
++  if (NewState == ENABLE)
++  {
++    UARTx-&gt;CR |= 0x0080;
++  }
++  else
++  {
++    UARTx-&gt;CR &amp;= ~0x0080;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : UART_ByteSend
++* Description    : This function is used to send a 7-bit byte or an 8-bit byte
++*                  using the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - Data: a pointer on the data byte to send.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_ByteSend(UART_TypeDef *UARTx, u8 *Data)
++{
++  /* if FIFO ENABLED */
++  if (UARTx-&gt;CR &amp; 0x0400)
++  {
++    
++    while ((UARTx-&gt;SR &amp; UART_TxFull))
++    {
++      /* Wait until the TxFIFO contains at least 1 free place */
++    }
++  }
++  /* if FIFO DISABLED */
++  else
++  {
++    
++    while (!(UARTx-&gt;SR &amp; UART_TxEmpty))
++    {
++      /* Wait until the transmit shift register is empty */
++    }
++  }
++  UARTx-&gt;TxBUFR = *Data;
++}
++
++/*******************************************************************************
++* Function Name  : UART_9BitByteSend
++* Description    : This function sends a 9-bit data using the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - Data: a pointer on the 9-bit data to send.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_9BitByteSend(UART_TypeDef *UARTx, u16 *Data)
++{
++  /* if FIFO ENABLED */
++  if (UARTx-&gt;CR &amp; 0x0400)
++  {
++    
++    while ((UARTx-&gt;SR &amp; UART_TxFull))
++    {
++    /* Wait until the TxFIFO contains at least 1 free place */
++    }
++  }
++  /* if FIFO DISABLED */
++  else
++  {
++    
++    while (!(UARTx-&gt;SR &amp; UART_TxEmpty))
++    {
++      /* Wait until the transmit shift register is empty */
++    }
++  }
++
++  UARTx-&gt;TxBUFR = ((*Data) &amp; 0x01FF);
++}
++
++/*******************************************************************************
++* Function Name  : UART_DataSend
++* Description    : This routine is used to send several 7-bit bytes or 8-bit
++*                  bytes using the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - Data: the bytes start address.
++*                  - DataLength: the data length in bytes.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_DataSend(UART_TypeDef *UARTx, u8 *Data, u8 DataLength)
++{
++
++  while (DataLength--)
++  {
++    UART_ByteSend(UARTx, Data);
++    Data++;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : UART_9BitDataSend
++* Description    : This function sends several 9-bit data using the selected
++*                  UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - Data: the bytes start address.
++*                  - DataLength: the data bytes number.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_9BitDataSend(UART_TypeDef *UARTx, u16 *Data, u8 DataLength)
++{
++  while (DataLength--)
++  {
++    UART_9BitByteSend(UARTx, Data);
++    Data++;
++  }
++}
++
++/*******************************************************************************
++* Function Name  : UART_StringSend
++* Description    : This function sends a string to the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - String: a pointer on the string to send.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void UART_StringSend(UART_TypeDef *UARTx, u8 *String)
++{
++  u8 *Data = String;
++  
++  while (*Data != '\0')
++  {
++    UART_ByteSend(UARTx, Data++);
++  }
++  
++  /* Send the character end of string  */
++  *Data = '\0';
++  UART_ByteSend(UARTx, Data);
++}
++
++/*******************************************************************************
++* Function Name  : UART_ByteReceive
++* Description    : This routine is used to get a 7 or an 8-bit byte from 
++*                  the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++* Return         : The received 8-bit data.
++*******************************************************************************/
++u8 UART_ByteReceive(UART_TypeDef *UARTx)
++{
++  /* Wait while the UART_RxFIFO is empty and no Timeoutidle */
++  while (!(UARTx-&gt;SR &amp; UART_RxBufNotEmpty))
++  {
++    /* Wait */
++  }
++
++  /* then read the Receive Buffer Register */
++  return (u8)UARTx-&gt;RxBUFR;
++}
++
++/*******************************************************************************
++* Function Name  : UART_9BitByteReceive
++* Description    : This function gets a 9-bit data from the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - Data: a pointer on the data where the data will be stored.
++*                  - TimeOut: The time-out period value.
++* Output         : The received 9-bit data.
++* Return         : The UARTx_SR register content before reading the received
++*                  data.
++*******************************************************************************/
++u16 UART_9BitByteReceive(UART_TypeDef *UARTx, u16 *Data, u8 TimeOut)
++{
++  u16 wStatus = 0;
++
++  /* Reload the Timeout counter */
++  UARTx-&gt;TOR = TimeOut;
++
++  /* while the UART_RxFIFO is empty and no Timeoutidle */
++  while (!((wStatus = UARTx-&gt;SR) &amp; (UART_TimeOutIdle | UART_RxBufNotEmpty)))
++  {
++    /* Wait */
++  }
++
++  /* then read the RxBUFR*/
++  *Data = (u16)UARTx-&gt;RxBUFR;
++  return wStatus;
++}
++
++/*******************************************************************************
++* Function Name  : UART_9BitDataReceive
++* Description    : This function gets several 9-bits data from the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - Data: a pointer on the buffer where the data will be stored.
++*                  - DataLength: the number of bytes to receive.
++*                  - TimeOut: the time-out period value.
++* Output         : The received 9-bit data buffer.
++* Return         : The UARTx_SR register contents.
++*******************************************************************************/
++u16 UART_9BitDataReceive(UART_TypeDef *UARTx, u16 *Data, u8 DataLength,
++                         u8 TimeOut)
++{
++  u16 wStatus = 0;
++
++  while (DataLength--)
++  {
++    wStatus = UART_9BitByteReceive(UARTx, Data++, TimeOut);
++  }
++  return wStatus;
++}
++
++/*******************************************************************************
++* Function Name  : UART_StringReceive
++* Description    : This function gets a string which ends with: End of string
++*                  or Carriage return characters from the selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++*                  - Data: a pointer on the buffer where the data will be stored.
++* Output         : The received string.
++* Return         : The UARTx_SR register content before reading the received
++*                  data.
++*******************************************************************************/
++u16 UART_StringReceive(UART_TypeDef *UARTx, u8 *Data)
++{
++  u8 *pSTRING = Data;
++  u16 wStatus = 0;
++
++  do
++  {
++    /* while the UART_RxFIFO is empty  */
++    while (!((wStatus = UARTx-&gt;SR) &amp; (UART_RxHalfFull | UART_RxBufNotEmpty)))
++    {
++      /* Wait */
++    }
++
++    /* then read the RxBUFR */
++    *(pSTRING++) = (u8)UARTx-&gt;RxBUFR;
++
++  } while ((*(pSTRING - 1) != 0x0D) &amp;&amp; (*(pSTRING - 1) != '\0'));
++
++  *(pSTRING - 1) = '\0';
++
++  return wStatus;
++}
++
++/*******************************************************************************
++* Function Name  : UART_FlagStatus
++* Description    : This routine returns the UARTx_SR register content of the
++*                  selected UART.
++* Input          : - UARTx: the selected UART (x can be 0,1, 2 or 3).
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++u16 UART_FlagStatus(UART_TypeDef *UARTx)
++{
++  return UARTx-&gt;SR;
++}
++
++#ifdef USE_SERIAL_PORT
++
++/*******************************************************************************
++* Function Name  : SendChar
++* Description    : This function sends a character using  the defined UART.
++* Input          : - ch: a pointer on the character to send.
++* Output         : None.
++* Return         : None.
++*******************************************************************************/
++void SendChar( u8 *ch )
++{
++#ifdef USE_UART0
++#define  UARTx  UART0
++#endif /* Use_UART0 */
++
++#ifdef USE_UART1
++#define  UARTx  UART1
++#endif /* Use_UART1 */
++
++#ifdef USE_UART2
++#define  UARTx  UART2
++#endif /* Use_UART2 */
++
++#ifdef USE_UART3
++#define  UARTx  UART3
++#endif /* Use_UART3 */
++
++  UART_ByteSend(UARTx, (u8 *)ch);
++}
++
++#endif /* USE_SERIAL_PORT */
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/71x_uart.h
+===================================================================
+--- trunk/src/platform/str7/71x_uart.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/71x_uart.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,104 @@
++/******************** (C) COPYRIGHT 2007 STMicroelectronics ********************
++* File Name          : 71x_uart.h
++* Author             : MCD Application Team
++* Version            : V4.0
++* Date               : 10/09/2007
++* Description        : This file contains all the functions prototypes for the
++*                      UART firmware library.
++********************************************************************************
++* THE PRESENT SOFTWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH SOFTWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Define to prevent recursive inclusion -------------------------------------*/
++#ifndef __71x_UART_H
++#define __71x_UART_H
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;71x_map.h&quot;
++#include &quot;71x_rccu.h&quot;
++
++/* Exported types ------------------------------------------------------------*/
++typedef enum
++{
++  UART_RxFIFO,
++  UART_TxFIFO
++} UARTFIFO_TypeDef;
++
++typedef enum
++{
++  UART_EVEN_PARITY = 0x0000,
++  UART_ODD_PARITY  = 0x0020,
++  UART_NO_PARITY   = 0x0000
++} UARTParity_TypeDef;
++
++typedef enum
++{
++  UART_0_5_StopBits  = 0x0000,
++  UART_1_StopBits    = 0x0008,
++  UART_1_5_StopBits  = 0x0010,
++  UART_2_StopBits    = 0x0018
++} UARTStopBits_TypeDef;
++
++typedef enum
++{
++  UARTM_8D   = 0x0001,
++  UARTM_7D_P = 0x0003,
++  UARTM_9D   = 0x0004,
++  UARTM_8D_W = 0x0005,
++  UARTM_8D_P = 0x0007
++} UARTMode_TypeDef;
++
++/* Exported constants --------------------------------------------------------*/
++/* UART flags definition */
++#define UART_TxFull          0x0200
++#define UART_RxHalfFull      0x0100
++#define UART_TimeOutIdle     0x0080
++#define UART_TimeOutNotEmpty 0x0040
++#define UART_OverrunError    0x0020
++#define UART_FrameError      0x0010
++#define UART_ParityError     0x0008
++#define UART_TxHalfEmpty     0x0004
++#define UART_TxEmpty         0x0002
++#define UART_RxBufNotEmpty   0x0001
++
++/* Exported macro ------------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++void UART_Init(UART_TypeDef *UARTx);
++void UART_ModeConfig(UART_TypeDef *UARTx, UARTMode_TypeDef UART_Mode);
++void UART_BaudRateConfig(UART_TypeDef *UARTx, u32 BaudRate);
++void UART_ParityConfig(UART_TypeDef *UARTx, UARTParity_TypeDef Parity);
++void UART_StopBitsConfig(UART_TypeDef *UARTx, UARTStopBits_TypeDef StopBits);
++void UART_Config(UART_TypeDef *UARTx, u32 BaudRate, UARTParity_TypeDef Parity,
++                 UARTStopBits_TypeDef StopBits, UARTMode_TypeDef Mode);
++void UART_ItConfig(UART_TypeDef *UARTx, u16 UART_Flag, FunctionalState NewState);
++void UART_FifoConfig(UART_TypeDef *UARTx, FunctionalState NewState);
++void UART_FifoReset(UART_TypeDef *UARTx, UARTFIFO_TypeDef FIFO);
++void UART_LoopBackConfig(UART_TypeDef *UARTx, FunctionalState NewState);
++void UART_TimeOutPeriodConfig(UART_TypeDef *UARTx, u16 TimeOutPeriod);
++void UART_GuardTimeConfig(UART_TypeDef *UARTx, u16 GuardTime);
++void UART_RxConfig(UART_TypeDef *UARTx, FunctionalState NewState);
++void UART_OnOffConfig(UART_TypeDef *UARTx, FunctionalState NewState);
++void UART_ByteSend(UART_TypeDef *UARTx, u8 *Data);
++void UART_9BitByteSend(UART_TypeDef *UARTx, u16 *Data);
++void UART_DataSend(UART_TypeDef *UARTx, u8 *Data, u8 DataLength);
++void UART_9BitDataSend(UART_TypeDef *UARTx, u16 *Data, u8 DataLength);
++void UART_StringSend(UART_TypeDef *UARTx, u8 *String);
++u8 UART_ByteReceive(UART_TypeDef *UARTx);
++u16 UART_9BitByteReceive(UART_TypeDef *UARTx, u16 *Data, u8 TimeOut);
++u16 UART_9BitDataReceive(UART_TypeDef *UARTx, u16 *Data, u8 DataLength,
++                         u8 TimeOut);
++u16 UART_StringReceive(UART_TypeDef *UARTx, u8 *Data);
++u16 UART_FlagStatus(UART_TypeDef *UARTx);
++
++#ifdef USE_SERIAL_PORT
++void SendChar(u8 *ch);
++#endif /* USE_SERIAL_PORT */
++
++#endif /*__71x_UART_H*/
++
++/******************* (C) COPYRIGHT 2007 STMicroelectronics *****END OF FILE****/
+
+Added: trunk/src/platform/str7/build.h
+===================================================================
+--- trunk/src/platform/str7/build.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/build.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,12 @@
++// Define here what components you want for this platform
++
++#ifndef __BUILD_H__
++#define __BUILD_H__
++
++//#define BUILD_XMODEM
++#define BUILD_SHELL
++#define BUILD_ROMFS
++//#define BUILD_TERM
++#define BUILD_CON_GENERIC
++
++#endif
+
+Added: trunk/src/platform/str7/conf.py
+===================================================================
+--- trunk/src/platform/str7/conf.py	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/conf.py	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,38 @@
++# Configuration file for the STR7 backend
++
++cpumode = ARGUMENTS.get( 'cpumode', 'thumb' ).lower()
++
++specific_files = &quot;platform.c crt0.s 71x_rccu.c 71x_uart.c 71x_apb.c 71x_gpio.c&quot;
++if cputype == 'STR711FR2':
++  ldscript = &quot;str711fr2.lds&quot;
++else:
++  print &quot;Invalid STR7 CPU %s&quot; % cputype
++  sys.exit( -1 )  
++  
++# Check CPU mode
++if cpumode == 'arm':
++  modeflag = ''
++elif cpumode == 'thumb':
++  modeflag = '-mthumb'
++else:
++  print &quot;Invalid CPU mode %s&quot;, cpumode
++  sys.exit( -1 )
++  
++# Prepend with path
++specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
++ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
++
++# Toolset data
++tools[ 'str7' ] = {}
++tools[ 'str7' ][ 'cccom' ] = &quot;arm-elf-gcc -mcpu=arm7tdmi %s %s %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( modeflag, opt, local_include, cdefs )
++tools[ 'str7' ][ 'linkcom' ] = &quot;arm-elf-gcc -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,entry -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( modeflag, ldscript, local_libs )
++tools[ 'str7' ][ 'ascom' ] = &quot;arm-elf-gcc -x assembler-with-cpp %s -mcpu=arm7tdmi %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( local_include, modeflag, cdefs )
++
++# Programming function for LPC2888
++def progfunc_str7( target, source, env ):
++  outname = output + &quot;.elf&quot;
++  os.system( &quot;arm-elf-size %s&quot; % outname )
++  print &quot;Generating binary image...&quot;
++  os.system( &quot;arm-elf-objcopy -O binary %s %s.bin&quot; % ( outname, output ) )
++  
++tools[ 'str7' ][ 'progfunc' ] = progfunc_str7
+
+Added: trunk/src/platform/str7/crt0.s
+===================================================================
+--- trunk/src/platform/str7/crt0.s	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/crt0.s	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,102 @@
++#include &quot;stacks.h&quot;
++
++//------------------------------------------------------------------------------
++//         Definitions
++//------------------------------------------------------------------------------
++
++#define ARM_MODE_ABT     0x17
++#define ARM_MODE_FIQ     0x11
++#define ARM_MODE_IRQ     0x12
++#define ARM_MODE_SVC     0x13
++
++#define I_BIT            0x80
++#define F_BIT            0x40
++
++//------------------------------------------------------------------------------
++//         Startup routine
++//------------------------------------------------------------------------------
++
++            .align      4
++            .arm
++        
++/* Exception vectors
++ *******************/
++            .section    .vectors, &quot;a&quot;
++
++resetVector:
++        ldr     pc, =resetHandler       /* Reset */
++undefVector:
++        b       undefVector             /* Undefined instruction */
++swiVector:
++        b       swiVector               /* Software interrupt */
++prefetchAbortVector:
++        b       prefetchAbortVector     /* Prefetch abort */
++dataAbortVector:
++        b       dataAbortVector         /* Data abort */
++reservedVector:
++        b       reservedVector          /* Reserved for future use */
++irqVector:
++        b       irqVector               /* Interrupt */
++fiqVector:
++        b       fiqVector               /* Fast interrupt */
++
++//------------------------------------------------------------------------------
++/// Initializes the chip and branches to the main() function.
++//------------------------------------------------------------------------------
++            .section    .text
++            .global     entry
++            .extern     main
++
++entry:
++resetHandler:
++
++// Wait for OSC stabilization
++
++        nop
++        nop
++        nop
++        nop
++        nop
++        nop
++        nop
++        nop
++        nop
++
++/* Perform low-level initialization of the chip using LowLevelInit() */
++/* Initialize the relocate segment */
++
++        ldr     r0, =_efixed
++        ldr     r1, =_srelocate
++        ldr     r2, =_erelocate
++CopyROMtoRAM:
++        cmp     r1, r2
++        ldrcc   r3, [r0], #4
++        strcc   r3, [r1], #4
++        bcc     CopyROMtoRAM
++
++/* Clear the zero segment */
++   	    ldr     r0, =_szero
++        ldr     r1, =_ezero
++        mov     r2, #0
++ZeroBSS:
++        cmp     r0, r1
++        strcc   r2, [r0], #4
++        bcc     ZeroBSS
++
++/* Setup stacks
++ **************/
++ 
++/* Supervisor mode */
++        msr     CPSR_c, #ARM_MODE_SVC | F_BIT | I_BIT
++        ldr     r4, =_sstack        
++        mov     sp, r4
++
++/* Branch to main()
++ ******************/
++        ldr     r0, =main
++        mov     lr, pc
++        bx      r0
++
++/* Loop indefinitely when program is finished */
++forever:
++        b       forever
+
+Added: trunk/src/platform/str7/platform.c
+===================================================================
+--- trunk/src/platform/str7/platform.c	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/platform.c	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,274 @@
++// Platform-dependent functions
++
++#include &quot;platform.h&quot;
++#include &quot;type.h&quot;
++#include &quot;devman.h&quot;
++#include &quot;genstd.h&quot;
++#include &quot;stacks.h&quot;
++#include &lt;reent.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;string.h&gt;
++#include &lt;ctype.h&gt;
++#include &lt;stdio.h&gt;
++#include &quot;utils.h&quot;
++
++// Platform includes
++#include &quot;71x_lib.h&quot;
++
++#define CON_UART      1
++
++// *****************************************************************************
++// std functions
++
++static void uart_send( int fd, char c )
++{
++  fd = fd;
++  platform_uart_send( CON_UART, c );
++}
++
++static int uart_recv()
++{
++  return platform_uart_recv( CON_UART, 0, PLATFORM_UART_INFINITE_TIMEOUT );
++}
++
++// ****************************************************************************
++// Platform initialization
++
++// Clock initialization
++static void clock_init()
++{
++  // Configure PCLK1 = RCLK / 2
++  RCCU_PCLK1Config( RCCU_RCLK_2 );
++
++  // Configure PCLK2 = RCLK / 2
++  RCCU_PCLK2Config( RCCU_RCLK_2 );
++
++  // Configure MCLK clock for the CPU, RCCU_DEFAULT = RCLK /1
++  RCCU_MCLKConfig( RCCU_DEFAULT );
++   
++  // Configure the PLL1 ( * 20 , / 1 )
++  RCCU_PLL1Config( RCCU_PLL1_Mul_20, RCCU_Div_1 );
++
++  // Wait PLL to lock
++  while(RCCU_FlagStatus( RCCU_PLL1_LOCK) == RESET );
++
++  // Select PLL1_Output as RCLK clock
++  RCCU_RCLKSourceConfig( RCCU_PLL1_Output );  
++  
++  // At this step the MCLK = 40MHz, PCLK1 = 20MHz and PCLK2 = 20MHz with an external oscilator equal to 4MHz  
++}
++
++int platform_init()
++{
++  // Initialize clocks
++  clock_init();
++  
++  // Setup UART1 for operation
++  platform_uart_setup( CON_UART, 115200, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
++  
++  // Set the send/recv functions                          
++  std_set_send_func( uart_send );
++  std_set_get_func( uart_recv );
++    
++  return PLATFORM_OK;
++} 
++
++// ****************************************************************************
++// UART
++
++#define NUM_UARTS   4
++
++static const u16 uart_rx_pins[ NUM_UARTS ] = { 0x0001 &lt;&lt; 8, 0x0001 &lt;&lt; 10, 0x0001 &lt;&lt; 13, 0x0001 &lt;&lt; 1 };
++static const u16 uart_tx_pins[ NUM_UARTS ] = { 0x0001 &lt;&lt; 9, 0x0001 &lt;&lt; 11, 0x0001 &lt;&lt; 14, 0x0001 &lt;&lt; 0 };
++static const UART_TypeDef *uart_periph[ NUM_UARTS ] = { UART0, UART1, UART2, UART3 };
++
++int platform_uart_exists( unsigned id )
++{
++  return id &lt; NUM_UARTS;
++}
++
++u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
++{      
++  UART_TypeDef* pport = ( UART_TypeDef* )uart_periph[ id ];
++  UARTParity_TypeDef u_parity;
++  UARTStopBits_TypeDef u_stopbits;
++  UARTMode_TypeDef u_mode;
++  
++  // Configure GPIO
++  GPIO_Config( GPIO0, uart_tx_pins[ id ], GPIO_AF_PP );
++  GPIO_Config( GPIO0, uart_rx_pins[ id ], GPIO_IN_TRI_CMOS );  
++  
++  UART_Init( pport );
++  
++  // Enable port
++  UART_OnOffConfig( pport, ENABLE ); 
++  
++  //  Disable FIFOs, reset FIFOs, disable loopback     
++  UART_FifoConfig( pport, DISABLE ); 
++  UART_FifoReset( pport, UART_RxFIFO ); 
++  UART_FifoReset( pport, UART_TxFIFO ); 
++  UART_LoopBackConfig( pport, DISABLE );
++  
++  // Check parity first
++  if( parity == PLATFORM_UART_PARITY_EVEN )
++    u_parity = UART_EVEN_PARITY;
++  else if( parity == PLATFORM_UART_PARITY_ODD )
++    u_parity = UART_ODD_PARITY;
++  else
++    u_parity = UART_NO_PARITY;
++    
++  // Then stop bits
++  if( stopbits == PLATFORM_UART_STOPBITS_1 )
++    u_stopbits = UART_1_StopBits;    
++  else if( stopbits == PLATFORM_UART_STOPBITS_1 )
++    u_stopbits = UART_1_5_StopBits;    
++  else
++    u_stopbits = UART_2_StopBits;
++    
++  // And finally databits
++  if( databits == 7 &amp;&amp; u_parity != UART_NO_PARITY )
++    u_mode = UARTM_7D_P;
++  else if( databits == 8 &amp;&amp; u_parity != UART_NO_PARITY )
++    u_mode = UARTM_8D_P;
++  else
++    u_mode = UARTM_8D;
++    
++  // Configure port and enable Rx
++  UART_Config( pport, baud, u_parity, u_stopbits, u_mode );
++  UART_RxConfig( pport, ENABLE );   
++  
++  // Return actual baud
++  // [TODO] COMPUTE actual baud...
++  return baud;
++}
++
++void platform_uart_send( unsigned id, u8 data )
++{
++  UART_TypeDef* pport = ( UART_TypeDef* )uart_periph[ id ];
++  
++  UART_ByteSend( pport, &amp;data );
++}
++
++int platform_uart_recv( unsigned id, unsigned timer_id, int timeout )
++{
++  timer_data_type tmr_start, tmr_crt;
++  int res;
++  UART_TypeDef* pport = ( UART_TypeDef* )uart_periph[ id ];    
++  
++  if( timeout == 0 )
++  {
++    // Return data only if already available
++    if( UART_FlagStatus( pport ) &amp; UART_RxBufNotEmpty )
++      return UART_ByteReceive( pport );
++    else
++      return -1;
++  }
++  else if( timeout == PLATFORM_UART_INFINITE_TIMEOUT )
++  {
++    // Wait for dataa
++    return UART_ByteReceive( pport );
++  }
++  else
++  {
++    // Receive char with the specified timeout
++    tmr_start = platform_timer_op( timer_id, PLATFORM_TIMER_OP_START,0 );
++    while( 1 )
++    {
++      if( UART_FlagStatus( pport ) &amp; UART_RxBufNotEmpty  )
++      {
++        res = UART_ByteReceive( pport );
++        break;
++      }
++      else
++        res = -1;
++      tmr_crt = platform_timer_op( timer_id, PLATFORM_TIMER_OP_READ, 0 );
++      if( platform_timer_get_diff_us( timer_id, tmr_crt, tmr_start ) &gt;= timeout )
++        break;
++    }
++    return res;    
++  }
++}
++
++// ****************************************************************************
++// Timer
++
++int platform_timer_exists( unsigned id )
++{
++  return 0;
++}
++
++// Helper: get timer clock
++static u32 platform_timer_get_clock( unsigned id )
++{
++  return 0;
++}
++
++// Helper: set timer clock
++static u32 platform_timer_set_clock( unsigned id, u32 clock )
++{
++  return 0;
++}
++
++void platform_timer_delay( unsigned id, u32 delay_us )
++{
++}
++      
++u32 platform_timer_op( unsigned id, int op, u32 data )
++{
++  u32 res = 0;
++
++  switch( op )
++  {
++    case PLATFORM_TIMER_OP_START:
++      break;
++      
++    case PLATFORM_TIMER_OP_READ:
++      break;
++      
++    case PLATFORM_TIMER_OP_GET_MAX_DELAY:
++      break;
++      
++    case PLATFORM_TIMER_OP_GET_MIN_DELAY:
++      break;      
++      
++    case PLATFORM_TIMER_OP_SET_CLOCK:
++      break;
++      
++    case PLATFORM_TIMER_OP_GET_CLOCK:
++      break;
++  }
++  return res;
++}
++
++u32 platform_timer_get_diff_us( unsigned id, timer_data_type end, timer_data_type start )
++{
++  timer_data_type temp;
++  u32 freq;
++    
++  freq = platform_timer_get_clock( id );
++  if( start &lt; end )
++  {
++    temp = end;
++    end = start;
++    start = temp;
++  }
++  return ( ( u64 )( start - end ) * 1000000 ) / freq;
++}
++
++// ****************************************************************************
++// Allocator support
++
++extern char end[];
++
++void* platform_get_first_free_ram( unsigned id )
++{
++  return id &gt; 0 ? NULL : ( void* )end;
++}
++
++#define SRAM_ORIGIN 0x20000000
++#define SRAM_SIZE 0x10000
++
++void* platform_get_last_free_ram( unsigned id )
++{
++  return id &gt; 0 ? NULL : ( void* )( SRAM_ORIGIN + SRAM_SIZE - STACK_SIZE_TOTAL - 1 );
++}
+
+Added: trunk/src/platform/str7/platform_cpu.h
+===================================================================
+--- trunk/src/platform/str7/platform_cpu.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/platform_cpu.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,6 @@
++// CPU related constants that should be visible to Lua
++
++#ifndef __PLATFORM_CPU_H__
++#define __PLATFORM_CPU_H__
++
++#endif
+
+Added: trunk/src/platform/str7/platform_libs.h
+===================================================================
+--- trunk/src/platform/str7/platform_libs.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/platform_libs.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,9 @@
++// Auxiliary libraries that will be compiled for this platform
++
++#ifndef __PLATFORM_LIBS_H__
++#define __PLATFORM_LIBS_H__
++
++#define LUA_PLATFORM_LIBS\
++  { LUA_MATHLIBNAME, luaopen_math }
++  
++#endif
+
+Added: trunk/src/platform/str7/stacks.h
+===================================================================
+--- trunk/src/platform/str7/stacks.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/stacks.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,9 @@
++// Stack size definitions
++
++#ifndef __STACKS_H__
++#define __STACKS_H__
++
++#define  STACK_SIZE_USR   256
++#define  STACK_SIZE_TOTAL ( STACK_SIZE_USR )
++
++#endif
+
+Added: trunk/src/platform/str7/str711fr2.lds
+===================================================================
+--- trunk/src/platform/str7/str711fr2.lds	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/str711fr2.lds	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,52 @@
++OUTPUT_FORMAT(&quot;elf32-littlearm&quot;, &quot;elf32-littlearm&quot;, &quot;elf32-littlearm&quot;)
++OUTPUT_ARCH(arm)
++ENTRY(entry)
++
++MEMORY
++{
++    sram (W!RX) : ORIGIN = 0x20000000, LENGTH = 0x10000
++    flash (RX) : ORIGIN = 0x0, LENGTH = 0x40000
++}
++
++SECTIONS
++{  
++    .fixed :
++    {
++        . = ALIGN(4);
++        _sfixed = .;
++        KEEP(*(.vectors))
++        KEEP(*(.init))
++        *(.text .text.*)        
++        *(.rodata .rodata.*)        
++        *(.gnu.linkonce.t.*)
++        *(.glue_7)
++        *(.glue_7t)
++        *(.gcc_except_table)
++        *(.gnu.linkonce.r.*)
++        . = ALIGN(4);
++        _efixed = .;
++        PROVIDE(etext = .);        
++    } &gt;flash
++
++    .relocate : AT (_efixed)
++    {
++        . = ALIGN(4);
++        _srelocate = .;
++        *(.ramfunc .ramfunc.* .fastrun .fastrun.*)
++        *(.data .data.*)
++        *(.gnu.linkonce.d.*)
++        . = ALIGN(4);
++        _erelocate = .;
++    } &gt;sram
++
++    .bss (NOLOAD) : {
++        _szero = .;
++        *(.bss .bss.*)
++        *(.gnu.linkonce.b.*)
++        *(COMMON)
++        _ezero = .;
++    } &gt;sram
++    
++    end = .;
++    _sstack = 0x20010000;
++}
+
+Added: trunk/src/platform/str7/type.h
+===================================================================
+--- trunk/src/platform/str7/type.h	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/platform/str7/type.h	2008-10-02 21:21:39 UTC (rev 103)
+@@ -0,0 +1,13 @@
++#ifndef __TYPE_H__
++#define __TYPE_H__
++
++typedef unsigned char u8;
++typedef signed char s8;
++typedef unsigned short u16;
++typedef signed short s16;
++typedef unsigned long u32;
++typedef signed long s32;
++typedef unsigned long long u64;
++typedef signed long long s64;
++
++#endif
+
+Modified: trunk/src/uip/resolv.c
+===================================================================
+--- trunk/src/uip/resolv.c	2008-09-26 20:41:56 UTC (rev 102)
++++ trunk/src/uip/resolv.c	2008-10-02 21:21:39 UTC (rev 103)
+@@ -476,7 +476,7 @@
+ {
+ }
+ 
+-void resolv_conf( u16_t *dnsserver )
++void resolv_conf( void *dnsserver )
+ {
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000060.html">[Elua-svn] r104 - in trunk/src: . modules platform/str7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#59">[ date ]</a>
+              <a href="thread.html#59">[ thread ]</a>
+              <a href="subject.html#59">[ subject ]</a>
+              <a href="author.html#59">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

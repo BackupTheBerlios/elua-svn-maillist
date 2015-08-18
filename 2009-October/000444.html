@@ -1,0 +1,1000 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r488 - in trunk/doc: . ddlevelsfiles
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r488%20-%20in%20trunk/doc%3A%20.%20ddlevelsfiles&In-Reply-To=%3C200910192103.n9JL3vLe016305%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000443.html">
+   <LINK REL="Next"  HREF="000445.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r488 - in trunk/doc: . ddlevelsfiles</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r488%20-%20in%20trunk/doc%3A%20.%20ddlevelsfiles&In-Reply-To=%3C200910192103.n9JL3vLe016305%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r488 - in trunk/doc: . ddlevelsfiles">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Oct 19 23:03:57 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000443.html">[Elua-svn] r487 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000445.html">[Elua-svn] r489 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#444">[ date ]</a>
+              <a href="thread.html#444">[ thread ]</a>
+              <a href="subject.html#444">[ subject ]</a>
+              <a href="author.html#444">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-10-19 23:03:56 +0200 (Mon, 19 Oct 2009)
+New Revision: 488
+
+Added:
+   trunk/doc/menu.css
+Removed:
+   trunk/doc/ddlevelsfiles/arrow-down.gif
+   trunk/doc/ddlevelsfiles/bulletlist.gif
+   trunk/doc/ddlevelsfiles/ddlevelsmenu-base.css
+   trunk/doc/ddlevelsfiles/ddlevelsmenu-sidebar.css
+   trunk/doc/ddlevelsfiles/ddlevelsmenu-topbar.css
+   trunk/doc/ddlevelsfiles/ddlevelsmenu.js
+   trunk/doc/ddlevelsfiles/index.htm
+Modified:
+   trunk/doc/buildall.lua
+   trunk/doc/docdata.lua
+   trunk/doc/style1.css
+Log:
+Initial version of pure CSS menu.
+
+Modified: trunk/doc/buildall.lua
+===================================================================
+--- trunk/doc/buildall.lua	2009-10-19 04:39:39 UTC (rev 487)
++++ trunk/doc/buildall.lua	2009-10-19 21:03:56 UTC (rev 488)
+@@ -212,16 +212,17 @@
+   level = level or 1
+   local data = ''
+   local lidx = langidx[ lang ]
++  local arrptr = '&lt;img class=&quot;rightarrowpointer&quot; src=&quot;ddlevelsfiles/arrow-right.gif&quot; /&gt;'
+   for i = 1, #item do
+     local l = item[ i ]
+     if l[ submenu_idx ] then
+-      data = data .. string.rep( &quot; &quot;, level * 2 ) .. string.format( '&lt;li&gt;&lt;a href=&quot;%s&quot;&gt;%s&lt;/a&gt;\n', get_link( lang, l[ link_idx ] ), get_menu_name( l, lang ) )
+-      data = data .. string.rep( &quot; &quot;, level * 2 ) .. &quot;&lt;ul&gt;\n&quot;
++      data = data .. string.rep( &quot; &quot;, level * 2 + 8 ) .. string.format( '&lt;li&gt;&lt;a href=&quot;%s&quot;&gt;%s%s&lt;/a&gt;\n', get_link( lang, l[ link_idx ] ), arrptr, get_menu_name( l, lang ) )
++      data = data .. string.rep( &quot; &quot;, level * 2 + 8 ) .. &quot;&lt;ul&gt;\n&quot;
+       data = data .. gen_submenus( l[ submenu_idx ], lang, level + 1 )
+-      data = data .. string.rep( &quot; &quot;, level * 2 ) .. &quot;&lt;/ul&gt;&lt;/li&gt;\n&quot;
++      data = data .. string.rep( &quot; &quot;, level * 2 + 8 ) .. &quot;&lt;/ul&gt;&lt;/li&gt;\n&quot;
+     else
+       if get_menu_name( l, lang ) then
+-        data = data .. string.rep( &quot; &quot;, level * 2 ) .. string.format( '&lt;li&gt;&lt;a href=&quot;%s&quot;&gt;%s&lt;/a&gt;&lt;/li&gt;\n', 
++        data = data .. string.rep( &quot; &quot;, level * 2 + 8 ) .. string.format( '&lt;li&gt;&lt;a href=&quot;%s&quot;&gt;%s&lt;/a&gt;&lt;/li&gt;\n', 
+                get_link( lang, l[ link_idx ] ), get_menu_name( l, lang ) )
+       end
+     end
+@@ -234,12 +235,12 @@
+ local function gen_html_nav( parentid, lang )
+   local htmlstr = [[
+ &lt;div id=&quot;nav&quot;&gt;
+-  &lt;div id=&quot;ddsidemenubar&quot; class=&quot;markermenu&quot;&gt;
+-    &lt;ul&gt;
++    &lt;ul id=&quot;menu&quot;&gt;
+ ]]
+-  local menudata = &quot;&quot;
+   local lidx = langidx[ lang ]
+   for i = 1, #themenu do
++    local menudata = &quot;&quot;
++    local imginsert = &quot;&quot;
+     local styledef =  i == #themenu and ' style=&quot;border-bottom-width: 0&quot;' or &quot;&quot;
+     local link = themenu[ i ][ link_idx ]
+     local name = get_menu_name( themenu[ i ], lang )
+@@ -249,24 +250,25 @@
+       local relname = string.gsub( string.gsub( string.format( &quot;s_%d_%s&quot;, i, string.lower( get_base_link( link ) ) ), &quot;%s&quot;, &quot;_&quot; ), &quot;%.html&quot;, &quot;&quot; )
+       -- If we have a submenu, update the HTML menu content part
+       if themenu[ i ][ submenu_idx ] then
+-        menudata = menudata .. string.format( [[
+-&lt;ul id=&quot;%s&quot; class=&quot;ddsubmenustyle blackwhite&quot;&gt;      
++        menudata = string.format( [[
++        &lt;ul id=&quot;%s&quot;&gt;      
+ %s
+-&lt;/ul&gt;
+-
++        &lt;/ul&gt;
++      &lt;/li&gt;
+ ]], relname, string.sub( gen_submenus( themenu[ i ][ submenu_idx ], lang ), 1, -2 ) )
++        imginsert = '&lt;img class=&quot;rightarrowpointer&quot; src=&quot;ddlevelsfiles/arrow-right.gif&quot;/&gt;'
+       end
+       if name then
+         if i == parentid then
+           -- If this is the parent, use a special style for it (&lt;a class=&quot;current&quot;&gt; or &lt;li class=&quot;current&quot;&gt;, depending on the item type)
+           if themenu[ i ][ submenu_idx ] then
+-            htmlstr = htmlstr .. string.format('      &lt;li&gt;&lt;a class=&quot;current&quot; href=&quot;%s&quot; rel=&quot;%s&quot;%s&gt;%s&lt;/a&gt;&lt;/li&gt;\n', get_link( lang, link ), relname, styledef, name )
++            htmlstr = htmlstr .. string.format('      &lt;li&gt;&lt;a class=&quot;current&quot; href=&quot;%s&quot; rel=&quot;%s&quot;%s&gt;%s%s&lt;/a&gt;\n%s    &lt;/li&gt;\n', get_link( lang, link ), relname, styledef, imginsert, name, menudata )
+           else
+-            htmlstr = htmlstr .. string.format('      &lt;li class=&quot;current&quot;%s&gt;%s&lt;/li&gt;\n', styledef, name )
++            htmlstr = htmlstr .. string.format('      &lt;li class=&quot;current&quot;%s&gt;%s%s\n%s    &lt;/li&gt;\n', styledef, imginsert, name, menudata )
+           end
+         else
+           local submenustr = themenu[ i ][ submenu_idx ] and string.format( ' rel=&quot;%s&quot;', relname ) or &quot;&quot;
+-          htmlstr = htmlstr .. string.format('      &lt;li&gt;&lt;a href=&quot;%s&quot;%s%s&gt;%s&lt;/a&gt;&lt;/li&gt;\n', get_link( lang, link ), submenustr, styledef, name )
++          htmlstr = htmlstr .. string.format('      &lt;li&gt;&lt;a href=&quot;%s&quot;%s%s&gt;%s%s&lt;/a&gt;\n%s   &lt;/li&gt;\n', get_link( lang, link ), submenustr, styledef, imginsert, name, menudata )
+         end
+       end
+     end
+@@ -276,14 +278,10 @@
+ &lt;p style=&quot;margin-left: 18px;&quot;&gt;&lt;a href=&quot;<A HREF="http://developer.berlios.de">http://developer.berlios.de</A>&quot; title=&quot;BerliOS Developer&quot;&gt; &lt;img src=&quot;<A HREF="http://developer.berlios.de/bslogo.php?group_id=9919">http://developer.berlios.de/bslogo.php?group_id=9919</A>&quot; width=&quot;124px&quot; height=&quot;32px&quot; border=&quot;0&quot; alt=&quot;BerliOS Developer Logo&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+ ]] or &quot;&quot;
+   htmlstr = htmlstr .. string.format( [[
+-    &lt;/ul&gt;
+-  &lt;/div&gt;
+-  &lt;script type=&quot;text/javascript&quot;&gt;
+-  ddlevelsmenu.setup(&quot;ddsidemenubar&quot;, &quot;sidebar&quot;)
+-  &lt;/script&gt;    
++    &lt;/ul&gt;  
+ %s&lt;/div&gt;
+ ]], offline_data )
+-  return htmlstr, menudata
++  return htmlstr
+ end
+ 
+ -------------------------------------------------------------------------------
+@@ -385,25 +383,20 @@
+ &lt;head&gt;
+ &lt;title&gt;%s&lt;/title&gt;
+ &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot; /&gt;
++&lt;link href=&quot;menu.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;
+ &lt;link href=&quot;style1.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; /&gt;
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;ddlevelsfiles/ddlevelsmenu-base.css&quot; /&gt;
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;ddlevelsfiles/ddlevelsmenu-topbar.css&quot; /&gt;
+-&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;ddlevelsfiles/ddlevelsmenu-sidebar.css&quot; /&gt;
+-&lt;script type=&quot;text/javascript&quot; src=&quot;ddlevelsfiles/ddlevelsmenu.js&quot;&gt;&lt;/script&gt;
+ &lt;/head&gt;
+ 
+ &lt;body&gt;
+ ]], get_menu_title( item, lang ) )
+   header = header .. gen_logo( fname, lang ) .. &quot;\n&quot;
+-  local menuitems, menudata = gen_html_nav( parentid, lang )
++  local menuitems = gen_html_nav( parentid, lang )
+   header = header .. menuitems .. '&lt;div id=&quot;content&quot;&gt;\n'
+-  local footer = string.format( [[
++  local footer = [[
+ &lt;/div&gt;
+-
+-%s
+ &lt;/body&gt;
+ &lt;/html&gt;
+-]], menudata )
++]] 
+   orig = orig:gsub( &quot;%$%$HEADER%$%$&quot;, header )
+   orig = orig:gsub( &quot;%$%$FOOTER%$%$&quot;, footer )
+   return orig
+
+Deleted: trunk/doc/ddlevelsfiles/arrow-down.gif
+===================================================================
+--- trunk/doc/ddlevelsfiles/arrow-down.gif	2009-10-19 04:39:39 UTC (rev 487)
++++ trunk/doc/ddlevelsfiles/arrow-down.gif	2009-10-19 21:03:56 UTC (rev 488)
+@@ -1,2 +0,0 @@
+-GIF89a
+- &#129;!6&#128;00A&#129;&#136;&quot;T@&#128;&#193;	.80!&#164;I&#129;
+\ No newline at end of file
+
+Deleted: trunk/doc/ddlevelsfiles/bulletlist.gif
+===================================================================
+--- trunk/doc/ddlevelsfiles/bulletlist.gif	2009-10-19 04:39:39 UTC (rev 487)
++++ trunk/doc/ddlevelsfiles/bulletlist.gif	2009-10-19 21:03:56 UTC (rev 488)
+@@ -1 +0,0 @@
+-GIF89a
+\ No newline at end of file
+
+Deleted: trunk/doc/ddlevelsfiles/ddlevelsmenu-base.css
+===================================================================
+--- trunk/doc/ddlevelsfiles/ddlevelsmenu-base.css	2009-10-19 04:39:39 UTC (rev 487)
++++ trunk/doc/ddlevelsfiles/ddlevelsmenu-base.css	2009-10-19 21:03:56 UTC (rev 488)
+@@ -1,61 +0,0 @@
+-/* ######### Drop Down ULs CSS ######### */
+-
+-
+-.ddsubmenustyle, .ddsubmenustyle ul{ /*topmost and sub ULs, respectively*/
+-font: normal 11px Verdana;
+-margin: 0;
+-padding: 0;
+-position: absolute;
+-left: 0;
+-top: 0;
+-list-style-type: none;
+-background: white;
+-border: 1px solid black;
+-border-bottom-width: 0;
+-visibility: hidden;
+-z-index: 100;
+-}
+-
+-.ddsubmenustyle li a{
+-display: block;
+-width: 180px; /*width of menu (not including side paddings)*/
+-color: black;
+-background-color: lightyellow;
+-text-decoration: none;
+-padding: 4px 5px;
+-border-bottom: 1px solid black;
+-}
+-
+-* html .ddsubmenustyle li{ /*IE6 CSS hack*/
+-display: inline-block;
+-width: 190px; /*width of menu (include side paddings of LI A*/
+-}
+-
+-.ddsubmenustyle li a:hover{
+-background-color: black;
+-color: white;
+-}
+-
+-/* ######### Neutral CSS  ######### */
+-
+-.downarrowpointer{ /*CSS for &quot;down&quot; arrow image added to top menu items*/
+-padding-left: 4px;
+-border: 0;
+-}
+-
+-.rightarrowpointer{ /*CSS for &quot;right&quot; arrow image added to drop down menu items*/
+-position: absolute;
+-padding-top: 3px;
+-left: 100px;
+-border: 0;
+-}
+-
+-.ddiframeshim{
+-position: absolute;
+-z-index: 500;
+-background: transparent;
+-border-width: 0;
+-width: 0;
+-height: 0;
+-display: block;
+-}
+\ No newline at end of file
+
+Deleted: trunk/doc/ddlevelsfiles/ddlevelsmenu-sidebar.css
+===================================================================
+--- trunk/doc/ddlevelsfiles/ddlevelsmenu-sidebar.css	2009-10-19 04:39:39 UTC (rev 487)
++++ trunk/doc/ddlevelsfiles/ddlevelsmenu-sidebar.css	2009-10-19 21:03:56 UTC (rev 488)
+@@ -1,94 +0,0 @@
+-/* ######### Marker List Vertical Menu ######### */
+-
+-.markermenu{
+-width: 165px; /*width of side bar menu*/
+-clear: left;
+-position: relative; /*Preserve this for &quot;right&quot; arrow images (added by script) to be positioned correctly*/
+-
+-}
+-
+-.markermenu ul{
+-list-style-type: none;
+-margin: 5px 0;
+-padding: 0;
+-border: 1px solid #9A9A9A;
+-}
+-
+-.markermenu ul li a{
+-background: #F2F2F2; /*light gray background*/
+-font: bold 12px &quot;Lucida Grande&quot;, &quot;Trebuchet MS&quot;, Verdana, Helvetica, sans-serif;
+-color: #00014e;
+-display: block;
+-width: auto;
+-padding: 2px 0;
+-padding-left: 5px;
+-text-decoration: none;
+-border-bottom: 1px solid #B5B5B5;
+-}
+-
+-.markermenu ul li a.current{
+-font: bold 12px &quot;Lucida Grande&quot;, &quot;Trebuchet MS&quot;, Verdana, Helvetica, sans-serif;
+-display: block;
+-width: auto;
+-padding: 2px 0;
+-padding-left: 5px;
+-text-decoration: none;
+-text-align: left;
+-border-bottom: 1px solid #B5B5B5;
+-background: #FFCC33;
+-color: 00014e;
+-}
+-
+-.markermenu ul li.sep{
+-font: bold 12px &quot;Lucida Grande&quot;, &quot;Trebuchet MS&quot;, Verdana, Helvetica, sans-serif;
+-display: block;
+-width: auto;
+-padding: 2px 0;
+-padding-right: 5px;
+-text-decoration: none;
+-text-align: center;
+-border-bottom: 1px solid #B5B5B5;
+-background: #0B0C79;
+-color: white;
+-}
+-
+-.markermenu ul li.current{
+-font: bold 12px &quot;Lucida Grande&quot;, &quot;Trebuchet MS&quot;, Verdana, Helvetica, sans-serif;
+-display: block;
+-width: auto;
+-padding: 2px 0;
+-padding-left: 5px;
+-text-decoration: none;
+-text-align: left;
+-border-bottom: 1px solid #B5B5B5;
+-background: #FFCC33;
+-color: 00014e;
+-}
+-
+-* html .markermenu ul li a{ /*IE6 hack*/
+-width: 155px;
+-}
+-
+-.markermenu ul li a:visited, .markermenu ul li a:active{
+-color: #00014e;
+-}
+-
+-.markermenu ul li a:hover, .markermenu ul li a.selected{
+-/* color: white; */
+-/* background-color: black; */
+-/* save   ##### */
+-background: #FFCC33;
+-color: 00014e;
+-}
+-
+-/* ######### Customized Drop Down ULs CSS (inherits from ddlevelsmenu-base.css) ######### */
+-
+-.blackwhite li a{
+-background: #F2F2F2;
+-}
+-
+-.blackwhite li a:hover{
+-background: #FFCC33;
+-color: 00014e;
+-
+-}
+
+Deleted: trunk/doc/ddlevelsfiles/ddlevelsmenu-topbar.css
+===================================================================
+--- trunk/doc/ddlevelsfiles/ddlevelsmenu-topbar.css	2009-10-19 04:39:39 UTC (rev 487)
++++ trunk/doc/ddlevelsfiles/ddlevelsmenu-topbar.css	2009-10-19 21:03:56 UTC (rev 488)
+@@ -1,40 +0,0 @@
+-/* ######### Matt Black Strip Main Menu Bar CSS ######### */
+-
+-.mattblackmenu ul{
+-margin: 0;
+-padding: 0;
+-font: bold 12px Verdana;
+-list-style-type: none;
+-border-bottom: 1px solid gray;
+-background: #414141;
+-overflow: hidden;
+-width: 100%;
+-}
+-
+-.mattblackmenu li{
+-display: inline;
+-margin: 0;
+-}
+-
+-.mattblackmenu li a{
+-float: left;
+-display: block;
+-text-decoration: none;
+-margin: 0;
+-padding: 6px 8px; /*padding inside each tab*/
+-border-right: 1px solid white; /*right divider between tabs*/
+-color: white;
+-background: #414141;
+-}
+-
+-.mattblackmenu li a:visited{
+-color: white;
+-}
+-
+-.mattblackmenu li a:hover{
+-background: black; /*background of tabs for hover state */
+-}
+-
+-.mattblackmenu a.selected{
+-background: black; /*background of tab with &quot;selected&quot; class assigned to its LI */
+-}
+\ No newline at end of file
+
+Deleted: trunk/doc/ddlevelsfiles/ddlevelsmenu.js
+===================================================================
+--- trunk/doc/ddlevelsfiles/ddlevelsmenu.js	2009-10-19 04:39:39 UTC (rev 487)
++++ trunk/doc/ddlevelsfiles/ddlevelsmenu.js	2009-10-19 21:03:56 UTC (rev 488)
+@@ -1,387 +0,0 @@
+-//** All Levels Navigational Menu- (c) Dynamic Drive DHTML code library: <A HREF="http://www.dynamicdrive.com">http://www.dynamicdrive.com</A>
+-//** Script Download/ instructions page: <A HREF="http://www.dynamicdrive.com/dynamicindex1/ddlevelsmenu/">http://www.dynamicdrive.com/dynamicindex1/ddlevelsmenu/</A>
+-//** Usage Terms: <A HREF="http://www.dynamicdrive.com/notice.htm">http://www.dynamicdrive.com/notice.htm</A>
+-
+-//** Current version: 2.2 See changelog.txt for details
+-
+-if (typeof dd_domreadycheck==&quot;undefined&quot;) //global variable to detect if DOM is ready
+-	var dd_domreadycheck=false
+-
+-var ddlevelsmenu={
+-
+-enableshim: true, //enable IFRAME shim to prevent drop down menus from being hidden below SELECT or FLASH elements? (tip: disable if not in use, for efficiency)
+-
+-arrowpointers:{
+-	downarrow: [&quot;ddlevelsfiles/arrow-down.gif&quot;, 11,7], //[path_to_down_arrow, arrowwidth, arrowheight]
+-	rightarrow: [&quot;ddlevelsfiles/arrow-right.gif&quot;, 12,12], //[path_to_right_arrow, arrowwidth, arrowheight]
+-	showarrow: {toplevel: true, sublevel: true} //Show arrow images on top level items and sub level items, respectively?
+-},
+-hideinterval: 0, //delay in milliseconds before entire menu disappears onmouseout.
+-effects: {enableswipe: false, enablefade: false, duration: 200},
+-httpsiframesrc: &quot;blank.htm&quot;, //If menu is run on a secure (https) page, the IFRAME shim feature used by the script should point to an *blank* page *within* the secure area to prevent an IE security prompt. Specify full URL to that page on your server (leave as is if not applicable).
+-
+-///No need to edit beyond here////////////////////
+-
+-topmenuids: [], //array containing ids of all the primary menus on the page
+-topitems: {}, //object array containing all top menu item links
+-subuls: {}, //object array containing all ULs
+-lastactivesubul: {}, //object object containing info for last mouse out menu item's UL
+-topitemsindex: -1,
+-ulindex: -1,
+-hidetimers: {}, //object array timer
+-shimadded: false,
+-nonFF: !/Firefox[\/\s](\d+\.\d+)/.test(navigator.userAgent), //detect non FF browsers
+-getoffset:function(what, offsettype){
+-	return (what.offsetParent)? what[offsettype]+this.getoffset(what.offsetParent, offsettype) : what[offsettype]
+-},
+-
+-getoffsetof:function(el){
+-	el._offsets={left:this.getoffset(el, &quot;offsetLeft&quot;), top:this.getoffset(el, &quot;offsetTop&quot;)}
+-},
+-
+-getwindowsize:function(){
+-	this.docwidth=window.innerWidth? window.innerWidth-10 : this.standardbody.clientWidth-10
+-	this.docheight=window.innerHeight? window.innerHeight-15 : this.standardbody.clientHeight-18
+-},
+-
+-gettopitemsdimensions:function(){
+-	for (var m=0; m&lt;this.topmenuids.length; m++){
+-		var topmenuid=this.topmenuids[m]
+-		for (var i=0; i&lt;this.topitems[topmenuid].length; i++){
+-			var header=this.topitems[topmenuid][i]
+-			var submenu=document.getElementById(header.getAttribute('rel'))
+-			header._dimensions={w:header.offsetWidth, h:header.offsetHeight, submenuw:submenu.offsetWidth, submenuh:submenu.offsetHeight}
+-		}
+-	}
+-},
+-
+-isContained:function(m, e){
+-	var e=window.event || e
+-	var c=e.relatedTarget || ((e.type==&quot;mouseover&quot;)? e.fromElement : e.toElement)
+-	while (c &amp;&amp; c!=m)try {c=c.parentNode} catch(e){c=m}
+-	if (c==m)
+-		return true
+-	else
+-		return false
+-},
+-
+-addpointer:function(target, imgclass, imginfo, BeforeorAfter){
+-	var pointer=document.createElement(&quot;img&quot;)
+-	pointer.src=imginfo[0]
+-	pointer.style.width=imginfo[1]+&quot;px&quot;
+-	pointer.style.height=imginfo[2]+&quot;px&quot;
+-	if(imgclass==&quot;rightarrowpointer&quot;){
+-		pointer.style.left=target.offsetWidth-imginfo[2]-2+&quot;px&quot;
+-	}
+-	pointer.className=imgclass
+-	var target_firstEl=target.childNodes[target.firstChild.nodeType!=1? 1 : 0] //see if the first child element within A is a SPAN (found in sliding doors technique)
+-	if (target_firstEl &amp;&amp; target_firstEl.tagName==&quot;SPAN&quot;){
+-		target=target_firstEl //arrow should be added inside this SPAN instead if found
+-	}
+-	if (BeforeorAfter==&quot;before&quot;)
+-		target.insertBefore(pointer, target.firstChild)
+-	else
+-		target.appendChild(pointer)
+-},
+-
+-css:function(el, targetclass, action){
+-	var needle=new RegExp(&quot;(^|\\s+)&quot;+targetclass+&quot;($|\\s+)&quot;, &quot;ig&quot;)
+-	if (action==&quot;check&quot;)
+-		return needle.test(el.className)
+-	else if (action==&quot;remove&quot;)
+-		el.className=el.className.replace(needle, &quot;&quot;)
+-	else if (action==&quot;add&quot; &amp;&amp; !needle.test(el.className))
+-		el.className+=&quot; &quot;+targetclass
+-},
+-
+-addshimmy:function(target){
+-	var shim=(!window.opera)? document.createElement(&quot;iframe&quot;) : document.createElement(&quot;div&quot;) //Opera 9.24 doesnt seem to support transparent IFRAMEs
+-	shim.className=&quot;ddiframeshim&quot;
+-	shim.setAttribute(&quot;src&quot;, location.protocol==&quot;https:&quot;? this.httpsiframesrc : &quot;about:blank&quot;)
+-	shim.setAttribute(&quot;frameborder&quot;, &quot;0&quot;)
+-	target.appendChild(shim)
+-	try{
+-		shim.style.filter='progid:DXImageTransform.Microsoft.Alpha(style=0,opacity=0)'
+-	}
+-	catch(e){}
+-	return shim
+-},
+-
+-positionshim:function(header, submenu, dir, scrollX, scrollY){
+-	if (header._istoplevel){
+-		var scrollY=window.pageYOffset? window.pageYOffset : this.standardbody.scrollTop
+-		var topgap=header._offsets.top-scrollY
+-		var bottomgap=scrollY+this.docheight-header._offsets.top-header._dimensions.h
+-		if (topgap&gt;0){
+-			this.shimmy.topshim.style.left=scrollX+&quot;px&quot;
+-			this.shimmy.topshim.style.top=scrollY+&quot;px&quot;
+-			this.shimmy.topshim.style.width=&quot;99%&quot;
+-			this.shimmy.topshim.style.height=topgap+&quot;px&quot; //distance from top window edge to top of menu item
+-		}
+-		if (bottomgap&gt;0){
+-			this.shimmy.bottomshim.style.left=scrollX+&quot;px&quot;
+-			this.shimmy.bottomshim.style.top=header._offsets.top + header._dimensions.h +&quot;px&quot;
+-			this.shimmy.bottomshim.style.width=&quot;99%&quot;
+-			this.shimmy.bottomshim.style.height=bottomgap+&quot;px&quot; //distance from bottom of menu item to bottom window edge
+-		}
+-	}
+-},
+-
+-hideshim:function(){
+-	this.shimmy.topshim.style.width=this.shimmy.bottomshim.style.width=0
+-	this.shimmy.topshim.style.height=this.shimmy.bottomshim.style.height=0
+-},
+-
+-
+-buildmenu:function(mainmenuid, header, submenu, submenupos, istoplevel, dir){
+-	header._master=mainmenuid //Indicate which top menu this header is associated with
+-	header._pos=submenupos //Indicate pos of sub menu this header is associated with
+-	header._istoplevel=istoplevel
+-	if (istoplevel){
+-		this.addEvent(header, function(e){
+-		ddlevelsmenu.hidemenu(ddlevelsmenu.subuls[this._master][parseInt(this._pos)])
+-		}, &quot;click&quot;)
+-	}
+-	this.subuls[mainmenuid][submenupos]=submenu
+-	header._dimensions={w:header.offsetWidth, h:header.offsetHeight, submenuw:submenu.offsetWidth, submenuh:submenu.offsetHeight}
+-	this.getoffsetof(header)
+-	submenu.style.left=0
+-	submenu.style.top=0
+-	submenu.style.visibility=&quot;hidden&quot;
+-	this.addEvent(header, function(e){ //mouseover event
+-		if (!ddlevelsmenu.isContained(this, e)){
+-			var submenu=ddlevelsmenu.subuls[this._master][parseInt(this._pos)]
+-			if (this._istoplevel){
+-				ddlevelsmenu.css(this, &quot;selected&quot;, &quot;add&quot;)
+-			clearTimeout(ddlevelsmenu.hidetimers[this._master][this._pos])
+-			}
+-			ddlevelsmenu.getoffsetof(header)
+-			var scrollX=window.pageXOffset? window.pageXOffset : ddlevelsmenu.standardbody.scrollLeft
+-			var scrollY=window.pageYOffset? window.pageYOffset : ddlevelsmenu.standardbody.scrollTop
+-			var submenurightedge=this._offsets.left + this._dimensions.submenuw + (this._istoplevel &amp;&amp; dir==&quot;topbar&quot;? 0 : this._dimensions.w)
+-			var submenubottomedge=this._offsets.top + this._dimensions.submenuh
+-			//Sub menu starting left position
+-			var menuleft=(this._istoplevel? this._offsets.left + (dir==&quot;sidebar&quot;? this._dimensions.w : 0) : this._dimensions.w)
+-			if (submenurightedge-scrollX&gt;ddlevelsmenu.docwidth){
+-				menuleft+= -this._dimensions.submenuw + (this._istoplevel &amp;&amp; dir==&quot;topbar&quot; ? this._dimensions.w : -this._dimensions.w)
+-			}
+-			submenu.style.left=menuleft+&quot;px&quot;
+-			//Sub menu starting top position
+-			var menutop=(this._istoplevel? this._offsets.top + (dir==&quot;sidebar&quot;? 0 : this._dimensions.h) : this.offsetTop)
+-			if (submenubottomedge-scrollY&gt;ddlevelsmenu.docheight){ //no room downwards?
+-				if (this._dimensions.submenuh&lt;this._offsets.top+(dir==&quot;sidebar&quot;? this._dimensions.h : 0)-scrollY){ //move up?
+-					menutop+= - this._dimensions.submenuh + (this._istoplevel &amp;&amp; dir==&quot;topbar&quot;? -this._dimensions.h : this._dimensions.h)
+-				}
+-				else{ //top of window edge
+-					menutop+= -(this._offsets.top-scrollY) + (this._istoplevel &amp;&amp; dir==&quot;topbar&quot;? -this._dimensions.h : 0)
+-				}
+-			}
+-			submenu.style.top=menutop+&quot;px&quot;
+-			if (ddlevelsmenu.enableshim &amp;&amp; (ddlevelsmenu.effects.enableswipe==false || ddlevelsmenu.nonFF)){ //apply shim immediately only if animation is turned off, or if on, in non FF2.x browsers
+-				ddlevelsmenu.positionshim(header, submenu, dir, scrollX, scrollY)
+-			}
+-			else{
+-				submenu.FFscrollInfo={x:scrollX, y:scrollY}
+-			}
+-			ddlevelsmenu.showmenu(header, submenu, dir)
+-		}
+-	}, &quot;mouseover&quot;)
+-	this.addEvent(header, function(e){ //mouseout event
+-		var submenu=ddlevelsmenu.subuls[this._master][parseInt(this._pos)]
+-		if (this._istoplevel){
+-			if (!ddlevelsmenu.isContained(this, e) &amp;&amp; !ddlevelsmenu.isContained(submenu, e)) //hide drop down ul if mouse moves out of menu bar item but not into drop down ul itself
+-				ddlevelsmenu.hidemenu(submenu)
+-		}
+-		else if (!this._istoplevel &amp;&amp; !ddlevelsmenu.isContained(this, e)){
+-			ddlevelsmenu.hidemenu(submenu)
+-		}
+-
+-	}, &quot;mouseout&quot;)
+-},
+-
+-setopacity:function(el, value){
+-	el.style.opacity=value
+-	if (typeof el.style.opacity!=&quot;string&quot;){ //if it's not a string (ie: number instead), it means property not supported
+-		el.style.MozOpacity=value
+-		if (el.filters){
+-			el.style.filter=&quot;progid:DXImageTransform.Microsoft.alpha(opacity=&quot;+ value*100 +&quot;)&quot;
+-		}
+-	}
+-},
+-
+-showmenu:function(header, submenu, dir){
+-	if (this.effects.enableswipe || this.effects.enablefade){
+-		if (this.effects.enableswipe){
+-			var endpoint=(header._istoplevel &amp;&amp; dir==&quot;topbar&quot;)? header._dimensions.submenuh : header._dimensions.submenuw
+-			submenu.style.width=submenu.style.height=0
+-			submenu.style.overflow=&quot;hidden&quot;
+-		}
+-		if (this.effects.enablefade){
+-			this.setopacity(submenu, 0) //set opacity to 0 so menu appears hidden initially
+-		}
+-		submenu._curanimatedegree=0
+-		submenu.style.visibility=&quot;visible&quot;
+-		clearInterval(submenu._animatetimer)
+-		submenu._starttime=new Date().getTime() //get time just before animation is run
+-		submenu._animatetimer=setInterval(function(){ddlevelsmenu.revealmenu(header, submenu, endpoint, dir)}, 10)
+-	}
+-	else{
+-		submenu.style.visibility=&quot;visible&quot;
+-	}
+-},
+-
+-revealmenu:function(header, submenu, endpoint, dir){
+-	var elapsed=new Date().getTime()-submenu._starttime //get time animation has run
+-	if (elapsed&lt;this.effects.duration){
+-		if (this.effects.enableswipe){
+-			if (submenu._curanimatedegree==0){ //reset either width or height of sub menu to &quot;auto&quot; when animation begins
+-				submenu.style[header._istoplevel &amp;&amp; dir==&quot;topbar&quot;? &quot;width&quot; : &quot;height&quot;]=&quot;auto&quot;
+-			}
+-			submenu.style[header._istoplevel &amp;&amp; dir==&quot;topbar&quot;? &quot;height&quot; : &quot;width&quot;]=(submenu._curanimatedegree*endpoint)+&quot;px&quot;
+-		}
+-		if (this.effects.enablefade){
+-			this.setopacity(submenu, submenu._curanimatedegree)
+-		}
+-	}
+-	else{
+-		clearInterval(submenu._animatetimer)
+-		if (this.effects.enableswipe){
+-			submenu.style.width=&quot;auto&quot;
+-			submenu.style.height=&quot;auto&quot;
+-			submenu.style.overflow=&quot;visible&quot;
+-		}
+-		if (this.effects.enablefade){
+-			this.setopacity(submenu, 1)
+-			submenu.style.filter=&quot;&quot;
+-		}
+-		if (this.enableshim &amp;&amp; submenu.FFscrollInfo) //if this is FF browser (meaning shim hasn't been applied yet
+-			this.positionshim(header, submenu, dir, submenu.FFscrollInfo.x, submenu.FFscrollInfo.y)
+-	}
+-	submenu._curanimatedegree=(1-Math.cos((elapsed/this.effects.duration)*Math.PI)) / 2
+-},
+-
+-hidemenu:function(submenu){
+-	if (typeof submenu._pos!=&quot;undefined&quot;){ //if submenu is outermost UL drop down menu
+-		this.css(this.topitems[submenu._master][parseInt(submenu._pos)], &quot;selected&quot;, &quot;remove&quot;)
+-		if (this.enableshim)
+-			this.hideshim()
+-	}
+-	clearInterval(submenu._animatetimer)
+-	submenu.style.left=0
+-	submenu.style.top=&quot;-1000px&quot;
+-	submenu.style.visibility=&quot;hidden&quot;
+-},
+-
+-
+-addEvent:function(target, functionref, tasktype) {
+-	if (target.addEventListener)
+-		target.addEventListener(tasktype, functionref, false);
+-	else if (target.attachEvent)
+-		target.attachEvent('on'+tasktype, function(){return functionref.call(target, window.event)});
+-},
+-
+-domready:function(functionref){ //based on code from the jQuery library
+-	if (dd_domreadycheck){
+-		functionref()
+-		return
+-	}
+-	// Mozilla, Opera and webkit nightlies currently support this event
+-	if (document.addEventListener) {
+-		// Use the handy event callback
+-		document.addEventListener(&quot;DOMContentLoaded&quot;, function(){
+-			document.removeEventListener(&quot;DOMContentLoaded&quot;, arguments.callee, false )
+-			functionref();
+-			dd_domreadycheck=true
+-		}, false )
+-	}
+-	else if (document.attachEvent){
+-		// If IE and not an iframe
+-		// continually check to see if the document is ready
+-		if ( document.documentElement.doScroll &amp;&amp; window == window.top) (function(){
+-			if (dd_domreadycheck){
+-				functionref()
+-				return
+-			}
+-			try{
+-				// If IE is used, use the trick by Diego Perini
+-				// <A HREF="http://javascript.nwbox.com/IEContentLoaded/">http://javascript.nwbox.com/IEContentLoaded/</A>
+-				document.documentElement.doScroll(&quot;left&quot;)
+-			}catch(error){
+-				setTimeout( arguments.callee, 0)
+-				return;
+-			}
+-			//and execute any waiting functions
+-			functionref();
+-			dd_domreadycheck=true
+-		})();
+-	}
+-	if (document.attachEvent &amp;&amp; parent.length&gt;0) //account for page being in IFRAME, in which above doesn't fire in IE
+-		this.addEvent(window, function(){functionref()}, &quot;load&quot;);
+-},
+-
+-
+-init:function(mainmenuid, dir){
+-	this.standardbody=(document.compatMode==&quot;CSS1Compat&quot;)? document.documentElement : document.body
+-	this.topitemsindex=-1
+-	this.ulindex=-1
+-	this.topmenuids.push(mainmenuid)
+-	this.topitems[mainmenuid]=[] //declare array on object
+-	this.subuls[mainmenuid]=[] //declare array on object
+-	this.hidetimers[mainmenuid]=[] //declare hide entire menu timer
+-	if (this.enableshim &amp;&amp; !this.shimadded){
+-		this.shimmy={}
+-		this.shimmy.topshim=this.addshimmy(document.body) //create top iframe shim obj
+-		this.shimmy.bottomshim=this.addshimmy(document.body) //create bottom iframe shim obj
+-		this.shimadded=true
+-	}
+-	var menubar=document.getElementById(mainmenuid)
+-	var alllinks=menubar.getElementsByTagName(&quot;a&quot;)
+-	this.getwindowsize()
+-	for (var i=0; i&lt;alllinks.length; i++){
+-		if (alllinks[i].getAttribute('rel')){
+-			this.topitemsindex++
+-			this.ulindex++
+-			var menuitem=alllinks[i]
+-			this.topitems[mainmenuid][this.topitemsindex]=menuitem //store ref to main menu links
+-			var dropul=document.getElementById(menuitem.getAttribute('rel'))
+-			document.body.appendChild(dropul) //move main ULs to end of document
+-			dropul.style.zIndex=2000 //give drop down menus a high z-index
+-			dropul._master=mainmenuid  //Indicate which main menu this main UL is associated with
+-			dropul._pos=this.topitemsindex //Indicate which main menu item this main UL is associated with
+-			this.addEvent(dropul, function(){ddlevelsmenu.hidemenu(this)}, &quot;click&quot;)
+-			var arrowclass=(dir==&quot;sidebar&quot;)? &quot;rightarrowpointer&quot; : &quot;downarrowpointer&quot;
+-			var arrowpointer=(dir==&quot;sidebar&quot;)? this.arrowpointers.rightarrow : this.arrowpointers.downarrow
+-			if (this.arrowpointers.showarrow.toplevel)
+-				this.addpointer(menuitem, arrowclass, arrowpointer, (dir==&quot;sidebar&quot;)? &quot;before&quot; : &quot;after&quot;)
+-			this.buildmenu(mainmenuid, menuitem, dropul, this.ulindex, true, dir) //build top level menu
+-			dropul.onmouseover=function(){
+-				clearTimeout(ddlevelsmenu.hidetimers[this._master][this._pos])
+-			}
+-			this.addEvent(dropul, function(e){ //hide menu if mouse moves out of main UL element into open space
+-				if (!ddlevelsmenu.isContained(this, e) &amp;&amp; !ddlevelsmenu.isContained(ddlevelsmenu.topitems[this._master][parseInt(this._pos)], e)){
+-					var dropul=this
+-					if (ddlevelsmenu.enableshim)
+-						ddlevelsmenu.hideshim()
+-					ddlevelsmenu.hidetimers[this._master][this._pos]=setTimeout(function(){
+-						ddlevelsmenu.hidemenu(dropul)
+-					}, ddlevelsmenu.hideinterval)
+-				}
+-			}, &quot;mouseout&quot;)
+-			var subuls=dropul.getElementsByTagName(&quot;ul&quot;)
+-			for (var c=0; c&lt;subuls.length; c++){
+-				this.ulindex++
+-				var parentli=subuls[c].parentNode
+-				if (this.arrowpointers.showarrow.sublevel)
+-					this.addpointer(parentli.getElementsByTagName(&quot;a&quot;)[0], &quot;rightarrowpointer&quot;, this.arrowpointers.rightarrow, &quot;before&quot;)
+-				this.buildmenu(mainmenuid, parentli, subuls[c], this.ulindex, false, dir) //build sub level menus
+-			}
+-		}
+-	} //end for loop
+-	this.addEvent(window, function(){ddlevelsmenu.getwindowsize(); ddlevelsmenu.gettopitemsdimensions()}, &quot;resize&quot;)
+-},
+-
+-setup:function(mainmenuid, dir){
+-	this.domready(function(){ddlevelsmenu.init(mainmenuid, dir)})
+-}
+-
+-}
+\ No newline at end of file
+
+Deleted: trunk/doc/ddlevelsfiles/index.htm
+===================================================================
+
+Modified: trunk/doc/docdata.lua
+===================================================================
+--- trunk/doc/docdata.lua	2009-10-19 04:39:39 UTC (rev 487)
++++ trunk/doc/docdata.lua	2009-10-19 21:03:56 UTC (rev 488)
+@@ -193,6 +193,7 @@
+ local fixed = 
+ {
+   &quot;style1.css&quot;,
++  &quot;menu.css&quot;,
+   &quot;images/&quot;,
+   &quot;ddlevelsfiles/&quot;
+ }
+
+Added: trunk/doc/menu.css
+===================================================================
+--- trunk/doc/menu.css	2009-10-19 04:39:39 UTC (rev 487)
++++ trunk/doc/menu.css	2009-10-19 21:03:56 UTC (rev 488)
+@@ -0,0 +1,133 @@
++.rightarrowpointer {
++  border:0 none;
++  left: 149px;
++  width: 12px;
++  height: 12px;
++  padding-top: 3px;
++  position: absolute;
++}
++
++#nav {
++  font: bold 12px &quot;Lucida Grande&quot;, &quot;Trebuchet MS&quot;, Verdana, Helvetica, sans-serif;
++  float: left;
++  margin-left: 8px;
++  padding-top: 5px;
++}
++
++#nav ul { /* all lists */
++	padding: 0;
++  margin: 0;
++  margin-top: 5px;
++  margin-bottom: 10px;
++	list-style: none;
++	float : left;
++	border: 1px solid #9A9A9A;
++	width: 164px;
++}
++
++#nav li { /* all list items */
++	position : relative;
++	float : left;
++	line-height : 1.25em;
++	background: #F2F2F2; /*light gray background*/
++	width: 164px;
++}
++
++#nav li ul { /* second-level lists */
++  font-size:11px;
++  font-weight:normal;
++  color: black;
++  border-color:black;
++  border-style:solid;
++	position : absolute;
++	left: -999em;
++	margin-top : -21px;
++	margin-left: 164px;
++}
++#nav li ul a { /* second-level lists */
++  padding:4px 5px;
++  color: black;
++}
++
++#nav li ul ul { /* third-and-above-level lists */
++	left: -999em;
++}
++
++#nav li ul ul ul, #nav li ul ul ul li  { /* third-and-above-level lists */
++	width: 200px;
++}
++
++#nav li ul ul ul li ul  {
++	margin-left: 200px;
++}
++
++#nav li ul ul ul .rightarrowpointer  { /* third-and-above-level lists */
++	left: 185px;
++}
++
++#nav li a {
++  display: block;
++  width: auto;
++  color: #00014e;
++  padding: 2px 0;
++  padding-left: 5px;
++  text-decoration: none;
++  border-bottom: 1px solid #B5B5B5;
++}
++
++#nav li a.current{
++  text-decoration: none;
++  text-align: left;
++  background: #FFCC33;
++  color: #00014e;
++}
++
++#nav ul li.sep {
++  padding: 2px 0;
++  text-decoration: none;
++  text-align: center;
++  border-bottom: 1px solid #B5B5B5;
++  background: #0B0C79;
++  color: white;
++}
++
++#nav ul li.current{
++  padding: 2px 0;
++  padding-left: 5px;
++  width: 159px;
++  text-decoration: none;
++  text-align: left;
++  border-bottom: 1px solid #B5B5B5;
++  background: #FFCC33;
++  color: #00014e;
++}
++
++#nav li a:hover {
++	color : white;
++	background-color : black;
++}
++
++#nav ul li a:visited, #nav ul li a:active{
++color: #00014e;
++}
++
++#nav li ul a:visited, #nav li ul a:active{
++color: black;
++}
++
++#nav li:hover ul ul, #nav li:hover ul ul ul, #nav li.sfhover ul ul, #nav li.sfhover ul ul ul {
++	left: -999em;
++}
++
++#nav li:hover ul, #nav li li:hover ul, #nav li li li:hover ul, #nav li.sfhover ul, #nav li li.sfhover ul, #nav li li li.sfhover ul { /* lists nested under hovered list items */
++	left: auto;
++}
++
++#nav li a:hover, #nav li a.selected{
++/* color: white; */
++/* background-color: black; */
++/* save   ##### */
++background: #FFCC33;
++color: 00014e;
++}
++
+
+Modified: trunk/doc/style1.css
+===================================================================
+--- trunk/doc/style1.css	2009-10-19 04:39:39 UTC (rev 487)
++++ trunk/doc/style1.css	2009-10-19 21:03:56 UTC (rev 488)
+@@ -43,7 +43,7 @@
+ margin-left:10px;
+ }
+ 
+-#nav {
++#nav, #menu {
+  float: left;
+  width: 170px;
+  margin-left: 8px;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000443.html">[Elua-svn] r487 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000445.html">[Elua-svn] r489 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#444">[ date ]</a>
+              <a href="thread.html#444">[ thread ]</a>
+              <a href="subject.html#444">[ subject ]</a>
+              <a href="author.html#444">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

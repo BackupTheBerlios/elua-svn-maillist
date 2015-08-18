@@ -1,0 +1,299 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r919 - in branches/pre0.8: . doc doc/eluadoc doc/en	src/lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r919%20-%20in%20branches/pre0.8%3A%20.%20doc%20doc/eluadoc%20doc/en%0A%09src/lua&In-Reply-To=%3C20110131165445.5656B48102F%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000871.html">
+   <LINK REL="Next"  HREF="000873.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r919 - in branches/pre0.8: . doc doc/eluadoc doc/en	src/lua</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r919%20-%20in%20branches/pre0.8%3A%20.%20doc%20doc/eluadoc%20doc/en%0A%09src/lua&In-Reply-To=%3C20110131165445.5656B48102F%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r919 - in branches/pre0.8: . doc doc/eluadoc doc/en	src/lua">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Jan 31 17:54:45 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000871.html">[Elua-svn] r918 - in branches/pre0.8: . doc doc/en
+</A></li>
+        <LI>Next message: <A HREF="000873.html">[Elua-svn] r920 - in branches/pre0.8: . doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#872">[ date ]</a>
+              <a href="thread.html#872">[ thread ]</a>
+              <a href="subject.html#872">[ subject ]</a>
+              <a href="author.html#872">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-01-31 17:54:44 +0100 (Mon, 31 Jan 2011)
+New Revision: 919
+
+Added:
+   branches/pre0.8/doc/eluadoc/arch_platform_i2c.lua
+Modified:
+   branches/pre0.8/CHANGELOG
+   branches/pre0.8/doc/eluadoc.lua
+   branches/pre0.8/doc/en/linenoise.txt
+   branches/pre0.8/doc/en/news.txt
+   branches/pre0.8/src/lua/luaconf.h
+Log:
+documentation updates; RFS added as a search path for Lua modules
+
+Modified: branches/pre0.8/CHANGELOG
+===================================================================
+--- branches/pre0.8/CHANGELOG	2011-01-31 14:38:10 UTC (rev 918)
++++ branches/pre0.8/CHANGELOG	2011-01-31 16:54:44 UTC (rev 919)
+@@ -1,14 +1,15 @@
+-TODO 01.Feb.2011 Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdanm at egmail.com</A>&gt;
++TODO 01.Feb.2011 Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+             Dado Sutter      &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">dadosutter at gmail.com</A>&gt;
+             James Snyder     &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at gmail.com</A>&gt;
+ 
+   * Official release 0.8
+-  * Added the RFS (RemoTe File System), a new file system which allows sharing
++  * Added the RFS (Remote File System), a new file system which allows sharing
+     a directory on the PC with the eLua board.
+   * Added Lua and C interrupt handlers support.
++  * Added linenoise support (eLua and Lua shell command line history and navigation)
+   * Added generic I2C support and docs
+   * Added hardware flow control and runtime configurable buffers for UARTs.
+-  * Added support for new boards: mbed, EVK-1101, Mizar32, FEZ Panda
++  * Added support for new boards: mbed, EVK-1101, Mizar32, FEZ Panda [TODO], Netduino [TODO]
+   * Added SPI and SD/MMC support for EVK1100 and EVK1101 (AVR32) 
+   * Added I2C support for STR-E912 (STR912) 
+   * Added support for require() and autorun from SD/MMC
+
+Added: branches/pre0.8/doc/eluadoc/arch_platform_i2c.lua
+===================================================================
+--- branches/pre0.8/doc/eluadoc/arch_platform_i2c.lua	                        (rev 0)
++++ branches/pre0.8/doc/eluadoc/arch_platform_i2c.lua	2011-01-31 16:54:44 UTC (rev 919)
+@@ -0,0 +1,104 @@
++-- eLua platform interface - I2C
++-- Make a full description for each language
++
++data_en = 
++{
++  -- Menu name
++  menu_name = &quot;I2C&quot;,
++
++  -- Title
++  title = &quot;eLua platform interface - I2C&quot;,
++
++  -- Overview
++  overview = &quot;This part of the platform interface groups functions related to the I2C interface(s) of the MCU. Currently only the I2C master mode is supported by eLua.&quot;,
++
++  -- Data structures, constants and types
++  structures = 
++  {
++    { text = [[// I2C speed
++enum
++{
++  PLATFORM_I2C_SPEED_SLOW = 100000,
++  PLATFORM_I2C_SPEED_FAST = 400000
++};]],
++      name = &quot;I2C speed&quot;,
++      desc = &quot;Constants used to configure the speed of the I2C interface.&quot;
++    },
++
++    { text = [[// I2C direction
++enum
++{
++  PLATFORM_I2C_DIRECTION_TRANSMITTER,
++  PLATFORM_I2C_DIRECTION_RECEIVER
++};
++]],
++      name = &quot;I2C transfer direction&quot;,
++      desc = &quot;Constants used to select the I2C master transfer direction (transmitter or receiver).&quot;
++    }, 
++
++  },
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;int #platform_i2c_exists#( unsigned id );&quot;,
++      desc = [[Checks if the platform has the hardware I2C specified as argument. Implemented in %src/common.c%, it uses the $NUM_I2C$ macro that must be defined in the
++  platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). For example:&lt;/p&gt;
++  ~#define NUM_I2C   1      $// The platform has one I2C interface$~&lt;p&gt; ]],
++      args = &quot;$id$ - I2C interface ID.&quot;,
++      ret = &quot;1 if the I2C interface exists, 0 otherwise&quot;
++    },
++
++    { sig = &quot;u32 #platform_i2c_setup#( unsigned id, u23 speed );&quot;,
++      desc = [[This function is used to initialize the parameters of the I2C interface. &lt;span class=&quot;warning&quot;&gt;NOTE&lt;/span&gt;: currently, only master I2C mode is implemented in eLua.]],
++      args = 
++      {
++        &quot;$id$ - I2C interface ID.&quot;,
++        &quot;$speed$ - the speed of the interface, can be either $PLATFORM_I2C_SPEED_SLOW$ or $PLATFORM_I2C_SPEED_FAST$ as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">i2c_speed at here</A>@&quot;
++      },
++      ret = &quot;the actual speed set for the I2C interface. Depending on the hardware, this may have a different value than the $speed$ argument.&quot;
++    },
++
++    {  sig = &quot;void #platform_i2c_send_start#( unsigned id );&quot;,
++       desc = &quot;Send an I2C START condition on the specified interface.&quot;,
++       args = &quot;$id$ - I2C interface ID.&quot;
++    },
++
++     { sig = &quot;void #platform_i2c_send_stop#( unsigned id );&quot;,
++       desc = &quot;Send an I2C STOP condition on the specified interface.&quot;,
++       args = &quot;$id$ - I2C interface ID.&quot;
++    },
++   
++    { sig = &quot;int #platform_i2c_send_address#( unsigned id, u16 address, int direction );&quot;,
++      desc = [[Send an address on the I2C with the specified transfer direction (transmitter or receiver).]],
++      args =
++      {
++        &quot;$id$ - I2C interface ID.&quot;,
++        &quot;$address$ - I2C peripheral address.&quot;,
++        &quot;$direction$ - transfer direction, either $PLATFORM_I2C_DIRECTION_TRANSMITTER$ or $PLATFORM_I2C_DIRECTION_RECEIVER$ as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">i2c_transfer_direction at here</A>@.&quot;
++      },
++      ret = &quot;1 for success, 0 for error.&quot;
++    },
++
++    { sig = &quot;int #platform_i2c_send_byte#( unsigned id, u8 data );&quot;,
++      desc = &quot;Send a byte on the I2C interface.&quot;,
++      args = 
++      {
++        &quot;$id$ - I2C interface ID.&quot;,
++        &quot;$data$ - the byte to send.&quot;,
++      },
++      ret = &quot;1 for success, 0 for error.&quot;,
++    },
++
++    { sig = &quot;int #platform_i2c_recv_byte#( unsigned id, int ack );&quot;,
++      desc = &quot;Receive a byte from the I2C interface and send a positive (ACK) or negative (NAK) acknowledgement.&quot;,
++      args =
++      {
++        &quot;$id$ - I2C interface ID.&quot;,
++        &quot;$ack$ - 1 to send ACK, 0 to send NAK. If $ACK$ is 0 a STOP condition will automatically be generated after the NAK.&quot;
++      },
++      ret = &quot;1 for success, 0 for error.&quot;
++    }
++  }
++}
++
+
+Modified: branches/pre0.8/doc/eluadoc.lua
+===================================================================
+--- branches/pre0.8/doc/eluadoc.lua	2011-01-31 14:38:10 UTC (rev 918)
++++ branches/pre0.8/doc/eluadoc.lua	2011-01-31 16:54:44 UTC (rev 919)
+@@ -14,7 +14,7 @@
+ -- List here all the components of each section
+ local components = 
+ { 
+-  arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
++  arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot;, &quot;i2c&quot; },
+   refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot;, &quot;can&quot;, &quot;rpc&quot;, &quot;elua&quot;, &quot;i2c&quot; },
+   refman_ps_lm3s = { &quot;disp&quot; },
+   refman_ps_str9 = { &quot;pio&quot;, &quot;rtc&quot; },
+
+Modified: branches/pre0.8/doc/en/linenoise.txt
+===================================================================
+--- branches/pre0.8/doc/en/linenoise.txt	2011-01-31 14:38:10 UTC (rev 918)
++++ branches/pre0.8/doc/en/linenoise.txt	2011-01-31 16:54:44 UTC (rev 919)
+@@ -19,7 +19,7 @@
+ ANSI terminal support (*BUILD_TERM*), so you need to enable that too. To use it, simply start the Lua interpreter.
+ The table below contains a list of keys that can be used to take advantage of linenoise:
+ 
+-[width=&quot;100%&quot;, cols=&quot;&lt;2,&lt;5&quot;, options=&quot;header&quot;]
++[width=&quot;80%&quot;, cols=&quot;&lt;2,&lt;5&quot;, options=&quot;header&quot;]
+ |=============================================
+ ^| Key(s)                    ^| Action
+ | Left and right              | Move left and right in the current prompt line
+@@ -38,5 +38,9 @@
+ However, you won't be able to save history from the eLua shell. +
+ The reason why this component isn't enabled by default is that it takes RAM (like all good things in eLua :) ) so
+ keep this in mind when deciding if you want it or not.      
++
++IMPORTANT: linenoise support seems to be dependent on the terminal emulator used with eLua on the PC side. It was tested
++(and works properly) with <A HREF="http://www.ayera.com/teraterm/[TeraTerm">http://www.ayera.com/teraterm/[TeraTerm</A>] under Windows and with _screen_ in Linux. Other
++terminal emulators might not work equally well.
+  
+ // $$FOOTER$$
+
+Modified: branches/pre0.8/doc/en/news.txt
+===================================================================
+--- branches/pre0.8/doc/en/news.txt	2011-01-31 14:38:10 UTC (rev 918)
++++ branches/pre0.8/doc/en/news.txt	2011-01-31 16:54:44 UTC (rev 919)
+@@ -5,25 +5,26 @@
+ February 1st, 2011 TODO
+ ~~~~~~~~~~~~~~~~~~~~~~~
+ .eLua v0.8 released
+-We are proud to annunce the release of eLua v0.8! This is the changelog:
++We are proud to annunce the release of eLua v0.8 (codename &quot;FINALLY! It was about time for a new release&quot;). This is the changelog:
+ 
+ * Added the link:arch_rfs.html[RFS] (Remoe File System), a new file system which allows sharing
+   a directory on the PC with the eLua board.
+ * Added Lua and C interrupt handlers support, see link:inthandlers.html[here] for more details.
++* Added <A HREF="https://github.com/antirez/linenoise[linenoise">https://github.com/antirez/linenoise[linenoise</A>] support (eLua and Lua shell command line history and navigation,
++  more details link:linenoise.html[here]).
+ * Added generic link:refman_gen_i2c.html[I2C support and docs]
+ * Added hardware flow control and runtime configurable buffers for link:refman_gen_uart.html[UARTs].
+ * Added support for new boards:  <A HREF="http://mbed.org[mbed">http://mbed.org[mbed</A>], <A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=4175[EVK-1101">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=4175[EVK-1101</A>],
+-      <A HREF="http://code.google.com/p/mizar32[Mizar32">http://code.google.com/p/mizar32[Mizar32</A>], TODO <A HREF="http://www.tinyclr.com/hardware/16/fez-panda[FEZ">http://www.tinyclr.com/hardware/16/fez-panda[FEZ</A> Panda]
++      <A HREF="http://code.google.com/p/mizar32[Mizar32">http://code.google.com/p/mizar32[Mizar32</A>], TODO <A HREF="http://www.tinyclr.com/hardware/16/fez-panda[FEZ">http://www.tinyclr.com/hardware/16/fez-panda[FEZ</A> Panda], [TODO] Netduino
+ * Added SPI and SD/MMC support for EVK1100 and EVK1101 (AVR32) 
+ * Added I2C support for STR-E912 (STR912) 
+ * Added support for require() and autorun from SD/MMC
+ * TODO Added external memory support for STR912
+ * Fixed open files count on closing files
+ * Added long filename support for SD/MMC
+-* Added version() function to elua module
+-* Added RTC (real time clock) platform specific support for str9
++* Added RTC (real time clock) platform specific support for str9 (see the documentation of the _mstr9rtc module).
+ * Added support for new toolchains, which ???? ##TODO
+-* Added support for <A HREF="http://www.methods.co.nz/asciidoc[AsciiDoc">http://www.methods.co.nz/asciidoc[AsciiDoc</A>] in the doc builder
++* Added support for <A HREF="http://www.methods.co.nz/asciidoc[AsciiDoc">http://www.methods.co.nz/asciidoc[AsciiDoc</A>] in the documentation system
+ * Tutorials and new projects added to the <A HREF="http://wiki.eluaproject.net[eLua">http://wiki.eluaproject.net[eLua</A> User Labs wiki]
+ * Demo files were moved out of the distro to <A HREF="http://wiki.eluaproject.net/Projects">http://wiki.eluaproject.net/Projects</A>
+ * Added a link:media.html[media page] with eLua related media on the project site
+
+Modified: branches/pre0.8/src/lua/luaconf.h
+===================================================================
+--- branches/pre0.8/src/lua/luaconf.h	2011-01-31 14:38:10 UTC (rev 918)
++++ branches/pre0.8/src/lua/luaconf.h	2011-01-31 16:54:44 UTC (rev 919)
+@@ -90,7 +90,7 @@
+ //## Modified for eLua
+ //## Defaults search modules path to our ROM File System
+ #ifndef LUA_RPC
+-#define LUA_PATH_DEFAULT &quot;/mmc/?.lua;/mmc/?.lc;/rom/?.lua;/rom/?.lc&quot;
++#define LUA_PATH_DEFAULT &quot;/rfs/?.lua;/rfs/?.lc;/mmc/?.lua;/mmc/?.lc;/rom/?.lua;/rom/?.lc&quot;
+ #else
+ #define LUA_PATH_DEFAULT  \
+ 		&quot;.\\?.lua;&quot;  LUA_LDIR&quot;?.lua;&quot;  LUA_LDIR&quot;?\\init.lua;&quot; \
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000871.html">[Elua-svn] r918 - in branches/pre0.8: . doc doc/en
+</A></li>
+	<LI>Next message: <A HREF="000873.html">[Elua-svn] r920 - in branches/pre0.8: . doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#872">[ date ]</a>
+              <a href="thread.html#872">[ thread ]</a>
+              <a href="subject.html#872">[ subject ]</a>
+              <a href="author.html#872">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

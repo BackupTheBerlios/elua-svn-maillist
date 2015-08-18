@@ -1,0 +1,471 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r510 - trunk/src/platform/lpc24xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r510%20-%20trunk/src/platform/lpc24xx&In-Reply-To=%3C200910311406.n9VE6U5b012343%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000465.html">
+   <LINK REL="Next"  HREF="000467.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r510 - trunk/src/platform/lpc24xx</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r510%20-%20trunk/src/platform/lpc24xx&In-Reply-To=%3C200910311406.n9VE6U5b012343%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r510 - trunk/src/platform/lpc24xx">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Oct 31 15:06:30 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000465.html">[Elua-svn] r509 - branches
+</A></li>
+        <LI>Next message: <A HREF="000467.html">[Elua-svn] r511 - in trunk: . romfs src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#466">[ date ]</a>
+              <a href="thread.html#466">[ thread ]</a>
+              <a href="subject.html#466">[ subject ]</a>
+              <a href="author.html#466">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-10-31 15:06:29 +0100 (Sat, 31 Oct 2009)
+New Revision: 510
+
+Modified:
+   trunk/src/platform/lpc24xx/irq.h
+   trunk/src/platform/lpc24xx/platform.c
+   trunk/src/platform/lpc24xx/platform_conf.h
+   trunk/src/platform/lpc24xx/startup.s
+Log:
+added interrupt support for LPC24xx (and virtual timers to illustrate it :) )
+
+Modified: trunk/src/platform/lpc24xx/irq.h
+===================================================================
+--- trunk/src/platform/lpc24xx/irq.h	2009-10-31 11:45:28 UTC (rev 509)
++++ trunk/src/platform/lpc24xx/irq.h	2009-10-31 14:06:29 UTC (rev 510)
+@@ -68,13 +68,6 @@
+ be handled differently. More details can be found in Philips LPC2000
+ family app-note AN10381 */
+  
+-/* unlike Keil CARM Compiler, in ARM's RealView compiler, don't save and 
+-restore registers into the stack in RVD as the compiler does that for you. 
+-See RVD ARM compiler Inline and embedded assemblers, &quot;Rules for 
+-using __asm and asm keywords. */
+-#define IENABLE __asm { MRS sysreg, SPSR; MSR CPSR_c, #SYS32Mode }
+-#define IDISABLE __asm { MSR CPSR_c, #(IRQ32Mode|I_Bit); MSR SPSR_cxsf, sysreg }
+-
+ void init_VIC( void );
+ DWORD install_irq( DWORD IntNumber, void *HandlerAddr, DWORD Priority );
+ 
+@@ -83,3 +76,4 @@
+ /******************************************************************************
+ **                            End Of File
+ ******************************************************************************/
++
+
+Modified: trunk/src/platform/lpc24xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc24xx/platform.c	2009-10-31 11:45:28 UTC (rev 509)
++++ trunk/src/platform/lpc24xx/platform.c	2009-10-31 14:06:29 UTC (rev 510)
+@@ -20,6 +20,9 @@
+ #include &quot;irq.h&quot;
+ #include &quot;uart.h&quot;
+ 
++extern void enable_ints();
++extern void disable_ints();
++
+ // ****************************************************************************
+ // Platform initialization
+ 
+@@ -236,10 +239,10 @@
+ // ****************************************************************************
+ // Timer section
+ 
+-static const u32 tmr_tcr[ NUM_TIMER ] = { ( u32 )&amp;T0TCR, ( u32 )&amp;T1TCR, ( u32 )&amp;T2TCR, ( u32 )&amp;T3TCR };
+-static const u32 tmr_tc[ NUM_TIMER ] = { ( u32 )&amp;T0TC, ( u32 )&amp;T1TC, ( u32 )&amp;T2TC, ( u32 )&amp;T3TC };
+-static const u32 tmr_pr[ NUM_TIMER ] = { ( u32 )&amp;T0PR, ( u32 )&amp;T1PR, ( u32 )&amp;T2PR, ( u32 )&amp;T3PR };
+-static const u32 tmr_pc[ NUM_TIMER ] = { ( u32 )&amp;T0PC, ( u32 )&amp;T1PC, ( u32 )&amp;T2PC, ( u32 )&amp;T3PC };
++static const u32 tmr_tcr[] = { ( u32 )&amp;T0TCR, ( u32 )&amp;T1TCR, ( u32 )&amp;T2TCR, ( u32 )&amp;T3TCR };
++static const u32 tmr_tc[] = { ( u32 )&amp;T0TC, ( u32 )&amp;T1TC, ( u32 )&amp;T2TC, ( u32 )&amp;T3TC };
++static const u32 tmr_pr[] = { ( u32 )&amp;T0PR, ( u32 )&amp;T1PR, ( u32 )&amp;T2PR, ( u32 )&amp;T3PR };
++static const u32 tmr_pc[] = { ( u32 )&amp;T0PC, ( u32 )&amp;T1PC, ( u32 )&amp;T2PC, ( u32 )&amp;T3PC };
+ 
+ // Timer register definitions
+ enum
+@@ -257,7 +260,7 @@
+ }
+ 
+ // Helper function: set timer clock
+-static u32 platform_timer_set_clock( unsigned id, unsigned clock )
++static u32 platform_timer_set_clock( unsigned id, u32 clock )
+ {
+   u32 div = Fpclk / clock, prevtc;
+   PREG TxPR = ( PREG )tmr_pr[ id ];  
+@@ -272,6 +275,15 @@
+   return Fpclk / div;
+ }
+ 
++#if VTMR_NUM_TIMERS &gt; 0
++static void __attribute__((interrupt (&quot;IRQ&quot;))) tmr_int_handler() 
++{
++  T3IR = 1; // clear interrupt
++  cmn_virtual_timer_cb();
++  VICVectAddr = 0; // ACK interrupt
++}
++#endif
++
+ // Helper function: setup timers
+ static void platform_setup_timers()
+ {
+@@ -279,12 +291,25 @@
+   PREG TxTCR;
+ 
+   // Set base frequency to 1MHz, as we can't use a better resolution anyway
+-  for( i = 0; i &lt; NUM_TIMER; i ++ )
++  for( i = 0; i &lt; 4; i ++ )
+   {
+     TxTCR = ( PREG )tmr_tcr[ i ];
+     *TxTCR = 0;
+-    platform_timer_set_clock( i, 1000000 );
++    platform_timer_set_clock( i, 1000000ULL );
+   }
++#if VTMR_NUM_TIMERS &gt; 0
++  // Setup virtual timers here
++  // Timer 3 is allocated for virtual timers and nothing else in this case
++  T3TCR = TMR_RESET;
++  T3MR0 = 1000000ULL / VTMR_FREQ_HZ - 1;
++  T3IR = 0xFF;
++  // Set interrupt handle and eanble timer interrupt (and global interrupts)
++  T3MCR = 0x03; // interrupt on match with MR0 and clear on match
++  install_irq( TIMER3_INT, tmr_int_handler, HIGHEST_PRIORITY ); 
++  platform_cpu_enable_interrupts(); 
++  // Start timer
++  T3TCR = TMR_ENABLE;
++#endif
+ }
+ 
+ void platform_s_timer_delay( unsigned id, u32 delay_us )
+@@ -335,3 +360,16 @@
+   return res;
+ }
+ 
++// ****************************************************************************
++// CPU functions
++
++void platform_cpu_enable_interrupts()
++{
++  enable_ints();  
++}
++
++void platform_cpu_disable_interrupts()
++{
++  disable_ints();
++}
++
+
+Modified: trunk/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc24xx/platform_conf.h	2009-10-31 11:45:28 UTC (rev 509)
++++ trunk/src/platform/lpc24xx/platform_conf.h	2009-10-31 14:06:29 UTC (rev 510)
+@@ -37,13 +37,14 @@
+   _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+ 
+ // *****************************************************************************
+ // Configuration data
+ 
+ // Virtual timers (0 if not used)
+-#define VTMR_NUM_TIMERS       0
++#define VTMR_NUM_TIMERS       4
+ #define VTMR_FREQ_HZ          4
+ 
+ // Number of resources (0 if not available/not implemented)
+@@ -53,7 +54,12 @@
+ #define NUM_PWM               0
+ #define NUM_ADC               0
+ #define NUM_CAN               0
++// If virtual timers are enabled, the last timer will be used only for them
++#if VTMR_NUM_TIMERS == 0
+ #define NUM_TIMER             4
++#else
++#define NUM_TIMER             3
++#endif
+ 
+ // Enable RX buffering on UART
+ // [TODO] make this happen
+
+Modified: trunk/src/platform/lpc24xx/startup.s
+===================================================================
+--- trunk/src/platform/lpc24xx/startup.s	2009-10-31 11:45:28 UTC (rev 509)
++++ trunk/src/platform/lpc24xx/startup.s	2009-10-31 14:06:29 UTC (rev 510)
+@@ -1,107 +1,127 @@
+-#include &quot;stacks.h&quot;
+-
+-//------------------------------------------------------------------------------
+-//         Definitions
+-//------------------------------------------------------------------------------
+-
+-#define ARM_MODE_ABT     0x17
+-#define ARM_MODE_FIQ     0x11
+-#define ARM_MODE_IRQ     0x12
+-#define ARM_MODE_SVC     0x13
+-
+-#define I_BIT            0x80
+-#define F_BIT            0x40
+-
+-
+-#define RAM_Base         0x40000000
+-#define RAM_Size         0x10000        // [TODO] make this 96k?
+-#define Top_Stack        (RAM_Base + RAM_Size)
+-
+-//------------------------------------------------------------------------------
+-//         Startup routine
+-//------------------------------------------------------------------------------
+-
+-            .align      4
+-            .arm
+-        
+-/* Exception vectors
+- *******************/
+-            .section    .vectors, &quot;a&quot;
+-
+-resetVector:
+-         ldr     pc, =resetHandler       /* Reset */
+-undefVector:
+-         b       undefVector             /* Undefined instruction */
+-swiVector:
+-         b       swiVector               /* Software interrupt */
+-prefetchAbortVector:
+-         b       prefetchAbortVector     /* Prefetch abort */
+-dataAbortVector:
+-         b       dataAbortVector         /* Data abort */
+-reservedVector:
+-         b       reservedVector          /* Reserved for future use */
+-irqVector:
+-         ldr     pc, [pc, #-0x0120]      /* Vector from VicVectAddr */
+-fiqVector:
+-         b       fiqVector               /* Fast interrupt */
+-
+-//------------------------------------------------------------------------------
+-/// Initializes the chip and branches to the main() function.
+-//------------------------------------------------------------------------------
+-            .section    .text
+-            .global     entry
+-            .extern     main
+-            .extern     TargetResetInit
+-
+-entry:
+-resetHandler:
+-
+-// [TODO] enable interrupts
+-/* Setup stacks for each mode */
+-        ldr     r0, =Top_Stack
+-
+-        msr     CPSR_c, #ARM_MODE_IRQ|I_BIT|F_BIT
+-        mov     r13, r0
+-        sub     r0, r0, #STACK_SIZE_IRQ                  
+-
+-        # Set up Supervisor Mode and set Supervisor Mode Stack (leave interrupts enabled)
+-        msr     CPSR_c, #ARM_MODE_SVC|F_BIT|I_BIT
+-        mov     r13, r0
+-
+-
+-/* Perform low-level initialization of the chip using LowLevelInit() */
+-/* Initialize the relocate segment */
+-
+-        ldr     r0, =_efixed
+-        ldr     r1, =_srelocate
+-        ldr     r2, =_erelocate
+-CopyROMtoRAM:
+-        cmp     r1, r2
+-        ldrcc   r3, [r0], #4
+-        strcc   r3, [r1], #4
+-        bcc     CopyROMtoRAM
+-
+-/* Clear the zero segment */
+-   	    ldr     r0, =_szero
+-        ldr     r1, =_ezero
+-        mov     r2, #0
+-ZeroBSS:
+-        cmp     r0, r1
+-        strcc   r2, [r0], #4
+-        bcc     ZeroBSS
+-
+- /* Call external initialization code */
+-        bl      TargetResetInit
+-
+-/* Branch to main()
+- ******************/
+-        ldr     r0, =main
+-        mov     lr, pc
+-        bx      r0
+-
+-/* Loop indefinitely when program is finished */
+-forever:
+-        b       forever
+-
+-        .end
+-
++#include &quot;stacks.h&quot;
++
++//------------------------------------------------------------------------------
++//         Definitions
++//------------------------------------------------------------------------------
++
++#define ARM_MODE_ABT     0x17
++#define ARM_MODE_FIQ     0x11
++#define ARM_MODE_IRQ     0x12
++#define ARM_MODE_SVC     0x13
++
++#define I_BIT            0x80
++#define F_BIT            0x40
++
++
++#define RAM_Base         0x40000000
++#define RAM_Size         0x10000        // [TODO] make this 96k?
++#define Top_Stack        (RAM_Base + RAM_Size)
++
++//------------------------------------------------------------------------------
++//         Startup routine
++//------------------------------------------------------------------------------
++
++            .align      4
++            .arm
++        
++/* Exception vectors
++ *******************/
++            .section    .vectors, &quot;a&quot;
++
++resetVector:
++         ldr     pc, =resetHandler       /* Reset */
++undefVector:
++         b       undefVector             /* Undefined instruction */
++swiVector:
++         b       swiVector               /* Software interrupt */
++prefetchAbortVector:
++         b       prefetchAbortVector     /* Prefetch abort */
++dataAbortVector:
++         b       dataAbortVector         /* Data abort */
++reservedVector:
++         b       reservedVector          /* Reserved for future use */
++irqVector:
++         ldr     pc, [pc, #-0x0120]      /* Vector from VicVectAddr */
++fiqVector:
++         b       fiqVector               /* Fast interrupt */
++
++//------------------------------------------------------------------------------
++/// Initializes the chip and branches to the main() function.
++//------------------------------------------------------------------------------
++            .section    .text
++            .global     entry
++            .extern     main
++            .extern     TargetResetInit
++
++entry:
++resetHandler:
++
++// [TODO] enable interrupts
++/* Setup stacks for each mode */
++        ldr     r0, =Top_Stack
++
++        msr     CPSR_c, #ARM_MODE_IRQ|I_BIT|F_BIT
++        mov     r13, r0
++        sub     r0, r0, #STACK_SIZE_IRQ                  
++
++        # Set up Supervisor Mode and set Supervisor Mode Stack (leave interrupts enabled)
++        msr     CPSR_c, #ARM_MODE_SVC|F_BIT
++        mov     r13, r0
++
++
++/* Perform low-level initialization of the chip using LowLevelInit() */
++/* Initialize the relocate segment */
++
++        ldr     r0, =_efixed
++        ldr     r1, =_srelocate
++        ldr     r2, =_erelocate
++CopyROMtoRAM:
++        cmp     r1, r2
++        ldrcc   r3, [r0], #4
++        strcc   r3, [r1], #4
++        bcc     CopyROMtoRAM
++
++/* Clear the zero segment */
++   	    ldr     r0, =_szero
++        ldr     r1, =_ezero
++        mov     r2, #0
++ZeroBSS:
++        cmp     r0, r1
++        strcc   r2, [r0], #4
++        bcc     ZeroBSS
++
++ /* Call external initialization code */
++        bl      TargetResetInit
++
++/* Branch to main()
++ ******************/
++        ldr     r0, =main
++        mov     lr, pc
++        bx      r0
++
++/* Loop indefinitely when program is finished */
++forever:
++        b       forever
++
++# enable interrupts
++        .global    enable_ints
++enable_ints:
++        stmfd   sp!,  {r1}
++        mrs     r1, CPSR
++        bic     r1, r1, #I_BIT
++        msr     CPSR_c, r1
++        ldmfd   sp!, {r1}
++        mov     pc, r14
++
++# disable interrupts
++       .global disable_ints
++disable_ints:
++       stmfd    sp!, {r1}
++       mrs      r1, CPSR
++       orr      r1, r1, #I_BIT
++       msr      CPSR_c, r1
++       ldmfd    sp!, {r1}
++       mov      pc, r14
++
++      .end
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000465.html">[Elua-svn] r509 - branches
+</A></li>
+	<LI>Next message: <A HREF="000467.html">[Elua-svn] r511 - in trunk: . romfs src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#466">[ date ]</a>
+              <a href="thread.html#466">[ thread ]</a>
+              <a href="subject.html#466">[ subject ]</a>
+              <a href="author.html#466">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

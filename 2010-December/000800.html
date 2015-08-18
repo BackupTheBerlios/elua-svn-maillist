@@ -1,0 +1,245 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r847 - in trunk: inc src/modules src/platform/lm3s	src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r847%20-%20in%20trunk%3A%20inc%20src/modules%20src/platform/lm3s%0A%09src/platform/stm32&In-Reply-To=%3C20101206232629.EE15C480D52%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000799.html">
+   <LINK REL="Next"  HREF="000801.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r847 - in trunk: inc src/modules src/platform/lm3s	src/platform/stm32</H1>
+    <B>jbsnyder at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r847%20-%20in%20trunk%3A%20inc%20src/modules%20src/platform/lm3s%0A%09src/platform/stm32&In-Reply-To=%3C20101206232629.EE15C480D52%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r847 - in trunk: inc src/modules src/platform/lm3s	src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Dec  7 00:26:29 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000799.html">[Elua-svn] r846 - trunk/doc/images
+</A></li>
+        <LI>Next message: <A HREF="000801.html">[Elua-svn] r848 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#800">[ date ]</a>
+              <a href="thread.html#800">[ thread ]</a>
+              <a href="subject.html#800">[ subject ]</a>
+              <a href="author.html#800">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-12-07 00:26:29 +0100 (Tue, 07 Dec 2010)
+New Revision: 847
+
+Modified:
+   trunk/inc/platform.h
+   trunk/src/modules/can.c
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/stm32/platform.c
+Log:
+Adjust CAN module to not block when receiving messages.  recv
+returns nothing (3 params will be nil) if no messages are waiting.
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2010-12-06 22:14:14 UTC (rev 846)
++++ trunk/inc/platform.h	2010-12-06 23:26:29 UTC (rev 847)
+@@ -84,7 +84,7 @@
+ int platform_can_exists( unsigned id );
+ u32 platform_can_setup( unsigned id, u32 clock );
+ void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data );
+-void platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data );
++int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data );
+ 
+ // *****************************************************************************
+ // SPI subsection
+
+Modified: trunk/src/modules/can.c
+===================================================================
+--- trunk/src/modules/can.c	2010-12-06 22:14:14 UTC (rev 846)
++++ trunk/src/modules/can.c	2010-12-06 23:26:29 UTC (rev 847)
+@@ -52,12 +52,16 @@
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( can, id );
+   
+-  platform_can_recv( id, &amp;canid, &amp;idtype, &amp;len, data );
+-  lua_pushinteger( L, canid );
+-  lua_pushinteger( L, idtype );
+-  lua_pushlstring (L, ( const char * )data, ( size_t )len);
++  if( platform_can_recv( id, &amp;canid, &amp;idtype, &amp;len, data ) == PLATFORM_OK )
++  {
++    lua_pushinteger( L, canid );
++    lua_pushinteger( L, idtype );
++    lua_pushlstring( L, ( const char * )data, ( size_t )len );
+   
+-  return 3;
++    return 3;
++  }
++  else
++    return 0;
+ }
+ 
+ 
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2010-12-06 22:14:14 UTC (rev 846)
++++ trunk/src/platform/lm3s/platform.c	2010-12-06 23:26:29 UTC (rev 847)
+@@ -287,7 +287,7 @@
+   const char *s = ( char * )data;
+   char *d;
+   
+-  if( idtype )
++  if( idtype == ELUA_CAN_ID_EXT )
+     msg_tx.ulFlags |= MSG_OBJ_EXTENDED_ID;
+   
+   msg_tx.ulMsgIDMask = 0;
+@@ -301,18 +301,22 @@
+   CANMessageSet(CAN0_BASE, 2, &amp;msg_tx, MSG_OBJ_TYPE_TX);
+ }
+ 
+-void platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
++int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
+ {
+   // wait for a message
+-  while( can_rx_flag == 0 );
++  if( can_rx_flag != 0 )
++  {
++    can_msg_rx.pucMsgData = data;
++    CANMessageGet(CAN0_BASE, 1, &amp;can_msg_rx, 0);
++    can_rx_flag = 0;
+ 
+-  can_msg_rx.pucMsgData = data;
+-  CANMessageGet(CAN0_BASE, 1, &amp;can_msg_rx, 0);
+-  can_rx_flag = 0;
+-
+-  *canid = ( u32 )can_msg_rx.ulMsgID;
+-  *idtype = (can_msg_rx.ulFlags &amp; MSG_OBJ_EXTENDED_ID)? 1 : 0;
+-  *len = can_msg_rx.ulMsgLen;
++    *canid = ( u32 )can_msg_rx.ulMsgID;
++    *idtype = ( can_msg_rx.ulFlags &amp; MSG_OBJ_EXTENDED_ID )? ELUA_CAN_ID_EXT : ELUA_CAN_ID_STD;
++    *len = can_msg_rx.ulMsgLen;
++    return PLATFORM_OK;
++  }
++  else
++    return PLATFORM_UNDERFLOW;
+ }
+ 
+ // ****************************************************************************
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2010-12-06 22:14:14 UTC (rev 846)
++++ trunk/src/platform/stm32/platform.c	2010-12-06 23:26:29 UTC (rev 847)
+@@ -377,12 +377,12 @@
+   
+   switch( idtype )
+   {
+-    case 0: /* Standard ID Type  */
++    case ELUA_CAN_ID_STD:
+       TxMessage.IDE = CAN_ID_STD;
+       TxMessage.StdId = canid;
+       break;
+-    case 1: /* Extended ID Type */
+-      TxMessage.IDE=CAN_ID_EXT;
++    case ELUA_CAN_ID_EXT:
++      TxMessage.IDE = CAN_ID_EXT;
+       TxMessage.ExtId = canid;
+       break;
+   }
+@@ -422,39 +422,36 @@
+   }*/
+ }
+ 
+-void platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
++int platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
+ {
+   CanRxMsg RxMessage;
+   const char *s;
+   char *d;
+-  u32 i = 0;
+-  
+-  // Check up to 256 times for message
+-  while( ( CAN_MessagePending(CAN1, CAN_FIFO0) &lt; 1 ) &amp;&amp; ( i++ != 0xFF ) );
+-    
+-  RxMessage.StdId=0x00;
+-  RxMessage.IDE=CAN_ID_STD;
+-  RxMessage.DLC=0;
+-  RxMessage.Data[0]=0x00;
+-  RxMessage.Data[1]=0x00;
+-  CAN_Receive(CAN1, CAN_FIFO0, &amp;RxMessage);
+-  
+-  if( RxMessage.IDE == CAN_ID_STD )
++
++  if( CAN_MessagePending( CAN1, CAN_FIFO0 ) &gt; 0 )
+   {
+-    *canid = ( u32 )RxMessage.StdId;
+-    *idtype = 0;
++    CAN_Receive(CAN1, CAN_FIFO0, &amp;RxMessage);
++
++    if( RxMessage.IDE == CAN_ID_STD )
++    {
++      *canid = ( u32 )RxMessage.StdId;
++      *idtype = ELUA_CAN_ID_STD;
++    }
++    else
++    {
++      *canid = ( u32 )RxMessage.ExtId;
++      *idtype = ELUA_CAN_ID_EXT;
++    }
++
++    *len = RxMessage.DLC;
++
++    s = ( const char * )RxMessage.Data;
++    d = ( char* )data;
++    DUFF_DEVICE_8( RxMessage.DLC,  *d++ = *s++ );
++    return PLATFORM_OK;
+   }
+   else
+-  {
+-    *canid = ( u32 )RxMessage.ExtId;
+-    *idtype = 1;
+-  }
+-  
+-  *len = RxMessage.DLC;
+-  
+-  s = ( const char * )RxMessage.Data;
+-  d = ( char* )data;
+-  DUFF_DEVICE_8( RxMessage.DLC,  *d++ = *s++ );
++    return PLATFORM_UNDERFLOW;
+ }
+ 
+ // ****************************************************************************
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000799.html">[Elua-svn] r846 - trunk/doc/images
+</A></li>
+	<LI>Next message: <A HREF="000801.html">[Elua-svn] r848 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#800">[ date ]</a>
+              <a href="thread.html#800">[ thread ]</a>
+              <a href="subject.html#800">[ subject ]</a>
+              <a href="author.html#800">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

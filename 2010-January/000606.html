@@ -1,0 +1,290 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r650 - in branches/pre0.7: . inc src src/modules	src/serial test
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r650%20-%20in%20branches/pre0.7%3A%20.%20inc%20src%20src/modules%0A%09src/serial%20test&In-Reply-To=%3C201001150114.o0F1ECOT023209%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000605.html">
+   <LINK REL="Next"  HREF="000607.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r650 - in branches/pre0.7: . inc src src/modules	src/serial test</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r650%20-%20in%20branches/pre0.7%3A%20.%20inc%20src%20src/modules%0A%09src/serial%20test&In-Reply-To=%3C201001150114.o0F1ECOT023209%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r650 - in branches/pre0.7: . inc src src/modules	src/serial test">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Jan 15 02:14:12 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000605.html">[Elua-svn] r649 - branches/pre0.7/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000607.html">[Elua-svn] r651 - branches/pre0.7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#606">[ date ]</a>
+              <a href="thread.html#606">[ thread ]</a>
+              <a href="subject.html#606">[ subject ]</a>
+              <a href="author.html#606">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-01-15 02:14:10 +0100 (Fri, 15 Jan 2010)
+New Revision: 650
+
+Modified:
+   branches/pre0.7/inc/luarpc_rpc.h
+   branches/pre0.7/rpc-lua.py
+   branches/pre0.7/src/luarpc_posix_serial.c
+   branches/pre0.7/src/modules/luarpc.c
+   branches/pre0.7/src/serial/serial_win32.c
+   branches/pre0.7/test/test-rpc.lua
+Log:
+Rough, working, LuaRPC on Windows.
+
+Modified: branches/pre0.7/inc/luarpc_rpc.h
+===================================================================
+--- branches/pre0.7/inc/luarpc_rpc.h	2010-01-14 23:19:34 UTC (rev 649)
++++ branches/pre0.7/inc/luarpc_rpc.h	2010-01-15 01:14:10 UTC (rev 650)
+@@ -17,19 +17,12 @@
+ /****************************************************************************/
+ /* handle the differences between winsock and unix */
+ 
+-#ifdef WIN32  /*  BEGIN WIN32 SOCKET SETUP  */
+-
+-#define close closesocket
+-#define read(fd,buf,len) recv ((fd),(buf),(len),0)
+-#define write(fd,buf,len) send ((fd),(buf),(len),0)
+-#define SOCKTYPE SOCKET
+-#define sock_errno (WSAGetLastError())
+-
++#ifdef WIN32_BUILD  /*  BEGIN WIN32 SOCKET SETUP  */
++#include &quot;windows.h&quot;
++#define transport_strerror strerror
++#define errno (GetLastError())
+ #else
+ 
+-#define SOCKTYPE int
+-#define net_startup() ;
+-#define sock_errno errno
+ #define transport_strerror strerror
+ 
+ #endif
+@@ -103,7 +96,11 @@
+ typedef struct _Transport Transport;
+ struct _Transport 
+ {
++#ifdef WIN32_BUILD
++  HANDLE fd;
++#else
+   int fd;      /* INVALID_TRANSPORT if socket is closed */
++#endif
+   unsigned tmr_id;
+   u8     loc_little: 1, // Local is little endian?
+          loc_armflt: 1, // local float representation is arm float?
+@@ -143,8 +140,11 @@
+ 
+ /* Maximum number of framing errors before connection reset */
+ #define MAX_LINK_ERRS ( 2 )
+-
++#ifdef WIN32_BUILD
++#define INVALID_TRANSPORT (INVALID_HANDLE_VALUE)
++#else
+ #define INVALID_TRANSPORT (-1)
++#endif
+ 
+ #define TRANSPORT_VERIFY_OPEN \
+ 	if (tpt-&gt;fd == INVALID_TRANSPORT) \
+
+Modified: branches/pre0.7/rpc-lua.py
+===================================================================
+--- branches/pre0.7/rpc-lua.py	2010-01-14 23:19:34 UTC (rev 649)
++++ branches/pre0.7/rpc-lua.py	2010-01-15 01:14:10 UTC (rev 650)
+@@ -1,7 +1,7 @@
+ import os, sys, platform
+ 
+ output = 'luarpc'
+-cdefs = '-DLUA_CROSS_COMPILER -DLUA_RPC -DLUA_USE_READLINE'
++cdefs = '-DLUA_CROSS_COMPILER -DLUA_RPC'
+ 
+ # Lua source files and include path
+ lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
+@@ -12,9 +12,10 @@
+ 
+ if platform.system() == &quot;Windows&quot;:
+   lua_full_files += &quot; src/serial/serial_win32.c&quot;
+-  cdefs = &quot; -DWIN32_BUILD &quot;
++  cdefs += &quot; -DWIN32_BUILD &quot;
+ else:
+   lua_full_files += &quot; src/serial/serial_posix.c&quot;
++  cdefs += &quot; -DLUA_USE_READLINE &quot;
+ 
+ local_include = &quot;-Isrc/lua -Iinc -Isrc/modules -Iinc/serial&quot;
+ 
+
+Modified: branches/pre0.7/src/luarpc_posix_serial.c
+===================================================================
+--- branches/pre0.7/src/luarpc_posix_serial.c	2010-01-14 23:19:34 UTC (rev 649)
++++ branches/pre0.7/src/luarpc_posix_serial.c	2010-01-15 01:14:10 UTC (rev 650)
+@@ -1,7 +1,7 @@
+ #include &lt;stdio.h&gt;
+ #include &lt;unistd.h&gt;
+ #include &lt;stdlib.h&gt;
+-#include &lt;alloca.h&gt;
++#include &lt;malloc.h&gt;
+ #include &lt;errno.h&gt;
+ 
+ #include &quot;lua.h&quot;
+@@ -25,6 +25,7 @@
+ void transport_open( Transport *tpt, const char *path )
+ {
+   struct exception e;
++  int ret;
+   
+   tpt-&gt;fd = ser_open( path );
+ 
+@@ -35,7 +36,7 @@
+     Throw( e );
+   }
+   
+-  ser_setup( tpt-&gt;fd, 115200, 8, SER_PARITY_NONE, 1 );
++  ret = ser_setup( tpt-&gt;fd, 115200, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 );
+   ser_set_timeout_ms( tpt-&gt;fd, 1000 );
+ }
+ 
+@@ -114,7 +115,7 @@
+   TRANSPORT_VERIFY_OPEN;
+ 
+   n = ser_write( tpt-&gt;fd, buffer, length );
+-  
++
+   if ( n != length )
+   {
+     e.errnum = errno;
+
+Modified: branches/pre0.7/src/modules/luarpc.c
+===================================================================
+--- branches/pre0.7/src/modules/luarpc.c	2010-01-14 23:19:34 UTC (rev 649)
++++ branches/pre0.7/src/modules/luarpc.c	2010-01-15 01:14:10 UTC (rev 650)
+@@ -16,7 +16,11 @@
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
++#ifdef __MINGW32__
++void *alloca(size_t);
++#else
+ #include &lt;alloca.h&gt;
++#endif
+ 
+ #include &quot;lua.h&quot;
+ #include &quot;lualib.h&quot;
+
+Modified: branches/pre0.7/src/serial/serial_win32.c
+===================================================================
+--- branches/pre0.7/src/serial/serial_win32.c	2010-01-14 23:19:34 UTC (rev 649)
++++ branches/pre0.7/src/serial/serial_win32.c	2010-01-15 01:14:10 UTC (rev 650)
+@@ -37,7 +37,7 @@
+ {
+   char portname[ WIN_MAX_PORT_NAME + 1 ];
+   HANDLE hComm;
+-  
++
+   portname[ 0 ] = portname[ WIN_MAX_PORT_NAME ] = '\0';
+   _snprintf( portname, WIN_MAX_PORT_NAME, &quot;\\\\.\\%s&quot;, sername );
+   hComm = CreateFile( portname, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0 );
+@@ -59,11 +59,11 @@
+   HANDLE hComm = ( HANDLE )id;
+   DCB dcb;
+   
+-	if( GetCommState( hComm, &amp;dcb ) == FALSE )
+-	{
+-		CloseHandle( hComm );
+-		return SER_ERR;
+-	}
++  if( GetCommState( hComm, &amp;dcb ) == FALSE )
++  {
++    CloseHandle( hComm );
++    return SER_ERR;
++  }
+   dcb.BaudRate = baud;
+   dcb.ByteSize = databits;
+   dcb.Parity = parity == SER_PARITY_NONE ? NOPARITY : ( parity == SER_PARITY_EVEN ? EVENPARITY : ODDPARITY );
+@@ -86,7 +86,6 @@
+     CloseHandle( hComm );
+     return SER_ERR;
+   }
+-  
+   if( ser_win32_set_timeouts( hComm, 0, 0, 0, 0, 0 ) == SER_ERR )
+   {
+     CloseHandle( hComm );
+@@ -123,7 +122,7 @@
+ u32 ser_write( ser_handler id, const u8 *src, u32 size )
+ {
+   HANDLE hComm = ( HANDLE )id;
+-	DWORD written;
++  DWORD written;
+ 	
+   if( WriteFile( hComm, src, size, &amp;written, NULL ) == FALSE )
+     return 0;
+@@ -153,7 +152,7 @@
+   DWORD   dwErrors;
+   HANDLE hComm = ( HANDLE )id;
+   
+-  ClearCommError(hComm, &amp;dwErrors, &amp;comStat)
++  ClearCommError(hComm, &amp;dwErrors, &amp;comStat);
+   
+-  return ( comState.cbInQue &gt; 0 );
+-}
+\ No newline at end of file
++  return ( comStat.cbInQue &gt; 0 );
++}
+
+Modified: branches/pre0.7/test/test-rpc.lua
+===================================================================
+--- branches/pre0.7/test/test-rpc.lua	2010-01-14 23:19:34 UTC (rev 649)
++++ branches/pre0.7/test/test-rpc.lua	2010-01-15 01:14:10 UTC (rev 650)
+@@ -4,10 +4,10 @@
+ 
+ rpc.on_error (error_handler);
+ 
+---slave,err = rpc.connect (&quot;/dev/tty.usbserial-FTE3HV7L&quot;);
++slave,err = rpc.connect (&quot;/dev/tty.usbserial-FTE3HV7L&quot;);
+ -- slave,err = rpc.connect (&quot;/dev/tty.usbserial-ftCYPMYJ&quot;);
+ -- slave,err = rpc.connect(&quot;/dev/tty.usbserial-04110857B&quot;)
+-slave,err = rpc.connect(&quot;/dev/tty.usbserial-A9005fG0&quot;)
++-- slave,err = rpc.connect(&quot;/dev/tty.usbserial-A9005fG0&quot;)
+ --slave,err = rpc.connect (&quot;/dev/ttys0&quot;);
+ 
+ print(&quot;Platform: &quot; .. slave.pd.platform())
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000605.html">[Elua-svn] r649 - branches/pre0.7/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000607.html">[Elua-svn] r651 - branches/pre0.7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#606">[ date ]</a>
+              <a href="thread.html#606">[ thread ]</a>
+              <a href="subject.html#606">[ subject ]</a>
+              <a href="author.html#606">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

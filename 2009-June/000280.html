@@ -1,0 +1,189 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r324 - in tags/pre0.6/doc: . luadoc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r324%20-%20in%20tags/pre0.6/doc%3A%20.%20luadoc&In-Reply-To=%3C200906281831.n5SIVrKt022650%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000279.html">
+   <LINK REL="Next"  HREF="000281.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r324 - in tags/pre0.6/doc: . luadoc</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r324%20-%20in%20tags/pre0.6/doc%3A%20.%20luadoc&In-Reply-To=%3C200906281831.n5SIVrKt022650%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r324 - in tags/pre0.6/doc: . luadoc">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sun Jun 28 20:31:53 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000279.html">[Elua-svn] r323 - in tags/pre0.6/doc: . luadoc
+</A></li>
+        <LI>Next message: <A HREF="000281.html">[Elua-svn] r325 - tags/pre0.6/doc/luadoc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#280">[ date ]</a>
+              <a href="thread.html#280">[ thread ]</a>
+              <a href="subject.html#280">[ subject ]</a>
+              <a href="author.html#280">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-28 20:31:52 +0200 (Sun, 28 Jun 2009)
+New Revision: 324
+
+Added:
+   tags/pre0.6/doc/luadoc/refman_gen_adc.lua
+Modified:
+   tags/pre0.6/doc/builddoc.lua
+Log:
+First pass at refman docs for ADC.
+
+Modified: tags/pre0.6/doc/builddoc.lua
+===================================================================
+--- tags/pre0.6/doc/builddoc.lua	2009-06-28 17:23:23 UTC (rev 323)
++++ tags/pre0.6/doc/builddoc.lua	2009-06-28 18:31:52 UTC (rev 324)
+@@ -7,7 +7,7 @@
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+-  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot; }
++  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot; }
+ }
+ 
+ -- List here all languages for the documentation (make sure to keep English (&quot;en&quot;) the first one)
+
+Added: tags/pre0.6/doc/luadoc/refman_gen_adc.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/refman_gen_adc.lua	2009-06-28 17:23:23 UTC (rev 323)
++++ tags/pre0.6/doc/luadoc/refman_gen_adc.lua	2009-06-28 18:31:52 UTC (rev 324)
+@@ -0,0 +1,97 @@
++-- eLua reference manual - ADC
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - ADC&quot;,
++
++  -- Menu name
++  menu_name = &quot;ADC&quot;,
++
++  -- Overview
++  overview = [[This module contains functions that access analog to digital converter (ADC) peripherals. ]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;#adc.sample#( id, count )&quot;,
++      desc = &quot;Request sample conversions.&quot;,
++      args = 
++      {
++        &quot;$id$ - ADC channel ID.&quot;,
++        &quot;$count$ - number of samples to acquire.&quot;
++      }
++    },
++    { sig = &quot;sample = #adc.getsample#( id )&quot;,
++      desc = &quot;Get converted samples.&quot;,
++      args = 
++      {
++        &quot;$id$ - ADC channel ID.&quot;
++      },
++      ret = &quot;$sample$ - numeric value of conversion&quot;
++    },
++    { sig = &quot;samples = #adc.getsamples#( id, count )&quot;,
++      desc = &quot;Get multiple converted samples.&quot;,
++      args = 
++      {
++        &quot;$id$ - ADC channel ID.&quot;,
++        &quot;$count$ - optional parameter to indicate number of samples to return. If not included, all available samples are returned.&quot;
++      },
++      ret = &quot;$samples$ - table containing integer conversion values&quot;
++    },
++    { sig = &quot;#adc.insertsamples#( id, table, idx, count )&quot;,
++      desc = &quot;Write multiple samples to a table.&quot;,
++      args = 
++      {
++        &quot;$id$ - ADC channel ID.&quot;,
++        &quot;$table$ - table to write samples to. Values at $idx$ to $idx$ + $count$ will be overwritten with samples.&quot;,
++        &quot;$idx$ - first index to use for writing samples&quot;,
++        &quot;$count$ - number of samples to return. If not enough samples are available (after blocking, if enabled) nil is written to indexes that would have received samples.&quot;
++      }
++    },
++    { sig = &quot;maxval = #adc.maxval#( id )&quot;,
++      desc = &quot;Get maximum conversion value.&quot;,
++      args = 
++      {
++        &quot;$id$ - ADC channel ID.&quot;
++      },
++      ret = &quot;$maxval$ - maximum conversion value (based on channel resolution)&quot;
++    },
++    { sig = &quot;clock = #adc.setclock#( id, clock, timer_id )&quot;,
++      desc = &quot;Set frequency of sample acquisition.&quot;,
++      args = 
++      {
++        &quot;$id$ - ADC channel ID.&quot;,
++        &quot;$clock$ - frequency to acquire samples at in Hz (number of samples per second), 0 to acquire as fast as possible.&quot;,
++        &quot;$timer_id$ - Timer channel ID to use to control ADC conversion.&quot;
++      },
++      ret = &quot;$clock$ - actual acquisition frequency to be used&quot;
++    },
++    { sig = &quot;status = #adc.isdone#( id )&quot;,
++      desc = &quot;Check if sampling is done.&quot;,
++      args = 
++      {
++        &quot;$id$ - ADC channel ID.&quot;
++      },
++      ret = &quot;$status$ - 1 if no samples are being acquired, 0 if samples are pending acquisition.&quot;
++    },
++    { sig = &quot;#adc.setblocking#( id, mode )&quot;,
++      desc = &quot;Set whether or not to block waiting for requested samples.&quot;,
++      args = 
++      {
++        &quot;$id$ - ADC channel ID.&quot;,
++        &quot;$mode$ - 1 if requests to get samples should block until requested samples are available or sampling has completed, 0 to return immediately with available samples&quot;
++      },
++    },
++    { sig = &quot;#adc.setsmoothing#( id, length )&quot;,
++      desc = &quot;Set length of moving average filter.&quot;,
++      args = 
++      {
++        &quot;$id$ - ADC channel ID.&quot;,
++        &quot;$length$ - number of samples to include in moving average filter (must be a power of 2). If 1, filter is disabled.&quot;
++      }
++    }
++  }
++}
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000279.html">[Elua-svn] r323 - in tags/pre0.6/doc: . luadoc
+</A></li>
+	<LI>Next message: <A HREF="000281.html">[Elua-svn] r325 - tags/pre0.6/doc/luadoc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#280">[ date ]</a>
+              <a href="thread.html#280">[ thread ]</a>
+              <a href="subject.html#280">[ subject ]</a>
+              <a href="author.html#280">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

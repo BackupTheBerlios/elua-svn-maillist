@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r814 - in branches/remotefs_int: . rfs_server
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r814%20-%20in%20branches/remotefs_int%3A%20.%20rfs_server&In-Reply-To=%3C20101110223146.9F21C480C72%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000766.html">
+   <LINK REL="Next"  HREF="000768.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r814 - in branches/remotefs_int: . rfs_server</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r814%20-%20in%20branches/remotefs_int%3A%20.%20rfs_server&In-Reply-To=%3C20101110223146.9F21C480C72%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r814 - in branches/remotefs_int: . rfs_server">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Nov 10 23:31:46 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000766.html">[Elua-svn] r813 - in branches/remotefs_int: . inc inc/remotefs	rfs_server src src/remotefs
+</A></li>
+        <LI>Next message: <A HREF="000768.html">[Elua-svn] r815 - in branches/remotefs_int: . inc rfs_server src	src/remotefs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#767">[ date ]</a>
+              <a href="thread.html#767">[ thread ]</a>
+              <a href="subject.html#767">[ subject ]</a>
+              <a href="author.html#767">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-10 23:31:46 +0100 (Wed, 10 Nov 2010)
+New Revision: 814
+
+Modified:
+   branches/remotefs_int/
+   branches/remotefs_int/rfs_server.py
+   branches/remotefs_int/rfs_server/main.c
+   branches/remotefs_int/rfs_server/server.c
+Log:
+RFS server Linux fixes
+
+
+Property changes on: branches/remotefs_int
+___________________________________________________________________
+Modified: svn:ignore
+   - .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+*.hex
+*.tmp
+*.map
+core
+build-setup.conf
+config.log
+.sconf_temp
+
+
+   + .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+*.hex
+*.tmp
+*.map
+core
+build-setup.conf
+config.log
+.sconf_temp
+*.exe
+*.obj
+
+
+
+Modified: branches/remotefs_int/rfs_server/main.c
+===================================================================
+--- branches/remotefs_int/rfs_server/main.c	2010-11-10 16:03:37 UTC (rev 813)
++++ branches/remotefs_int/rfs_server/main.c	2010-11-10 22:31:46 UTC (rev 814)
+@@ -303,8 +303,8 @@
+   if( argc &lt; MIN_ARGC_COUNT )
+   {
+     log_err( &quot;Usage: %s &lt;transport&gt; &lt;dirname&gt; [-v]\n&quot;, argv[ 0 ] );
+-    log_err( &quot;  Serial transport: 'ser:&lt;sername&gt;,&lt;serspeed&gt;'&quot; );
+-    log_err( &quot;  UDP transport: 'udp:&lt;port&gt;'&quot; );
++    log_err( &quot;  Serial transport: 'ser:&lt;sername&gt;,&lt;serspeed&gt;'\n&quot; );
++    log_err( &quot;  UDP transport: 'udp:&lt;port&gt;'\n&quot; );
+     log_err( &quot;Use -v for verbose output.\n&quot;);
+     return 1;
+   }
+
+Modified: branches/remotefs_int/rfs_server/server.c
+===================================================================
+--- branches/remotefs_int/rfs_server/server.c	2010-11-10 16:03:37 UTC (rev 813)
++++ branches/remotefs_int/rfs_server/server.c	2010-11-10 22:31:46 UTC (rev 814)
+@@ -1,6 +1,7 @@
+ // Remote filesystem server implementation
+ 
+ #include &lt;string.h&gt;
++#include &lt;stdlib.h&gt;
+ #include &quot;server.h&quot;
+ #include &quot;remotefs.h&quot;
+ #include &quot;eluarpc.h&quot;
+
+Modified: branches/remotefs_int/rfs_server.py
+===================================================================
+--- branches/remotefs_int/rfs_server.py	2010-11-10 16:03:37 UTC (rev 813)
++++ branches/remotefs_int/rfs_server.py	2010-11-10 22:31:46 UTC (rev 814)
+@@ -3,7 +3,7 @@
+ sim = ARGUMENTS.get( 'sim', '0' )
+ 
+ flist = &quot;&quot;
+-cdefs = &quot;-DRFS_SERIAL_TRANSPORT -DRFS_STANDALONE_MODE&quot;
++cdefs = &quot;-DRFS_STANDALONE_MODE&quot;
+ socklib = ''
+ if sim == '0':
+   mainname = &quot;main.c&quot;
+@@ -16,11 +16,10 @@
+   flist = &quot;main.c server.c os_io_win32.c log.c&quot;
+   cdefs = cdefs + &quot; -DWIN32_BUILD&quot;
+   exeprefix = &quot;exe&quot;
+-  socklib = 'wsock32'
++  socklib = '-lwsock32'
+ else:
+   flist = &quot;%s server.c os_io_posix.c log.c&quot; % mainname
+   exeprefix = &quot;elf&quot;
+-  socklib = 'socket'
+ 
+ if sim == '0':
+   output = 'rfs_server.%s' % exeprefix
+@@ -38,7 +37,7 @@
+ 
+ # Compiler/linker options
+ cccom = &quot;gcc -m32 -O0 -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+-linkcom = &quot;gcc -m32 -o $TARGET $SOURCES -l%s&quot; % socklib
++linkcom = &quot;gcc -m32 -o $TARGET $SOURCES %s&quot; % socklib
+ 
+ # Env for building the program
+ comp = Environment( CCCOM = cccom,
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000766.html">[Elua-svn] r813 - in branches/remotefs_int: . inc inc/remotefs	rfs_server src src/remotefs
+</A></li>
+	<LI>Next message: <A HREF="000768.html">[Elua-svn] r815 - in branches/remotefs_int: . inc rfs_server src	src/remotefs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#767">[ date ]</a>
+              <a href="thread.html#767">[ thread ]</a>
+              <a href="subject.html#767">[ subject ]</a>
+              <a href="author.html#767">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

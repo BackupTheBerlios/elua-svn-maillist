@@ -1,0 +1,3111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r57 - in trunk: . inc src/modules src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r57%20-%20in%20trunk%3A%20.%20inc%20src/modules%20src/platform/lm3s&In-Reply-To=%3C200808181629.m7IGTAOq021268%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000009.html">
+   <LINK REL="Next"  HREF="000013.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r57 - in trunk: . inc src/modules src/platform/lm3s</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r57%20-%20in%20trunk%3A%20.%20inc%20src/modules%20src/platform/lm3s&In-Reply-To=%3C200808181629.m7IGTAOq021268%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r57 - in trunk: . inc src/modules src/platform/lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Aug 18 18:29:10 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000009.html">[Elua-svn] r56 - trunk/src/newlib
+</A></li>
+        <LI>Next message: <A HREF="000013.html">[Elua-svn] r58 - in trunk: . src/modules src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#12">[ date ]</a>
+              <a href="thread.html#12">[ thread ]</a>
+              <a href="subject.html#12">[ subject ]</a>
+              <a href="author.html#12">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-08-18 18:29:09 +0200 (Mon, 18 Aug 2008)
+New Revision: 57
+
+Added:
+   trunk/src/modules/pwm.c
+   trunk/src/platform/lm3s/hw_pwm.h
+   trunk/src/platform/lm3s/pwm.c
+   trunk/src/platform/lm3s/pwm.h
+Modified:
+   trunk/SConstruct
+   trunk/inc/platform.h
+   trunk/src/modules/auxmods.h
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/platform_libs.h
+Log:
+added the PWM module, so far supported only on LM3S
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2008-08-16 22:29:11 UTC (rev 56)
++++ trunk/SConstruct	2008-08-18 16:29:09 UTC (rev 57)
+@@ -71,7 +71,7 @@
+ 
+ # Lua module files
+ module_files = &quot;&quot;&quot; src/modules/pio.c src/modules/spi.c src/modules/tmr.c src/modules/pd.c src/modules/uart.c
+-                   src/modules/term.c &quot;&quot;&quot;
++                   src/modules/term.c src/modules/pwm.c&quot;&quot;&quot;
+   
+ # Optimizer flags (speed or size)
+ #opt = &quot;-O3&quot;
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2008-08-16 22:29:11 UTC (rev 56)
++++ trunk/inc/platform.h	2008-08-18 16:29:09 UTC (rev 57)
+@@ -142,6 +142,26 @@
+ u32 platform_timer_get_diff_us( unsigned id, timer_data_type end, timer_data_type start );
+ 
+ // *****************************************************************************
++// PWM subsection
++
++// There are 16 &quot;virtual&quot; PWM channels (PWM0...PWM15)
++#define PLATFORM_PWM_TOTAL                    16
++
++// PWM operations
++enum
++{
++  PLATFORM_PWM_OP_START,
++  PLATFORM_PWM_OP_STOP,
++  PLATFORM_PWM_OP_SET_CLOCK,
++  PLATFORM_PWM_OP_GET_CLOCK
++};
++
++// The platform PWM functions
++int platform_pwm_exists( unsigned id );
++u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty );
++u32 platform_pwm_op( unsigned id, int op, u32 data );
++
++// *****************************************************************************
+ // Platform data subsection
+ // Contains functions for platform identification
+ 
+
+Modified: trunk/src/modules/auxmods.h
+===================================================================
+--- trunk/src/modules/auxmods.h	2008-08-16 22:29:11 UTC (rev 56)
++++ trunk/src/modules/auxmods.h	2008-08-18 16:29:09 UTC (rev 57)
+@@ -24,6 +24,9 @@
+ #define AUXLIB_TERM     &quot;term&quot;
+ LUALIB_API int ( luaopen_term )( lua_State* L );
+ 
++#define AUXLIB_PWM      &quot;pwm&quot;
++LUALIB_API int ( luaopen_pwm )( lua_State* L );
++
+ #ifdef ELUA_MOD_CHECK_PARS
+ 
+ // Helper macros
+
+Added: trunk/src/modules/pwm.c
+===================================================================
+--- trunk/src/modules/pwm.c	2008-08-16 22:29:11 UTC (rev 56)
++++ trunk/src/modules/pwm.c	2008-08-18 16:29:09 UTC (rev 57)
+@@ -0,0 +1,103 @@
++// Module for interfacing with PWM
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;auxmods.h&quot;
++
++// Lua: realfrequency = setup( id, frequency, duty )
++static int pwm_setup( lua_State* L )
++{
++  u32 freq;
++  unsigned duty, id;
++  
++  MOD_CHECK_MIN_ARGS( 3 );  
++  id = luaL_checkinteger( L, 1 );
++  freq = luaL_checkinteger( L, 2 );
++  duty = luaL_checkinteger( L, 3 );
++  if( duty &gt; 100 )
++    duty = 100;
++  freq = platform_pwm_setup( id, freq, duty );
++  lua_pushinteger( L, freq );
++  return 1;  
++}
++
++// Lua: start( id )
++static int pwm_start( lua_State* L )
++{
++  unsigned id;
++  
++  MOD_CHECK_MIN_ARGS( 1 );
++  id = luaL_checkinteger( L, 1 );
++  platform_pwm_op( id, PLATFORM_PWM_OP_START, 0 );
++  return 0;  
++}
++
++// Lua: stop( id )
++static int pwm_stop( lua_State* L )
++{
++  unsigned id;
++  
++  MOD_CHECK_MIN_ARGS( 1 );
++  id = luaL_checkinteger( L, 1 );
++  platform_pwm_op( id, PLATFORM_PWM_OP_STOP, 0 );
++  return 0;  
++}
++
++// Lua: realclock = setclock( id, clock )
++static int pwm_setclock( lua_State* L )
++{
++  unsigned id;
++  u32 clk;
++  
++  MOD_CHECK_MIN_ARGS( 2 );
++  id = luaL_checkinteger( L, 1 );
++  clk = luaL_checkinteger( L, 2 );
++  clk = platform_pwm_op( id, PLATFORM_PWM_OP_SET_CLOCK, clk );
++  lua_pushinteger( L, clk );
++  return 1;
++}
++
++// Lua: clock = getclock( id )
++static int pwm_getclock( lua_State* L )
++{
++  unsigned id;
++  u32 clk;
++  
++  MOD_CHECK_MIN_ARGS( 1 );
++  id = luaL_checkinteger( L, 1 );
++  clk = platform_pwm_op( id, PLATFORM_PWM_OP_GET_CLOCK, 0 );
++  lua_pushinteger( L, clk );
++  return 1;
++}
++
++// Module function map
++static const luaL_reg pwm_map[] = 
++{
++  { &quot;setup&quot;, pwm_setup },
++  { &quot;start&quot;, pwm_start },
++  { &quot;stop&quot;, pwm_stop },
++  { &quot;setclock&quot;, pwm_setclock },
++  { &quot;getclock&quot;, pwm_getclock },
++  { NULL, NULL }
++};
++
++LUALIB_API int luaopen_pwm( lua_State *L )
++{
++  unsigned id;
++  char name[ 10 ];
++  
++  luaL_register( L, AUXLIB_PWM, pwm_map );
++  
++  // Add all PWM interfaces to our module
++  for( id = 0; id &lt; PLATFORM_PWM_TOTAL; id ++ )
++    if( platform_pwm_exists( id ) )
++    {
++      sprintf( name, &quot;PWM%d&quot;, id );
++      lua_pushnumber( L, id );
++      lua_setfield( L, -2, name );        
++    }
++    
++  return 1;
++}
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2008-08-16 22:29:11 UTC (rev 56)
++++ trunk/src/platform/lm3s/conf.py	2008-08-18 16:29:09 UTC (rev 57)
+@@ -1,6 +1,6 @@
+ # Configuration file for the LM3S microcontroller
+ 
+-specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c&quot;
++specific_files = &quot;startup_gcc.c platform.c usart.c sysctl.c gpio.c ssi.c timer.c pwm.c&quot;
+ ldscript = &quot;lm3s.ld&quot;
+   
+ # Prepend with path
+
+Added: trunk/src/platform/lm3s/hw_pwm.h
+===================================================================
+--- trunk/src/platform/lm3s/hw_pwm.h	2008-08-16 22:29:11 UTC (rev 56)
++++ trunk/src/platform/lm3s/hw_pwm.h	2008-08-18 16:29:09 UTC (rev 57)
+@@ -0,0 +1,677 @@
++//*****************************************************************************
++//
++// hw_pwm.h - Defines and Macros for Pulse Width Modulation (PWM) ports
++//
++// Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
++// 
++// Software License Agreement
++// 
++// Luminary Micro, Inc. (LMI) is supplying this software for use solely and
++// exclusively on LMI's microcontroller products.
++// 
++// The software is owned by LMI and/or its suppliers, and is protected under
++// applicable copyright laws.  All rights are reserved.  You may not combine
++// this software with &quot;viral&quot; open-source software in order to form a larger
++// program.  Any use in violation of the foregoing restrictions may subject
++// the user to criminal sanctions under applicable laws, as well as to civil
++// liability for the breach of the terms and conditions of this license.
++// 
++// THIS SOFTWARE IS PROVIDED &quot;AS IS&quot;.  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
++// OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
++// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
++// LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
++// CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
++// 
++// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++//
++//*****************************************************************************
++
++#ifndef __HW_PWM_H__
++#define __HW_PWM_H__
++
++//*****************************************************************************
++//
++// The following are defines for the PWM Module Register offsets.
++//
++//*****************************************************************************
++#define PWM_O_CTL               0x00000000  // PWM Master Control register
++#define PWM_O_SYNC              0x00000004  // PWM Time Base Sync register
++#define PWM_O_ENABLE            0x00000008  // PWM Output Enable register
++#define PWM_O_INVERT            0x0000000C  // PWM Output Inversion register
++#define PWM_O_FAULT             0x00000010  // PWM Output Fault register
++#define PWM_O_INTEN             0x00000014  // PWM Interrupt Enable register
++#define PWM_O_RIS               0x00000018  // PWM Interrupt Raw Status reg.
++#define PWM_O_ISC               0x0000001C  // PWM Interrupt Status register
++#define PWM_O_STATUS            0x00000020  // PWM Status register
++#define PWM_O_FAULTVAL          0x00000024  // PWM Fault Condition Value
++#define PWM_O_0_CTL             0x00000040  // PWM0 Control
++#define PWM_O_0_INTEN           0x00000044  // PWM0 Interrupt and Trigger
++                                            // Enable
++#define PWM_O_0_RIS             0x00000048  // PWM0 Raw Interrupt Status
++#define PWM_O_0_ISC             0x0000004C  // PWM0 Interrupt Status and Clear
++#define PWM_O_0_LOAD            0x00000050  // PWM0 Load
++#define PWM_O_0_COUNT           0x00000054  // PWM0 Counter
++#define PWM_O_0_CMPA            0x00000058  // PWM0 Compare A
++#define PWM_O_0_CMPB            0x0000005C  // PWM0 Compare B
++#define PWM_O_0_GENA            0x00000060  // PWM0 Generator A Control
++#define PWM_O_0_GENB            0x00000064  // PWM0 Generator B Control
++#define PWM_O_0_DBCTL           0x00000068  // PWM0 Dead-Band Control
++#define PWM_O_0_DBRISE          0x0000006C  // PWM0 Dead-Band Rising-Edge Delay
++#define PWM_O_0_DBFALL          0x00000070  // PWM0 Dead-Band
++                                            // Falling-Edge-Delay
++#define PWM_O_0_FLTSRC0         0x00000074  // PWM0 Fault Source 0
++#define PWM_O_0_MINFLTPER       0x0000007C  // PWM0 Minimum Fault Period
++#define PWM_O_1_CTL             0x00000080  // PWM1 Control
++#define PWM_O_1_INTEN           0x00000084  // PWM1 Interrupt Enable
++#define PWM_O_1_RIS             0x00000088  // PWM1 Raw Interrupt Status
++#define PWM_O_1_ISC             0x0000008C  // PWM1 Interrupt Status and Clear
++#define PWM_O_1_LOAD            0x00000090  // PWM1 Load
++#define PWM_O_1_COUNT           0x00000094  // PWM1 Counter
++#define PWM_O_1_CMPA            0x00000098  // PWM1 Compare A
++#define PWM_O_1_CMPB            0x0000009C  // PWM1 Compare B
++#define PWM_O_1_GENA            0x000000A0  // PWM1 Generator A Control
++#define PWM_O_1_GENB            0x000000A4  // PWM1 Generator B Control
++#define PWM_O_1_DBCTL           0x000000A8  // PWM1 Dead-Band Control
++#define PWM_O_1_DBRISE          0x000000AC  // PWM1 Dead-Band Rising-Edge Delay
++#define PWM_O_1_DBFALL          0x000000B0  // PWM1 Dead-Band
++                                            // Falling-Edge-Delay
++#define PWM_O_1_FLTSRC0         0x000000B4  // PWM1 Fault Source 0
++#define PWM_O_1_MINFLTPER       0x000000BC  // PWM1 Minimum Fault Period
++#define PWM_O_2_CTL             0x000000C0  // PWM2 Control
++#define PWM_O_2_INTEN           0x000000C4  // PWM2 InterruptEnable
++#define PWM_O_2_RIS             0x000000C8  // PWM2 Raw Interrupt Status
++#define PWM_O_2_ISC             0x000000CC  // PWM2 Interrupt Status and Clear
++#define PWM_O_2_LOAD            0x000000D0  // PWM2 Load
++#define PWM_O_2_COUNT           0x000000D4  // PWM2 Counter
++#define PWM_O_2_CMPA            0x000000D8  // PWM2 Compare A
++#define PWM_O_2_CMPB            0x000000DC  // PWM2 Compare B
++#define PWM_O_2_GENA            0x000000E0  // PWM2 Generator A Control
++#define PWM_O_2_GENB            0x000000E4  // PWM2 Generator B Control
++#define PWM_O_2_DBCTL           0x000000E8  // PWM2 Dead-Band Control
++#define PWM_O_2_DBRISE          0x000000EC  // PWM2 Dead-Band Rising-Edge Delay
++#define PWM_O_2_DBFALL          0x000000F0  // PWM2 Dead-Band
++                                            // Falling-Edge-Delay
++#define PWM_O_2_FLTSRC0         0x000000F4  // PWM2 Fault Source 0
++#define PWM_O_2_MINFLTPER       0x000000FC  // PWM2 Minimum Fault Period
++#define PWM_O_3_CTL             0x00000100  // PWM3 Control
++#define PWM_O_3_INTEN           0x00000104  // PWM3 Interrupt and Trigger
++                                            // Enable
++#define PWM_O_3_RIS             0x00000108  // PWM3 Raw Interrupt Status
++#define PWM_O_3_ISC             0x0000010C  // PWM3 Interrupt Status and Clear
++#define PWM_O_3_LOAD            0x00000110  // PWM3 Load
++#define PWM_O_3_COUNT           0x00000114  // PWM3 Counter
++#define PWM_O_3_CMPA            0x00000118  // PWM3 Compare A
++#define PWM_O_3_CMPB            0x0000011C  // PWM3 Compare B
++#define PWM_O_3_GENA            0x00000120  // PWM3 Generator A Control
++#define PWM_O_3_GENB            0x00000124  // PWM3 Generator B Control
++#define PWM_O_3_DBCTL           0x00000128  // PWM3 Dead-Band Control
++#define PWM_O_3_DBRISE          0x0000012C  // PWM3 Dead-Band Rising-Edge Delay
++#define PWM_O_3_DBFALL          0x00000130  // PWM3 Dead-Band
++                                            // Falling-Edge-Delay
++#define PWM_O_3_FLTSRC0         0x00000134  // PWM3 Fault Source 0
++#define PWM_O_3_MINFLTPER       0x0000013C  // PWM3 Minimum Fault Period
++#define PWM_O_0_FLTSEN          0x00000800  // PWM0 Fault Pin Logic Sense
++#define PWM_O_0_FLTSTAT0        0x00000804  // PWM0 Fault Status 0
++#define PWM_O_1_FLTSEN          0x00000880  // PWM1 Fault Pin Logic Sense
++#define PWM_O_1_FLTSTAT0        0x00000884  // PWM1 Fault Status 0
++#define PWM_O_2_FLTSEN          0x00000900  // PWM2 Fault Pin Logic Sense
++#define PWM_O_2_FLTSTAT0        0x00000904  // PWM2 Fault Status 0
++#define PWM_O_3_FLTSEN          0x00000980  // PWM3 Fault Pin Logic Sense
++#define PWM_O_3_FLTSTAT0        0x00000984  // PWM3 Fault Status 0
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM Master Control
++// register.
++//
++//*****************************************************************************
++#define PWM_CTL_GLOBALSYNC3     0x00000008  // Update PWM Generator 3.
++#define PWM_CTL_GLOBALSYNC2     0x00000004  // Update PWM Generator 2.
++#define PWM_CTL_GLOBALSYNC1     0x00000002  // Update PWM Generator 1.
++#define PWM_CTL_GLOBALSYNC0     0x00000001  // Update PWM Generator 0.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM Time Base Sync
++// register.
++//
++//*****************************************************************************
++#define PWM_SYNC_SYNC3          0x00000008  // Reset generator 3 counter
++#define PWM_SYNC_SYNC2          0x00000004  // Reset generator 2 counter
++#define PWM_SYNC_SYNC1          0x00000002  // Reset generator 1 counter
++#define PWM_SYNC_SYNC0          0x00000001  // Reset generator 0 counter
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM Output Enable
++// register.
++//
++//*****************************************************************************
++#define PWM_ENABLE_PWM7EN       0x00000080  // PWM7 pin enable
++#define PWM_ENABLE_PWM6EN       0x00000040  // PWM6 pin enable
++#define PWM_ENABLE_PWM5EN       0x00000020  // PWM5 pin enable
++#define PWM_ENABLE_PWM4EN       0x00000010  // PWM4 pin enable
++#define PWM_ENABLE_PWM3EN       0x00000008  // PWM3 pin enable
++#define PWM_ENABLE_PWM2EN       0x00000004  // PWM2 pin enable
++#define PWM_ENABLE_PWM1EN       0x00000002  // PWM1 pin enable
++#define PWM_ENABLE_PWM0EN       0x00000001  // PWM0 pin enable
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM Inversion register.
++//
++//*****************************************************************************
++#define PWM_INVERT_PWM7INV      0x00000080  // PWM7 pin invert
++#define PWM_INVERT_PWM6INV      0x00000040  // PWM6 pin invert
++#define PWM_INVERT_PWM5INV      0x00000020  // PWM5 pin invert
++#define PWM_INVERT_PWM4INV      0x00000010  // PWM4 pin invert
++#define PWM_INVERT_PWM3INV      0x00000008  // PWM3 pin invert
++#define PWM_INVERT_PWM2INV      0x00000004  // PWM2 pin invert
++#define PWM_INVERT_PWM1INV      0x00000002  // PWM1 pin invert
++#define PWM_INVERT_PWM0INV      0x00000001  // PWM0 pin invert
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM Fault register.
++//
++//*****************************************************************************
++#define PWM_FAULT_FAULT7        0x00000080  // PWM7 pin fault
++#define PWM_FAULT_FAULT6        0x00000040  // PWM6 pin fault
++#define PWM_FAULT_FAULT5        0x00000020  // PWM5 pin fault
++#define PWM_FAULT_FAULT4        0x00000010  // PWM4 pin fault
++#define PWM_FAULT_FAULT3        0x00000008  // PWM3 pin fault
++#define PWM_FAULT_FAULT2        0x00000004  // PWM2 pin fault
++#define PWM_FAULT_FAULT1        0x00000002  // PWM1 pin fault
++#define PWM_FAULT_FAULT0        0x00000001  // PWM0 pin fault
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM Status register.
++//
++//*****************************************************************************
++#define PWM_STATUS_FAULT3       0x00000008  // Fault3 Interrupt Status.
++#define PWM_STATUS_FAULT2       0x00000004  // Fault2 Interrupt Status.
++#define PWM_STATUS_FAULT1       0x00000002  // Fault1 Interrupt Status.
++#define PWM_STATUS_FAULT0       0x00000001  // Fault0 Interrupt Status.
++
++//*****************************************************************************
++//
++// The following are defines for the PWM Generator standard offsets.
++//
++//*****************************************************************************
++#define PWM_O_X_CTL             0x00000000  // Gen Control Reg
++#define PWM_O_X_INTEN           0x00000004  // Gen Int/Trig Enable Reg
++#define PWM_O_X_RIS             0x00000008  // Gen Raw Int Status Reg
++#define PWM_O_X_ISC             0x0000000C  // Gen Int Status Reg
++#define PWM_O_X_LOAD            0x00000010  // Gen Load Reg
++#define PWM_O_X_COUNT           0x00000014  // Gen Counter Reg
++#define PWM_O_X_CMPA            0x00000018  // Gen Compare A Reg
++#define PWM_O_X_CMPB            0x0000001C  // Gen Compare B Reg
++#define PWM_O_X_GENA            0x00000020  // Gen Generator A Ctrl Reg
++#define PWM_O_X_GENB            0x00000024  // Gen Generator B Ctrl Reg
++#define PWM_O_X_DBCTL           0x00000028  // Gen Dead Band Ctrl Reg
++#define PWM_O_X_DBRISE          0x0000002C  // Gen DB Rising Edge Delay Reg
++#define PWM_O_X_DBFALL          0x00000030  // Gen DB Falling Edge Delay Reg
++#define PWM_O_X_FLTSRC0         0x00000034  // Fault pin, comparator condition
++#define PWM_O_X_MINFLTPER       0x0000003C  // Fault minimum period extension
++#define PWM_GEN_0_OFFSET        0x00000040  // PWM0 base
++#define PWM_GEN_1_OFFSET        0x00000080  // PWM1 base
++#define PWM_GEN_2_OFFSET        0x000000C0  // PWM2 base
++#define PWM_GEN_3_OFFSET        0x00000100  // PWM3 base
++
++//*****************************************************************************
++//
++// The following are defines for the PWM_X Control Register bit definitions.
++//
++//*****************************************************************************
++#define PWM_X_CTL_LATCH         0x00040000  // Latch Fault Input.
++#define PWM_X_CTL_MINFLTPER     0x00020000  // Minimum fault period enabled
++#define PWM_X_CTL_FLTSRC        0x00010000  // Fault Condition Source.
++#define PWM_X_CTL_DBFALLUPD_M   0x0000C000  // Specifies the update mode for
++                                            // the PWMnDBFALL register.
++#define PWM_X_CTL_DBFALLUPD_I   0x00000000  // Immediate
++#define PWM_X_CTL_DBFALLUPD_LS  0x00008000  // Locally Synchronized
++#define PWM_X_CTL_DBFALLUPD_GS  0x0000C000  // Globally Synchronized
++#define PWM_X_CTL_DBRISEUPD_M   0x00003000  // PWMnDBRISE Update Mode.
++#define PWM_X_CTL_DBRISEUPD_I   0x00000000  // Immediate
++#define PWM_X_CTL_DBRISEUPD_LS  0x00002000  // Locally Synchronized
++#define PWM_X_CTL_DBRISEUPD_GS  0x00003000  // Globally Synchronized
++#define PWM_X_CTL_DBCTLUPD_M    0x00000C00  // PWMnDBCTL Update Mode.
++#define PWM_X_CTL_DBCTLUPD_I    0x00000000  // Immediate
++#define PWM_X_CTL_DBCTLUPD_LS   0x00000800  // Locally Synchronized
++#define PWM_X_CTL_DBCTLUPD_GS   0x00000C00  // Globally Synchronized
++#define PWM_X_CTL_GENBUPD_M     0x00000300  // PWMnGENB Update Mode.
++#define PWM_X_CTL_GENBUPD_I     0x00000000  // Immediate
++#define PWM_X_CTL_GENBUPD_LS    0x00000200  // Locally Synchronized
++#define PWM_X_CTL_GENBUPD_GS    0x00000300  // Globally Synchronized
++#define PWM_X_CTL_GENAUPD_M     0x000000C0  // PWMnGENA Update Mode.
++#define PWM_X_CTL_GENAUPD_I     0x00000000  // Immediate
++#define PWM_X_CTL_GENAUPD_LS    0x00000080  // Locally Synchronized
++#define PWM_X_CTL_GENAUPD_GS    0x000000C0  // Globally Synchronized
++#define PWM_X_CTL_CMPBUPD       0x00000020  // Update mode for comp B reg
++#define PWM_X_CTL_CMPAUPD       0x00000010  // Update mode for comp A reg
++#define PWM_X_CTL_LOADUPD       0x00000008  // Update mode for the load reg
++#define PWM_X_CTL_DEBUG         0x00000004  // Debug mode
++#define PWM_X_CTL_MODE          0x00000002  // Counter mode, down or up/down
++#define PWM_X_CTL_ENABLE        0x00000001  // Master enable for gen block
++
++//*****************************************************************************
++//
++// The following are defines for the PWM Generator extended offsets.
++//
++//*****************************************************************************
++#define PWM_O_X_FLTSEN          0x00000000  // Fault logic sense
++#define PWM_O_X_FLTSTAT0        0x00000004  // Pin and comparator status
++#define PWM_EXT_0_OFFSET        0x00000800  // PWM0 extended base
++#define PWM_EXT_1_OFFSET        0x00000880  // PWM1 extended base
++#define PWM_EXT_2_OFFSET        0x00000900  // PWM2 extended base
++#define PWM_EXT_3_OFFSET        0x00000980  // PWM3 extended base
++
++//*****************************************************************************
++//
++// The following are defines for the PWM_X Interrupt/Trigger Enable Register
++// bit definitions.
++//
++//*****************************************************************************
++#define PWM_X_INTEN_TRCMPBD     0x00002000  // Trig if COUNT = CMPA D
++#define PWM_X_INTEN_TRCMPBU     0x00001000  // Trig if COUNT = CMPA U
++#define PWM_X_INTEN_TRCMPAD     0x00000800  // Trig if COUNT = CMPA D
++#define PWM_X_INTEN_TRCMPAU     0x00000400  // Trig if COUNT = CMPA U
++#define PWM_X_INTEN_TRCNTLOAD   0x00000200  // Trig if COUNT = LOAD
++#define PWM_X_INTEN_TRCNTZERO   0x00000100  // Trig if COUNT = 0
++#define PWM_X_INTEN_INTCMPBD    0x00000020  // Int if COUNT = CMPA D
++#define PWM_X_INTEN_INTCMPBU    0x00000010  // Int if COUNT = CMPA U
++#define PWM_X_INTEN_INTCMPAD    0x00000008  // Int if COUNT = CMPA D
++#define PWM_X_INTEN_INTCMPAU    0x00000004  // Int if COUNT = CMPA U
++#define PWM_X_INTEN_INTCNTLOAD  0x00000002  // Int if COUNT = LOAD
++#define PWM_X_INTEN_INTCNTZERO  0x00000001  // Int if COUNT = 0
++
++//*****************************************************************************
++//
++// The following are defines for the PWM_X Raw Interrupt Status Register bit
++// definitions.
++//
++//*****************************************************************************
++#define PWM_X_RIS_INTCMPBD      0x00000020  // PWM_X_COUNT = PWM_X_CMPB D int
++#define PWM_X_RIS_INTCMPBU      0x00000010  // PWM_X_COUNT = PWM_X_CMPB U int
++#define PWM_X_RIS_INTCMPAD      0x00000008  // PWM_X_COUNT = PWM_X_CMPA D int
++#define PWM_X_RIS_INTCMPAU      0x00000004  // PWM_X_COUNT = PWM_X_CMPA U int
++#define PWM_X_RIS_INTCNTLOAD    0x00000002  // PWM_X_COUNT = PWM_X_LOAD int
++#define PWM_X_RIS_INTCNTZERO    0x00000001  // PWM_X_COUNT = 0 int
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_INTEN register.
++//
++//*****************************************************************************
++#define PWM_INTEN_INTFAULT3     0x00080000  // Interrupt Fault 3.
++#define PWM_INTEN_INTFAULT2     0x00040000  // Interrupt Fault 2.
++#define PWM_INTEN_INTFAULT1     0x00020000  // Interrupt Fault 1.
++#define PWM_INTEN_INTFAULT      0x00010000  // Fault Interrupt Enable.
++#define PWM_INTEN_INTFAULT0     0x00010000  // Interrupt Fault 0.
++#define PWM_INTEN_INTPWM3       0x00000008  // PWM3 Interrupt Enable.
++#define PWM_INTEN_INTPWM2       0x00000004  // PWM2 Interrupt Enable.
++#define PWM_INTEN_INTPWM1       0x00000002  // PWM1 Interrupt Enable.
++#define PWM_INTEN_INTPWM0       0x00000001  // PWM0 Interrupt Enable.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_RIS register.
++//
++//*****************************************************************************
++#define PWM_RIS_INTFAULT3       0x00080000  // Interrupt Fault PWM 3.
++#define PWM_RIS_INTFAULT2       0x00040000  // Interrupt Fault PWM 2.
++#define PWM_RIS_INTFAULT1       0x00020000  // Interrupt Fault PWM 1.
++#define PWM_RIS_INTFAULT0       0x00010000  // Interrupt Fault PWM 0.
++#define PWM_RIS_INTFAULT        0x00010000  // Fault Interrupt Asserted.
++#define PWM_RIS_INTPWM3         0x00000008  // PWM3 Interrupt Asserted.
++#define PWM_RIS_INTPWM2         0x00000004  // PWM2 Interrupt Asserted.
++#define PWM_RIS_INTPWM1         0x00000002  // PWM1 Interrupt Asserted.
++#define PWM_RIS_INTPWM0         0x00000001  // PWM0 Interrupt Asserted.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_ISC register.
++//
++//*****************************************************************************
++#define PWM_ISC_INTFAULT3       0x00080000  // FAULT3 Interrupt Asserted.
++#define PWM_ISC_INTFAULT2       0x00040000  // FAULT2 Interrupt Asserted.
++#define PWM_ISC_INTFAULT1       0x00020000  // FAULT1 Interrupt Asserted.
++#define PWM_ISC_INTFAULT        0x00010000  // Fault Interrupt Asserted.
++#define PWM_ISC_INTFAULT0       0x00010000  // FAULT0 Interrupt Asserted.
++#define PWM_ISC_INTPWM3         0x00000008  // PWM3 Interrupt Status.
++#define PWM_ISC_INTPWM2         0x00000004  // PWM2 Interrupt Status.
++#define PWM_ISC_INTPWM1         0x00000002  // PWM1 Interrupt Status.
++#define PWM_ISC_INTPWM0         0x00000001  // PWM0 Interrupt Status.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_ISC register.
++//
++//*****************************************************************************
++#define PWM_X_ISC_INTCMPBD      0x00000020  // Comparator B Down Interrupt.
++#define PWM_X_ISC_INTCMPBU      0x00000010  // Comparator B Up Interrupt.
++#define PWM_X_ISC_INTCMPAD      0x00000008  // Comparator A Down Interrupt.
++#define PWM_X_ISC_INTCMPAU      0x00000004  // Comparator A Up Interrupt.
++#define PWM_X_ISC_INTCNTLOAD    0x00000002  // Counter=Load Interrupt.
++#define PWM_X_ISC_INTCNTZERO    0x00000001  // Counter=0 Interrupt.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_LOAD register.
++//
++//*****************************************************************************
++#define PWM_X_LOAD_M            0x0000FFFF  // Counter Load Value.
++#define PWM_X_LOAD_S            0
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_COUNT register.
++//
++//*****************************************************************************
++#define PWM_X_COUNT_M           0x0000FFFF  // Counter Value.
++#define PWM_X_COUNT_S           0
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_CMPA register.
++//
++//*****************************************************************************
++#define PWM_X_CMPA_M            0x0000FFFF  // Comparator A Value.
++#define PWM_X_CMPA_S            0
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_CMPB register.
++//
++//*****************************************************************************
++#define PWM_X_CMPB_M            0x0000FFFF  // Comparator B Value.
++#define PWM_X_CMPB_S            0
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_GENA register.
++//
++//*****************************************************************************
++#define PWM_X_GENA_ACTCMPBD_M   0x00000C00  // Action for Comparator B Down.
++#define PWM_X_GENA_ACTCMPBD_NONE \
++                                0x00000000  // Do nothing.
++#define PWM_X_GENA_ACTCMPBD_INV 0x00000400  // Invert the output signal.
++#define PWM_X_GENA_ACTCMPBD_ZERO \
++                                0x00000800  // Set the output signal to 0.
++#define PWM_X_GENA_ACTCMPBD_ONE 0x00000C00  // Set the output signal to 1.
++#define PWM_X_GENA_ACTCMPBU_M   0x00000300  // Action for Comparator B Up.
++#define PWM_X_GENA_ACTCMPBU_NONE \
++                                0x00000000  // Do nothing.
++#define PWM_X_GENA_ACTCMPBU_INV 0x00000100  // Invert the output signal.
++#define PWM_X_GENA_ACTCMPBU_ZERO \
++                                0x00000200  // Set the output signal to 0.
++#define PWM_X_GENA_ACTCMPBU_ONE 0x00000300  // Set the output signal to 1.
++#define PWM_X_GENA_ACTCMPAD_M   0x000000C0  // Action for Comparator A Down.
++#define PWM_X_GENA_ACTCMPAD_NONE \
++                                0x00000000  // Do nothing.
++#define PWM_X_GENA_ACTCMPAD_INV 0x00000040  // Invert the output signal.
++#define PWM_X_GENA_ACTCMPAD_ZERO \
++                                0x00000080  // Set the output signal to 0.
++#define PWM_X_GENA_ACTCMPAD_ONE 0x000000C0  // Set the output signal to 1.
++#define PWM_X_GENA_ACTCMPAU_M   0x00000030  // Action for Comparator A Up.
++#define PWM_X_GENA_ACTCMPAU_NONE \
++                                0x00000000  // Do nothing.
++#define PWM_X_GENA_ACTCMPAU_INV 0x00000010  // Invert the output signal.
++#define PWM_X_GENA_ACTCMPAU_ZERO \
++                                0x00000020  // Set the output signal to 0.
++#define PWM_X_GENA_ACTCMPAU_ONE 0x00000030  // Set the output signal to 1.
++#define PWM_X_GENA_ACTLOAD_M    0x0000000C  // Action for Counter=Load.
++#define PWM_X_GENA_ACTLOAD_NONE 0x00000000  // Do nothing.
++#define PWM_X_GENA_ACTLOAD_INV  0x00000004  // Invert the output signal.
++#define PWM_X_GENA_ACTLOAD_ZERO 0x00000008  // Set the output signal to 0.
++#define PWM_X_GENA_ACTLOAD_ONE  0x0000000C  // Set the output signal to 1.
++#define PWM_X_GENA_ACTZERO_M    0x00000003  // Action for Counter=0.
++#define PWM_X_GENA_ACTZERO_NONE 0x00000000  // Do nothing.
++#define PWM_X_GENA_ACTZERO_INV  0x00000001  // Invert the output signal.
++#define PWM_X_GENA_ACTZERO_ZERO 0x00000002  // Set the output signal to 0.
++#define PWM_X_GENA_ACTZERO_ONE  0x00000003  // Set the output signal to 1.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_GENB register.
++//
++//*****************************************************************************
++#define PWM_X_GENB_ACTCMPBD_M   0x00000C00  // Action for Comparator B Down.
++#define PWM_X_GENB_ACTCMPBD_NONE \
++                                0x00000000  // Do nothing.
++#define PWM_X_GENB_ACTCMPBD_INV 0x00000400  // Invert the output signal.
++#define PWM_X_GENB_ACTCMPBD_ZERO \
++                                0x00000800  // Set the output signal to 0.
++#define PWM_X_GENB_ACTCMPBD_ONE 0x00000C00  // Set the output signal to 1.
++#define PWM_X_GENB_ACTCMPBU_M   0x00000300  // Action for Comparator B Up.
++#define PWM_X_GENB_ACTCMPBU_NONE \
++                                0x00000000  // Do nothing.
++#define PWM_X_GENB_ACTCMPBU_INV 0x00000100  // Invert the output signal.
++#define PWM_X_GENB_ACTCMPBU_ZERO \
++                                0x00000200  // Set the output signal to 0.
++#define PWM_X_GENB_ACTCMPBU_ONE 0x00000300  // Set the output signal to 1.
++#define PWM_X_GENB_ACTCMPAD_M   0x000000C0  // Action for Comparator A Down.
++#define PWM_X_GENB_ACTCMPAD_NONE \
++                                0x00000000  // Do nothing.
++#define PWM_X_GENB_ACTCMPAD_INV 0x00000040  // Invert the output signal.
++#define PWM_X_GENB_ACTCMPAD_ZERO \
++                                0x00000080  // Set the output signal to 0.
++#define PWM_X_GENB_ACTCMPAD_ONE 0x000000C0  // Set the output signal to 1.
++#define PWM_X_GENB_ACTCMPAU_M   0x00000030  // Action for Comparator A Up.
++#define PWM_X_GENB_ACTCMPAU_NONE \
++                                0x00000000  // Do nothing.
++#define PWM_X_GENB_ACTCMPAU_INV 0x00000010  // Invert the output signal.
++#define PWM_X_GENB_ACTCMPAU_ZERO \
++                                0x00000020  // Set the output signal to 0.
++#define PWM_X_GENB_ACTCMPAU_ONE 0x00000030  // Set the output signal to 1.
++#define PWM_X_GENB_ACTLOAD_M    0x0000000C  // Action for Counter=Load.
++#define PWM_X_GENB_ACTLOAD_NONE 0x00000000  // Do nothing.
++#define PWM_X_GENB_ACTLOAD_INV  0x00000004  // Invert the output signal.
++#define PWM_X_GENB_ACTLOAD_ZERO 0x00000008  // Set the output signal to 0.
++#define PWM_X_GENB_ACTLOAD_ONE  0x0000000C  // Set the output signal to 1.
++#define PWM_X_GENB_ACTZERO_M    0x00000003  // Action for Counter=0.
++#define PWM_X_GENB_ACTZERO_NONE 0x00000000  // Do nothing.
++#define PWM_X_GENB_ACTZERO_INV  0x00000001  // Invert the output signal.
++#define PWM_X_GENB_ACTZERO_ZERO 0x00000002  // Set the output signal to 0.
++#define PWM_X_GENB_ACTZERO_ONE  0x00000003  // Set the output signal to 1.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_DBCTL register.
++//
++//*****************************************************************************
++#define PWM_X_DBCTL_ENABLE      0x00000001  // Dead-Band Generator Enable.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_DBRISE register.
++//
++//*****************************************************************************
++#define PWM_X_DBRISE_DELAY_M    0x00000FFF  // Dead-Band Rise Delay.
++#define PWM_X_DBRISE_DELAY_S    0
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_DBFALL register.
++//
++//*****************************************************************************
++#define PWM_X_DBFALL_DELAY_M    0x00000FFF  // Dead-Band Fall Delay.
++#define PWM_X_DBFALL_DELAY_S    0
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_FAULTVAL register.
++//
++//*****************************************************************************
++#define PWM_FAULTVAL_PWM7       0x00000080  // PWM7 Fault Value.
++#define PWM_FAULTVAL_PWM6       0x00000040  // PWM6 Fault Value.
++#define PWM_FAULTVAL_PWM5       0x00000020  // PWM5 Fault Value.
++#define PWM_FAULTVAL_PWM4       0x00000010  // PWM4 Fault Value.
++#define PWM_FAULTVAL_PWM3       0x00000008  // PWM3 Fault Value.
++#define PWM_FAULTVAL_PWM2       0x00000004  // PWM2 Fault Value.
++#define PWM_FAULTVAL_PWM1       0x00000002  // PWM1 Fault Value.
++#define PWM_FAULTVAL_PWM0       0x00000001  // PWM0 Fault Value.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_MINFLTPER
++// register.
++//
++//*****************************************************************************
++#define PWM_X_MINFLTPER_M       0x0000FFFF  // Minimum Fault Period.
++#define PWM_X_MINFLTPER_S       0
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_FLTSEN register.
++//
++//*****************************************************************************
++#define PWM_X_FLTSEN_FAULT3     0x00000008  // Fault3 Sense.
++#define PWM_X_FLTSEN_FAULT2     0x00000004  // Fault2 Sense.
++#define PWM_X_FLTSEN_FAULT1     0x00000002  // Fault1 Sense.
++#define PWM_X_FLTSEN_FAULT0     0x00000001  // Fault0 Sense.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_FLTSRC0
++// register.
++//
++//*****************************************************************************
++#define PWM_X_FLTSRC0_FAULT3    0x00000008  // Fault3.
++#define PWM_X_FLTSRC0_FAULT2    0x00000004  // Fault2.
++#define PWM_X_FLTSRC0_FAULT1    0x00000002  // Fault1.
++#define PWM_X_FLTSRC0_FAULT0    0x00000001  // Fault0.
++
++//*****************************************************************************
++//
++// The following are defines for the bit fields in the PWM_O_X_FLTSTAT0
++// register.
++//
++//*****************************************************************************
++#define PWM_X_FLTSTAT0_FAULT3   0x00000008  // Fault Input 3.
++#define PWM_X_FLTSTAT0_FAULT2   0x00000004  // Fault Input 2.
++#define PWM_X_FLTSTAT0_FAULT1   0x00000002  // Fault Input 1.
++#define PWM_X_FLTSTAT0_FAULT0   0x00000001  // Fault Input 0.
++
++//*****************************************************************************
++//
++// The following definitions are deprecated.
++//
++//*****************************************************************************
++#ifndef DEPRECATED
++
++//*****************************************************************************
++//
++// The following are deprecated defines for the bit fields in the PWM Master
++// Control register.
++//
++//*****************************************************************************
++#define PWM_CTL_GLOBAL_SYNC2    0x00000004  // Global sync generator 2
++#define PWM_CTL_GLOBAL_SYNC1    0x00000002  // Global sync generator 1
++#define PWM_CTL_GLOBAL_SYNC0    0x00000001  // Global sync generator 0
++
++//*****************************************************************************
++//
++// The following are deprecated defines for the PWM Interrupt Register bit
++// definitions.
++//
++//*****************************************************************************
++#define PWM_INT_INTFAULT        0x00010000  // Fault interrupt pending
++
++//*****************************************************************************
++//
++// The following are deprecated defines for the bit fields in the PWM Status
++// register.
++//
++//*****************************************************************************
++#define PWM_STATUS_FAULT        0x00000001  // Fault status
++
++//*****************************************************************************
++//
++// The following are deprecated defines for the PWM_X Interrupt Status Register
++// bit definitions.
++//
++//*****************************************************************************
++#define PWM_X_INT_INTCMPBD      0x00000020  // PWM_X_COUNT = PWM_X_CMPB D rcvd
++#define PWM_X_INT_INTCMPBU      0x00000010  // PWM_X_COUNT = PWM_X_CMPB U rcvd
++#define PWM_X_INT_INTCMPAD      0x00000008  // PWM_X_COUNT = PWM_X_CMPA D rcvd
++#define PWM_X_INT_INTCMPAU      0x00000004  // PWM_X_COUNT = PWM_X_CMPA U rcvd
++#define PWM_X_INT_INTCNTLOAD    0x00000002  // PWM_X_COUNT = PWM_X_LOAD rcvd
++#define PWM_X_INT_INTCNTZERO    0x00000001  // PWM_X_COUNT = 0 received
++
++//*****************************************************************************
++//
++// The following are deprecated defines for the PWM_X Generator A/B Control
++// Register bit definitions.
++//
++//*****************************************************************************
++#define PWM_X_GEN_Y_ACTCMPBD    0x00000C00  // Act PWM_X_COUNT = PWM_X_CMPB D
++#define PWM_X_GEN_Y_ACTCMPBU    0x00000300  // Act PWM_X_COUNT = PWM_X_CMPB U
++#define PWM_X_GEN_Y_ACTCMPAD    0x000000C0  // Act PWM_X_COUNT = PWM_X_CMPA D
++#define PWM_X_GEN_Y_ACTCMPAU    0x00000030  // Act PWM_X_COUNT = PWM_X_CMPA U
++#define PWM_X_GEN_Y_ACTLOAD     0x0000000C  // Act PWM_X_COUNT = PWM_X_LOAD
++#define PWM_X_GEN_Y_ACTZERO     0x00000003  // Act PWM_X_COUNT = 0
++
++//*****************************************************************************
++//
++// The following are deprecated defines for the PWM_X Generator A/B Control
++// Register action definitions.
++//
++//*****************************************************************************
++#define PWM_GEN_ACT_ONE         0x00000003  // Set the output signal to one
++#define PWM_GEN_ACT_ZERO        0x00000002  // Set the output signal to zero
++#define PWM_GEN_ACT_INV         0x00000001  // Invert the output signal
++#define PWM_GEN_ACT_NONE        0x00000000  // Do nothing
++#define PWM_GEN_ACT_B_DN_SHIFT  10          // Shift amount for the B dn action
++#define PWM_GEN_ACT_B_UP_SHIFT  8           // Shift amount for the B up action
++#define PWM_GEN_ACT_A_DN_SHIFT  6           // Shift amount for the A dn action
++#define PWM_GEN_ACT_A_UP_SHIFT  4           // Shift amount for the A up action
++#define PWM_GEN_ACT_LOAD_SHIFT  2           // Shift amount for the load action
++#define PWM_GEN_ACT_ZERO_SHIFT  0           // Shift amount for the zero action
++
++//*****************************************************************************
++//
++// The following are deprecated defines for the PWM_X Dead Band Control
++// Register bit definitions.
++//
++//*****************************************************************************
++#define PWM_DBCTL_ENABLE        0x00000001  // Enable dead band insertion
++
++//*****************************************************************************
++//
++// The following are deprecated defines for the PWM Register reset values.
++//
++//*****************************************************************************
++#define PWM_RV_X_DBCTL          0x00000000  // Control the dead band generator
++#define PWM_RV_STATUS           0x00000000  // Status
++#define PWM_RV_X_ISC            0x00000000  // Interrupt status and clearing
++#define PWM_RV_X_RIS            0x00000000  // Raw interrupt status
++#define PWM_RV_X_CTL            0x00000000  // Master control of the PWM
++                                            // generator block
++#define PWM_RV_SYNC             0x00000000  // Counter synch for PWM generators
++#define PWM_RV_X_DBFALL         0x00000000  // The dead band falling edge delay
++                                            // count
++#define PWM_RV_X_INTEN          0x00000000  // Interrupt and trigger enable
++#define PWM_RV_X_LOAD           0x00000000  // The load value for the counter
++#define PWM_RV_X_GENA           0x00000000  // Controls PWM generator A
++#define PWM_RV_CTL              0x00000000  // Master control of the PWM module
++#define PWM_RV_FAULT            0x00000000  // Fault handling for the PWM
++                                            // output pins
++#define PWM_RV_RIS              0x00000000  // Raw interrupt status
++#define PWM_RV_X_CMPA           0x00000000  // The comparator A value
++#define PWM_RV_INVERT           0x00000000  // Inversion control for PWM output
++                                            // pins
++#define PWM_RV_X_DBRISE         0x00000000  // The dead band rising edge delay
++                                            // count
++#define PWM_RV_ENABLE           0x00000000  // Master enable for the PWM output
++                                            // pins
++#define PWM_RV_X_GENB           0x00000000  // Controls PWM generator B
++#define PWM_RV_X_CMPB           0x00000000  // The comparator B value
++#define PWM_RV_ISC              0x00000000  // Interrupt status and clearing
++#define PWM_RV_INTEN            0x00000000  // Interrupt enable
++#define PWM_RV_X_COUNT          0x00000000  // The current counter value
++
++#endif
++
++#endif // __HW_PWM_H__
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2008-08-16 22:29:11 UTC (rev 56)
++++ trunk/src/platform/lm3s/platform.c	2008-08-18 16:29:09 UTC (rev 57)
+@@ -14,6 +14,7 @@
+ #include &quot;hw_ints.h&quot;
+ #include &quot;hw_memmap.h&quot;
+ #include &quot;hw_types.h&quot;
++#include &quot;hw_pwm.h&quot;
+ #include &quot;debug.h&quot;
+ #include &quot;gpio.h&quot;
+ #include &quot;interrupt.h&quot;
+@@ -21,6 +22,7 @@
+ #include &quot;usart.h&quot;
+ #include &quot;ssi.h&quot;
+ #include &quot;timer.h&quot;
++#include &quot;pwm.h&quot;
+ 
+ // *****************************************************************************
+ // std function
+@@ -39,10 +41,11 @@
+ // Platform initialization
+ 
+ // forward
+-void timers_init();
+-void uarts_init();
+-void spis_init();
+-void pios_init();
++static void timers_init();
++static void uarts_init();
++static void spis_init();
++static void pios_init();
++static void pwms_init();
+ 
+ int platform_init()
+ { 
+@@ -59,7 +62,10 @@
+   uarts_init();
+   
+   // Setup timers
+-  timers_init();                         
++  timers_init();        
++  
++  // Setup PWMs
++  pwms_init();                 
+ 
+   // Set the send/recv functions                          
+   std_set_send_func( uart_send );
+@@ -91,8 +97,7 @@
+                                     4, 4, 2, 0 };
+ #endif
+ 
+-
+-void pios_init()
++static void pios_init()
+ {
+   unsigned i;
+ 
+@@ -183,7 +188,7 @@
+ //                                  SSIxClk      SSIxFss      SSIxRx       SSIxTx
+ static const u8 spi_gpio_clk_pin[] = { GPIO_PIN_2, GPIO_PIN_0 };
+ 
+-void spis_init()
++static void spis_init()
+ {
+   unsigned i;
+ 
+@@ -250,7 +255,7 @@
+ static const u32 uart_gpio_base[] = { GPIO_PORTA_BASE, GPIO_PORTD_BASE, GPIO_PORTG_BASE };
+ static const u8 uart_gpio_pins[] = { GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_2 | GPIO_PIN_3, GPIO_PIN_0 | GPIO_PIN_1 };
+ 
+-void uarts_init()
++static void uarts_init()
+ {
+   unsigned i;
+ 
+@@ -355,7 +360,7 @@
+ static const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE };
+ static const u32 timer_sysctl[] = { SYSCTL_PERIPH_TIMER0, SYSCTL_PERIPH_TIMER1, SYSCTL_PERIPH_TIMER2, SYSCTL_PERIPH_TIMER3 };
+ 
+-void timers_init()
++static void timers_init()
+ {
+   unsigned i;
+ 
+@@ -431,6 +436,106 @@
+ }
+ 
+ // ****************************************************************************
++// PWMs
++
++#define PLATFORM_NUM_PWMS               6
++#define PABS( x )                       ( ( x ) &lt; 0 ? -( x ) : ( x ) )
++
++// SYSCTL div data and actual div factors
++const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
++const static u8 pwm_div_data[] = { 1, 2, 4, 8, 16, 32, 64 };
++// Port/pin information for all channels
++const static u32 pwm_ports[] =  { GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTB_BASE, GPIO_PORTB_BASE, GPIO_PORTE_BASE, GPIO_PORTE_BASE };
++const static u8 pwm_pins[] = { GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_1 };
++// PWM generators
++const static u16 pwm_gens[] = { PWM_GEN_0, PWM_GEN_1, PWM_GEN_2 };
++// PWM outputs
++const static u16 pwm_outs[] = { PWM_OUT_0, PWM_OUT_1, PWM_OUT_2, PWM_OUT_3, PWM_OUT_4, PWM_OUT_5 };
++
++static void pwms_init()
++{
++  SysCtlPeripheralEnable( SYSCTL_PERIPH_PWM );
++  SysCtlPWMClockSet( SYSCTL_PWMDIV_1 );
++}
++
++// Helper function: return the PWM clock
++static u32 platform_pwm_get_clock()
++{
++  unsigned i;
++  u32 clk;
++  
++  clk = SysCtlPWMClockGet();
++  for( i = 0; i &lt; sizeof( pwm_div_ctl ) / sizeof( u32 ); i ++ )
++    if( clk == pwm_div_ctl[ i ] )
++      break;
++  return SysCtlClockGet() / pwm_div_data[ i ];
++}
++
++// Helper function: set the PWM clock
++static u32 platform_pwm_set_clock( u32 clock )
++{
++  unsigned i, min_i;
++  u32 sysclk;
++  
++  sysclk = SysCtlClockGet();
++  for( i = min_i = 0; i &lt; sizeof( pwm_div_data ) / sizeof( u8 ); i ++ )
++    if( PABS( clock - sysclk / pwm_div_data[ i ] ) &lt; PABS( clock - sysclk / pwm_div_data[ min_i ] ) )
++      min_i = i;
++  SysCtlPWMClockSet( pwm_div_ctl[ min_i ] );
++  return sysclk / pwm_div_data[ min_i ];
++}
++
++int platform_pwm_exists( unsigned id )
++{
++  return id &lt; PLATFORM_NUM_PWMS; 
++}
++
++u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
++{
++  u32 pwmclk = platform_pwm_get_clock();
++  u32 period;
++  
++  // Set pin as PWM
++  GPIOPinTypePWM( pwm_ports[ id ], pwm_pins[ id ] );
++  // Compute period
++  period = pwmclk / frequency;
++  // Set the period
++  PWMGenConfigure( PWM_BASE, pwm_gens[ id &gt;&gt; 1 ], PWM_GEN_MODE_UP_DOWN | PWM_GEN_MODE_NO_SYNC );
++  PWMGenPeriodSet( PWM_BASE, pwm_gens[ id &gt;&gt; 1 ], period );
++  // Set duty cycle
++  PWMPulseWidthSet( PWM_BASE, pwm_outs[ id ], ( period * duty ) / 100 );
++  // Return actual frequency
++  return pwmclk / period;
++}
++
++u32 platform_pwm_op( unsigned id, int op, u32 data )
++{
++  u32 res = 0;
++  
++  switch( op )
++  {
++    case PLATFORM_PWM_OP_SET_CLOCK:
++      res = platform_pwm_set_clock( data );
++      
++    case PLATFORM_PWM_OP_GET_CLOCK:
++      res = platform_pwm_get_clock();
++      break;
++      
++    case PLATFORM_PWM_OP_START:
++      PWMOutputState( PWM_BASE, 1 &lt;&lt; id, true );
++      PWMGenEnable( PWM_BASE, pwm_gens[ id &gt;&gt; 1 ] );
++      break;
++      
++    case PLATFORM_PWM_OP_STOP:
++      PWMOutputState( PWM_BASE, 1 &lt;&lt; id, false );
++      PWMGenDisable( PWM_BASE, pwm_gens[ id &gt;&gt; 1 ] );
++      break;
++  }
++  
++  return res;
++}
++
++// ****************************************************************************
+ // Platform data
+ 
+ const char* platform_pd_get_platform_name()
+
+Modified: trunk/src/platform/lm3s/platform_libs.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_libs.h	2008-08-16 22:29:11 UTC (rev 56)
++++ trunk/src/platform/lm3s/platform_libs.h	2008-08-18 16:29:09 UTC (rev 57)
+@@ -11,6 +11,7 @@
+   { AUXLIB_TMR, luaopen_tmr },\
+   { AUXLIB_PD, luaopen_pd },\
+   { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term }
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PWM, luaopen_pwm }
+   
+ #endif
+
+Added: trunk/src/platform/lm3s/pwm.c
+===================================================================
+--- trunk/src/platform/lm3s/pwm.c	2008-08-16 22:29:11 UTC (rev 56)
++++ trunk/src/platform/lm3s/pwm.c	2008-08-18 16:29:09 UTC (rev 57)
+@@ -0,0 +1,1676 @@
++//*****************************************************************************
++//
++// pwm.c - API for the PWM modules
++//
++// Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
++// 
++// Software License Agreement
++// 
++// Luminary Micro, Inc. (LMI) is supplying this software for use solely and
++// exclusively on LMI's microcontroller products.
++// 
++// The software is owned by LMI and/or its suppliers, and is protected under
++// applicable copyright laws.  All rights are reserved.  You may not combine
++// this software with &quot;viral&quot; open-source software in order to form a larger
++// program.  Any use in violation of the foregoing restrictions may subject
++// the user to criminal sanctions under applicable laws, as well as to civil
++// liability for the breach of the terms and conditions of this license.
++// 
++// THIS SOFTWARE IS PROVIDED &quot;AS IS&quot;.  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
++// OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
++// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
++// LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
++// CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
++// 
++// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++//
++//*****************************************************************************
++
++//*****************************************************************************
++//
++//! \addtogroup pwm_api
++//! @{
++//
++//*****************************************************************************
++
++#include &quot;hw_ints.h&quot;
++#include &quot;hw_memmap.h&quot;
++#include &quot;hw_pwm.h&quot;
++#include &quot;hw_sysctl.h&quot;
++#include &quot;hw_types.h&quot;
++#include &quot;debug.h&quot;
++#include &quot;interrupt.h&quot;
++#include &quot;pwm.h&quot;
++
++//*****************************************************************************
++//
++// Misc macros for manipulating the encoded generator and output defines used
++// by the API.
++//
++//*****************************************************************************
++#define PWM_GEN_BADDR(_mod_, _gen_)                                           \
++                                ((_mod_) + (_gen_))
++#define PWM_GEN_EXT_BADDR(_mod_, _gen_)                                       \
++                                ((_mod_) + PWM_GEN_EXT_0 +                    \
++                                 ((_gen_) - PWM_GEN_0) * 2)
++#define PWM_OUT_BADDR(_mod_, _out_)                                           \
++                                ((_mod_) + ((_out_) &amp; 0xFFFFFFC0))
++#define PWM_IS_OUTPUT_ODD(_out_)                                              \
++                                ((_out_) &amp; 0x00000001)
++
++//*****************************************************************************
++//
++//! Configures a PWM generator.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to configure.  Must be one of
++//! \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param ulConfig is the configuration for the PWM generator.
++//!
++//! This function is used to set the mode of operation for a PWM generator.
++//! The counting mode, synchronization mode, and debug behavior are all
++//! configured.  After configuration, the generator is left in the disabled
++//! state.
++//!
++//! A PWM generator can count in two different modes:  count down mode or count
++//! up/down mode.  In count down mode, it will count from a value down to zero,
++//! and then reset to the preset value.  This will produce left-aligned PWM
++//! signals (that is the rising edge of the two PWM signals produced by the
++//! generator will occur at the same time).  In count up/down mode, it will
++//! count up from zero to the preset value, count back down to zero, and then
++//! repeat the process.  This will produce center-aligned PWM signals (that is,
++//! the middle of the high/low period of the PWM signals produced by the
++//! generator will occur at the same time).
++//!
++//! When the PWM generator parameters (period and pulse width) are modified,
++//! their affect on the output PWM signals can be delayed.  In synchronous
++//! mode, the parameter updates are not applied until a synchronization event
++//! occurs.  This allows multiple parameters to be modified and take affect
++//! simultaneously, instead of one at a time.  Additionally, parameters to
++//! multiple PWM generators in synchronous mode can be updated simultaneously,
++//! allowing them to be treated as if they were a unified generator.  In
++//! non-synchronous mode, the parameter updates are not delayed until a
++//! synchronization event.  In either mode, the parameter updates only occur
++//! when the counter is at zero to help prevent oddly formed PWM signals during
++//! the update (that is, a PWM pulse that is too short or too long).
++//!
++//! The PWM generator can either pause or continue running when the processor
++//! is stopped via the debugger.  If configured to pause, it will continue to
++//! count until it reaches zero, at which point it will pause until the
++//! processor is restarted.  If configured to continue running, it will keep
++//! counting as if nothing had happened.
++//!
++//! The \e ulConfig parameter contains the desired configuration.  It is the
++//! logical OR of the following:
++//!
++//! - \b PWM_GEN_MODE_DOWN or \b PWM_GEN_MODE_UP_DOWN to specify the counting
++//!   mode
++//! - \b PWM_GEN_MODE_SYNC or \b PWM_GEN_MODE_NO_SYNC to specify the counter
++//!   load and comparator update synchronization mode
++//! - \b PWM_GEN_MODE_DBG_RUN or \b PWM_GEN_MODE_DBG_STOP to specify the debug
++//!   behavior
++//! - \b PWM_GEN_MODE_GEN_NO_SYNC, \b PWM_GEN_MODE_GEN_SYNC_LOCAL, or
++//!   \b PWM_GEN_MODE_GEN_SYNC_GLOBAL to specify the update synchronization
++//!   mode for generator counting mode changes
++//! - \b PWM_GEN_MODE_DB_NO_SYNC, \b PWM_GEN_MODE_DB_SYNC_LOCAL, or
++//!   \b PWM_GEN_MODE_DB_SYNC_GLOBAL to specify the deadband parameter
++//!   synchronization mode
++//! - \b PWM_GEN_MODE_FAULT_LATCHED or \b PWM_GEN_MODE_FAULT_UNLATCHED to
++//!   specify whether fault conditions are latched or not
++//! - \b PWM_GEN_MODE_FAULT_MINPER or \b PWM_GEN_MODE_FAULT_NO_MINPER to
++//!   specify whether minimum fault period support is required
++//! - \b PWM_GEN_MODE_FAULT_EXT or \b PWM_GEN_MODE_FAULT_LEGACY to specify
++//!   whether extended fault source selection support is enabled or not
++//!
++//! Setting \b PWM_GEN_MODE_FAULT_MINPER allows an application to set the
++//! minimum duration of a PWM fault signal.  Fault will be signalled for at
++//! least this time even if the external fault pin deasserts earlier.  Care
++//! should be taken when using this mode since during the fault signal period,
++//! the fault interrupt from the PWM generator will remain asserted.  The fault
++//! interrupt handler may, therefore, reenter immediately if it exits prior to
++//! expiration of the fault timer.
++//!
++//! \note Changes to the counter mode will affect the period of the PWM signals
++//! produced.  PWMGenPeriodSet() and PWMPulseWidthSet() should be called after
++//! any changes to the counter mode of a generator.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenConfigure(unsigned long ulBase, unsigned long ulGen,
++                unsigned long ulConfig)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++
++    //
++    // Compute the generator's base address.
++    //
++    ulGen = PWM_GEN_BADDR(ulBase, ulGen);
++
++    //
++    // Change the global configuration of the generator.
++    //
++    HWREG(ulGen + PWM_O_X_CTL) = ((HWREG(ulGen + PWM_O_X_CTL) &amp;
++                                   ~(PWM_X_CTL_MODE | PWM_X_CTL_DEBUG |
++                                     PWM_X_CTL_LATCH | PWM_X_CTL_MINFLTPER |
++                                     PWM_X_CTL_FLTSRC | PWM_X_CTL_DBFALLUPD_M |
++                                     PWM_X_CTL_DBRISEUPD_M |
++                                     PWM_X_CTL_DBCTLUPD_M |
++                                     PWM_X_CTL_GENBUPD_M |
++                                     PWM_X_CTL_GENAUPD_M |
++                                     PWM_X_CTL_LOADUPD | PWM_X_CTL_CMPAUPD |
++                                     PWM_X_CTL_CMPBUPD)) | ulConfig);
++
++    //
++    // Set the individual PWM generator controls.
++    //
++    if(ulConfig &amp; PWM_X_CTL_MODE)
++    {
++        //
++        // In up/down count mode, set the signal high on up count comparison
++        // and low on down count comparison (that is, center align the
++        // signals).
++        //
++        HWREG(ulGen + PWM_O_X_GENA) = (PWM_X_GENA_ACTCMPAU_ONE |
++                                       PWM_X_GENA_ACTCMPAD_ZERO);
++        HWREG(ulGen + PWM_O_X_GENB) = (PWM_X_GENB_ACTCMPBU_ONE |
++                                       PWM_X_GENB_ACTCMPBD_ZERO);
++    }
++    else
++    {
++        //
++        // In down count mode, set the signal high on load and low on count
++        // comparison (that is, left align the signals).
++        //
++        HWREG(ulGen + PWM_O_X_GENA) = (PWM_X_GENA_ACTLOAD_ONE |
++                                       PWM_X_GENA_ACTCMPAD_ZERO);
++        HWREG(ulGen + PWM_O_X_GENB) = (PWM_X_GENB_ACTLOAD_ONE |
++                                       PWM_X_GENB_ACTCMPBD_ZERO);
++    }
++}
++
++//*****************************************************************************
++//
++//! Set the period of a PWM generator.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to be modified.  Must be one of
++//! \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param ulPeriod specifies the period of PWM generator output, measured
++//! in clock ticks.
++//!
++//! This function sets the period of the specified PWM generator block, where
++//! the period of the generator block is defined as the number of PWM clock
++//! ticks between pulses on the generator block zero signal.
++//!
++//! \note Any subsequent calls made to this function before an update occurs
++//! will cause the previous values to be overwritten.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenPeriodSet(unsigned long ulBase, unsigned long ulGen,
++                unsigned long ulPeriod)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++
++    //
++    // Compute the generator's base address.
++    //
++    ulGen = PWM_GEN_BADDR(ulBase, ulGen);
++
++    //
++    // Set the reload register based on the mode.
++    //
++    if(HWREG(ulGen + PWM_O_X_CTL) &amp; PWM_X_CTL_MODE)
++    {
++        //
++        // In up/down count mode, set the reload register to half the requested
++        // period.
++        //
++        ASSERT((ulPeriod / 2) &lt; 65536);
++        HWREG(ulGen + PWM_O_X_LOAD) = ulPeriod / 2;
++    }
++    else
++    {
++        //
++        // In down count mode, set the reload register to the requested period
++        // minus one.
++        //
++        ASSERT((ulPeriod &lt;= 65536) &amp;&amp; (ulPeriod != 0));
++        HWREG(ulGen + PWM_O_X_LOAD) = ulPeriod - 1;
++    }
++}
++
++//*****************************************************************************
++//
++//! Gets the period of a PWM generator block.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to query.  Must be one of
++//! \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//!
++//! This function gets the period of the specified PWM generator block.  The
++//! period of the generator block is defined as the number of PWM clock ticks
++//! between pulses on the generator block zero signal.
++//!
++//! If the update of the counter for the specified PWM generator has yet
++//! to be completed, the value returned may not be the active period.  The
++//! value returned is the programmed period, measured in PWM clock ticks.
++//!
++//! \return Returns the programmed period of the specified generator block
++//! in PWM clock ticks.
++//
++//*****************************************************************************
++unsigned long
++PWMGenPeriodGet(unsigned long ulBase, unsigned long ulGen)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++
++    //
++    // Compute the generator's base address.
++    //
++    ulGen = PWM_GEN_BADDR(ulBase, ulGen);
++
++    //
++    // Figure out the counter mode.
++    //
++    if(HWREG(ulGen + PWM_O_X_CTL) &amp; PWM_X_CTL_MODE)
++    {
++        //
++        // The period is twice the reload register value.
++        //
++        return(HWREG(ulGen + PWM_O_X_LOAD) * 2);
++    }
++    else
++    {
++        //
++        // The period is the reload register value plus one.
++        //
++        return(HWREG(ulGen + PWM_O_X_LOAD) + 1);
++    }
++}
++
++//*****************************************************************************
++//
++//! Enables the timer/counter for a PWM generator block.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to be enabled.  Must be one of
++//! \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//!
++//! This function allows the PWM clock to drive the timer/counter for the
++//! specified generator block.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenEnable(unsigned long ulBase, unsigned long ulGen)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++
++    //
++    // Enable the PWM generator.
++    //
++    HWREG(PWM_GEN_BADDR(ulBase, ulGen) + PWM_O_X_CTL) |= PWM_X_CTL_ENABLE;
++}
++
++//*****************************************************************************
++//
++//! Disables the timer/counter for a PWM generator block.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to be disabled.  Must be one of
++//! \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//!
++//! This function blocks the PWM clock from driving the timer/counter for the
++//! specified generator block.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenDisable(unsigned long ulBase, unsigned long ulGen)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++
++    //
++    // Disable the PWM generator.
++    //
++    HWREG(PWM_GEN_BADDR(ulBase, + ulGen) + PWM_O_X_CTL) &amp;= ~(PWM_X_CTL_ENABLE);
++}
++
++//*****************************************************************************
++//
++//! Sets the pulse width for the specified PWM output.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulPWMOut is the PWM output to modify.  Must be one of \b PWM_OUT_0,
++//! \b PWM_OUT_1, \b PWM_OUT_2, \b PWM_OUT_3, \b PWM_OUT_4, \b PWM_OUT_5,
++//! \b PWM_OUT_6, or \b PWM_OUT_7.
++//! \param ulWidth specifies the width of the positive portion of the pulse.
++//!
++//! This function sets the pulse width for the specified PWM output, where the
++//! pulse width is defined as the number of PWM clock ticks.
++//!
++//! \note Any subsequent calls made to this function before an update occurs
++//! will cause the previous values to be overwritten.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMPulseWidthSet(unsigned long ulBase, unsigned long ulPWMOut,
++                 unsigned long ulWidth)
++{
++    unsigned long ulGenBase, ulReg;
++
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulPWMOut == PWM_OUT_0) || (ulPWMOut == PWM_OUT_1) ||
++           (ulPWMOut == PWM_OUT_2) || (ulPWMOut == PWM_OUT_3) ||
++           (ulPWMOut == PWM_OUT_4) || (ulPWMOut == PWM_OUT_5) ||
++           (ulPWMOut == PWM_OUT_6) || (ulPWMOut == PWM_OUT_7));
++
++    //
++    // Compute the generator's base address.
++    //
++    ulGenBase = PWM_OUT_BADDR(ulBase, ulPWMOut);
++
++    //
++    // If the counter is in up/down count mode, divide the width by two.
++    //
++    if(HWREG(ulGenBase + PWM_O_X_CTL) &amp; PWM_X_CTL_MODE)
++    {
++        ulWidth /= 2;
++    }
++
++    //
++    // Get the period.
++    //
++    ulReg = HWREG(ulGenBase + PWM_O_X_LOAD);
++
++    //
++    // Make sure the width is not too large.
++    //
++    ASSERT(ulWidth &lt; ulReg);
++
++    //
++    // Compute the compare value.
++    //
++    ulReg = ulReg - ulWidth;
++
++    //
++    // Write to the appropriate registers.
++    //
++    if(PWM_IS_OUTPUT_ODD(ulPWMOut))
++    {
++        HWREG(ulGenBase + PWM_O_X_CMPB) = ulReg;
++    }
++    else
++    {
++        HWREG(ulGenBase + PWM_O_X_CMPA) = ulReg;
++    }
++}
++
++//*****************************************************************************
++//
++//! Gets the pulse width of a PWM output.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulPWMOut is the PWM output to query.  Must be one of \b PWM_OUT_0,
++//! \b PWM_OUT_1, \b PWM_OUT_2, \b PWM_OUT_3, \b PWM_OUT_4, \b PWM_OUT_5,
++//! \b PWM_OUT_6, or \b PWM_OUT_7.
++//!
++//! This function gets the currently programmed pulse width for the specified
++//! PWM output.  If the update of the comparator for the specified output has
++//! yet to be completed, the value returned may not be the active pulse width.
++//! The value returned is the programmed pulse width, measured in PWM clock
++//! ticks.
++//!
++//! \return Returns the width of the pulse in PWM clock ticks.
++//
++//*****************************************************************************
++unsigned long
++PWMPulseWidthGet(unsigned long ulBase, unsigned long ulPWMOut)
++{
++    unsigned long ulGenBase, ulReg, ulLoad;
++
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulPWMOut == PWM_OUT_0) || (ulPWMOut == PWM_OUT_1) ||
++           (ulPWMOut == PWM_OUT_2) || (ulPWMOut == PWM_OUT_3) ||
++           (ulPWMOut == PWM_OUT_4) || (ulPWMOut == PWM_OUT_5) ||
++           (ulPWMOut == PWM_OUT_6) || (ulPWMOut == PWM_OUT_7));
++
++    //
++    // Compute the generator's base address.
++    //
++    ulGenBase = PWM_OUT_BADDR(ulBase, ulPWMOut);
++
++    //
++    // Then compute the pulse width.  If mode is UpDown, set
++    // width = (load - compare) * 2.  Otherwise, set width = load - compare.
++    //
++    ulLoad = HWREG(ulGenBase + PWM_O_X_LOAD);
++    if(PWM_IS_OUTPUT_ODD(ulPWMOut))
++    {
++        ulReg = HWREG(ulGenBase + PWM_O_X_CMPB);
++    }
++    else
++    {
++        ulReg = HWREG(ulGenBase + PWM_O_X_CMPA);
++    }
++    ulReg = ulLoad - ulReg;
++
++    //
++    // If in up/down count mode, double the pulse width.
++    //
++    if(HWREG(ulGenBase + PWM_O_X_CTL) &amp; PWM_X_CTL_MODE)
++    {
++        ulReg = ulReg * 2;
++    }
++
++    //
++    // Return the pulse width.
++    //
++    return(ulReg);
++}
++
++//*****************************************************************************
++//
++//! Enables the PWM dead band output, and sets the dead band delays.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to modify.  Must be one of
++//! \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param usRise specifies the width of delay from the rising edge.
++//! \param usFall specifies the width of delay from the falling edge.
++//!
++//! This function sets the dead bands for the specified PWM generator,
++//! where the dead bands are defined as the number of \b PWM clock ticks
++//! from the rising or falling edge of the generator's \b OutA signal.
++//! Note that this function causes the coupling of \b OutB to \b OutA.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMDeadBandEnable(unsigned long ulBase, unsigned long ulGen,
++                  unsigned short usRise, unsigned short usFall)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(usRise &lt; 4096);
++    ASSERT(usFall &lt; 4096);
++
++    //
++    // Compute the generator's base address.
++    //
++    ulGen = PWM_GEN_BADDR(ulBase, ulGen);
++
++    //
++    // Write the dead band delay values.
++    //
++    HWREG(ulGen + PWM_O_X_DBRISE) = usRise;
++    HWREG(ulGen + PWM_O_X_DBFALL) = usFall;
++
++    //
++    // Enable the deadband functionality.
++    //
++    HWREG(ulGen + PWM_O_X_DBCTL) |= PWM_X_DBCTL_ENABLE;
++}
++
++//*****************************************************************************
++//
++//! Disables the PWM dead band output.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to modify.  Must be one of
++//! \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//!
++//! This function disables the dead band mode for the specified PWM generator.
++//! Doing so decouples the \b OutA and \b OutB signals.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMDeadBandDisable(unsigned long ulBase, unsigned long ulGen)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++
++    //
++    // Disable the deadband functionality.
++    //
++    HWREG(PWM_GEN_BADDR(ulBase, ulGen) + PWM_O_X_DBCTL) &amp;=
++        ~(PWM_X_DBCTL_ENABLE);
++}
++
++//*****************************************************************************
++//
++//! Synchronizes all pending updates.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGenBits are the PWM generator blocks to be updated.  Must be the
++//! logical OR of any of \b PWM_GEN_0_BIT, \b PWM_GEN_1_BIT,
++//! \b PWM_GEN_2_BIT, or \b PWM_GEN_3_BIT.
++//!
++//! For the selected PWM generators, this function causes all queued updates to
++//! the period or pulse width to be applied the next time the corresponding
++//! counter becomes zero.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMSyncUpdate(unsigned long ulBase, unsigned long ulGenBits)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT(!(ulGenBits &amp; ~(PWM_GEN_0_BIT | PWM_GEN_1_BIT | PWM_GEN_2_BIT |
++                           PWM_GEN_3_BIT)));
++
++    //
++    // Synchronize pending PWM register changes.
++    //
++    HWREG(ulBase + PWM_O_CTL) = ulGenBits;
++}
++
++//*****************************************************************************
++//
++//! Synchronizes the counters in one or multiple PWM generator blocks.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGenBits are the PWM generator blocks to be synchronized.  Must be
++//! the logical OR of any of \b PWM_GEN_0_BIT, \b PWM_GEN_1_BIT,
++//! \b PWM_GEN_2_BIT, or \b PWM_GEN_3_BIT.
++//!
++//! For the selected PWM module, this function synchronizes the time base
++//! of the generator blocks by causing the specified generator counters to be
++//! reset to zero.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMSyncTimeBase(unsigned long ulBase, unsigned long ulGenBits)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT(!(ulGenBits &amp; ~(PWM_GEN_0_BIT | PWM_GEN_1_BIT | PWM_GEN_2_BIT |
++                           PWM_GEN_3_BIT)));
++
++    //
++    // Synchronize the counters in the specified generators by writing to the
++    // module's synchronization register.
++    //
++    HWREG(ulBase + PWM_O_SYNC) = ulGenBits;
++}
++
++//*****************************************************************************
++//
++//! Enables or disables PWM outputs.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulPWMOutBits are the PWM outputs to be modified.  Must be the
++//! logical OR of any of \b PWM_OUT_0_BIT, \b PWM_OUT_1_BIT, \b PWM_OUT_2_BIT,
++//! \b PWM_OUT_3_BIT, \b PWM_OUT_4_BIT, \b PWM_OUT_5_BIT, \b PWM_OUT_6_BIT,
++//! or \b PWM_OUT_7_BIT.
++//! \param bEnable determines if the signal is enabled or disabled.
++//!
++//! This function is used to enable or disable the selected PWM outputs.  The
++//! outputs are selected using the parameter \e ulPWMOutBits.  The parameter
++//! \e bEnable determines the state of the selected outputs.  If \e bEnable is
++//! \b true, then the selected PWM outputs are enabled, or placed in the active
++//! state.  If \e bEnable is \b false, then the selected outputs are disabled,
++//! or placed in the inactive state.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMOutputState(unsigned long ulBase, unsigned long ulPWMOutBits,
++               tBoolean bEnable)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT(!(ulPWMOutBits &amp; ~(PWM_OUT_0_BIT | PWM_OUT_1_BIT | PWM_OUT_2_BIT |
++                              PWM_OUT_3_BIT | PWM_OUT_4_BIT | PWM_OUT_5_BIT |
++                              PWM_OUT_6_BIT | PWM_OUT_7_BIT)));
++
++    //
++    // Read the module's ENABLE output control register, and set or clear the
++    // requested bits.
++    //
++    if(bEnable == true)
++    {
++        HWREG(ulBase + PWM_O_ENABLE) |= ulPWMOutBits;
++    }
++    else
++    {
++        HWREG(ulBase + PWM_O_ENABLE) &amp;= ~(ulPWMOutBits);
++    }
++}
++
++//*****************************************************************************
++//
++//! Selects the inversion mode for PWM outputs.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulPWMOutBits are the PWM outputs to be modified.  Must be the
++//! logical OR of any of \b PWM_OUT_0_BIT, \b PWM_OUT_1_BIT, \b PWM_OUT_2_BIT,
++//! \b PWM_OUT_3_BIT, \b PWM_OUT_4_BIT, \b PWM_OUT_5_BIT, \b PWM_OUT_6_BIT, or
++//! \b PWM_OUT_7_BIT.
++//! \param bInvert determines if the signal is inverted or passed through.
++//!
++//! This function is used to select the inversion mode for the selected PWM
++//! outputs.  The outputs are selected using the parameter \e ulPWMOutBits.
++//! The parameter \e bInvert determines the inversion mode for the selected
++//! outputs.  If \e bInvert is \b true, this function will cause the specified
++//! PWM output signals to be inverted, or made active low.  If \e bInvert is
++//! \b false, the specified output will be passed through as is, or be made
++//! active high.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMOutputInvert(unsigned long ulBase, unsigned long ulPWMOutBits,
++                tBoolean bInvert)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT(!(ulPWMOutBits &amp; ~(PWM_OUT_0_BIT | PWM_OUT_1_BIT | PWM_OUT_2_BIT |
++                              PWM_OUT_3_BIT | PWM_OUT_4_BIT | PWM_OUT_5_BIT |
++                              PWM_OUT_6_BIT | PWM_OUT_7_BIT)));
++
++    //
++    // Read the module's INVERT output control register, and set or clear the
++    // requested bits.
++    //
++    if(bInvert == true)
++    {
++        HWREG(ulBase + PWM_O_INVERT) |= ulPWMOutBits;
++    }
++    else
++    {
++        HWREG(ulBase + PWM_O_INVERT) &amp;= ~(ulPWMOutBits);
++    }
++}
++
++//*****************************************************************************
++//
++//! Specifies the level of PWM outputs suppressed in response to a fault
++//! condition.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulPWMOutBits are the PWM outputs to be modified.  Must be the
++//! logical OR of any of \b PWM_OUT_0_BIT, \b PWM_OUT_1_BIT, \b PWM_OUT_2_BIT,
++//! \b PWM_OUT_3_BIT, \b PWM_OUT_4_BIT, \b PWM_OUT_5_BIT, \b PWM_OUT_6_BIT, or
++//! \b PWM_OUT_7_BIT.
++//! \param bDriveHigh determines if the signal is driven high or low during an
++//! active fault condition.
++//!
++//! This function determines whether a PWM output pin that is suppressed in
++//! response to a fault condition will be driven high or low.  The affected
++//! outputs are selected using the parameter \e ulPWMOutBits.  The parameter
++//! \e bDriveHigh determines the output level for the pins identified by
++//! \e ulPWMOutBits.  If \e bDriveHigh is \b true then the selected outputs
++//! will be driven high when a fault is detected.  If it is \e false, the pins
++//! will be driven low.
++//!
++//! In a fault condition, pins which have not been configured to be suppressed
++//! via a call to PWMOutputFault() are unaffected by this function.
++//!
++//! \note This function is available only on devices which support extended
++//! PWM fault handling.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMOutputFaultLevel(unsigned long ulBase, unsigned long ulPWMOutBits,
++                    tBoolean bDriveHigh)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT(!(ulPWMOutBits &amp; ~(PWM_OUT_0_BIT | PWM_OUT_1_BIT | PWM_OUT_2_BIT |
++                              PWM_OUT_3_BIT | PWM_OUT_4_BIT | PWM_OUT_5_BIT |
++                              PWM_OUT_6_BIT | PWM_OUT_7_BIT)));
++
++    //
++    // Read the module's FAULT output control register, and set or clear the
++    // requested bits.
++    //
++    if(bDriveHigh == true)
++    {
++        HWREG(ulBase + PWM_O_FAULTVAL) |= ulPWMOutBits;
++    }
++    else
++    {
++        HWREG(ulBase + PWM_O_FAULTVAL) &amp;= ~(ulPWMOutBits);
++    }
++}
++
++//*****************************************************************************
++//
++//! Specifies the state of PWM outputs in response to a fault condition.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulPWMOutBits are the PWM outputs to be modified.  Must be the
++//! logical OR of any of \b PWM_OUT_0_BIT, \b PWM_OUT_1_BIT, \b PWM_OUT_2_BIT,
++//! \b PWM_OUT_3_BIT, \b PWM_OUT_4_BIT, \b PWM_OUT_5_BIT, \b PWM_OUT_6_BIT, or
++//! \b PWM_OUT_7_BIT.
++//! \param bFaultSuppress determines if the signal is suppressed or passed
++//! through during an active fault condition.
++//!
++//! This function sets the fault handling characteristics of the selected PWM
++//! outputs.  The outputs are selected using the parameter \e ulPWMOutBits.
++//! The parameter \e bFaultSuppress determines the fault handling
++//! characteristics for the selected outputs.  If \e bFaultSuppress is \b true,
++//! then the selected outputs will be made inactive.  If \e bFaultSuppress is
++//! \b false, then the selected outputs are unaffected by the detected fault.
++//!
++//! On devices supporting extended PWM fault handling, the state the affected
++//! output pins are driven to can be configured with PWMOutputFaultLevel().  If
++//! not configured, or if the device does not support extended PWM fault
++//! handling, affected outputs will be driven low on a fault condition.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMOutputFault(unsigned long ulBase, unsigned long ulPWMOutBits,
++               tBoolean bFaultSuppress)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT(!(ulPWMOutBits &amp; ~(PWM_OUT_0_BIT | PWM_OUT_1_BIT | PWM_OUT_2_BIT |
++                              PWM_OUT_3_BIT | PWM_OUT_4_BIT | PWM_OUT_5_BIT |
++                              PWM_OUT_6_BIT | PWM_OUT_7_BIT)));
++
++    //
++    // Read the module's FAULT output control register, and set or clear the
++    // requested bits.
++    //
++    if(bFaultSuppress == true)
++    {
++        HWREG(ulBase + PWM_O_FAULT) |= ulPWMOutBits;
++    }
++    else
++    {
++        HWREG(ulBase + PWM_O_FAULT) &amp;= ~(ulPWMOutBits);
++    }
++}
++
++//*****************************************************************************
++//
++//! Registers an interrupt handler for the specified PWM generator block.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator in question.  Must be one of
++//! \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param pfnIntHandler is a pointer to the function to be called when the PWM
++//! generator interrupt occurs.
++//!
++//! This function will ensure that the interrupt handler specified by
++//! \e pfnIntHandler is called when an interrupt is detected for the specified
++//! PWM generator block.  This function will also enable the corresponding
++//! PWM generator interrupt in the interrupt controller; individual generator
++//! interrupts and interrupt sources must be enabled with PWMIntEnable() and
++//! PWMGenIntTrigEnable().
++//!
++//! \sa IntRegister() for important information about registering interrupt
++//! handlers.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenIntRegister(unsigned long ulBase, unsigned long ulGen,
++                  void (*pfnIntHandler)(void))
++{
++    unsigned long ulInt;
++
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++
++    //
++    // Get the interrupt number associated with the specified generator.
++    //
++    if(ulGen == PWM_GEN_3)
++    {
++        ulInt = INT_PWM3;
++    }
++    else
++    {
++        ulInt = INT_PWM0 + (ulGen &gt;&gt; 6) - 1;
++    }
++
++    //
++    // Register the interrupt handler.
++    //
++    IntRegister(ulInt, pfnIntHandler);
++
++    //
++    // Enable the PWMx interrupt.
++    //
++    IntEnable(ulInt);
++}
++
++//*****************************************************************************
++//
++//! Removes an interrupt handler for the specified PWM generator block.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator in question.  Must be one of
++//! \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//!
++//! This function will unregister the interrupt handler for the specified
++//! PWM generator block.  This function will also disable the corresponding
++//! PWM generator interrupt in the interrupt controller; individual generator
++//! interrupts and interrupt sources must be disabled with PWMIntDisable() and
++//! PWMGenIntTrigDisable().
++//!
++//! \sa IntRegister() for important information about registering interrupt
++//! handlers.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenIntUnregister(unsigned long ulBase, unsigned long ulGen)
++{
++    unsigned long ulInt;
++
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++
++    //
++    // Get the interrupt number associated with the specified generator.
++    //
++    if(ulGen == PWM_GEN_3)
++    {
++        ulInt = INT_PWM3;
++    }
++    else
++    {
++        ulInt = INT_PWM0 + (ulGen &gt;&gt; 6) - 1;
++    }
++
++    //
++    // Disable the PWMx interrupt.
++    //
++    IntDisable(ulInt);
++
++    //
++    // Unregister the interrupt handler.
++    //
++    IntUnregister(ulInt);
++}
++
++//*****************************************************************************
++//
++//! Registers an interrupt handler for a fault condition detected in a PWM
++//! module.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param pfnIntHandler is a pointer to the function to be called when the PWM
++//! fault interrupt occurs.
++//!
++//! This function will ensure that the interrupt handler specified by
++//! \e pfnIntHandler is called when a fault interrupt is detected for the
++//! selected PWM module.  This function will also enable the PWM fault
++//! interrupt in the NVIC; the PWM fault interrupt must also be enabled at the
++//! module level using PWMIntEnable().
++//!
++//! \sa IntRegister() for important information about registering interrupt
++//! handlers.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMFaultIntRegister(unsigned long ulBase, void (*pfnIntHandler)(void))
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++
++    //
++    // Register the interrupt handler, returning an error if one occurs.
++    //
++    IntRegister(INT_PWM_FAULT, pfnIntHandler);
++
++    //
++    // Enable the PWM fault interrupt.
++    //
++    IntEnable(INT_PWM_FAULT);
++}
++
++//*****************************************************************************
++//
++//! Removes the PWM fault condition interrupt handler.
++//!
++//! \param ulBase is the base address of the PWM module.
++//!
++//! This function will remove the interrupt handler for a PWM fault interrupt
++//! from the selected PWM module.  This function will also disable the PWM
++//! fault interrupt in the NVIC; the PWM fault interrupt must also be disabled
++//! at the module level using PWMIntDisable().
++//!
++//! \sa IntRegister() for important information about registering interrupt
++//! handlers.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMFaultIntUnregister(unsigned long ulBase)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++
++    //
++    // Disable the PWM fault interrupt.
++    //
++    IntDisable(INT_PWM_FAULT);
++
++    //
++    // Unregister the interrupt handler, returning an error if one occurs.
++    //
++    IntUnregister(INT_PWM_FAULT);
++}
++
++//*****************************************************************************
++//
++//! Enables interrupts and triggers for the specified PWM generator block.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to have interrupts and triggers enabled.
++//! Must be one of \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param ulIntTrig specifies the interrupts and triggers to be enabled.
++//!
++//! Unmasks the specified interrupt(s) and trigger(s) by setting the
++//! specified bits of the interrupt/trigger enable register for the specified
++//! PWM generator.  The \e ulIntTrig parameter is the logical OR of
++//! \b PWM_INT_CNT_ZERO, \b PWM_INT_CNT_LOAD, \b PWM_INT_CNT_AU,
++//! \b PWM_INT_CNT_AD, \b PWM_INT_CNT_BU, \b PWM_INT_CNT_BD,
++//! \b PWM_TR_CNT_ZERO, \b PWM_TR_CNT_LOAD, \b PWM_TR_CNT_AU, \b PWM_TR_CNT_AD,
++//! \b PWM_TR_CNT_BU, or \b PWM_TR_CNT_BD.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenIntTrigEnable(unsigned long ulBase, unsigned long ulGen,
++                    unsigned long ulIntTrig)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT((ulIntTrig &amp; ~(PWM_INT_CNT_ZERO | PWM_INT_CNT_LOAD |
++                          PWM_INT_CNT_AU | PWM_INT_CNT_AD | PWM_INT_CNT_BU |
++                          PWM_INT_CNT_BD | PWM_TR_CNT_ZERO | PWM_TR_CNT_LOAD |
++                          PWM_TR_CNT_AU | PWM_TR_CNT_AD | PWM_TR_CNT_BU |
++                          PWM_TR_CNT_BD)) == 0);
++
++    //
++    // Enable the specified interrupts/triggers.
++    //
++    HWREG(PWM_GEN_BADDR(ulBase, ulGen) + PWM_O_X_INTEN) |= ulIntTrig;
++}
++
++//*****************************************************************************
++//
++//! Disables interrupts for the specified PWM generator block.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to have interrupts and triggers disabled.
++//! Must be one of \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param ulIntTrig specifies the interrupts and triggers to be disabled.
++//!
++//! Masks the specified interrupt(s) and trigger(s) by clearing the
++//! specified bits of the interrupt/trigger enable register for the specified
++//! PWM generator.  The \e ulIntTrig parameter is the logical OR of
++//! \b PWM_INT_CNT_ZERO, \b PWM_INT_CNT_LOAD, \b PWM_INT_CNT_AU,
++//! \b PWM_INT_CNT_AD, \b PWM_INT_CNT_BU, \b PWM_INT_CNT_BD,
++//! \b PWM_TR_CNT_ZERO, \b PWM_TR_CNT_LOAD, \b PWM_TR_CNT_AU, \b PWM_TR_CNT_AD,
++//! \b PWM_TR_CNT_BU, or \b PWM_TR_CNT_BD.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenIntTrigDisable(unsigned long ulBase, unsigned long ulGen,
++                     unsigned long ulIntTrig)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT((ulIntTrig &amp; ~(PWM_INT_CNT_ZERO | PWM_INT_CNT_LOAD |
++                          PWM_INT_CNT_AU | PWM_INT_CNT_AD | PWM_INT_CNT_BU |
++                          PWM_INT_CNT_BD | PWM_TR_CNT_ZERO | PWM_TR_CNT_LOAD |
++                          PWM_TR_CNT_AU | PWM_TR_CNT_AD | PWM_TR_CNT_BU |
++                          PWM_TR_CNT_BD)) == 0);
++
++    //
++    // Disable the specified interrupts/triggers.
++    //
++    HWREG(PWM_GEN_BADDR(ulBase, ulGen) + PWM_O_X_INTEN) &amp;= ~(ulIntTrig);
++}
++
++//*****************************************************************************
++//
++//! Gets interrupt status for the specified PWM generator block.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to query.  Must be one of \b PWM_GEN_0,
++//! \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param bMasked specifies whether masked or raw interrupt status is
++//! returned.
++//!
++//! If \e bMasked is set as \b true, then the masked interrupt status is
++//! returned; otherwise, the raw interrupt status will be returned.
++//!
++//! \return Returns the contents of the interrupt status register, or the
++//! contents of the raw interrupt status register, for the specified
++//! PWM generator.
++//
++//*****************************************************************************
++unsigned long
++PWMGenIntStatus(unsigned long ulBase, unsigned long ulGen, tBoolean bMasked)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++
++    //
++    // Compute the generator's base address.
++    //
++    ulGen = PWM_GEN_BADDR(ulBase, ulGen);
++
++    //
++    // Read and return the specified generator's raw or enabled interrupt
++    // status.
++    //
++    if(bMasked == true)
++    {
++        return(HWREG(ulGen + PWM_O_X_ISC));
++    }
++    else
++    {
++        return(HWREG(ulGen + PWM_O_X_RIS));
++    }
++}
++
++//*****************************************************************************
++//
++//! Clears the specified interrupt(s) for the specified PWM generator block.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator to query.  Must be one of \b PWM_GEN_0,
++//! \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param ulInts specifies the interrupts to be cleared.
++//!
++//! Clears the specified interrupt(s) by writing a 1 to the specified bits
++//! of the interrupt status register for the specified PWM generator.  The
++//! \e ulInts parameter is the logical OR of \b PWM_INT_CNT_ZERO,
++//! \b PWM_INT_CNT_LOAD, \b PWM_INT_CNT_AU, \b PWM_INT_CNT_AD,
++//! \b PWM_INT_CNT_BU, or \b PWM_INT_CNT_BD.
++//!
++//! \note Since there is a write buffer in the Cortex-M3 processor, it may take
++//! several clock cycles before the interrupt source is actually cleared.
++//! Therefore, it is recommended that the interrupt source be cleared early in
++//! the interrupt handler (as opposed to the very last action) to avoid
++//! returning from the interrupt handler before the interrupt source is
++//! actually cleared.  Failure to do so may result in the interrupt handler
++//! being immediately reentered (since NVIC still sees the interrupt source
++//! asserted).
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenIntClear(unsigned long ulBase, unsigned long ulGen, unsigned long ulInts)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT((ulInts &amp; ~(PWM_INT_CNT_ZERO | PWM_INT_CNT_LOAD | PWM_INT_CNT_AU |
++                       PWM_INT_CNT_AD | PWM_INT_CNT_BU | PWM_INT_CNT_BD)) ==
++           0);
++
++    //
++    // Clear the requested interrupts by writing ones to the specified bit
++    // of the module's interrupt enable register.
++    //
++    HWREG(PWM_GEN_BADDR(ulBase, ulGen) + PWM_O_X_ISC) = ulInts;
++}
++
++//*****************************************************************************
++//
++//! Enables generator and fault interrupts for a PWM module.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGenFault contains the interrupts to be enabled.  Must be a logical
++//! OR of any of \b PWM_INT_GEN_0, \b PWM_INT_GEN_1, \b PWM_INT_GEN_2,
++//! \b PWM_INT_GEN_3, \b PWM_INT_FAULT0, \b PWM_INT_FAULT1, \b PWM_INT_FAULT2,
++//! or \b PWM_INT_FAULT3.
++//!
++//! Unmasks the specified interrupt(s) by setting the specified bits of
++//! the interrupt enable register for the selected PWM module.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMIntEnable(unsigned long ulBase, unsigned long ulGenFault)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGenFault &amp; ~(PWM_INT_GEN_0 | PWM_INT_GEN_1 | PWM_INT_GEN_2 |
++                           PWM_INT_GEN_3 | PWM_INT_FAULT0 | PWM_INT_FAULT1 |
++                           PWM_INT_FAULT2 | PWM_INT_FAULT3)) == 0);
++
++    //
++    // Read the module's interrupt enable register, and enable interrupts
++    // for the specified PWM generators.
++    //
++    HWREG(ulBase + PWM_O_INTEN) |= ulGenFault;
++}
++
++//*****************************************************************************
++//
++//! Disables generator and fault interrupts for a PWM module.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGenFault contains the interrupts to be disabled.  Must be a
++//! logical OR of any of \b PWM_INT_GEN_0, \b PWM_INT_GEN_1, \b PWM_INT_GEN_2,
++//! \b PWM_INT_GEN_3, \b PWM_INT_FAULT0, \b PWM_INT_FAULT1, \b PWM_INT_FAULT2,
++//! or \b PWM_INT_FAULT3.
++//!
++//! Masks the specified interrupt(s) by clearing the specified bits of
++//! the interrupt enable register for the selected PWM module.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMIntDisable(unsigned long ulBase, unsigned long ulGenFault)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGenFault &amp; ~(PWM_INT_GEN_0 | PWM_INT_GEN_1 | PWM_INT_GEN_2 |
++                           PWM_INT_GEN_3 | PWM_INT_FAULT0 | PWM_INT_FAULT1 |
++                           PWM_INT_FAULT2 | PWM_INT_FAULT3)) == 0);
++
++    //
++    // Read the module's interrupt enable register, and disable interrupts
++    // for the specified PWM generators.
++    //
++    HWREG(ulBase + PWM_O_INTEN) &amp;= ~(ulGenFault);
++}
++
++//*****************************************************************************
++//
++//! Clears the fault interrupt for a PWM module.
++//!
++//! \param ulBase is the base address of the PWM module.
++//!
++//! Clears the fault interrupt by writing to the appropriate bit of the
++//! interrupt status register for the selected PWM module.
++//!
++//! This function clears only the FAULT0 interrupt and is retained for
++//! backwards compatibility.  It is recommended that PWMFaultIntClearExt() be
++//! used instead since it supports all fault interrupts supported on devices
++//! with and without extended PWM fault handling support.
++//!
++//! \note Since there is a write buffer in the Cortex-M3 processor, it may take
++//! several clock cycles before the interrupt source is actually cleared.
++//! Therefore, it is recommended that the interrupt source be cleared early in
++//! the interrupt handler (as opposed to the very last action) to avoid
++//! returning from the interrupt handler before the interrupt source is
++//! actually cleared.  Failure to do so may result in the interrupt handler
++//! being immediately reentered (since NVIC still sees the interrupt source
++//! asserted).
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMFaultIntClear(unsigned long ulBase)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++
++    //
++    // Write the only writeable bit in the module's interrupt register.
++    //
++    HWREG(ulBase + PWM_O_ISC) = PWM_ISC_INTFAULT0;
++}
++
++//*****************************************************************************
++//
++//! Gets the interrupt status for a PWM module.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param bMasked specifies whether masked or raw interrupt status is
++//! returned.
++//!
++//! If \e bMasked is set as \b true, then the masked interrupt status is
++//! returned; otherwise, the raw interrupt status will be returned.
++//!
++//! \return The current interrupt status, enumerated as a bit field of
++//! \b PWM_INT_GEN_0, \b PWM_INT_GEN_1, \b PWM_INT_GEN_2, \b PWM_INT_GEN_3,
++//! \b PWM_INT_FAULT0, \b PWM_INT_FAULT1, \b PWM_INT_FAULT2, and
++//! \b PWM_INT_FAULT3.
++//!
++//*****************************************************************************
++unsigned long
++PWMIntStatus(unsigned long ulBase, tBoolean bMasked)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++
++    //
++    // Read and return either the module's raw or enabled interrupt status.
++    //
++    if(bMasked == true)
++    {
++        return(HWREG(ulBase + PWM_O_ISC));
++    }
++    else
++    {
++        return(HWREG(ulBase + PWM_O_RIS));
++    }
++}
++
++//*****************************************************************************
++//
++//! Clears the fault interrupt for a PWM module.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulFaultInts specifies the fault interrupts to clear.
++//!
++//! Clears one or more fault interrupts by writing to the appropriate bit of
++//! the PWM interrupt status register.  The parameter \e ulFaultInts must be
++//! the logical OR of any of \b PWM_INT_FAULT0, \b PWM_INT_FAULT1,
++//! \b PWM_INT_FAULT2, or \b PWM_INT_FAULT3.
++//!
++//! When running on a device supporting extended PWM fault handling, the fault
++//! interrupts are derived by performing a logical OR of each of the configured
++//! fault trigger signals for a given generator.  Therefore, these interrupts
++//! are not directly related to the four possible FAULTn inputs to the device
++//! but indicate that a fault has been signalled to one of the four possible
++//! PWM generators.  On a device without extended PWM fault handling, the
++//! interrupt is directly related to the state of the single FAULT pin.
++//!
++//! \note Since there is a write buffer in the Cortex-M3 processor, it may take
++//! several cycles before the interrupt source is actually cleared.  Therefore,
++//! it is recommended that the interrupt source be cleared early in the
++//! interrupt handler (as opposed to the very last action) to avoid returning
++//! from the interrupt handler before the interrupt source is actually cleared.
++//! Failure to do so may result in the interrupt handler being immediately
++//! reentered (since NVIC still sees the interrupt source asserted).
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMFaultIntClearExt(unsigned long ulBase, unsigned long ulFaultInts)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulFaultInts &amp; ~(PWM_INT_FAULT0 | PWM_INT_FAULT1 |
++                            PWM_INT_FAULT2 | PWM_INT_FAULT3)) == 0);
++
++    //
++    // Clear the supplied fault bits.
++    //
++    HWREG(ulBase + PWM_O_ISC) = ulFaultInts;
++}
++
++//*****************************************************************************
++//
++//! Configures the minimum fault period and fault pin senses for a given
++//! PWM generator.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator whose fault configuration is being set.
++//! Must be one of \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param ulMinFaultPeriod is the minimum fault active period expressed in
++//! PWM clock cycles.
++//! \param ulFaultSenses indicates which sense of each FAULT input should be
++//! considered the ``asserted'' state.  Valid values are logical OR
++//! combinations of \b PWM_FAULTn_SENSE_HIGH and \b PWM_FAULTn_SENSE_LOW.
++//!
++//! This function sets the minimum fault period for a given generator along
++//! with the sense of each of the 4 possible fault inputs.  The minimum fault
++//! period is expressed in PWM clock cycles and takes effect only if
++//! PWMGenConfigure() is called with flag \b PWM_GEN_MODE_FAULT_PER set in the
++//! \e ulConfig parameter.  When a fault input is asserted, the minimum fault
++//! period timer ensures that it remains asserted for at least the number of
++//! clock cycles specified.
++//!
++//! \note This function is only available on devices supporting extended PWM
++//! fault handling.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenFaultConfigure(unsigned long ulBase, unsigned long ulGen,
++                     unsigned long ulMinFaultPeriod,
++                     unsigned long ulFaultSenses)
++{
++    //
++    // Check the arguments.
++    //
++    ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(ulMinFaultPeriod &lt; PWM_X_MINFLTPER_M);
++    ASSERT((ulFaultSenses &amp; ~(PWM_FAULT0_SENSE_HIGH | PWM_FAULT0_SENSE_LOW |
++                              PWM_FAULT1_SENSE_HIGH | PWM_FAULT1_SENSE_LOW |
++                              PWM_FAULT2_SENSE_HIGH | PWM_FAULT2_SENSE_LOW |
++                              PWM_FAULT3_SENSE_HIGH | PWM_FAULT3_SENSE_LOW)) ==
++           0);
++
++    //
++    // Write the minimum fault period.
++    //
++    HWREG(PWM_GEN_BADDR(ulBase, ulGen) + PWM_O_X_MINFLTPER) = ulMinFaultPeriod;
++
++    //
++    // Write the fault senses.
++    //
++    HWREG(PWM_GEN_EXT_BADDR(ulBase, ulGen) + PWM_O_X_FLTSEN) = ulFaultSenses;
++}
++
++//*****************************************************************************
++//
++//! Configures the set of fault triggers for a given PWM generator.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator whose fault triggers are being set.  Must
++//! be one of \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param ulGroup indicates the subset of possible faults that are to be
++//! configured.  This must be \b PWM_FAULT_GROUP_0.
++//! \param ulFaultTriggers defines the set of inputs that are to contribute
++//! towards generation of the fault signal to the given PWM generator.  For
++//! \b PWM_FAULT_GROUP_0, this will be the logical OR of \b PWM_FAULT_FAULT0,
++//! \b PWM_FAULT_FAULT1, \b PWM_FAULT_FAULT2, or \b PWM_FAULT_FAULT3.
++//!
++//! This function allows selection of the set of fault inputs that will be
++//! combined to generate a fault condition to a given PWM generator.  By
++//! default, all generators use only FAULT0 (for backwards compatibility) but
++//! if PWMGenConfigure() is called with flag \b PWM_GEN_MODE_FAULT_SRC in the
++//! \e ulConfig parameter, extended fault handling is enabled and this function
++//! must be called to configure the fault triggers.
++//!
++//! The fault signal to the PWM generator is generated by ORing together each
++//! of the signals whose inputs are specified in the \e ulFaultTriggers
++//! parameter after having adjusted the sense of each FAULTn input based on the
++//! configuration previously set using a call to PWMGenFaultConfigure().
++//!
++//! \note This function is only available on devices supporting extended PWM
++//! fault handling.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenFaultTriggerSet(unsigned long ulBase, unsigned long ulGen,
++                      unsigned long ulGroup, unsigned long ulFaultTriggers)
++{
++    //
++    // Check for valid parameters.
++    //
++    ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(ulGroup == PWM_FAULT_GROUP_0);
++    ASSERT((ulFaultTriggers &amp; ~(PWM_FAULT_FAULT0 | PWM_FAULT_FAULT1 |
++                                PWM_FAULT_FAULT2 | PWM_FAULT_FAULT3)) == 0);
++
++    //
++    // Write the fault triggers to the appropriate register.
++    //
++    HWREG(PWM_GEN_BADDR(ulBase, ulGen) + PWM_O_X_FLTSRC0) = ulFaultTriggers;
++}
++
++//*****************************************************************************
++//
++//! Returns the set of fault triggers currently configured for a given PWM
++//! generator.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator whose fault triggers are being queried.
++//! Must be one of \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or \b PWM_GEN_3.
++//! \param ulGroup indicates the subset of faults that are being queried.  This
++//! must be \b PWM_FAULT_GROUP_0.
++//!
++//! This function allows an application to query the current set of inputs that
++//! contribute towards the generation of a fault condition to a given PWM
++//! generator.
++//!
++//! \note This function is only available on devices supporting extended PWM
++//! fault handling.
++//!
++//! \return Returns the current fault triggers configured for the fault group
++//! provided.  For \b PWM_FAULT_GROUP_0, the returned value will be a logical
++//! OR of \b PWM_FAULT_FAULT0, \b PWM_FAULT_FAULT1, \b PWM_FAULT_FAULT2, or
++//! \b PWM_FAULT_FAULT3.
++//
++//*****************************************************************************
++unsigned long
++PWMGenFaultTriggerGet(unsigned long ulBase, unsigned long ulGen,
++                      unsigned long ulGroup)
++{
++    //
++    // Check for valid parameters.
++    //
++    ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(ulGroup == PWM_FAULT_GROUP_0);
++
++    //
++    // Return the current fault triggers.
++    //
++    return(HWREG(PWM_GEN_BADDR(ulBase, ulGen) + PWM_O_X_FLTSRC0));
++}
++
++//*****************************************************************************
++//
++//! Returns the current state of the fault triggers for a given PWM generator.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator whose fault trigger states are being
++//! queried.  Must be one of \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or
++//! \b PWM_GEN_3.
++//! \param ulGroup indicates the subset of faults that are being queried.  This
++//! must be \b PWM_FAULT_GROUP_0.
++//!
++//! This function allows an application to query the current state of each of
++//! the fault trigger inputs to a given PWM generator.  The current state of
++//! each fault trigger input is returned unless PWMGenConfigure() has
++//! previously been called with flag \b PWM_GEN_MODE_LATCH_FAULT in the
++//! \e ulConfig parameter in which case the returned status is the latched
++//! fault trigger status.
++//!
++//! If latched faults are configured, the application must call
++//! PWMGenFaultClear() to clear each trigger.
++//!
++//! \note This function is only available on devices supporting extended PWM
++//! fault handling.
++//!
++//! \return Returns the current state of the fault triggers for the given PWM
++//! generator.  A set bit indicates that the associated trigger is active.  For
++//! \b PWM_FAULT_GROUP_0, the returned value will be a logical OR of
++//! \b PWM_FAULT_FAULT0, \b PWM_FAULT_FAULT1, \b PWM_FAULT_FAULT2, or
++//! \b PWM_FAULT_FAULT3.
++//
++//*****************************************************************************
++unsigned long
++PWMGenFaultStatus(unsigned long ulBase, unsigned long ulGen,
++                  unsigned long ulGroup)
++{
++    //
++    // Check for valid parameters.
++    //
++    ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(ulGroup == PWM_FAULT_GROUP_0);
++
++    //
++    // Return the current fault status.
++    //
++    return(HWREG(PWM_GEN_EXT_BADDR(ulBase, ulGen) + PWM_O_X_FLTSTAT0));
++}
++
++//*****************************************************************************
++//
++//! Clears one or more latched fault triggers for a given PWM generator.
++//!
++//! \param ulBase is the base address of the PWM module.
++//! \param ulGen is the PWM generator whose fault trigger states are being
++//! queried.  Must be one of \b PWM_GEN_0, \b PWM_GEN_1, \b PWM_GEN_2, or
++//! \b PWM_GEN_3.
++//! \param ulGroup indicates the subset of faults that are being queried.  This
++//! must be \b PWM_FAULT_GROUP_0.
++//! \param ulFaultTriggers is the set of fault triggers which are to be
++//! cleared.
++//!
++//! This function allows an application to clear the fault triggers for a given
++//! PWM generator.  This is only required if PWMGenConfigure() has previously
++//! been called with flag \b PWM_GEN_MODE_LATCH_FAULT in parameter \e ulConfig.
++//!
++//! \note This function is only available on devices supporting extended PWM
++//! fault handling.
++//!
++//! \return None.
++//
++//*****************************************************************************
++void
++PWMGenFaultClear(unsigned long ulBase, unsigned long ulGen,
++                 unsigned long ulGroup, unsigned long ulFaultTriggers)
++{
++    //
++    // Check for valid parameters.
++    //
++    ASSERT(HWREG(SYSCTL_DC5) &amp; SYSCTL_DC5_PWMEFLT);
++    ASSERT(ulBase == PWM_BASE);
++    ASSERT((ulGen == PWM_GEN_0) || (ulGen == PWM_GEN_1) ||
++           (ulGen == PWM_GEN_2) || (ulGen == PWM_GEN_3));
++    ASSERT(ulGroup == PWM_FAULT_GROUP_0);
++    ASSERT((ulFaultTriggers &amp; ~(PWM_FAULT_FAULT0 | PWM_FAULT_FAULT1 |
++                                PWM_FAULT_FAULT2 | PWM_FAULT_FAULT3)) == 0);
++
++    //
++    // Clear the given faults.
++    //
++    HWREG(PWM_GEN_EXT_BADDR(ulBase, ulGen) + PWM_O_X_FLTSTAT0) =
++        ulFaultTriggers;
++}
++
++//*****************************************************************************
++//
++// Close the Doxygen group.
++//! @}
++//
++//*****************************************************************************
+
+Added: trunk/src/platform/lm3s/pwm.h
+===================================================================
+--- trunk/src/platform/lm3s/pwm.h	2008-08-16 22:29:11 UTC (rev 56)
++++ trunk/src/platform/lm3s/pwm.h	2008-08-18 16:29:09 UTC (rev 57)
+@@ -0,0 +1,270 @@
++//*****************************************************************************
++//
++// pwm.h - API function protoypes for Pulse Width Modulation (PWM) ports
++//
++// Copyright (c) 2005-2008 Luminary Micro, Inc.  All rights reserved.
++// 
++// Software License Agreement
++// 
++// Luminary Micro, Inc. (LMI) is supplying this software for use solely and
++// exclusively on LMI's microcontroller products.
++// 
++// The software is owned by LMI and/or its suppliers, and is protected under
++// applicable copyright laws.  All rights are reserved.  You may not combine
++// this software with &quot;viral&quot; open-source software in order to form a larger
++// program.  Any use in violation of the foregoing restrictions may subject
++// the user to criminal sanctions under applicable laws, as well as to civil
++// liability for the breach of the terms and conditions of this license.
++// 
++// THIS SOFTWARE IS PROVIDED &quot;AS IS&quot;.  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
++// OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
++// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
++// LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
++// CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
++// 
++// This is part of revision 2752 of the Stellaris Peripheral Driver Library.
++//
++//*****************************************************************************
++
++#ifndef __PWM_H__
++#define __PWM_H__
++
++//*****************************************************************************
++//
++// If building with a C++ compiler, make all of the definitions in this header
++// have a C binding.
++//
++//*****************************************************************************
++#ifdef __cplusplus
++extern &quot;C&quot;
++{
++#endif
++
++//*****************************************************************************
++//
++// The following defines are passed to PWMGenConfigure() as the ulConfig
++// parameter and specify the configuration of the PWM generator.
++//
++//*****************************************************************************
++#define PWM_GEN_MODE_DOWN       0x00000000  // Down count mode
++#define PWM_GEN_MODE_UP_DOWN    0x00000002  // Up/Down count mode
++#define PWM_GEN_MODE_SYNC       0x00000038  // Synchronous updates
++#define PWM_GEN_MODE_NO_SYNC    0x00000000  // Immediate updates
++#define PWM_GEN_MODE_DBG_RUN    0x00000004  // Continue running in debug mode
++#define PWM_GEN_MODE_DBG_STOP   0x00000000  // Stop running in debug mode
++#define PWM_GEN_MODE_FAULT_LATCHED \
++                                0x00040000  // Fault is latched
++#define PWM_GEN_MODE_FAULT_UNLATCHED \
++                                0x00000000  // Fault is not latched
++#define PWM_GEN_MODE_FAULT_MINPER \
++                                0x00020000  // Enable min fault period
++#define PWM_GEN_MODE_FAULT_NO_MINPER \
++                                0x00000000  // Disable min fault period
++#define PWM_GEN_MODE_FAULT_EXT  0x00010000  // Enable extended fault support
++#define PWM_GEN_MODE_FAULT_LEGACY \
++                                0x00000000  // Disable extended fault support
++#define PWM_GEN_MODE_DB_NO_SYNC 0x00000000  // Deadband updates occur
++                                            // immediately
++#define PWM_GEN_MODE_DB_SYNC_LOCAL \
++                                0x0000A800  // Deadband updates locally
++                                            // synchronized
++#define PWM_GEN_MODE_DB_SYNC_GLOBAL \
++                                0x0000FC00  // Deadband updates globally
++                                            // synchronized
++#define PWM_GEN_MODE_GEN_NO_SYNC \
++                                0x00000000  // Generator mode updates occur
++                                            // immediately
++#define PWM_GEN_MODE_GEN_SYNC_LOCAL \
++                                0x00000280  // Generator mode updates locally
++                                            // synchronized
++#define PWM_GEN_MODE_GEN_SYNC_GLOBAL \
++                                0x000003C0  // Generator mode updates globally
++                                            // synchronized
++
++//*****************************************************************************
++//
++// Defines for enabling, disabling, and clearing PWM generator interrupts and
++// triggers.
++//
++//*****************************************************************************
++#define PWM_INT_CNT_ZERO        0x00000001  // Int if COUNT = 0
++#define PWM_INT_CNT_LOAD        0x00000002  // Int if COUNT = LOAD
++#define PWM_INT_CNT_AU          0x00000004  // Int if COUNT = CMPA U
++#define PWM_INT_CNT_AD          0x00000008  // Int if COUNT = CMPA D
++#define PWM_INT_CNT_BU          0x00000010  // Int if COUNT = CMPA U
++#define PWM_INT_CNT_BD          0x00000020  // Int if COUNT = CMPA D
++#define PWM_TR_CNT_ZERO         0x00000100  // Trig if COUNT = 0
++#define PWM_TR_CNT_LOAD         0x00000200  // Trig if COUNT = LOAD
++#define PWM_TR_CNT_AU           0x00000400  // Trig if COUNT = CMPA U
++#define PWM_TR_CNT_AD           0x00000800  // Trig if COUNT = CMPA D
++#define PWM_TR_CNT_BU           0x00001000  // Trig if COUNT = CMPA U
++#define PWM_TR_CNT_BD           0x00002000  // Trig if COUNT = CMPA D
++
++//*****************************************************************************
++//
++// Defines for enabling, disabling, and clearing PWM interrupts.
++//
++//*****************************************************************************
++#define PWM_INT_GEN_0           0x00000001  // Generator 0 interrupt
++#define PWM_INT_GEN_1           0x00000002  // Generator 1 interrupt
++#define PWM_INT_GEN_2           0x00000004  // Generator 2 interrupt
++#define PWM_INT_GEN_3           0x00000008  // Generator 3 interrupt
++#ifndef DEPRECATED
++#define PWM_INT_FAULT           0x00010000  // Fault interrupt
++#endif
++#define PWM_INT_FAULT0          0x00010000  // Fault0 interrupt
++#define PWM_INT_FAULT1          0x00020000  // Fault1 interrupt
++#define PWM_INT_FAULT2          0x00040000  // Fault2 interrupt
++#define PWM_INT_FAULT3          0x00080000  // Fault3 interrupt
++#define PWM_INT_FAULT_M         0x000F0000  // Fault interrupt source mask
++
++//*****************************************************************************
++//
++// Defines to identify the generators within a module.
++//
++//*****************************************************************************
++#define PWM_GEN_0               0x00000040  // Offset address of Gen0
++#define PWM_GEN_1               0x00000080  // Offset address of Gen1
++#define PWM_GEN_2               0x000000C0  // Offset address of Gen2
++#define PWM_GEN_3               0x00000100  // Offset address of Gen3
++
++#define PWM_GEN_0_BIT           0x00000001  // Bit-wise ID for Gen0
++#define PWM_GEN_1_BIT           0x00000002  // Bit-wise ID for Gen1
++#define PWM_GEN_2_BIT           0x00000004  // Bit-wise ID for Gen2
++#define PWM_GEN_3_BIT           0x00000008  // Bit-wise ID for Gen3
++
++#define PWM_GEN_EXT_0           0x00000800  // Offset of Gen0 ext address range
++#define PWM_GEN_EXT_1           0x00000880  // Offset of Gen1 ext address range
++#define PWM_GEN_EXT_2           0x00000900  // Offset of Gen2 ext address range
++#define PWM_GEN_EXT_3           0x00000980  // Offset of Gen3 ext address range
++
++//*****************************************************************************
++//
++// Defines to identify the outputs within a module.
++//
++//*****************************************************************************
++#define PWM_OUT_0               0x00000040  // Encoded offset address of PWM0
++#define PWM_OUT_1               0x00000041  // Encoded offset address of PWM1
++#define PWM_OUT_2               0x00000082  // Encoded offset address of PWM2
++#define PWM_OUT_3               0x00000083  // Encoded offset address of PWM3
++#define PWM_OUT_4               0x000000C4  // Encoded offset address of PWM4
++#define PWM_OUT_5               0x000000C5  // Encoded offset address of PWM5
++#define PWM_OUT_6               0x00000106  // Encoded offset address of PWM6
++#define PWM_OUT_7               0x00000107  // Encoded offset address of PWM7
++
++#define PWM_OUT_0_BIT           0x00000001  // Bit-wise ID for PWM0
++#define PWM_OUT_1_BIT           0x00000002  // Bit-wise ID for PWM1
++#define PWM_OUT_2_BIT           0x00000004  // Bit-wise ID for PWM2
++#define PWM_OUT_3_BIT           0x00000008  // Bit-wise ID for PWM3
++#define PWM_OUT_4_BIT           0x00000010  // Bit-wise ID for PWM4
++#define PWM_OUT_5_BIT           0x00000020  // Bit-wise ID for PWM5
++#define PWM_OUT_6_BIT           0x00000040  // Bit-wise ID for PWM6
++#define PWM_OUT_7_BIT           0x00000080  // Bit-wise ID for PWM7
++
++//*****************************************************************************
++//
++// Defines to identify each of the possible fault trigger conditions in
++// PWM_FAULT_GROUP_0
++//
++//*****************************************************************************
++#define PWM_FAULT_GROUP_0       0
++
++#define PWM_FAULT_FAULT0        0x00000001
++#define PWM_FAULT_FAULT1        0x00000002
++#define PWM_FAULT_FAULT2        0x00000004
++#define PWM_FAULT_FAULT3        0x00000008
++#define PWM_FAULT_ACMP0         0x00010000
++#define PWM_FAULT_ACMP1         0x00020000
++#define PWM_FAULT_ACMP2         0x00040000
++
++//*****************************************************************************
++//
++// Defines to identify the sense of each of the external FAULTn signals
++//
++//*****************************************************************************
++#define PWM_FAULT0_SENSE_HIGH   0x00000000
++#define PWM_FAULT0_SENSE_LOW    0x00000001
++#define PWM_FAULT1_SENSE_HIGH   0x00000000
++#define PWM_FAULT1_SENSE_LOW    0x00000002
++#define PWM_FAULT2_SENSE_HIGH   0x00000000
++#define PWM_FAULT2_SENSE_LOW    0x00000004
++#define PWM_FAULT3_SENSE_HIGH   0x00000000
++#define PWM_FAULT3_SENSE_LOW    0x00000008
++
++//*****************************************************************************
++//
++// API Function prototypes
++//
++//*****************************************************************************
++extern void PWMGenConfigure(unsigned long ulBase, unsigned long ulGen,
++                            unsigned long ulConfig);
++extern void PWMGenPeriodSet(unsigned long ulBase, unsigned long ulGen,
++                            unsigned long ulPeriod);
++extern unsigned long PWMGenPeriodGet(unsigned long ulBase,
++                                     unsigned long ulGen);
++extern void PWMGenEnable(unsigned long ulBase, unsigned long ulGen);
++extern void PWMGenDisable(unsigned long ulBase, unsigned long ulGen);
++extern void PWMPulseWidthSet(unsigned long ulBase, unsigned long ulPWMOut,
++                             unsigned long ulWidth);
++extern unsigned long PWMPulseWidthGet(unsigned long ulBase,
++                                      unsigned long ulPWMOut);
++extern void PWMDeadBandEnable(unsigned long ulBase, unsigned long ulGen,
++                              unsigned short usRise, unsigned short usFall);
++extern void PWMDeadBandDisable(unsigned long ulBase, unsigned long ulGen);
++extern void PWMSyncUpdate(unsigned long ulBase, unsigned long ulGenBits);
++extern void PWMSyncTimeBase(unsigned long ulBase, unsigned long ulGenBits);
++extern void PWMOutputState(unsigned long ulBase, unsigned long ulPWMOutBits,
++                           tBoolean bEnable);
++extern void PWMOutputInvert(unsigned long ulBase, unsigned long ulPWMOutBits,
++                            tBoolean bInvert);
++extern void PWMOutputFaultLevel(unsigned long ulBase,
++                                unsigned long ulPWMOutBits,
++                                tBoolean bDriveHigh);
++extern void PWMOutputFault(unsigned long ulBase, unsigned long ulPWMOutBits,
++                           tBoolean bFaultSuppress);
++extern void PWMGenIntRegister(unsigned long ulBase, unsigned long ulGen,
++                              void (*pfnIntHandler)(void));
++extern void PWMGenIntUnregister(unsigned long ulBase, unsigned long ulGen);
++extern void PWMFaultIntRegister(unsigned long ulBase,
++                                void (*pfnIntHandler)(void));
++extern void PWMFaultIntUnregister(unsigned long ulBase);
++extern void PWMGenIntTrigEnable(unsigned long ulBase, unsigned long ulGen,
++                                unsigned long ulIntTrig);
++extern void PWMGenIntTrigDisable(unsigned long ulBase, unsigned long ulGen,
++                                 unsigned long ulIntTrig);
++extern unsigned long PWMGenIntStatus(unsigned long ulBase, unsigned long ulGen,
++                                     tBoolean bMasked);
++extern void PWMGenIntClear(unsigned long ulBase, unsigned long ulGen,
++                           unsigned long ulInts);
++extern void PWMIntEnable(unsigned long ulBase, unsigned long ulGenFault);
++extern void PWMIntDisable(unsigned long ulBase, unsigned long ulGenFault);
++extern void PWMFaultIntClear(unsigned long ulBase);
++extern unsigned long PWMIntStatus(unsigned long ulBase, tBoolean bMasked);
++extern void PWMFaultIntClearExt(unsigned long ulBase,
++                                unsigned long ulFaultInts);
++extern void PWMGenFaultConfigure(unsigned long ulBase, unsigned long ulGen,
++                                 unsigned long ulMinFaultPeriod,
++                                 unsigned long ulFaultSenses);
++extern void PWMGenFaultTriggerSet(unsigned long ulBase, unsigned long ulGen,
++                                  unsigned long ulGroup,
++                                  unsigned long ulFaultTriggers);
++extern unsigned long PWMGenFaultTriggerGet(unsigned long ulBase,
++                                           unsigned long ulGen,
++                                           unsigned long ulGroup);
++extern unsigned long PWMGenFaultStatus(unsigned long ulBase,
++                                       unsigned long ulGen,
++                                       unsigned long ulGroup);
++extern void PWMGenFaultClear(unsigned long ulBase, unsigned long ulGen,
++                             unsigned long ulGroup,
++                             unsigned long ulFaultTriggers);
++
++//*****************************************************************************
++//
++// Mark the end of the C bindings section for C++ compilers.
++//
++//*****************************************************************************
++#ifdef __cplusplus
++}
++#endif
++
++#endif // __PWM_H__
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000009.html">[Elua-svn] r56 - trunk/src/newlib
+</A></li>
+	<LI>Next message: <A HREF="000013.html">[Elua-svn] r58 - in trunk: . src/modules src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#12">[ date ]</a>
+              <a href="thread.html#12">[ thread ]</a>
+              <a href="subject.html#12">[ subject ]</a>
+              <a href="author.html#12">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

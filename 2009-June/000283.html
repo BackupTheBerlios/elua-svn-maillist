@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r327 - tags/pre0.6/romfs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r327%20-%20tags/pre0.6/romfs&In-Reply-To=%3C200906290050.n5T0ou02000657%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000282.html">
+   <LINK REL="Next"  HREF="000284.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r327 - tags/pre0.6/romfs</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r327%20-%20tags/pre0.6/romfs&In-Reply-To=%3C200906290050.n5T0ou02000657%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r327 - tags/pre0.6/romfs">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Jun 29 02:50:56 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000282.html">[Elua-svn] r326 - in tags/pre0.6: doc/luadoc romfs
+</A></li>
+        <LI>Next message: <A HREF="000284.html">[Elua-svn] r328 - in tags/pre0.6: doc/luadoc romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#283">[ date ]</a>
+              <a href="thread.html#283">[ thread ]</a>
+              <a href="subject.html#283">[ subject ]</a>
+              <a href="author.html#283">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-29 02:50:55 +0200 (Mon, 29 Jun 2009)
+New Revision: 327
+
+Modified:
+   tags/pre0.6/romfs/adcpoll.lua
+   tags/pre0.6/romfs/adcscope.lua
+Log:
+Simplify adcpoll.lua slightly, and remove locals so that the example might be
+more friendly to less advanced users.
+
+Modified: tags/pre0.6/romfs/adcpoll.lua
+===================================================================
+--- tags/pre0.6/romfs/adcpoll.lua	2009-06-29 00:27:45 UTC (rev 326)
++++ tags/pre0.6/romfs/adcpoll.lua	2009-06-29 00:50:55 UTC (rev 327)
+@@ -17,8 +17,6 @@
+   adc.setclock(v, 4 ,timer) -- get 4 samples per second, per channel
+ end
+ 
+-adc.sample(adcchannels,128) -- start sampling on all channels
+-
+ -- Draw static text on terminal
+ term.clrscr()
+ term.gotoxy(1,1)
+@@ -28,23 +26,25 @@
+ term.gotoxy(1,#adcchannels+5)
+ term.putstr(&quot;Press ESC to exit.&quot;)
+ 
+--- use some locals for speed
+-local sample = adc.sample
+-local getsample = adc.getsample
+-local samplesready = adc.samplesready
+-local i, v, tsample
+-
++-- 
+ while true do
+   for i, v in ipairs(adcchannels) do
+-    tsample = getsample(v) -- try to get a sample
+-    if not (tsample == nil) then -- if we have a new sample, then update display
++    -- If samples are not being collected, start
++    if adc.isdone(v) == 1 then adc.sample(v,128) end 
++    
++    -- Try and get a sample
++    tsample = adc.getsample(v)
++    
++    -- If we have a new sample, then update display
++    if not (tsample == nil) then 
+     	term.gotoxy(1,i+3)
+     	term.putstr(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i], tsample))
+     end
+-    if adc.isdone(v) == 1 then adc.sample(v,128) end -- if samples have run out, start collection again
+   end
++  
++  -- Exit if user hits Escape
+   key = term.getch( term.NOWAIT )
+-  if key == term.KC_ESC then break end -- exit if user hits Escape
++  if key == term.KC_ESC then break end 
+ end
+ 
+ term.clrscr()
+
+Modified: tags/pre0.6/romfs/adcscope.lua
+===================================================================
+--- tags/pre0.6/romfs/adcscope.lua	2009-06-29 00:27:45 UTC (rev 326)
++++ tags/pre0.6/romfs/adcscope.lua	2009-06-29 00:50:55 UTC (rev 327)
+@@ -27,7 +27,7 @@
+ term.gotoxy(1,#adcchannels+7)
+ term.putstr(&quot;Press ESC to exit.&quot;)
+ 
+--- use some locals for speed
++-- Use some locals for speed
+ local adcvals = {}
+ local key, stime, etime, dtime, i, v
+ local sample = adc.sample
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000282.html">[Elua-svn] r326 - in tags/pre0.6: doc/luadoc romfs
+</A></li>
+	<LI>Next message: <A HREF="000284.html">[Elua-svn] r328 - in tags/pre0.6: doc/luadoc romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#283">[ date ]</a>
+              <a href="thread.html#283">[ thread ]</a>
+              <a href="subject.html#283">[ subject ]</a>
+              <a href="author.html#283">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

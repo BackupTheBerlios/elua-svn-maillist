@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] fe4c8d: Integrated Martin Guy's emBLOD	bootloader patch in...
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-April/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20fe4c8d%3A%20Integrated%20Martin%20Guy%27s%20emBLOD%0A%09bootloader%20patch%20in...&In-Reply-To=%3C20110407193728.ADD7A42370%40smtp1.rs.github.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000959.html">
+   <LINK REL="Next"  HREF="000961.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] fe4c8d: Integrated Martin Guy's emBLOD	bootloader patch in...</H1>
+    <B>noreply at github.com</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20fe4c8d%3A%20Integrated%20Martin%20Guy%27s%20emBLOD%0A%09bootloader%20patch%20in...&In-Reply-To=%3C20110407193728.ADD7A42370%40smtp1.rs.github.com%3E"
+       TITLE="[eLua-svn] [elua/elua] fe4c8d: Integrated Martin Guy's emBLOD	bootloader patch in...">noreply at github.com
+       </A><BR>
+    <I>Thu Apr  7 21:37:28 CEST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000959.html">[eLua-svn] [elua/elua] 091b5d: Lua build system improvements and	bug fixes
+</A></li>
+        <LI>Next message: <A HREF="000961.html">[eLua-svn] [elua/elua] f8b157: eLua configurator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#960">[ date ]</a>
+              <a href="thread.html#960">[ thread ]</a>
+              <a href="subject.html#960">[ subject ]</a>
+              <a href="author.html#960">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Branch: refs/heads/master
+Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+
+Commit: fe4c8d86f75eee88d313e67d580bab92c9c9e50c
+    <A HREF="https://github.com/elua/elua/commit/fe4c8d86f75eee88d313e67d580bab92c9c9e50c">https://github.com/elua/elua/commit/fe4c8d86f75eee88d313e67d580bab92c9c9e50c</A>
+Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+Date:   2011-04-07 (Thu, 07 Apr 2011)
+
+Changed paths:
+  M SConstruct
+  M build_elua.lua
+  M src/platform/avr32/MIZAR32/mizar32_conf.h
+  A src/platform/avr32/at32uc3a0128_emblod.ld
+  M src/platform/avr32/conf.lua
+  M src/platform/avr32/conf.py
+  M src/platform/avr32/platform.c
+  M src/platform/avr32/pm_conf_clocks.c
+
+Log Message:
+-----------
+Integrated Martin Guy's emBLOD bootloader patch in eLua. Original patch message:
+
+emBLOD is Marcus Jansson's second-stage boot loader for AVR32UC3A
+parts as used in the EVK1100 and Mizar32 boards, designed to allow
+firmware images larger than the on-chip flash memory by loading the
+eLua binary from SD card into SDRAM and executing it there.
+
+The source for the emBLOD loader is here <A HREF="https://github.com/cmp1084/emBLOD">https://github.com/cmp1084/emBLOD</A>
+
+When compilation option  bootloader=emblod is given to scons, a special
+version is compiled that
+- locates the program at the start of SDRAM
+- doesn't initialize the system clocks and SDRAM controller, as these
+are already set up by emBLOD.
+
+If the bootloader= option is not given, eLua is compiled exactly as before.
+
+The changes I've made to Marcus' originally posted patches are to put
+DATA and BSS in internal static RAM, the same as before, since in the
+best case (memcpy) the SDRAM is three times slower than access to
+static RAM
+<A HREF="http://www.avrfreaks.net/index.php?name=PNphpBB2&amp;file=viewtopic&amp;t=80657">http://www.avrfreaks.net/index.php?name=PNphpBB2&amp;file=viewtopic&amp;t=80657</A>
+
+This also has an impact on code speed: the interpreter runs 9 times
+slower in external SDRAM than it does in internal flash.
+
+Tested and working on Mizar32
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000959.html">[eLua-svn] [elua/elua] 091b5d: Lua build system improvements and	bug fixes
+</A></li>
+	<LI>Next message: <A HREF="000961.html">[eLua-svn] [elua/elua] f8b157: eLua configurator
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#960">[ date ]</a>
+              <a href="thread.html#960">[ thread ]</a>
+              <a href="subject.html#960">[ subject ]</a>
+              <a href="author.html#960">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

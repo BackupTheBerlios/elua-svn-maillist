@@ -1,0 +1,204 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r942 - in branches/pre0.8: . src/platform/i386 utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r942%20-%20in%20branches/pre0.8%3A%20.%20src/platform/i386%20utils&In-Reply-To=%3C20110202144517.5E33948133C%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000894.html">
+   <LINK REL="Next"  HREF="000896.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r942 - in branches/pre0.8: . src/platform/i386 utils</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r942%20-%20in%20branches/pre0.8%3A%20.%20src/platform/i386%20utils&In-Reply-To=%3C20110202144517.5E33948133C%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r942 - in branches/pre0.8: . src/platform/i386 utils">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Feb  2 15:45:17 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000894.html">[Elua-svn] r941 - branches/pre0.8/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000896.html">[Elua-svn] r943 - branches/pre0.8/mux_src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#895">[ date ]</a>
+              <a href="thread.html#895">[ thread ]</a>
+              <a href="subject.html#895">[ subject ]</a>
+              <a href="author.html#895">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-02 15:45:17 +0100 (Wed, 02 Feb 2011)
+New Revision: 942
+
+Added:
+   branches/pre0.8/utils/
+   branches/pre0.8/utils/build_release.lua
+Modified:
+   branches/pre0.8/
+   branches/pre0.8/src/platform/i386/platform.c
+Log:
+fixed duplication error in i386 backend; add a script to build an eLua release
+
+
+Property changes on: branches/pre0.8
+___________________________________________________________________
+Modified: svn:ignore
+   - .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+*.hex
+*.tmp
+*.map
+core
+build-setup.conf
+config.log
+.sconf_temp
+*.exe
+*.obj
+mux
+rfs_server
+
+
+   + .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+*.hex
+*.tmp
+*.map
+core
+build-setup.conf
+config.log
+.sconf_temp
+*.exe
+*.obj
+mux
+rfs_server
+dist
+
+
+Modified: branches/pre0.8/src/platform/i386/platform.c
+===================================================================
+--- branches/pre0.8/src/platform/i386/platform.c	2011-02-02 13:49:25 UTC (rev 941)
++++ branches/pre0.8/src/platform/i386/platform.c	2011-02-02 14:45:17 UTC (rev 942)
+@@ -186,19 +186,6 @@
+ }
+ 
+ // ****************************************************************************
+-// &quot;Dummy&quot; CPU functions
+-
+-int platform_cpu_set_global_interrupts( int status )
+-{
+-  return 0;
+-}
+-
+-int platform_cpu_get_global_interrupts()
+-{
+-  return 0;
+-}
+-
+-// ****************************************************************************
+ // Allocator support
+ 
+ u32 platform_get_lastmem()
+
+Added: branches/pre0.8/utils/build_release.lua
+===================================================================
+--- branches/pre0.8/utils/build_release.lua	                        (rev 0)
++++ branches/pre0.8/utils/build_release.lua	2011-02-02 14:45:17 UTC (rev 942)
+@@ -0,0 +1,58 @@
++-- Script to build all the required files for a release
++-- NOT FOR WINDOWS!
++
++require &quot;lfs&quot;
++
++local args = { ... }
++local rel = args[ 1 ]
++
++-- Board list (note that this must be synchronized manually with SConstruct)
++local boards = 
++{ 
++  'SAM7-EX256', 'EK-LM3S1968', 'EK-LM3S8962', 'EK-LM3S6965',
++  'EK-LM3S9B92', 'STR-E912', 'LPC-H2888',
++  'MOD711', 'STM3210E-EVAL', 
++  { board = 'ATEVK1100', options = '' },
++  { board = 'ATEVK1101', options = '' },
++  'ET-STM32', 'EAGLE-100', 'ELUA-PUC', 'MBED',
++  { board = 'MIZAR32', options = &quot;target=lualong&quot; },
++  { board = 'PC', options = &quot;&quot; }
++}
++
++local function docmd( cmd )
++  print( cmd )
++  os.execute( cmd )
++end
++
++-- Now build all targets
++os.execute( &quot;rm -f *.elf *.hex *.bin&quot; )
++os.execute( &quot;rm -rf dist/&quot; )
++os.execute( &quot;mkdir dist&quot; )
++for i = 1, #boards do
++  local b = boards[ i ]
++  local cmd = &quot;scons  &quot;
++  if type( b ) == &quot;string&quot; then
++    cmd = cmd .. &quot;board=&quot; .. b .. &quot; toolchain=codesourcery prog &quot;
++    docmd( cmd .. &quot;-c&quot; )
++    docmd( cmd .. &quot;-j2&quot; )
++  else
++    cmd = cmd .. &quot;board=&quot; .. b.board .. &quot; &quot; .. b.options .. &quot; prog &quot;
++    docmd( cmd .. &quot;-c&quot; )
++    docmd( cmd .. &quot;-j2&quot; )
++  end
++end
++os.execute( &quot;mv elua_lua_i386.elf dist/&quot; )
++os.execute( &quot;rm -f *.elf&quot; )
++os.execute( &quot;mv elua* dist/&quot; )
++
++-- Change names according to release number
++for f in lfs.dir( &quot;dist/&quot; ) do
++  local attrs = lfs.attributes( &quot;dist/&quot; .. f )
++  if attrs.mode == &quot;file&quot; and f:find( &quot;^elua_&quot; ) then
++    local newname = f:gsub( &quot;^elua_&quot;, &quot;elua&quot; .. rel .. &quot;_&quot; )
++    os.rename( &quot;dist/&quot; .. f, &quot;dist/&quot; .. newname )
++  end
++end
++
++print &quot;Done&quot;
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000894.html">[Elua-svn] r941 - branches/pre0.8/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000896.html">[Elua-svn] r943 - branches/pre0.8/mux_src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#895">[ date ]</a>
+              <a href="thread.html#895">[ thread ]</a>
+              <a href="subject.html#895">[ subject ]</a>
+              <a href="author.html#895">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,944 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r482 - trunk/src/lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r482%20-%20trunk/src/lua&In-Reply-To=%3C200910132351.n9DNpBdj025095%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000437.html">
+   <LINK REL="Next"  HREF="000439.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r482 - trunk/src/lua</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r482%20-%20trunk/src/lua&In-Reply-To=%3C200910132351.n9DNpBdj025095%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r482 - trunk/src/lua">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Oct 14 01:51:11 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000437.html">[Elua-svn] r481 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000439.html">[Elua-svn] r483 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#438">[ date ]</a>
+              <a href="thread.html#438">[ thread ]</a>
+              <a href="subject.html#438">[ subject ]</a>
+              <a href="author.html#438">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-10-14 01:51:10 +0200 (Wed, 14 Oct 2009)
+New Revision: 482
+
+Modified:
+   trunk/src/lua/lapi.c
+   trunk/src/lua/lauxlib.c
+   trunk/src/lua/lbaselib.c
+   trunk/src/lua/ldo.c
+   trunk/src/lua/lfunc.c
+   trunk/src/lua/lgc.c
+   trunk/src/lua/lgc.h
+   trunk/src/lua/lstate.c
+   trunk/src/lua/lstate.h
+   trunk/src/lua/lstring.c
+   trunk/src/lua/ltable.c
+   trunk/src/lua/lua.c
+   trunk/src/lua/lua.h
+   trunk/src/lua/lvm.c
+Log:
+Robert Jakobosky's emergency garbage collection patch.
+
+Modified: trunk/src/lua/lapi.c
+===================================================================
+--- trunk/src/lua/lapi.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lapi.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -687,14 +687,14 @@
+ 
+ LUA_API void lua_setfield (lua_State *L, int idx, const char *k) {
+   StkId t;
+-  TValue key;
+   lua_lock(L);
+   api_checknelems(L, 1);
+   t = index2adr(L, idx);
+   api_checkvalidindex(L, t);
+-  setsvalue(L, &amp;key, luaS_new(L, k));
+-  luaV_settable(L, t, &amp;key, L-&gt;top - 1);
+-  L-&gt;top--;  /* pop value */
++  setsvalue2s(L, L-&gt;top, luaS_new(L, k));
++  api_incr_top(L);
++  luaV_settable(L, t, L-&gt;top - 1, L-&gt;top - 2);
++  L-&gt;top -= 2;  /* pop key and value */
+   lua_unlock(L);
+ }
+ 
+@@ -940,11 +940,11 @@
+   g = G(L);
+   switch (what) {
+     case LUA_GCSTOP: {
+-      g-&gt;GCthreshold = MAX_LUMEM;
++      set_block_gc(L);
+       break;
+     }
+     case LUA_GCRESTART: {
+-      g-&gt;GCthreshold = g-&gt;totalbytes;
++      unset_block_gc(L);
+       break;
+     }
+     case LUA_GCCOLLECT: {
+@@ -961,6 +961,10 @@
+       break;
+     }
+     case LUA_GCSTEP: {
++      if(is_block_gc(L)) {
++        res = 1; /* gc is block so we need to pretend that the collection cycle finished. */
++        break;
++      }
+       lu_mem a = (cast(lu_mem, data) &lt;&lt; 10);
+       if (a &lt;= g-&gt;totalbytes)
+         g-&gt;GCthreshold = g-&gt;totalbytes - a;
+@@ -985,6 +989,24 @@
+       g-&gt;gcstepmul = data;
+       break;
+     }
++    case LUA_GCSETMEMLIMIT: {
++      /* GC values are expressed in Kbytes: #bytes/2^10 */
++      lu_mem new_memlimit = (cast(lu_mem, data) &lt;&lt; 10);
++      if(new_memlimit &gt; 0 &amp;&amp; new_memlimit &lt; g-&gt;totalbytes) {
++        /* run a full GC to make totalbytes &lt; the new limit. */
++        luaC_fullgc(L);
++        if(new_memlimit &lt; g-&gt;totalbytes)
++          new_memlimit = (g-&gt;totalbytes + 1024) &amp; ~(1024-1); /* round up to next multiple of 1024 */
++      }
++      g-&gt;memlimit = new_memlimit;
++      /* new memlimit might be &gt; then requested memlimit. */
++      res = cast_int(new_memlimit &gt;&gt; 10);
++      break;
++    }
++    case LUA_GCGETMEMLIMIT: {
++      res = cast_int(g-&gt;memlimit &gt;&gt; 10);
++      break;
++    }
+     default: res = -1;  /* invalid option */
+   }
+   lua_unlock(L);
+
+Modified: trunk/src/lua/lauxlib.c
+===================================================================
+--- trunk/src/lua/lauxlib.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lauxlib.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -25,6 +25,10 @@
+ #include &quot;lrotable.h&quot;
+ 
+ #include &quot;lauxlib.h&quot;
++#include &quot;lgc.h&quot;
++#include &quot;ldo.h&quot;
++#include &quot;lobject.h&quot;
++#include &quot;lstate.h&quot;
+ 
+ 
+ #define FREELIST_REF	0	/* free list of references */
+@@ -674,15 +678,39 @@
+ /* }====================================================== */
+ 
+ 
++static int l_check_memlimit(lua_State *L, size_t needbytes) {
++  global_State *g = G(L);
++  int cycle_count = 0;
++  lu_mem limit = g-&gt;memlimit - needbytes;
++  /* make sure the GC is not disabled. */
++  if (!is_block_gc(L)) {
++    while (g-&gt;totalbytes &gt;= limit) {
++      /* only allow the GC to finished atleast 1 full cycle. */
++      if (g-&gt;gcstate == GCSpause &amp;&amp; ++cycle_count &gt; 1) break;
++      luaC_step(L);
++    }
++  }
++  return (g-&gt;totalbytes &gt;= limit) ? 1 : 0;
++}
++
++
+ static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
+-  (void)ud;
+-  (void)osize;
++  lua_State *L = (lua_State *)ud;
++  void *nptr;
+   if (nsize == 0) {
+     free(ptr);
+     return NULL;
+   }
+-  else
+-    return realloc(ptr, nsize);
++  if(nsize &gt; osize &amp;&amp; L != NULL) {
++    if(G(L)-&gt;memlimit &gt; 0 &amp;&amp; l_check_memlimit(L, nsize - osize))
++      return NULL;
++  }
++  nptr = realloc(ptr, nsize);
++  if (nptr == NULL &amp;&amp; L != NULL) {
++    luaC_fullgc(L); /* emergency full collection. */
++    nptr = realloc(ptr, nsize); /* try allocation again */
++  }
++  return nptr;
+ }
+ 
+ 
+@@ -696,6 +724,7 @@
+ 
+ LUALIB_API lua_State *luaL_newstate (void) {
+   lua_State *L = lua_newstate(l_alloc, NULL);
++  lua_setallocf(L, l_alloc, L); /* allocator need lua_State. */
+   if (L) lua_atpanic(L, &amp;panic);
+   return L;
+ }
+
+Modified: trunk/src/lua/lbaselib.c
+===================================================================
+--- trunk/src/lua/lbaselib.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lbaselib.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -193,9 +193,10 @@
+ 
+ static int luaB_collectgarbage (lua_State *L) {
+   static const char *const opts[] = {&quot;stop&quot;, &quot;restart&quot;, &quot;collect&quot;,
+-    &quot;count&quot;, &quot;step&quot;, &quot;setpause&quot;, &quot;setstepmul&quot;, NULL};
++    &quot;count&quot;, &quot;step&quot;, &quot;setpause&quot;, &quot;setstepmul&quot;,&quot;setmemlimit&quot;,&quot;getmemlimit&quot;, NULL};
+   static const int optsnum[] = {LUA_GCSTOP, LUA_GCRESTART, LUA_GCCOLLECT,
+-    LUA_GCCOUNT, LUA_GCSTEP, LUA_GCSETPAUSE, LUA_GCSETSTEPMUL};
++    LUA_GCCOUNT, LUA_GCSTEP, LUA_GCSETPAUSE, LUA_GCSETSTEPMUL,
++		LUA_GCSETMEMLIMIT,LUA_GCGETMEMLIMIT};
+   int o = luaL_checkoption(L, 1, &quot;collect&quot;, opts);
+   int ex = luaL_optint(L, 2, 0);
+   int res = lua_gc(L, optsnum[o], ex);
+
+Modified: trunk/src/lua/ldo.c
+===================================================================
+--- trunk/src/lua/ldo.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/ldo.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -208,7 +208,9 @@
+ static StkId adjust_varargs (lua_State *L, Proto *p, int actual) {
+   int i;
+   int nfixargs = p-&gt;numparams;
++#if defined(LUA_COMPAT_VARARG)
+   Table *htab = NULL;
++#endif
+   StkId base, fixed;
+   for (; actual &lt; nfixargs; ++actual)
+     setnilvalue(L-&gt;top++);
+@@ -218,10 +220,13 @@
+     lua_assert(p-&gt;is_vararg &amp; VARARG_HASARG);
+     luaC_checkGC(L);
+     htab = luaH_new(L, nvar, 1);  /* create `arg' table */
++    sethvalue2s(L, L-&gt;top, htab); /* put table on stack */
++    incr_top(L);
+     for (i=0; i&lt;nvar; i++)  /* put extra arguments into `arg' table */
+-      setobj2n(L, luaH_setnum(L, htab, i+1), L-&gt;top - nvar + i);
++      setobj2n(L, luaH_setnum(L, htab, i+1), L-&gt;top - 1 - nvar + i);
+     /* store counter in field `n' */
+     setnvalue(luaH_setstr(L, htab, luaS_newliteral(L, &quot;n&quot;)), cast_num(nvar));
++    L-&gt;top--; /* remove table from stack */
+   }
+ #endif
+   /* move fixed parameters to final position */
+@@ -231,11 +236,13 @@
+     setobjs2s(L, L-&gt;top++, fixed+i);
+     setnilvalue(fixed+i);
+   }
++#if defined(LUA_COMPAT_VARARG)
+   /* add `arg' parameter */
+   if (htab) {
+     sethvalue(L, L-&gt;top++, htab);
+     lua_assert(iswhite(obj2gco(htab)));
+   }
++#endif
+   return base;
+ }
+ 
+@@ -498,6 +505,7 @@
+   struct SParser *p = cast(struct SParser *, ud);
+   int c = luaZ_lookahead(p-&gt;z);
+   luaC_checkGC(L);
++  set_block_gc(L);  /* stop collector during parsing */
+   tf = ((c == LUA_SIGNATURE[0]) ? luaU_undump : luaY_parser)(L, p-&gt;z,
+                                                              &amp;p-&gt;buff, p-&gt;name);
+   cl = luaF_newLclosure(L, tf-&gt;nups, hvalue(gt(L)));
+@@ -506,6 +514,7 @@
+     cl-&gt;l.upvals[i] = luaF_newupval(L);
+   setclvalue(L, L-&gt;top, cl);
+   incr_top(L);
++  unset_block_gc(L);
+ }
+ 
+ 
+
+Modified: trunk/src/lua/lfunc.c
+===================================================================
+--- trunk/src/lua/lfunc.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lfunc.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -66,7 +66,6 @@
+   }
+   uv = luaM_new(L, UpVal);  /* not found: create a new one */
+   uv-&gt;tt = LUA_TUPVAL;
+-  uv-&gt;marked = luaC_white(g);
+   uv-&gt;v = level;  /* current value lives in the stack */
+   uv-&gt;next = *pp;  /* chain it in the proper position */
+   *pp = obj2gco(uv);
+@@ -74,6 +73,7 @@
+   uv-&gt;u.l.next = g-&gt;uvhead.u.l.next;
+   uv-&gt;u.l.next-&gt;u.l.prev = uv;
+   g-&gt;uvhead.u.l.next = uv;
++  luaC_marknew(L, obj2gco(uv));
+   lua_assert(uv-&gt;u.l.next-&gt;u.l.prev == uv &amp;&amp; uv-&gt;u.l.prev-&gt;u.l.next == uv);
+   return uv;
+ }
+
+Modified: trunk/src/lua/lgc.c
+===================================================================
+--- trunk/src/lua/lgc.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lgc.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -232,8 +232,10 @@
+     int i;
+     lua_assert(cl-&gt;l.nupvalues == cl-&gt;l.p-&gt;nups);
+     markobject(g, cl-&gt;l.p);
+-    for (i=0; i&lt;cl-&gt;l.nupvalues; i++)  /* mark its upvalues */
+-      markobject(g, cl-&gt;l.upvals[i]);
++    for (i=0; i&lt;cl-&gt;l.nupvalues; i++) { /* mark its upvalues */
++      if(cl-&gt;l.upvals[i])
++        markobject(g, cl-&gt;l.upvals[i]);
++    }
+   }
+ }
+ 
+@@ -258,6 +260,7 @@
+   CallInfo *ci;
+   markvalue(g, gt(l));
+   lim = l-&gt;top;
++  if(l-&gt;stack == NULL) return; /* no stack to traverse */
+   for (ci = l-&gt;base_ci; ci &lt;= l-&gt;ci; ci++) {
+     lua_assert(ci-&gt;top &lt;= l-&gt;stack_last);
+     if (lim &lt; ci-&gt;top) lim = ci-&gt;top;
+@@ -419,8 +422,6 @@
+     else {  /* must erase `curr' */
+       lua_assert(isdead(g, curr) || deadmask == bitmask(SFIXEDBIT));
+       *p = curr-&gt;gch.next;
+-      if (curr == g-&gt;rootgc)  /* is the first element of the list? */
+-        g-&gt;rootgc = curr-&gt;gch.next;  /* adjust first */
+       freeobj(L, curr);
+     }
+   }
+@@ -437,7 +438,10 @@
+   /* check size of buffer */
+   if (luaZ_sizebuffer(&amp;g-&gt;buff) &gt; LUA_MINBUFFER*2) {  /* buffer too big? */
+     size_t newsize = luaZ_sizebuffer(&amp;g-&gt;buff) / 2;
+-    luaZ_resizebuffer(L, &amp;g-&gt;buff, newsize);
++    /* make sure newsize is larger then the buffer's in use size. */
++    newsize = (luaZ_bufflen(&amp;g-&gt;buff) &gt; newsize) ? luaZ_bufflen(&amp;g-&gt;buff) : newsize;
++    if(newsize &lt; luaZ_sizebuffer(&amp;g-&gt;buff))
++      luaZ_resizebuffer(L, &amp;g-&gt;buff, newsize);
+   }
+ }
+ 
+@@ -609,10 +613,14 @@
+ 
+ void luaC_step (lua_State *L) {
+   global_State *g = G(L);
++  if(is_block_gc(L)) return;
++  set_block_gc(L);
+   l_mem lim = (GCSTEPSIZE/100) * g-&gt;gcstepmul;
+   if (lim == 0)
+     lim = (MAX_LUMEM-1)/2;  /* no limit */
+   g-&gt;gcdept += g-&gt;totalbytes - g-&gt;GCthreshold;
++  if (g-&gt;estimate &gt; g-&gt;totalbytes)
++    g-&gt;estimate = g-&gt;totalbytes;
+   do {
+     lim -= singlestep(L);
+     if (g-&gt;gcstate == GCSpause)
+@@ -630,11 +638,14 @@
+     lua_assert(g-&gt;totalbytes &gt;= g-&gt;estimate);
+     setthreshold(g);
+   }
++  unset_block_gc(L);
+ }
+ 
+ 
+ void luaC_fullgc (lua_State *L) {
+   global_State *g = G(L);
++  if(is_block_gc(L)) return;
++  set_block_gc(L);
+   if (g-&gt;gcstate &lt;= GCSpropagate) {
+     /* reset sweep marks to sweep all elements (returning them to white) */
+     g-&gt;sweepstrgc = 0;
+@@ -656,6 +667,7 @@
+     singlestep(L);
+   }
+   setthreshold(g);
++  unset_block_gc(L);
+ }
+ 
+ 
+@@ -683,6 +695,14 @@
+ }
+ 
+ 
++void luaC_marknew (lua_State *L, GCObject *o) {
++  global_State *g = G(L);
++  o-&gt;gch.marked = luaC_white(g);
++  if (g-&gt;gcstate == GCSpropagate)
++    reallymarkobject(g, o);  /* mark new objects as gray during propagate state. */
++}
++
++
+ void luaC_link (lua_State *L, GCObject *o, lu_byte tt) {
+   global_State *g = G(L);
+   o-&gt;gch.next = g-&gt;rootgc;
+
+Modified: trunk/src/lua/lgc.h
+===================================================================
+--- trunk/src/lua/lgc.h	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lgc.h	2009-10-13 23:51:10 UTC (rev 482)
+@@ -37,7 +37,23 @@
+ #define test2bits(x,b1,b2)	testbits(x, (bit2mask(b1, b2)))
+ 
+ 
++/*
++** Possible Garbage Collector flags.
++** Layout for bit use in 'gsflags' field in global_State structure.
++** bit 0 - Protect GC from recursive calls.
++*/
++#define GCFlagsNone          0
++#define GCBlockGCBit         0
++#define GCResizingStringsBit 1
+ 
++
++#define is_block_gc(L)    testbit(G(L)-&gt;gcflags, GCBlockGCBit)
++#define set_block_gc(L)   l_setbit(G(L)-&gt;gcflags, GCBlockGCBit)
++#define unset_block_gc(L) resetbit(G(L)-&gt;gcflags, GCBlockGCBit)
++#define is_resizing_strings_gc(L)    testbit(G(L)-&gt;gcflags, GCResizingStringsBit)
++#define set_resizing_strings_gc(L)   l_setbit(G(L)-&gt;gcflags, GCResizingStringsBit)
++#define unset_resizing_strings_gc(L) resetbit(G(L)-&gt;gcflags, GCResizingStringsBit)
++
+ /*
+ ** Layout for bit use in `marked' field:
+ ** bit 0 - object is white (type 0)
+@@ -101,6 +117,7 @@
+ LUAI_FUNC void luaC_freeall (lua_State *L);
+ LUAI_FUNC void luaC_step (lua_State *L);
+ LUAI_FUNC void luaC_fullgc (lua_State *L);
++LUAI_FUNC void luaC_marknew (lua_State *L, GCObject *o);
+ LUAI_FUNC void luaC_link (lua_State *L, GCObject *o, lu_byte tt);
+ LUAI_FUNC void luaC_linkupval (lua_State *L, UpVal *uv);
+ LUAI_FUNC void luaC_barrierf (lua_State *L, GCObject *o, GCObject *v);
+
+Modified: trunk/src/lua/lstate.c
+===================================================================
+--- trunk/src/lua/lstate.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lstate.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -119,6 +119,8 @@
+ lua_State *luaE_newthread (lua_State *L) {
+   lua_State *L1 = tostate(luaM_malloc(L, state_size(lua_State)));
+   luaC_link(L, obj2gco(L1), LUA_TTHREAD);
++  setthvalue(L, L-&gt;top, L1); /* put thread on stack */
++  incr_top(L);
+   preinit_state(L1, G(L));
+   stack_init(L1, L);  /* init stack */
+   setobj2n(L, gt(L1), gt(L));  /* share table of globals */
+@@ -126,7 +128,8 @@
+   L1-&gt;basehookcount = L-&gt;basehookcount;
+   L1-&gt;hook = L-&gt;hook;
+   resethookcount(L1);
+-  lua_assert(iswhite(obj2gco(L1)));
++  lua_assert(!isdead(G(L), obj2gco(L1)));
++  L-&gt;top--; /* remove thread from stack */
+   return L1;
+ }
+ 
+@@ -160,6 +163,7 @@
+   g-&gt;uvhead.u.l.prev = &amp;g-&gt;uvhead;
+   g-&gt;uvhead.u.l.next = &amp;g-&gt;uvhead;
+   g-&gt;GCthreshold = 0;  /* mark it as unfinished state */
++  g-&gt;estimate = 0;
+   g-&gt;strt.size = 0;
+   g-&gt;strt.nuse = 0;
+   g-&gt;strt.hash = NULL;
+@@ -167,6 +171,7 @@
+   luaZ_initbuffer(L, &amp;g-&gt;buff);
+   g-&gt;panic = NULL;
+   g-&gt;gcstate = GCSpause;
++  g-&gt;gcflags = GCFlagsNone;
+   g-&gt;rootgc = obj2gco(L);
+   g-&gt;sweepstrgc = 0;
+   g-&gt;sweepgc = &amp;g-&gt;rootgc;
+@@ -175,6 +180,7 @@
+   g-&gt;weak = NULL;
+   g-&gt;tmudata = NULL;
+   g-&gt;totalbytes = sizeof(LG);
++  g-&gt;memlimit = 0;
+   g-&gt;gcpause = LUAI_GCPAUSE;
+   g-&gt;gcstepmul = LUAI_GCMUL;
+   g-&gt;gcdept = 0;
+
+Modified: trunk/src/lua/lstate.h
+===================================================================
+--- trunk/src/lua/lstate.h	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lstate.h	2009-10-13 23:51:10 UTC (rev 482)
+@@ -71,6 +71,7 @@
+   void *ud;         /* auxiliary data to `frealloc' */
+   lu_byte currentwhite;
+   lu_byte gcstate;  /* state of garbage collector */
++  lu_byte gcflags;  /* flags for the garbage collector */
+   int sweepstrgc;  /* position of sweep in `strt' */
+   GCObject *rootgc;  /* list of all collectable objects */
+   GCObject **sweepgc;  /* position of sweep in `rootgc' */
+@@ -81,6 +82,7 @@
+   Mbuffer buff;  /* temporary buffer for string concatentation */
+   lu_mem GCthreshold;
+   lu_mem totalbytes;  /* number of bytes currently allocated */
++  lu_mem memlimit;  /* maximum number of bytes that can be allocated, 0 = no limit. */
+   lu_mem estimate;  /* an estimate of number of bytes actually in use */
+   lu_mem gcdept;  /* how much GC is `behind schedule' */
+   int gcpause;  /* size of pause between successive GCs */
+
+Modified: trunk/src/lua/lstring.c
+===================================================================
+--- trunk/src/lua/lstring.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lstring.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -20,30 +20,34 @@
+ 
+ 
+ void luaS_resize (lua_State *L, int newsize) {
+-  GCObject **newhash;
+   stringtable *tb;
+   int i;
+-  if (G(L)-&gt;gcstate == GCSsweepstring)
+-    return;  /* cannot resize during GC traverse */
+-  newhash = luaM_newvector(L, newsize, GCObject *);
+   tb = &amp;G(L)-&gt;strt;
+-  for (i=0; i&lt;newsize; i++) newhash[i] = NULL;
++  if (G(L)-&gt;gcstate == GCSsweepstring || newsize == tb-&gt;size || is_resizing_strings_gc(L))
++    return;  /* cannot resize during GC traverse or doesn't need to be resized */
++  set_resizing_strings_gc(L);
++  if (newsize &gt; tb-&gt;size) {
++    luaM_reallocvector(L, tb-&gt;hash, tb-&gt;size, newsize, GCObject *);
++    for (i=tb-&gt;size; i&lt;newsize; i++) tb-&gt;hash[i] = NULL;
++  }
+   /* rehash */
+   for (i=0; i&lt;tb-&gt;size; i++) {
+     GCObject *p = tb-&gt;hash[i];
++    tb-&gt;hash[i] = NULL;
+     while (p) {  /* for each node in the list */
+       GCObject *next = p-&gt;gch.next;  /* save next */
+       unsigned int h = gco2ts(p)-&gt;hash;
+       int h1 = lmod(h, newsize);  /* new position */
+       lua_assert(cast_int(h%newsize) == lmod(h, newsize));
+-      p-&gt;gch.next = newhash[h1];  /* chain it */
+-      newhash[h1] = p;
++      p-&gt;gch.next = tb-&gt;hash[h1];  /* chain it */
++      tb-&gt;hash[h1] = p;
+       p = next;
+     }
+   }
+-  luaM_freearray(L, tb-&gt;hash, tb-&gt;size, TString *);
++  if (newsize &lt; tb-&gt;size)
++    luaM_reallocvector(L, tb-&gt;hash, tb-&gt;size, newsize, GCObject *);
+   tb-&gt;size = newsize;
+-  tb-&gt;hash = newhash;
++  unset_resizing_strings_gc(L);
+ }
+ 
+ 
+@@ -53,6 +57,9 @@
+   stringtable *tb;
+   if (l+1 &gt; (MAX_SIZET - sizeof(TString))/sizeof(char))
+     luaM_toobig(L);
++  tb = &amp;G(L)-&gt;strt;
++  if ((tb-&gt;nuse + 1) &gt; cast(lu_int32, tb-&gt;size) &amp;&amp; tb-&gt;size &lt;= MAX_INT/2)
++    luaS_resize(L, tb-&gt;size*2);  /* too crowded */
+   ts = cast(TString *, luaM_malloc(L, (l+1)*sizeof(char)+sizeof(TString)));
+   ts-&gt;tsv.len = l;
+   ts-&gt;tsv.hash = h;
+@@ -61,13 +68,10 @@
+   ts-&gt;tsv.reserved = 0;
+   memcpy(ts+1, str, l*sizeof(char));
+   ((char *)(ts+1))[l] = '\0';  /* ending 0 */
+-  tb = &amp;G(L)-&gt;strt;
+   h = lmod(h, tb-&gt;size);
+   ts-&gt;tsv.next = tb-&gt;hash[h];  /* chain new entry */
+   tb-&gt;hash[h] = obj2gco(ts);
+   tb-&gt;nuse++;
+-  if (tb-&gt;nuse &gt; cast(lu_int32, tb-&gt;size) &amp;&amp; tb-&gt;size &lt;= MAX_INT/2)
+-    luaS_resize(L, tb-&gt;size*2);  /* too crowded */
+   return ts;
+ }
+ 
+
+Modified: trunk/src/lua/ltable.c
+===================================================================
+--- trunk/src/lua/ltable.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/ltable.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -277,20 +277,35 @@
+ }
+ 
+ 
+-static void setnodevector (lua_State *L, Table *t, int size) {
++static Node *getfreepos (Table *t) {
++  while (t-&gt;lastfree-- &gt; t-&gt;node) {
++    if (ttisnil(gkey(t-&gt;lastfree)))
++      return t-&gt;lastfree;
++  }
++  return NULL;  /* could not find a free place */
++}
++
++
++static void resizenodevector (lua_State *L, Table *t, int oldsize, int newsize) {
+   int lsize;
+-  if (size == 0) {  /* no elements to hash part? */
++  if (newsize == 0) {  /* no elements to hash part? */
+     t-&gt;node = cast(Node *, dummynode);  /* use common `dummynode' */
+     lsize = 0;
+   }
+   else {
++    Node *node = t-&gt;node;
+     int i;
+-    lsize = ceillog2(size);
++    lsize = ceillog2(newsize);
+     if (lsize &gt; MAXBITS)
+       luaG_runerror(L, &quot;table overflow&quot;);
+-    size = twoto(lsize);
+-    t-&gt;node = luaM_newvector(L, size, Node);
+-    for (i=0; i&lt;size; i++) {
++    newsize = twoto(lsize);
++    if (node == dummynode) {
++      oldsize = 0;
++      node = NULL; /* don't try to realloc `dummynode' pointer. */
++    }
++    luaM_reallocvector(L, node, oldsize, newsize, Node);
++    t-&gt;node = node;
++    for (i=oldsize; i&lt;newsize; i++) {
+       Node *n = gnode(t, i);
+       gnext(n) = NULL;
+       setnilvalue(gkey(n));
+@@ -298,19 +313,138 @@
+     }
+   }
+   t-&gt;lsizenode = cast_byte(lsize);
+-  t-&gt;lastfree = gnode(t, size);  /* all positions are free */
++  t-&gt;lastfree = gnode(t, newsize);  /* reset lastfree to end of table. */
+ }
+ 
+ 
++static Node *find_prev_node(Node *mp, Node *next) {
++  Node *prev = mp;
++  while (prev != NULL &amp;&amp; gnext(prev) != next) prev = gnext(prev);
++  return prev;
++}
++
++
++/*
++** move a node from it's old position to it's new position during a rehash;
++** first, check whether the moving node's main position is free. If not, check whether
++** colliding node is in its main position or not: if it is not, move colliding
++** node to an empty place and put moving node in its main position; otherwise
++** (colliding node is in its main position), moving node goes to an empty position. 
++*/
++static int move_node (lua_State *L, Table *t, Node *node) {
++  Node *mp = mainposition(t, key2tval(node));
++  /* if node is in it's main position, don't need to move node. */
++  if (mp == node) return 1;
++  /* if node is in it's main position's chain, don't need to move node. */
++  if (find_prev_node(mp, node) != NULL) return 1;
++  /* is main position is free? */
++  if (!ttisnil(gval(mp)) || mp == dummynode) {
++    /* no; move main position node if it is out of its main position */
++    Node *othermp;
++    othermp = mainposition(t, key2tval(mp));
++    if (othermp != mp) {  /* is colliding node out of its main position? */
++      /* yes; swap colliding node with the node that is being moved. */
++      Node *prev;
++      Node tmp;
++      tmp = *node;
++      prev = find_prev_node(othermp, mp);  /* find previous */
++      if (prev != NULL) gnext(prev) = node;  /* redo the chain with `n' in place of `mp' */
++      *node = *mp;  /* copy colliding node into free pos. (mp-&gt;next also goes) */
++      *mp = tmp;
++      return (prev != NULL) ? 1 : 0; /* is colliding node part of its main position chain? */
++    }
++    else {  /* colliding node is in its own main position */
++      /* add node to main position's chain. */
++      gnext(node) = gnext(mp);  /* chain new position */
++      gnext(mp) = node;
++    }
++  }
++  else { /* main position is free, move node */
++    *mp = *node;
++    gnext(node) = NULL;
++    setnilvalue(gkey(node));
++    setnilvalue(gval(node));
++  }
++  return 1;
++}
++
++
++static int move_number (lua_State *L, Table *t, Node *node) {
++  int key;
++  lua_Number n = nvalue(key2tval(node));
++  lua_number2int(key, n);
++  if (luai_numeq(cast_num(key), nvalue(key2tval(node)))) {/* index is int? */
++    /* (1 &lt;= key &amp;&amp; key &lt;= t-&gt;sizearray) */
++    if (cast(unsigned int, key-1) &lt; cast(unsigned int, t-&gt;sizearray)) {
++      setobjt2t(L, &amp;t-&gt;array[key-1], gval(node));
++      setnilvalue(gkey(node));
++      setnilvalue(gval(node));
++      return 1;
++    }
++  }
++  return 0;
++}
++
++
++static void resize_hashpart (lua_State *L, Table *t, int nhsize) {
++  int i;
++  int lsize=0;
++  int oldhsize = (t-&gt;node != dummynode) ? twoto(t-&gt;lsizenode) : 0;
++  if (nhsize &gt; 0) { /* round new hashpart size up to next power of two. */
++    lsize=ceillog2(nhsize);
++    if (lsize &gt; MAXBITS)
++      luaG_runerror(L, &quot;table overflow&quot;);
++  }
++  nhsize = twoto(lsize);
++  /* grow hash part to new size. */
++  if (oldhsize &lt; nhsize)
++    resizenodevector(L, t, oldhsize, nhsize);
++  else { /* hash part might be shrinking */
++    if (nhsize &gt; 0) {
++      t-&gt;lsizenode = cast_byte(lsize);
++      t-&gt;lastfree = gnode(t, nhsize);  /* reset lastfree back to end of table. */
++    }
++    else { /* new hashpart size is zero. */
++      resizenodevector(L, t, oldhsize, nhsize);
++      return;
++    }
++  }
++  /* break old chains, try moving int keys to array part and compact keys into new hashpart */
++  for (i = 0; i &lt; oldhsize; i++) {
++    Node *old = gnode(t, i);
++    gnext(old) = NULL;
++    if (ttisnil(gval(old))) { /* clear nodes with nil values. */
++      setnilvalue(gkey(old));
++      continue;
++    }
++    if (ttisnumber(key2tval(old))) { /* try moving the int keys into array part. */
++      if(move_number(L, t, old))
++        continue;
++    }
++    if (i &gt;= nhsize) { /* move all valid keys to indices &lt; nhsize. */
++      Node *n = getfreepos(t);  /* get a free place */
++      lua_assert(n != dummynode &amp;&amp; n != NULL);
++      *n = *old;
++    }
++  }
++  /* shrink hash part */
++  if (oldhsize &gt; nhsize)
++    resizenodevector(L, t, oldhsize, nhsize);
++  /* move nodes to their new mainposition and re-create node chains */
++  for (i = 0; i &lt; nhsize; i++) {
++    Node *curr = gnode(t, i);
++    if (!ttisnil(gval(curr)))
++      while (move_node(L, t, curr) == 0);
++  }
++}
++
++
+ static void resize (lua_State *L, Table *t, int nasize, int nhsize) {
+   int i;
+   int oldasize = t-&gt;sizearray;
+-  int oldhsize = t-&gt;lsizenode;
+-  Node *nold = t-&gt;node;  /* save old hash ... */
+   if (nasize &gt; oldasize)  /* array part must grow? */
+     setarrayvector(L, t, nasize);
+-  /* create new hash part with appropriate size */
+-  setnodevector(L, t, nhsize);  
++  resize_hashpart(L, t, nhsize);
+   if (nasize &lt; oldasize) {  /* array part must shrink? */
+     t-&gt;sizearray = nasize;
+     /* re-insert elements from vanishing slice */
+@@ -321,14 +455,6 @@
+     /* shrink array */
+     luaM_reallocvector(L, t-&gt;array, oldasize, nasize, TValue);
+   }
+-  /* re-insert elements from hash part */
+-  for (i = twoto(oldhsize) - 1; i &gt;= 0; i--) {
+-    Node *old = nold+i;
+-    if (!ttisnil(gval(old)))
+-      setobjt2t(L, luaH_set(L, t, key2tval(old)), gval(old));
+-  }
+-  if (nold != dummynode)
+-    luaM_freearray(L, nold, twoto(oldhsize), Node);  /* free old array */
+ }
+ 
+ 
+@@ -366,6 +492,8 @@
+ Table *luaH_new (lua_State *L, int narray, int nhash) {
+   Table *t = luaM_new(L, Table);
+   luaC_link(L, obj2gco(t), LUA_TTABLE);
++  sethvalue2s(L, L-&gt;top, t); /* put table on stack */
++  incr_top(L);
+   t-&gt;metatable = NULL;
+   t-&gt;flags = cast_byte(~0);
+   /* temporary values (kept only if some malloc fails) */
+@@ -374,7 +502,8 @@
+   t-&gt;lsizenode = 0;
+   t-&gt;node = cast(Node *, dummynode);
+   setarrayvector(L, t, narray);
+-  setnodevector(L, t, nhash);
++  resizenodevector(L, t, 0, nhash);
++  L-&gt;top--; /* remove table from stack */
+   return t;
+ }
+ 
+@@ -387,16 +516,7 @@
+ }
+ 
+ 
+-static Node *getfreepos (Table *t) {
+-  while (t-&gt;lastfree-- &gt; t-&gt;node) {
+-    if (ttisnil(gkey(t-&gt;lastfree)))
+-      return t-&gt;lastfree;
+-  }
+-  return NULL;  /* could not find a free place */
+-}
+ 
+-
+-
+ /*
+ ** inserts a new key into a hash table; first, check whether key's main 
+ ** position is free. If not, check whether colliding node is in its main 
+
+Modified: trunk/src/lua/lua.c
+===================================================================
+--- trunk/src/lua/lua.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lua.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -45,6 +45,7 @@
+   &quot;Available options are:\n&quot;
+   &quot;  -e stat  execute string &quot; LUA_QL(&quot;stat&quot;) &quot;\n&quot;
+   &quot;  -l name  require library &quot; LUA_QL(&quot;name&quot;) &quot;\n&quot;
++  &quot;  -m limit set memory limit. (units are in Kbytes)\n&quot;
+   &quot;  -i       enter interactive mode after executing &quot; LUA_QL(&quot;script&quot;) &quot;\n&quot;
+   &quot;  -v       show version information\n&quot;
+   &quot;  --       stop handling options\n&quot;
+@@ -278,6 +279,7 @@
+         break;
+       case 'e':
+         *pe = 1;  /* go through */
++      case 'm':   /* go through */
+       case 'l':
+         if (argv[i][2] == '\0') {
+           i++;
+@@ -305,6 +307,15 @@
+           return 1;
+         break;
+       }
++      case 'm': {
++        const char *limit = argv[i] + 2;
++        int memlimit=0;
++        if (*limit == '\0') limit = argv[++i];
++        lua_assert(limit != NULL);
++        memlimit = atoi(limit);
++        lua_gc(L, LUA_GCSETMEMLIMIT, memlimit);
++        break;
++      }
+       case 'l': {
+         const char *filename = argv[i] + 2;
+         if (*filename == '\0') filename = argv[++i];
+
+Modified: trunk/src/lua/lua.h
+===================================================================
+--- trunk/src/lua/lua.h	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lua.h	2009-10-13 23:51:10 UTC (rev 482)
+@@ -228,6 +228,8 @@
+ #define LUA_GCSTEP		5
+ #define LUA_GCSETPAUSE		6
+ #define LUA_GCSETSTEPMUL	7
++#define LUA_GCSETMEMLIMIT	8
++#define LUA_GCGETMEMLIMIT	9
+ 
+ LUA_API int (lua_gc) (lua_State *L, int what, int data);
+ 
+
+Modified: trunk/src/lua/lvm.c
+===================================================================
+--- trunk/src/lua/lvm.c	2009-10-13 22:51:36 UTC (rev 481)
++++ trunk/src/lua/lvm.c	2009-10-13 23:51:10 UTC (rev 482)
+@@ -319,6 +319,7 @@
+         if (l &gt;= MAX_SIZET - tl) luaG_runerror(L, &quot;string length overflow&quot;);
+         tl += l;
+       }
++      G(L)-&gt;buff.n = tl;
+       buffer = luaZ_openspace(L, &amp;G(L)-&gt;buff, tl);
+       tl = 0;
+       for (i=n; i&gt;0; i--) {  /* concat all strings */
+@@ -327,6 +328,7 @@
+         tl += l;
+       }
+       setsvalue2s(L, top-n, luaS_newlstr(L, buffer, tl));
++      luaZ_resetbuffer(&amp;G(L)-&gt;buff);
+     }
+     total -= n-1;  /* got `n' strings to create 1 new */
+     last -= n-1;
+@@ -481,7 +483,9 @@
+       case OP_NEWTABLE: {
+         int b = GETARG_B(i);
+         int c = GETARG_C(i);
+-        sethvalue(L, ra, luaH_new(L, luaO_fb2int(b), luaO_fb2int(c)));
++        Table *h;
++        Protect(h = luaH_new(L, luaO_fb2int(b), luaO_fb2int(c)));
++        sethvalue(L, RA(i), h);
+         Protect(luaC_checkGC(L));
+         continue;
+       }
+@@ -748,6 +752,7 @@
+         p = cl-&gt;p-&gt;p[GETARG_Bx(i)];
+         nup = p-&gt;nups;
+         ncl = luaF_newLclosure(L, nup, cl-&gt;env);
++        setclvalue(L, ra, ncl);
+         ncl-&gt;l.p = p;
+         for (j=0; j&lt;nup; j++, pc++) {
+           if (GET_OPCODE(*pc) == OP_GETUPVAL)
+@@ -757,7 +762,6 @@
+             ncl-&gt;l.upvals[j] = luaF_findupval(L, base + GETARG_B(*pc));
+           }
+         }
+-        setclvalue(L, ra, ncl);
+         Protect(luaC_checkGC(L));
+         continue;
+       }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000437.html">[Elua-svn] r481 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000439.html">[Elua-svn] r483 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#438">[ date ]</a>
+              <a href="thread.html#438">[ thread ]</a>
+              <a href="subject.html#438">[ subject ]</a>
+              <a href="author.html#438">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

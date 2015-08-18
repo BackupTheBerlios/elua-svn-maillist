@@ -1,0 +1,608 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r485 - in trunk: . romfs src/platform/lm3s	src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r485%20-%20in%20trunk%3A%20.%20romfs%20src/platform/lm3s%0A%09src/platform/str9&In-Reply-To=%3C200910180127.n9I1RZMT010582%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000440.html">
+   <LINK REL="Next"  HREF="000442.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r485 - in trunk: . romfs src/platform/lm3s	src/platform/str9</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r485%20-%20in%20trunk%3A%20.%20romfs%20src/platform/lm3s%0A%09src/platform/str9&In-Reply-To=%3C200910180127.n9I1RZMT010582%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r485 - in trunk: . romfs src/platform/lm3s	src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Oct 18 03:27:35 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000440.html">[Elua-svn] r484 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000442.html">[Elua-svn] r486 - trunk/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#441">[ date ]</a>
+              <a href="thread.html#441">[ thread ]</a>
+              <a href="subject.html#441">[ subject ]</a>
+              <a href="author.html#441">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-10-18 03:27:33 +0200 (Sun, 18 Oct 2009)
+New Revision: 485
+
+Added:
+   trunk/src/platform/str9/str9_pio.c
+Modified:
+   trunk/SConstruct
+   trunk/romfs/piano.lua
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/str9/conf.py
+   trunk/src/platform/str9/platform.c
+   trunk/src/platform/str9/platform_conf.h
+Log:
+- added support for the STR-E912 board from Olimex
+- PWM module for STR9
+- STR9 port fixes 
+- STR9 platform-specific module: str9.pio (the STR9 GPIO subsystem is quite uncommon).
+- small LM3S fixes
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-10-13 23:56:40 UTC (rev 484)
++++ trunk/SConstruct	2009-10-18 01:27:33 UTC (rev 485)
+@@ -7,6 +7,12 @@
+ optram = int( ARGUMENTS.get( 'optram', '1' ) )
+ boot = ARGUMENTS.get( 'boot', '').lower()
+ 
++# Helper: &quot;normalize&quot; a name to make it a suitable C macro name
++def cnorm( name ):
++  name = name.replace( '-', '' )
++  name = name.replace( ' ', '' )
++  return name.upper()
++
+ # List of toolchains
+ toolchain_list = {
+   'arm-gcc' : { 
+@@ -34,6 +40,7 @@
+     'compile' : 'avr32-gcc', 
+     'link' : 'avr32-ld', 
+     'asm' : 'avr32-as', 
++    
+     'bin' : 'avr32-objcopy', 
+     'size' : 'avr32-size' 
+   },
+@@ -71,6 +78,7 @@
+                'EK-LM3S6965' : [ 'LM3S6965' ],
+                'EK-LM3S9B92' : [ 'LM3S9B92' ],
+                'STR9-COMSTICK' : [ 'STR912FAW44' ],
++               'STR-E912' : [ 'STR912FAW44' ],
+                'PC' : [ 'I386' ],
+                'SIM' : [ 'LINUX' ],
+                'LPC-H2888' : [ 'LPC2888' ],
+@@ -111,6 +119,7 @@
+               'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo', 'spaceship', 'tetrives' ],
+               'EK-LM3S9B92' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'pwmled', 'hello', 'info', 'adcscope','adcpoll', 'life' ],
+               'STR9-COMSTICK' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
++              'STR-E912' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'piano' ],
+               'PC' : [ 'bisect', 'hello', 'info', 'life', 'hangman' ],
+               'SIM' : [ 'bisect', 'hello', 'info', 'life', 'hangman' ],
+               'LPC-H2888' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+@@ -216,6 +225,8 @@
+ 
+ output = 'elua_' + target + '_' + cputype.lower()
+ cdefs = '-DELUA_CPU=%s -DELUA_BOARD=%s -DELUA_PLATFORM=%s -D__BUFSIZ__=128' % ( cputype, boardname, platform.upper() )
++# Also make the above into direct defines (to use in conditional C code)
++cdefs = cdefs + &quot; -DELUA_CPU_%s -DELUA_BOARD_%s -DELUA_PLATFORM_%s&quot; % ( cnorm( cputype ), cnorm( boardname ), cnorm( platform ) )
+ if allocator == 'multiple':
+   cdefs = cdefs + &quot; -DUSE_MULTIPLE_ALLOCATOR&quot;
+ elif allocator == 'simple':
+
+Modified: trunk/romfs/piano.lua
+===================================================================
+--- trunk/romfs/piano.lua	2009-10-13 23:56:40 UTC (rev 484)
++++ trunk/romfs/piano.lua	2009-10-18 01:27:33 UTC (rev 485)
+@@ -12,6 +12,10 @@
+ elseif pd.board() == &quot;SAM7-EX256&quot; then
+   pwmid, tmrid = 0, 1
+   tmr.setclock( 1, 1000000 )
++elseif pd.board() == &quot;STR-E912&quot; then
++  local g = str9.pio
++  g.setpin( pio.P4_6, g.OUTPUT, g.OUTPUT_PUSHPULL, false, g.ALT_OUTPUT2 )
++  pwmid, tmrid = 3, 1
+ else
+   print( pd.board() .. &quot; not supported with this example&quot; )
+   return
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-10-13 23:56:40 UTC (rev 484)
++++ trunk/src/platform/lm3s/platform.c	2009-10-18 01:27:33 UTC (rev 485)
+@@ -966,9 +966,9 @@
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   return 0;
+ #else // #if LUA_OPTIMIZE_MEMORY &gt; 0
+-  luaL_register( L, PS_LIB_TABLE_NAME, luaopen_platform );
++  luaL_register( L, PS_LIB_TABLE_NAME, platform_map );
+ 
+-  // Setup the new tables (pin and port) inside pio
++  // Setup the new tables inside platform table
+   lua_newtable( L );
+   luaL_register( L, NULL, disp_map );
+   lua_setfield( L, -2, &quot;disp&quot; );
+
+Modified: trunk/src/platform/str9/conf.py
+===================================================================
+--- trunk/src/platform/str9/conf.py	2009-10-13 23:56:40 UTC (rev 484)
++++ trunk/src/platform/str9/conf.py	2009-10-18 01:27:33 UTC (rev 485)
+@@ -2,7 +2,7 @@
+ 
+ cpumode = ARGUMENTS.get( 'cpumode', 'arm' ).lower()
+ 
+-specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c 91x_vic.c interrupt.c&quot;
++specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c 91x_vic.c interrupt.c str9_pio.c&quot;
+ 
+ # Check CPU
+ if cputype == 'STR912FAW44':
+@@ -24,11 +24,16 @@
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+ ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
+ 
++# toolchain 'arm-gcc' requires '-mfpu=fpa' for some reason
++auxm = ''
++if toolchain == 'arm-gcc':
++  auxm = '-mfpu=fpa'
++
+ # Toolset data
+ tools[ 'str9' ] = {}
+-tools[ 'str9' ][ 'cccom' ] = &quot;%s -mcpu=arm966e-s -mfpu=fpa %s $_CPPINCFLAGS %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile'], opt, modeflag, cdefs )
+-tools[ 'str9' ][ 'linkcom' ] = &quot;%s -mcpu=arm966e-s -mfpu=fpa -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,_startup -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], modeflag, ldscript, local_libs )
+-tools[ 'str9' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS -mcpu=arm966e-s -mfpu=fpa %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], modeflag, cdefs )
++tools[ 'str9' ][ 'cccom' ] = &quot;%s -mcpu=arm966e-s %s %s $_CPPINCFLAGS %s -ffunction-sections -fdata-sections %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile'], auxm, opt, modeflag, cdefs )
++tools[ 'str9' ][ 'linkcom' ] = &quot;%s -mcpu=arm966e-s %s -nostartfiles -nostdlib %s -T %s -Wl,--gc-sections -Wl,-e,_startup -Wl,--allow-multiple-definition -o $TARGET $SOURCES %s -lc -lgcc -lm&quot; % ( toolset[ 'compile' ], auxm, modeflag, ldscript, local_libs )
++tools[ 'str9' ][ 'ascom' ] = &quot;%s -x assembler-with-cpp $_CPPINCFLAGS %s -mfpu=fpa %s %s -Wall -c $SOURCE -o $TARGET&quot; % ( toolset[ 'compile' ], auxm, modeflag, cdefs )
+ 
+ # Programming function for LPC2888
+ def progfunc_str9( target, source, env ):
+
+Modified: trunk/src/platform/str9/platform.c
+===================================================================
+--- trunk/src/platform/str9/platform.c	2009-10-13 23:56:40 UTC (rev 484)
++++ trunk/src/platform/str9/platform.c	2009-10-18 01:27:33 UTC (rev 485)
+@@ -18,13 +18,11 @@
+ #include &quot;common.h&quot;
+ #include &quot;platform_conf.h&quot;
+ #include &quot;91x_vic.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+-// We define here the UART used by this porting layer
+-#define STR9_UART         UART1
+-
+ // ****************************************************************************
+ // Platform initialization
+-static const GPIO_TypeDef* port_data[] = { GPIO0, GPIO1, GPIO2, GPIO3, GPIO4, GPIO5, GPIO6, GPIO7, GPIO8, GPIO9 };
++const GPIO_TypeDef* port_data[] = { GPIO0, GPIO1, GPIO2, GPIO3, GPIO4, GPIO5, GPIO6, GPIO7, GPIO8, GPIO9 };
+ static const TIM_TypeDef* timer_data[] = { TIM0, TIM1, TIM2, TIM3 };
+ 
+ static void platform_config_scu()
+@@ -42,8 +40,8 @@
+ 
+   /* Set the RCLK Clock divider to max speed*/
+   SCU_RCLKDivisorConfig(SCU_RCLK_Div1);
+-  /* Set the PCLK Clock to MCLK/8 */
+-  SCU_PCLKDivisorConfig(SCU_PCLK_Div8);
++  /* Set the PCLK Clock to MCLK/2 */
++  SCU_PCLKDivisorConfig(SCU_PCLK_Div2);
+   /* Set the HCLK Clock to MCLK */
+   SCU_HCLKDivisorConfig(SCU_HCLK_Div1);
+   
+@@ -64,6 +62,37 @@
+   SCU_APBPeriphClockConfig(__GPIO_ALL, ENABLE);  
+ }
+ 
++// Port/pin definitions of the eLua UART connection for different boards
++#define UART_RX_IDX   0
++#define UART_TX_IDX   1
++
++#ifdef ELUA_BOARD_STRE912
++static const GPIO_TypeDef* uart_port_data[] = { GPIO5, GPIO5 };
++static const u8 uart_pin_data[] = { GPIO_Pin_1, GPIO_Pin_0 };
++#else // STR9-comStick
++static const GPIO_TypeDef* uart_port_data[] = { GPIO3, GPIO3 };
++static const u8 uart_pin_data[] = { GPIO_Pin_2, GPIO_Pin_3 };
++#endif
++
++// Plaform specific GPIO UART setup
++static void platform_gpio_uart_setup()
++{
++  GPIO_InitTypeDef GPIO_InitStructure;
++
++  GPIO_StructInit( &amp;GPIO_InitStructure );
++  // RX
++  GPIO_InitStructure.GPIO_Direction = GPIO_PinInput;
++  GPIO_InitStructure.GPIO_Pin = uart_pin_data[ UART_RX_IDX ]; 
++  GPIO_InitStructure.GPIO_Type = GPIO_Type_PushPull ;
++  GPIO_InitStructure.GPIO_IPConnected = GPIO_IPConnected_Enable;
++  GPIO_InitStructure.GPIO_Alternate = GPIO_InputAlt1  ;
++  GPIO_Init( ( GPIO_TypeDef* )uart_port_data[ UART_RX_IDX ], &amp;GPIO_InitStructure );
++  // TX
++  GPIO_InitStructure.GPIO_Pin = uart_pin_data[ UART_TX_IDX ];
++  GPIO_InitStructure.GPIO_Alternate = GPIO_OutputAlt3  ;
++  GPIO_Init( ( GPIO_TypeDef* )uart_port_data[ UART_TX_IDX ], &amp;GPIO_InitStructure );
++}
++
+ int platform_init()
+ {
+   unsigned i;
+@@ -80,7 +109,8 @@
+   // Initialize VIC
+   VIC_DeInit();
+   
+-  // UART setup (only STR9_UART is used in this example)
++  // UART setup
++  platform_gpio_uart_setup();
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+ 
+   // Initialize timers
+@@ -159,25 +189,12 @@
+ // ****************************************************************************
+ // UART
+ 
++static const UART_TypeDef* uarts[] = { UART0, UART1, UART2 };
++
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+ {
+   UART_InitTypeDef UART_InitStructure;
+-  GPIO_InitTypeDef GPIO_InitStructure;
+-      
+-  id = id;
+-  
+-  // First configure GPIO
+-  // RX: GPIO3.2
+-  GPIO_InitStructure.GPIO_Direction = GPIO_PinInput;
+-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+-  GPIO_InitStructure.GPIO_Type = GPIO_Type_PushPull ;
+-  GPIO_InitStructure.GPIO_IPConnected = GPIO_IPConnected_Enable;
+-  GPIO_InitStructure.GPIO_Alternate = GPIO_InputAlt1  ;
+-  GPIO_Init (GPIO3, &amp;GPIO_InitStructure);
+-  // TX: GPIO3.3
+-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
+-  GPIO_InitStructure.GPIO_Alternate = GPIO_OutputAlt2  ;
+-  GPIO_Init (GPIO3, &amp;GPIO_InitStructure);
++  UART_TypeDef* p_uart = ( UART_TypeDef* )uarts[ id ];
+     
+   // Then configure UART parameters
+   switch( databits )
+@@ -212,33 +229,36 @@
+   UART_InitStructure.UART_TxFIFOLevel = UART_FIFOLevel_1_2; /* FIFO size 16 bytes, FIFO level 8 bytes */
+   UART_InitStructure.UART_RxFIFOLevel = UART_FIFOLevel_1_2; /* FIFO size 16 bytes, FIFO level 8 bytes */
+ 
+-  UART_DeInit(STR9_UART);
+-  UART_Init(STR9_UART, &amp;UART_InitStructure);
+-  UART_Cmd(STR9_UART, ENABLE);
++  UART_DeInit( p_uart );
++  UART_Init( p_uart , &amp;UART_InitStructure );
++  UART_Cmd( p_uart, ENABLE );
+   
+   return baud;
+ }
+ 
+ void platform_uart_send( unsigned id, u8 data )
+ {
+-  id = id;
++  UART_TypeDef* p_uart = ( UART_TypeDef* )uarts[ id ];
++
+ //  while( UART_GetFlagStatus( STR9_UART, UART_FLAG_TxFIFOFull ) == SET );
+-  UART_SendData( STR9_UART, data );
+-  while( UART_GetFlagStatus( STR9_UART, UART_FLAG_TxFIFOFull ) != RESET );  
++  UART_SendData( p_uart, data );
++  while( UART_GetFlagStatus( p_uart, UART_FLAG_TxFIFOFull ) != RESET );  
+ }
+ 
+ int platform_s_uart_recv( unsigned id, s32 timeout )
+ {
++  UART_TypeDef* p_uart = ( UART_TypeDef* )uarts[ id ];
++
+   if( timeout == 0 )
+   {
+     // Return data only if already available
+-    if( UART_GetFlagStatus( STR9_UART, UART_FLAG_RxFIFOEmpty ) != SET )
+-      return UART_ReceiveData( STR9_UART );
++    if( UART_GetFlagStatus( p_uart, UART_FLAG_RxFIFOEmpty ) != SET )
++      return UART_ReceiveData( p_uart );
+     else
+       return -1;
+   }
+-  while( UART_GetFlagStatus( STR9_UART, UART_FLAG_RxFIFOEmpty ) == SET );
+-  return UART_ReceiveData( STR9_UART );
++  while( UART_GetFlagStatus( p_uart, UART_FLAG_RxFIFOEmpty ) == SET );
++  return UART_ReceiveData( p_uart ); 
+ }
+ 
+ // ****************************************************************************
+@@ -326,6 +346,66 @@
+ }
+ 
+ // ****************************************************************************
++// PWM functions
++
++u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
++{
++  TIM_TypeDef* p_timer = ( TIM_TypeDef* )timer_data[ id ];
++  u32 base = SCU_GetPCLKFreqValue() * 1000;
++  u32 div = ( base / 256 ) / frequency;
++  TIM_InitTypeDef tim;
++
++  TIM_DeInit( p_timer );
++  tim.TIM_Mode = TIM_PWM;
++  tim.TIM_Clock_Source = TIM_CLK_APB;       
++  tim.TIM_Prescaler = 0xFF;       
++  tim.TIM_Pulse_Level_1 = TIM_HIGH;   
++  tim.TIM_Period_Level = TIM_LOW;    
++  tim.TIM_Full_Period = div;
++  tim.TIM_Pulse_Length_1 = ( div * duty ) / 100;
++  TIM_Init( p_timer, &amp;tim );
++
++  return base / div;
++}
++
++static u32 platform_pwm_set_clock( unsigned id, u32 clock )
++{
++  TIM_TypeDef* p_timer = ( TIM_TypeDef* )timer_data[ id ];
++  u32 base = ( SCU_GetPCLKFreqValue() * 1000 );
++  u32 div = base / clock;
++
++  TIM_PrescalerConfig( p_timer, ( u8 )div - 1 );
++  return base / div;
++}
++
++u32 platform_pwm_op( unsigned id, int op, u32 data )
++{
++  u32 res = 0;
++  TIM_TypeDef* p_timer = ( TIM_TypeDef* )timer_data[ id ];
++
++  switch( op )
++  {
++    case PLATFORM_PWM_OP_START:
++      TIM_CounterCmd( p_timer, TIM_START );
++      break;
++
++    case PLATFORM_PWM_OP_STOP:
++      TIM_CounterCmd( p_timer, TIM_STOP );
++      break;
++
++    case PLATFORM_PWM_OP_SET_CLOCK:
++      res = platform_pwm_set_clock( id, data );
++      break;
++
++    case PLATFORM_PWM_OP_GET_CLOCK:
++      res = ( SCU_GetPCLKFreqValue() * 1000 ) / ( TIM_GetPrescalerValue( p_timer ) + 1 );
++      break;
++  }
++
++  return res;
++}
++
++// ****************************************************************************
+ // CPU functions
+ 
+ extern void enable_ints();
+@@ -340,3 +420,35 @@
+ {
+   disable_ints();
+ }
++
++// ****************************************************************************
++// Platform specific modules go here
++
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++extern const LUA_REG_TYPE str9_pio_map[];
++
++const LUA_REG_TYPE platform_map[] =
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;pio&quot; ), LROVAL( str9_pio_map ) },
++#endif
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_platform( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_register( L, PS_LIB_TABLE_NAME, platform_map );
++
++  // Setup the new tables inside platform table
++  lua_newtable( L );
++  luaL_register( L, NULL, str9_pio_map );
++  lua_setfield( L, -2, &quot;pio&quot; );
++
++  return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
++}
++
+
+Modified: trunk/src/platform/str9/platform_conf.h
+===================================================================
+--- trunk/src/platform/str9/platform_conf.h	2009-10-13 23:56:40 UTC (rev 484)
++++ trunk/src/platform/str9/platform_conf.h	2009-10-18 01:27:33 UTC (rev 485)
+@@ -19,7 +19,12 @@
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+ 
++#ifdef ELUA_BOARD_STRE912
+ #define CON_UART_ID           0
++#else // STR9-comStick
++#define CON_UART_ID           1
++#endif
++
+ #define CON_UART_SPEED        115200
+ #define CON_TIMER_ID          0
+ #define TERM_LINES            25
+@@ -35,9 +40,9 @@
+ // Number of resources (0 if not available/not implemented)
+ #define NUM_PIO               10
+ #define NUM_SPI               0
+-#define NUM_UART              1
++#define NUM_UART              3
+ #define NUM_TIMER             4
+-#define NUM_PWM               0
++#define NUM_PWM               4
+ #define NUM_ADC               0
+ #define NUM_CAN               0
+ 
+@@ -63,6 +68,9 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++// The name of the platform specific libs table
++#define PS_LIB_TABLE_NAME   &quot;str9&quot;
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+@@ -72,6 +80,8 @@
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map)\
+-  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
++  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map)\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
++  _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
+ 
+ #endif // #ifndef __PLATFORM_CONF_H__
+
+Added: trunk/src/platform/str9/str9_pio.c
+===================================================================
+--- trunk/src/platform/str9/str9_pio.c	2009-10-13 23:56:40 UTC (rev 484)
++++ trunk/src/platform/str9/str9_pio.c	2009-10-18 01:27:33 UTC (rev 485)
+@@ -0,0 +1,92 @@
++// STR9 specific PIO support
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;lrotable.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;91x_gpio.h&quot;
++#include &quot;auxmods.h&quot;
++
++#define GPIO_DIR_INPUT      GPIO_PinInput
++#define GPIO_DIR_OUTPUT     GPIO_PinOutput
++#define GPIO_ALT_INPUT      GPIO_InputAlt1
++#define GPIO_ALT_OUTPUT1    GPIO_OutputAlt1
++#define GPIO_ALT_OUTPUT2    GPIO_OutputAlt2
++#define GPIO_ALT_OUTPUT3    GPIO_OutputAlt3
++#define GPIO_OUTPUT_PP      GPIO_Type_PushPull
++#define GPIO_OUTPUT_OC      GPIO_Type_OpenCollector
++
++// Puin mappings (for GPIO lib)
++static const unsigned str9_pins[] = { GPIO_Pin_0, GPIO_Pin_1, GPIO_Pin_2, GPIO_Pin_3, GPIO_Pin_4, GPIO_Pin_5, GPIO_Pin_6, GPIO_Pin_7 };
++extern const GPIO_TypeDef* port_data[];
++
++// Lua: str9.pio.set_input( pin, direction, type, ipconnected, alternate )
++// direction: INPUT, OUTPUT
++// type: OUTPUT_PUSHPULL, OUTPUT_OC
++// ipconnected: true or false
++// alternate: ALT_INPUT, ALT_OUTPUT1, ALT_OUTPUT2, ALT_OUTPUT3
++static int setpin( lua_State *L )
++{
++  pio_type v = ( pio_type )luaL_checkinteger( L, 1 );
++  int direction = luaL_checkinteger( L, 2 );
++  int type = luaL_checkinteger( L, 3 );
++  int ipconnected = lua_toboolean( L, 4 );
++  int alternate = luaL_checkinteger( L, 5 );
++  GPIO_InitTypeDef GPIO_InitStructure;
++  int port, pin;
++
++  port = PLATFORM_IO_GET_PORT( v );
++  pin = PLATFORM_IO_GET_PIN( v );
++  if( PLATFORM_IO_IS_PORT( v ) || !platform_pio_has_port( port ) || !platform_pio_has_pin( port, pin ) )
++    return luaL_error( L, &quot;invalid pin&quot; );
++
++  GPIO_StructInit( &amp;GPIO_InitStructure );  
++  GPIO_InitStructure.GPIO_Pin = str9_pins[ pin ];
++  GPIO_InitStructure.GPIO_Direction = direction;
++  GPIO_InitStructure.GPIO_Type = type;
++  GPIO_InitStructure.GPIO_IPConnected = ipconnected ? GPIO_IPConnected_Enable : GPIO_IPConnected_Disable;
++  GPIO_InitStructure.GPIO_Alternate = alternate;
++  GPIO_Init( ( GPIO_TypeDef* )port_data[ port ], &amp;GPIO_InitStructure );
++ 
++  return 0;
++}
++
++// Module function map
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot; 
++const LUA_REG_TYPE str9_pio_map[] =
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;INPUT&quot; ), LNUMVAL( GPIO_DIR_INPUT ) },
++  { LSTRKEY( &quot;OUTPUT&quot; ), LNUMVAL( GPIO_DIR_OUTPUT ) },
++  { LSTRKEY( &quot;ALT_INPUT&quot; ), LNUMVAL( GPIO_ALT_INPUT ) },
++  { LSTRKEY( &quot;ALT_OUTPUT1&quot; ), LNUMVAL( GPIO_ALT_OUTPUT1 ) },
++  { LSTRKEY( &quot;ALT_OUTPUT2&quot; ), LNUMVAL( GPIO_ALT_OUTPUT2 ) },
++  { LSTRKEY( &quot;ALT_OUTPUT3&quot; ), LNUMVAL( GPIO_ALT_OUTPUT3 ) },
++  { LSTRKEY( &quot;OUTPUT_PUSHPULL&quot; ), LNUMVAL( GPIO_OUTPUT_PP ) },
++  { LSTRKEY( &quot;OUTPUT_OC&quot; ), LNUMVAL( GPIO_OUTPUT_OC ) },
++#endif
++  { LSTRKEY( &quot;setpin&quot; ),  LFUNCVAL( setpin) },
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_disp( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else
++  luaL_register( L, PS_LIB_TABLE_NAME, str9_pio_map );
++  MOD_REG_NUMBER( L, &quot;INPUT&quot;, GPIO_DIR_INPUT );
++  MOD_REG_NUMBER( L, &quot;OUTPUT&quot;, GPIO_DIR_OUTPUT );
++  MOD_REG_NUMBER( L, &quot;ALT_INPUT&quot;, GPIO_ALT_INPUT );
++  MOD_REG_NUMBER( L, &quot;ALT_OUTPUT1&quot;, GPIO_ALT_OUTPUT1 );
++  MOD_REG_NUMBER( L, &quot;ALT_OUTPUT2&quot;, GPIO_ALT_OUTPUT2 );
++  MOD_REG_NUMBER( L, &quot;ALT_OUTPUT3&quot;, GPIO_ALT_OUTPUT3 );
++  MOD_REG_NUMBER( L, &quot;OUTPUT_PUSHPULL&quot;, GPIO_OUTPUT_PP );
++  MOD_REG_NUMBER( L, &quot;OUTPUT_OC&quot;, GPIO_OUTPUT_OC );
++  return 1;  
++#endif
++}  
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000440.html">[Elua-svn] r484 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000442.html">[Elua-svn] r486 - trunk/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#441">[ date ]</a>
+              <a href="thread.html#441">[ thread ]</a>
+              <a href="subject.html#441">[ subject ]</a>
+              <a href="author.html#441">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

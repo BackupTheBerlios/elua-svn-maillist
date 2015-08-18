@@ -1,0 +1,615 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r197 - in trunk: inc romfs src src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r197%20-%20in%20trunk%3A%20inc%20romfs%20src%20src/modules%0A%09src/platform/at91sam7x%20src/platform/avr32%20src/platform/lm3s&In-Reply-To=%3C200902162301.n1GN1XD6028774%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000158.html">
+   <LINK REL="Next"  HREF="000153.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r197 - in trunk: inc romfs src src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r197%20-%20in%20trunk%3A%20inc%20romfs%20src%20src/modules%0A%09src/platform/at91sam7x%20src/platform/avr32%20src/platform/lm3s&In-Reply-To=%3C200902162301.n1GN1XD6028774%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r197 - in trunk: inc romfs src src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Feb 17 00:01:33 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000158.html">[Elua-svn] r196 - branches
+</A></li>
+        <LI>Next message: <A HREF="000153.html">[Elua-svn] r198 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#152">[ date ]</a>
+              <a href="thread.html#152">[ thread ]</a>
+              <a href="subject.html#152">[ subject ]</a>
+              <a href="author.html#152">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-02-17 00:01:32 +0100 (Tue, 17 Feb 2009)
+New Revision: 197
+
+Modified:
+   trunk/inc/buf.h
+   trunk/inc/elua_adc.h
+   trunk/romfs/adcscope.lua
+   trunk/src/buf.c
+   trunk/src/elua_adc.c
+   trunk/src/modules/adc.c
+   trunk/src/platform/at91sam7x/platform.c
+   trunk/src/platform/avr32/platform.c
+   trunk/src/platform/lm3s/platform.c
+Log:
+ADC bugfixes, and change to sample and burst being non-blocking.  Samples are
+acquired with getsamples.
+
+Modified: trunk/inc/buf.h
+===================================================================
+--- trunk/inc/buf.h	2009-02-16 22:05:52 UTC (rev 196)
++++ trunk/inc/buf.h	2009-02-16 23:01:32 UTC (rev 197)
+@@ -48,9 +48,17 @@
+   BUF_SIZE_32768
+ };
+ 
++enum
++{
++  BUF_DSIZE_U8 = 0,
++  BUF_DSIZE_U16,
++  BUF_DSIZE_U32
++};
+ 
++
++
+ // Buffer API
+-int buf_set(unsigned resid, unsigned resnum, u8 logsize, size_t dsize);
++int buf_set(unsigned resid, unsigned resnum, u8 logsize, u8 logdsize);
+ int buf_is_enabled( unsigned resid, unsigned resnum );
+ unsigned buf_get_size( unsigned resid, unsigned resnum );
+ unsigned buf_get_count( unsigned resid, unsigned resnum );
+
+Modified: trunk/inc/elua_adc.h
+===================================================================
+--- trunk/inc/elua_adc.h	2009-02-16 22:05:52 UTC (rev 196)
++++ trunk/inc/elua_adc.h	2009-02-16 23:01:32 UTC (rev 197)
+@@ -28,7 +28,8 @@
+ void adc_init_state( unsigned id );
+ int adc_update_smoothing( unsigned id, u8 loglen );
+ void adc_flush_smoothing( unsigned id );
+-u8 adc_samples_requested( unsigned id );
+-u8 adc_samples_ready( unsigned id );
++u16 adc_samples_requested( unsigned id );
++u16 adc_samples_available( unsigned id );
++void adc_wait_pending( unsigned id );
+ 
+ #endif
+\ No newline at end of file
+
+Modified: trunk/romfs/adcscope.lua
+===================================================================
+--- trunk/romfs/adcscope.lua	2009-02-16 22:05:52 UTC (rev 196)
++++ trunk/romfs/adcscope.lua	2009-02-16 23:01:32 UTC (rev 197)
+@@ -1,40 +1,52 @@
+-require(&quot;LM3S&quot;)
+ 
+-disp.init(1000000)
+-disp.clear()
++adcchannels = {0, 1, 2, 3}
++adcsmoothing = {4, 16, 32, 64}
+ 
+-adc.setsmoothing(0,4)
+-adc.setsmoothing(1,16)
+-adc.setsmoothing(2,32)
+-adc.setsmoothing(3,64)
++for i, v in ipairs(adcchannels) do
++  adc.setmode(v,0)
++  adc.setsmoothing(v,adcsmoothing[i])
++end
+ 
+-disp.stringdraw( &quot;ADC Scope&quot;, 10, 10, 11 )
++term.clrscr()
+ 
+-adcvals = {}
+-ctr = 0
++term.gotoxy(1,1)
++term.putstr(&quot;ADC Status:&quot;)
++term.gotoxy(1,3)
++term.putstr(&quot; CH   SLEN   RES&quot;)
++term.gotoxy(1,#adcchannels+6)
++term.putstr(&quot;Press ESC to exit.&quot;)
+ 
+-while ( true ) do
++local adcvals = {}
++local ctr = 0
++
++while true do
++  local key, stime, etime, dtime
++  local sample = adc.sample
++  local getsamples = adc.getsamples
+   ctr = ctr + 1
+   
+   stime = tmr.start(0)
+-  adcvals[0] = adc.sample(0)
+-  adcvals[1] = adc.sample(1)
+-  adcvals[2] = adc.sample(2)
+-  adcvals[3] = adc.sample(3)
++  for i, v in ipairs(adcchannels) do
++    sample(v)
++    adcvals[i] = getsamples(v,1)
++  end
+   etime = tmr.read(0)
+   dtime = tmr.diff(0,etime,stime)
+   
+   if ( ctr == 100 ) then
+     ctr = 0
+-    outstring = string.format(&quot;ADC0   (4): %04d&quot;,adcvals[0])
+-    disp.stringdraw( outstring, 10, 10, 11 )
+-    outstring = string.format(&quot;ADC1  (16): %04d&quot;,adcvals[1])
+-    disp.stringdraw( outstring, 10, 20, 11 )
+-    outstring = string.format(&quot;ADC2  (32): %04d&quot;,adcvals[2])
+-    disp.stringdraw( outstring, 10, 30, 11 )
+-    outstring = string.format(&quot;ADC3  (64): %04d&quot;,adcvals[3])
+-    disp.stringdraw( outstring, 10, 40, 11 )
+-    outstring = string.format(&quot;Tcyc: %06d (us)&quot;,dtime)
+-    disp.stringdraw( outstring, 10, 50, 11 )
++    term.gotoxy(1,4)
++    for i, v in ipairs(adcchannels) do
++      term.putstr(string.format(&quot;ADC%d (%03d): %04d\n&quot;,v,adcsmoothing[i],adcvals[i]))
++      term.gotoxy(1,i+4)
++    end
++    term.putstr(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
++    
++    key = term.getch( term.NOWAIT )
++    if key == term.KC_ESC then break end
+   end
+-end
+\ No newline at end of file
++  if key == term.KC_ESC then break end
++end
++
++term.clrscr()
++term.gotoxy( 1 , 1 )
+\ No newline at end of file
+
+Modified: trunk/src/buf.c
+===================================================================
+--- trunk/src/buf.c	2009-02-16 22:05:52 UTC (rev 196)
++++ trunk/src/buf.c	2009-02-16 23:01:32 UTC (rev 197)
+@@ -52,20 +52,15 @@
+ // resid - resource ID (BUF_ID_UART ...)
+ // resnum - resource number (0, 1, 2...)
+ // bufsize - new size of the buffer (one of the BUF_SIZE_xxx constants from
+-// dsize - number of bytes held by each element (must be a power of 2)
+ //   buf.h, or BUF_SIZE_NONE to disable buffering
++// logdsize - log2(bytes) size of elements (from BUF_DSIZE_xxx constants)
+ // Returns 1 on success, 0 on failure
+-int buf_set( unsigned resid, unsigned resnum, u8 logsize, size_t dsize )
++int buf_set( unsigned resid, unsigned resnum, u8 logsize, u8 logdsize )
+ {
+   BUF_GETPTR( resid, resnum );
+-  u8 prevlogsize = pbuf-&gt;logsize;
+   
+-  // Make sure dsize is a power of 2
+-  if ( dsize &amp; ( dsize - 1 ) )
+-    return PLATFORM_ERR;
+-   
+-  pbuf-&gt;logdsize = intlog2( dsize );
+-  pbuf-&gt;logsize = logsize + ( pbuf-&gt;logdsize );
++  pbuf-&gt;logdsize = logdsize;
++  pbuf-&gt;logsize = logsize + logdsize;
+   
+   if( ( pbuf-&gt;buf = ( t_buf_data* )realloc( pbuf-&gt;buf, BUF_BYTESIZE( pbuf ) ) ) == NULL )
+   {
+@@ -90,7 +85,6 @@
+ // resid - resource ID (BUF_ID_UART ...)
+ // resnum - resource number (0, 1, 2...)
+ // data - pointer for where data will come from
+-// dsize - length of data to get
+ // Returns PLATFORM_OK on success, PLATFORM_ERR on failure
+ // [TODO] maybe add a buffer overflow flag
+ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
+
+Modified: trunk/src/elua_adc.c
+===================================================================
+--- trunk/src/elua_adc.c	2009-02-16 22:05:52 UTC (rev 196)
++++ trunk/src/elua_adc.c	2009-02-16 23:01:32 UTC (rev 197)
+@@ -38,7 +38,7 @@
+   s-&gt;smoothsum = 0;
+   
+   // Buffer initialization
+-  buf_set( BUF_ID_ADC, id, ADC_BUF_SIZE, sizeof( u16 ) );
++  buf_set( BUF_ID_ADC, id, ADC_BUF_SIZE, BUF_DSIZE_U16 );
+ }
+ 
+ int adc_update_smoothing( unsigned id, u8 loglen )
+@@ -135,15 +135,26 @@
+   }
+ }
+ 
+-u8 adc_samples_requested( unsigned id )
++u16 adc_samples_requested( unsigned id )
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+   return s-&gt;reqsamples;
+ }
+ 
+-u8 adc_samples_ready( unsigned id ) 
++u16 adc_samples_available( unsigned id ) 
+ {
+-  return ( u8 ) buf_get_count( BUF_ID_ADC, id );
++  return ( u16 ) buf_get_count( BUF_ID_ADC, id );
+ }
+ 
++void adc_wait_pending( unsigned id )
++{
++  elua_adc_state *s = adc_get_ch_state( id );
++  
++  if ( s-&gt;nonblocking == 0 &amp;&amp; s-&gt;op_pending == 1 )
++  {
++    while ( s-&gt;op_pending == 1 ) { ; }
++  }
++}
++
++
+ #endif
+\ No newline at end of file
+
+Modified: trunk/src/modules/adc.c
+===================================================================
+--- trunk/src/modules/adc.c	2009-02-16 22:05:52 UTC (rev 196)
++++ trunk/src/modules/adc.c	2009-02-16 23:01:32 UTC (rev 197)
+@@ -15,15 +15,15 @@
+ static int adc_sample( lua_State* L )
+ {
+   unsigned id;
++  int res;
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( adc, id );
+-  platform_adc_sample( id );
+-  if ( adc_samples_ready( id ) &gt;= 1 )
+-  {
+-    lua_pushinteger( L, adc_get_processed_sample( id ) );
+-    return 1;
+-  }
++  res = platform_adc_sample( id );
++  
++  if ( res != PLATFORM_OK )
++    return luaL_error( L, &quot;burst failed&quot; );
++  
+   return 0;
+ }
+ 
+@@ -40,21 +40,14 @@
+   return 1;
+ }
+ 
+-// Lua: isdone( id )
+-static int adc_data_ready( lua_State* L )
++// Lua: samplesready( id )
++static int adc_samples_ready( lua_State* L )
+ {
+   unsigned id;
+-  u8 asamp, rsamp;
+-  
++    
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( adc, id );
+-  asamp = adc_samples_ready( id );
+-  rsamp = adc_samples_requested( id );
+-  if ( rsamp &gt; 0  &amp;&amp; asamp &gt;= rsamp )
+-    lua_pushinteger( L, 1 );
+-  else
+-    lua_pushinteger( L, 0 );
+-
++  lua_pushinteger( L, adc_samples_available( id ) );
+   return 1;
+ }
+ 
+@@ -122,7 +115,7 @@
+ // Lua: burst( id, count, timer_id, frequency )
+ static int adc_burst( lua_State* L )
+ {
+-  unsigned id, timer_id, i, count;
++  unsigned id, timer_id, count;
+   u32 frequency;
+   int res;
+   
+@@ -132,52 +125,59 @@
+   timer_id = luaL_checkinteger( L, 3 );
+   MOD_CHECK_ID( timer, timer_id );
+   frequency = luaL_checkinteger( L, 4 );
++  
++  if  ( ( count == 0 ) || count &amp; ( count - 1 ) )
++    return luaL_error( L, &quot;count must be power of 2 and &gt; 0&quot; );
++  
++  res = platform_adc_burst( id, intlog2( count ), timer_id, frequency );
++  if ( res != PLATFORM_OK )
++    return luaL_error( L, &quot;burst failed&quot; );
++    
++  return 0;
++}
+ 
+-  if ( count == 0 )
+-    return 0;
++
++// Lua: getsamples( id, count )
++static int adc_get_samples( lua_State* L )
++{
++  unsigned id, i, count;
++  int total = lua_gettop( L );
++  u16 nsamps;
+   
+-  if ( count &amp; ( count - 1 ) )
+-    return luaL_error( L, &quot;count must be power of 2&quot; );
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( adc, id );
++  nsamps = adc_samples_available( id );
+   
+-  // If we already have enough data, return it and start next burst
+-  if( adc_samples_ready( id ) &gt;= count )
++  if ( total == 2 )
++    count = luaL_checkinteger( L, 2 );
++  else
++    count = nsamps;
++    
++  if ( count == 0 ) { count = nsamps; } // count = 0 means grab all samples
++  
++  adc_wait_pending( id );
++  
++  if ( nsamps &gt; 0 &amp;&amp; nsamps &gt;= count )
+   {
+-    // Push data back to Lua
+-    lua_createtable( L, count, 0 );
+-    for( i = 0; i &lt; count; i ++ )
++    if ( nsamps == 1 || count == 1 )
+     {
+       lua_pushinteger( L, adc_get_processed_sample( id ) );
+-      lua_rawseti( L, -2, i+1 );
+     }
+-    
+-    res = platform_adc_burst( id, intlog2( count ), timer_id, frequency );
+-    if ( res != PLATFORM_OK )
+-      return luaL_error( L, &quot;burst failed&quot; );
+-    
+-    
+-    return 1;
+-  }
+-  else // If no data is available, kick off burst, return data if we have some afterwards
+-  {
+-    res = platform_adc_burst( id, intlog2( count ), timer_id, frequency );
+-    if ( res != PLATFORM_OK )
+-      return luaL_error( L, &quot;burst failed&quot; );
+-      
+-    if( adc_samples_ready( id ) &gt;= count )
++    else
+     {
+-      // Push data back to Lua
+       lua_createtable( L, count, 0 );
+       for( i = 0; i &lt; count; i ++ )
+       {
+         lua_pushinteger( L, adc_get_processed_sample( id ) );
+         lua_rawseti( L, -2, i+1 );
+       }
+-      return 1;
+     }
++    return 1;
+   }
+   return 0;
+ }
+ 
++
+ // Module function map
+ #define MIN_OPT_LEVEL 2
+ #include &quot;lrodefs.h&quot;
+@@ -185,12 +185,13 @@
+ {
+   { LSTRKEY( &quot;sample&quot; ), LFUNCVAL( adc_sample ) },
+   { LSTRKEY( &quot;maxval&quot; ), LFUNCVAL( adc_maxval ) },
+-  { LSTRKEY( &quot;dataready&quot; ), LFUNCVAL( adc_data_ready ) },
++  { LSTRKEY( &quot;samplesready&quot; ), LFUNCVAL( adc_samples_ready ) },
+   { LSTRKEY( &quot;setmode&quot; ), LFUNCVAL( adc_set_mode ) },
+   { LSTRKEY( &quot;setsmoothing&quot; ), LFUNCVAL( adc_set_smoothing ) },
+   { LSTRKEY( &quot;getsmoothing&quot; ), LFUNCVAL( adc_get_smoothing ) },
+   { LSTRKEY( &quot;burst&quot; ), LFUNCVAL( adc_burst ) },
+   { LSTRKEY( &quot;flush&quot; ), LFUNCVAL( adc_flush ) },
++  { LSTRKEY( &quot;getsamples&quot; ), LFUNCVAL( adc_get_samples ) },
+   { LNILKEY, LNILVAL }
+ };
+ 
+
+Modified: trunk/src/platform/at91sam7x/platform.c
+===================================================================
+--- trunk/src/platform/at91sam7x/platform.c	2009-02-16 22:05:52 UTC (rev 196)
++++ trunk/src/platform/at91sam7x/platform.c	2009-02-16 23:01:32 UTC (rev 197)
+@@ -83,7 +83,7 @@
+   USART_SetReceiverEnabled( pusart, 1 );  
+ #if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+   // Enable buffering on the console UART
+-  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, sizeof ( char ) );
++  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, BUF_DSIZE_U8 );
+   // Set interrupt handler and interrupt flag on UART
+   unsigned uart_id = CON_UART_ID == 0 ? AT91C_ID_US0 : AT91C_ID_US1;
+   AIC_DisableIT( uart_id );
+
+Modified: trunk/src/platform/avr32/platform.c
+===================================================================
+--- trunk/src/platform/avr32/platform.c	2009-02-16 22:05:52 UTC (rev 196)
++++ trunk/src/platform/avr32/platform.c	2009-02-16 23:01:32 UTC (rev 197)
+@@ -118,7 +118,7 @@
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );  
+ #if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+   // Enable buffering on the console UART
+-  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, sizeof ( char ) );
++  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, BUF_DSIZE_U8 );
+   // Set interrupt handler and interrupt flag on UART
+   INTC_register_interrupt( &amp;uart_rx_handler, CON_UART_IRQ, AVR32_INTC_INT0 );  
+   volatile avr32_usart_t *pusart = ( volatile avr32_usart_t* )uart_base_addr[ CON_UART_ID ];      
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-02-16 22:05:52 UTC (rev 196)
++++ trunk/src/platform/lm3s/platform.c	2009-02-16 23:01:32 UTC (rev 197)
+@@ -277,7 +277,7 @@
+                       
+ #if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+   // Enable buffering on the console UART
+-  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, sizeof ( t_buf_data ) );
++  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, BUF_DSIZE_U8 );
+   // Set interrupt handler and interrupt flag on UART
+   
+   IntEnable(INT_UART0);
+@@ -533,9 +533,7 @@
+ {
+   unsigned long rawSample;
+   unsigned id;
+-  
+-  platform_cpu_disable_interrupts();
+-  
++    
+   // Check each sequence for a pending sample
+   for( id = 0; id &lt; NUM_ADC; id ++ )
+   {
+@@ -559,10 +557,13 @@
+         platform_adc_stop( id );
+       } 
+       else if ( s-&gt;burst == 0 )
++      {
++        // Need to manually fire off sample request in single sample mode
+         ADCProcessorTrigger( ADC_BASE, id );
++      }
++        
+     }
+   }
+-  platform_cpu_enable_interrupts();
+ }
+ 
+ static void adcs_init()
+@@ -599,20 +600,23 @@
+   elua_adc_state *s = adc_get_ch_state( id );
+   int res;
+   
+-  res = buf_set( BUF_ID_ADC, id, ADC_BUF_SIZE , sizeof( u16 ) );
+-  if ( res != PLATFORM_OK )
+-    return res;
++  // Make sure sequencer is disabled before making changes
++  ADCSequenceDisable( ADC_BASE, id );
+   
+-  // Need more general buf resizing... for now flush each time
+-  buf_flush( BUF_ID_ADC, id );
++  // If switching from burst, resize &amp; flush buffer
++  if ( s-&gt;burst == 1 )
++  {
++    buf_flush( BUF_ID_ADC, id );
++    res = buf_set( BUF_ID_ADC, id, ADC_BUF_SIZE , BUF_DSIZE_U16 );
++    if ( res != PLATFORM_OK )
++      return res;
++    s-&gt;burst = 0;
++    s-&gt;reqsamples = 0;
++  }
+   
+-  s-&gt;burst = 0;
+   s-&gt;op_pending = 1;
+-  s-&gt;reqsamples = 1;
++  s-&gt;reqsamples += 1;
+ 
+-  // Make sure sequencer is disabled before making changes
+-  ADCSequenceDisable( ADC_BASE, id );
+-
+   // Conversion will run back-to-back until required samples are acquired
+   ADCSequenceConfigure( ADC_BASE, id, ADC_TRIGGER_PROCESSOR, id ) ;
+ 
+@@ -620,11 +624,6 @@
+   ADCSequenceEnable( ADC_BASE, id );
+   ADCProcessorTrigger( ADC_BASE, id );
+ 
+-  // If in blocking mode and sample is pending, wait for ready flag
+-  if ( s-&gt;nonblocking == 0 &amp;&amp; s-&gt;op_pending == 1 )
+-  {
+-    while ( s-&gt;op_pending == 1 ) { ; }
+-  }
+   return PLATFORM_OK;
+ }
+ 
+@@ -633,21 +632,25 @@
+   elua_adc_state *s = adc_get_ch_state( id );
+   int res;
+   
+-  res = buf_set( BUF_ID_ADC, id, logcount , sizeof( u16 ) );
+-  if ( res != PLATFORM_OK )
+-    return res;
++  // Make sure sequencer is disabled before making changes
++  ADCSequenceDisable( ADC_BASE, id );
+   
+-  // Need more general buf resizing... for now flush each time
+-  buf_flush( BUF_ID_ADC, id );
+-
+-  s-&gt;burst = 1;
++  // If switching from non-burst, resize &amp; flush buffer
++  if (s-&gt;burst == 0 || ( (u16) 1 &lt;&lt; logcount ) != buf_get_count( BUF_ID_ADC, id ) )
++  {
++    res = buf_set( BUF_ID_ADC, id, logcount, BUF_DSIZE_U16 );
++    if ( res != PLATFORM_OK )
++      return res;
++    // Need more general buf resizing... for now flush each time
++    buf_flush( BUF_ID_ADC, id );
++    s-&gt;burst = 1;
++    s-&gt;reqsamples = 0;
++  }
++  
+   s-&gt;timer_id = timer_id;
+   s-&gt;op_pending = 1;
+   s-&gt;reqsamples = (u16) 1 &lt;&lt; logcount;
+ 
+-  // Make sure sequencer is disabled before making changes
+-  ADCSequenceDisable( ADC_BASE, id );
+-
+   // Set sequence id to be triggered repeatedly, with priority id
+   ADCSequenceConfigure( ADC_BASE, id, ADC_TRIGGER_TIMER, id );
+ 
+@@ -660,11 +663,6 @@
+   TimerControlTrigger(timer_base[timer_id], TIMER_A, true);
+   TimerEnable(timer_base[timer_id], TIMER_A);
+   
+-  // If in blocking mode and sampling task is pending, wait until buffer fills
+-  if ( s-&gt;nonblocking == 0 &amp;&amp; s-&gt;op_pending == 1 )
+-  {
+-    while ( s-&gt;op_pending == 1 ) { ; }
+-  }
+   return PLATFORM_OK;
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000158.html">[Elua-svn] r196 - branches
+</A></li>
+	<LI>Next message: <A HREF="000153.html">[Elua-svn] r198 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#152">[ date ]</a>
+              <a href="thread.html#152">[ thread ]</a>
+              <a href="subject.html#152">[ subject ]</a>
+              <a href="author.html#152">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

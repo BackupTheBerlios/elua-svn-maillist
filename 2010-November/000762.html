@@ -1,0 +1,773 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r809 - in trunk: inc src src/modules	src/platform/lpc24xx src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r809%20-%20in%20trunk%3A%20inc%20src%20src/modules%0A%09src/platform/lpc24xx%20src/platform/str9&In-Reply-To=%3C20101104224010.27E35480F6E%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000761.html">
+   <LINK REL="Next"  HREF="000763.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r809 - in trunk: inc src src/modules	src/platform/lpc24xx src/platform/str9</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r809%20-%20in%20trunk%3A%20inc%20src%20src/modules%0A%09src/platform/lpc24xx%20src/platform/str9&In-Reply-To=%3C20101104224010.27E35480F6E%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r809 - in trunk: inc src src/modules	src/platform/lpc24xx src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Nov  4 23:40:09 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000761.html">[Elua-svn] r808 - in trunk: . inc romfs src src/lua src/modules	src/platform/lpc24xx
+</A></li>
+        <LI>Next message: <A HREF="000763.html">[Elua-svn] r810 - in trunk/doc: . eluadoc en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#762">[ date ]</a>
+              <a href="thread.html#762">[ thread ]</a>
+              <a href="subject.html#762">[ subject ]</a>
+              <a href="author.html#762">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-04 23:40:09 +0100 (Thu, 04 Nov 2010)
+New Revision: 809
+
+Added:
+   trunk/src/platform/str9/platform_int.c
+Modified:
+   trunk/inc/elua_int.h
+   trunk/inc/platform.h
+   trunk/src/common.c
+   trunk/src/common_tmr.c
+   trunk/src/modules/cpu.c
+   trunk/src/platform/lpc24xx/platform_int.c
+   trunk/src/platform/str9/conf.py
+   trunk/src/platform/str9/platform.c
+   trunk/src/platform/str9/platform_conf.h
+Log:
+STR9 backend modified for the new interrupt structure, the STR9 port can now be compiled fine (but the interrupts were not tested on this particular platform)
+
+Modified: trunk/inc/elua_int.h
+===================================================================
+--- trunk/inc/elua_int.h	2010-11-03 23:57:27 UTC (rev 808)
++++ trunk/inc/elua_int.h	2010-11-04 22:40:09 UTC (rev 809)
+@@ -14,9 +14,6 @@
+ #define ELUA_INT_FIRST_ID               1
+ #define ELUA_INT_INVALID_INTERRUPT      0xFF
+ 
+-// &quot;Any resnum&quot; value for &quot;get flag&quot; functions
+-#define ELUA_INT_RESNUM_ANY             0xFFFF
+-
+ // This is what gets pushed in the interrupt queue
+ typedef struct 
+ {
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2010-11-03 23:57:27 UTC (rev 808)
++++ trunk/inc/platform.h	2010-11-04 22:40:09 UTC (rev 809)
+@@ -214,7 +214,7 @@
+ #define PLATFORM_INT_GENERIC_ERROR      ( -1 )
+ #define PLATFORM_INT_INVALID            ( -2 )
+ #define PLATFORM_INT_NOT_HANDLED        ( -3 )
+-#define PLATFORM_INT_NOT_ANY            ( -4 )
++#define PLATFORM_INT_BAD_RESNUM         ( -4 )
+ 
+ int platform_cpu_set_global_interrupts( int status );
+ int platform_cpu_get_global_interrupts();
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2010-11-03 23:57:27 UTC (rev 808)
++++ trunk/src/common.c	2010-11-04 22:40:09 UTC (rev 809)
+@@ -24,8 +24,12 @@
+ 
+ extern elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
+ 
+-#endif
++#endif // #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
+ 
++#ifndef VTMR_NUM_TIMERS
++#define VTMR_NUM_TIMERS       0
++#endif // #ifndef VTMR_NUM_TIMERS
++
+ // ****************************************************************************
+ // XMODEM support code
+ 
+@@ -411,8 +415,7 @@
+     return PLATFORM_INT_NOT_HANDLED;
+   if( id == INT_TMR_MATCH )
+     return cmn_tmr_int_get_flag( resnum, clear );
+-  else    
+-    return pf( resnum, clear );
++  return pf( resnum, clear );
+ }
+ 
+ // Common interrupt handling
+
+Modified: trunk/src/common_tmr.c
+===================================================================
+--- trunk/src/common_tmr.c	2010-11-03 23:57:27 UTC (rev 808)
++++ trunk/src/common_tmr.c	2010-11-04 22:40:09 UTC (rev 809)
+@@ -19,8 +19,12 @@
+ 
+ extern elua_int_descriptor elua_int_table[ INT_ELUA_LAST ];
+ 
+-#endif
++#endif // #if defined( BUILD_LUA_INT_HANDLERS ) || defined( BUILD_C_INT_HANDLERS )
+ 
++#ifndef VTMR_NUM_TIMERS
++#define VTMR_NUM_TIMERS       0
++#endif // #ifndef VTMR_NUM_TIMERS
++
+ // ****************************************************************************
+ // Timers (and vtimers) functions
+ 
+@@ -230,7 +234,7 @@
+   return ( ( u64 )( start - end ) * 1000000 ) / freq;
+ }
+ 
+-#ifdef CMN_TIMER_INT_SUPPORT
++#ifdef BUILD_INT_HANDLERS
+ int platform_timer_set_match_int( unsigned id, u32 period_us, int type )
+ {
+ #if VTMR_NUM_TIMERS &gt; 0
+@@ -267,8 +271,6 @@
+ 
+ int cmn_tmr_int_get_flag( elua_int_resnum resnum, int clear )
+ {
+-  if( resnum == ELUA_INT_RESNUM_ANY )
+-    return PLATFORM_INT_NOT_ANY;
+ #if VTMR_NUM_TIMERS &gt; 0
+   if( TIMER_IS_VIRTUAL( resnum ) )
+     return vtmr_int_get_flag( resnum, clear );
+@@ -279,11 +281,13 @@
+   return pf( resnum, clear );
+ }
+ 
+-#else // #ifdef CMN_TIMER_INT_SUPPORT
++#else // #ifdef BUILD_INT_HANDLERS
++
+ int platform_timer_set_match_int( unsigned id, u32 period_us, int type )
+ {
+   fprintf( stderr, &quot;Timer match interrupt not available when eLua interrupt support is not enabled.\n&quot; );
+   return 0;
+ }
+-#endif // #ifdef CMN_TIMER_INT_SUPPORT
+ 
++#endif // #ifdef BUILD_INT_HANDLERS
++
+
+Modified: trunk/src/modules/cpu.c
+===================================================================
+--- trunk/src/modules/cpu.c	2010-11-03 23:57:27 UTC (rev 808)
++++ trunk/src/modules/cpu.c	2010-11-04 22:40:09 UTC (rev 809)
+@@ -102,7 +102,9 @@
+       if( res == PLATFORM_INT_INVALID )
+         return luaL_error( L, &quot;%d is not a valid interrupt ID&quot;, ( int )id );
+       else if( res == PLATFORM_INT_NOT_HANDLED )
+-        return luaL_error( L, &quot;cli operation not implemented for interrupt %d with resnum %d&quot;, ( int )id, ( int )resnum );
++        return luaL_error( L, &quot;cli operation not implemented for interrupt %d with resource %d&quot;, ( int )id, ( int )resnum );
++      else if( res == PLATFORM_INT_BAD_RESNUM )
++        return luaL_error( L, &quot;resource %d not valid for interrupt %d&quot;, ( int )resnum, ( int )id );
+     }
+     elua_int_disable( id );
+   }
+@@ -137,6 +139,8 @@
+         return luaL_error( L, &quot;%d is not a valid interrupt ID&quot;, ( int )id );
+       else if( res == PLATFORM_INT_NOT_HANDLED )
+         return luaL_error( L, &quot;sei operation not implemented for interrupt %d with resnum %d&quot;, ( int )id, ( int )resnum );
++      else if( res == PLATFORM_INT_BAD_RESNUM )
++        return luaL_error( L, &quot;resource %d not valid for interrupt %d&quot;, ( int )resnum, ( int )id );
+     }
+     elua_int_enable( id );
+   }
+@@ -234,7 +238,9 @@
+   if( res == PLATFORM_INT_INVALID )
+     return luaL_error( L, &quot;%d is not a valid interrupt ID&quot;, ( int )id );
+   else if( res == PLATFORM_INT_NOT_HANDLED )
+-    return luaL_error( L, &quot;get flag operation not implemented for interrupt %d with resnum %d&quot;, ( int )id, ( int )resnum );
++    return luaL_error( L, &quot;get flag operation not implemented for interrupt %d with resource %d&quot;, ( int )id, ( int )resnum );
++  else if( res == PLATFORM_INT_BAD_RESNUM )
++    return luaL_error( L, &quot;resource %d not valid for interrupt %d&quot;, ( int )resnum, ( int )id );
+   lua_pushinteger( L, res );
+   return 1;
+ }
+@@ -257,7 +263,6 @@
+ #ifdef BUILD_LUA_INT_HANDLERS
+   { LSTRKEY( &quot;set_int_handler&quot; ), LFUNCVAL( cpu_set_int_handler ) },
+   { LSTRKEY( &quot;get_int_flag&quot; ), LFUNCVAL( cpu_get_int_flag) },
+-  { LSTRKEY( &quot;ANY_RES&quot; ), LNUMVAL( ELUA_INT_RESNUM_ANY ) },
+   { LSTRKEY( &quot;INT_FLAG_CLEAR&quot; ), LBOOLVAL( 1 ) },
+   { LSTRKEY( &quot;INT_FLAG_KEEP&quot; ), LBOOLVAL( 0 ) },
+ #endif
+
+Modified: trunk/src/platform/lpc24xx/platform_int.c
+===================================================================
+--- trunk/src/platform/lpc24xx/platform_int.c	2010-11-03 23:57:27 UTC (rev 808)
++++ trunk/src/platform/lpc24xx/platform_int.c	2010-11-04 22:40:09 UTC (rev 809)
+@@ -101,15 +101,6 @@
+   // Look for interrupt source
+   // In can only be GPIO0/GPIO2, as the EXT interrupts are not (yet) used
+   pidx = ( IO_INT_STAT &amp; 1 ) ? 0 : 1;
+-  if( resnum == ELUA_INT_RESNUM_ANY )
+-  {
+-    if( id == INT_GPIO_POSEDGE &amp;&amp; *posedge_status[ pidx ] )
+-      resnum = intlog2( *posedge_status[ pidx ] );
+-    else if( id == INT_GPIO_NEGEDGE &amp;&amp; *negedge_status[ pidx ] )
+-      resnum = intlog2( *negedge_status[ pidx ] );
+-    else
+-      return 0;
+-  }
+   if( id == INT_GPIO_POSEDGE &amp;&amp; ( *posedge_status[ pidx ] &amp;&amp; ( 1 &lt;&lt; resnum ) ) )
+     flag = 1;
+   else if( id == INT_GPIO_NEGEDGE &amp;&amp; ( *negedge_status[ pidx ] &amp;&amp; ( 1 &lt;&lt; resnum ) ) )
+
+Modified: trunk/src/platform/str9/conf.py
+===================================================================
+--- trunk/src/platform/str9/conf.py	2010-11-03 23:57:27 UTC (rev 808)
++++ trunk/src/platform/str9/conf.py	2010-11-04 22:40:09 UTC (rev 809)
+@@ -2,7 +2,7 @@
+ 
+ cpumode = ARGUMENTS.get( 'cpumode', 'arm' ).lower()
+ 
+-specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c 91x_vic.c interrupt.c str9_pio.c 91x_i2c.c 91x_wiu.c 91x_adc.c&quot;
++specific_files = &quot;startup912.s startup_generic.s platform.c 91x_scu.c 91x_fmi.c 91x_gpio.c 91x_uart.c 91x_tim.c 91x_vic.c interrupt.c str9_pio.c 91x_i2c.c 91x_wiu.c 91x_adc.c platform_int.c&quot;
+ 
+ # Check CPU
+ if comp[ 'cpu' ] == 'STR912FAW44':
+
+Modified: trunk/src/platform/str9/platform.c
+===================================================================
+--- trunk/src/platform/str9/platform.c	2010-11-03 23:57:27 UTC (rev 808)
++++ trunk/src/platform/str9/platform.c	2010-11-04 22:40:09 UTC (rev 809)
+@@ -94,12 +94,6 @@
+ static const u8 uart_pin_data[] = { GPIO_Pin_2, GPIO_Pin_3 };
+ #endif
+ 
+-// Dummy interrupt handlers avoid spurious interrupts (AN2593)
+-static void dummy_int_handler()
+-{
+-  VIC0-&gt;VAR = 0xFF;
+-  VIC1-&gt;VAR = 0xFF;
+-}  
+ 
+ // Plaform specific GPIO UART setup
+ static void platform_gpio_uart_setup()
+@@ -128,31 +122,14 @@
+         
+   // System configuration
+   platform_config_scu();
++
++  // Initialize interrupt subsystem
++  platform_int_init();
+   
+   // PIO setup
+   for( i = 0; i &lt; 10; i ++ )
+     GPIO_DeInit( ( GPIO_TypeDef* )port_data[ i ] );
+     
+-  // Initialize VIC
+-  VIC_DeInit();
+-  VIC0-&gt;DVAR = ( u32 )dummy_int_handler;
+-  VIC1-&gt;DVAR = ( u32 )dummy_int_handler;
+-
+-  // Enablue WIU
+-  WIU_DeInit();
+-  
+-  // Initialize all external interrupts
+-  VIC_Config( EXTIT0_ITLine, VIC_IRQ, 1 );
+-  VIC_Config( EXTIT1_ITLine, VIC_IRQ, 2 );
+-  VIC_Config( EXTIT2_ITLine, VIC_IRQ, 3 );
+-  VIC_Config( EXTIT3_ITLine, VIC_IRQ, 4 );
+-  VIC_ITCmd( EXTIT0_ITLine, ENABLE );
+-  VIC_ITCmd( EXTIT1_ITLine, ENABLE );
+-  VIC_ITCmd( EXTIT2_ITLine, ENABLE );
+-  VIC_ITCmd( EXTIT3_ITLine, ENABLE );
+-  // Enable interrupt generation on WIU
+-  WIU-&gt;CTRL |= 2; 
+-
+   // UART setup
+   platform_gpio_uart_setup();
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+@@ -394,6 +371,10 @@
+   return res;
+ }
+ 
++int platform_s_timer_set_match_int( unsigned id, u32 period_us, int type )
++{
++  return PLATFORM_INT_NOT_HANDLED;
++}
+ 
+ // *****************************************************************************
+ // ADC specific functions and variables
+@@ -764,159 +745,6 @@
+ }
+ 
+ // ****************************************************************************
+-// EXTINT handlers and support functions
+-
+-static const u8 exint_group_to_gpio[] = { 3, 5, 6, 7 };
+-
+-// Convert an EXINT source number to a GPIO ID
+-static u16 exint_src_to_gpio( u32 exint )
+-{
+-  return PLATFORM_IO_ENCODE( exint_group_to_gpio[ exint &gt;&gt; 3 ], exint &amp; 0x07, 0 ); 
+-}
+-
+-// Convert a GPIO ID to a EXINT number
+-static int exint_gpio_to_src( pio_type piodata )
+-{
+-  u16 port = PLATFORM_IO_GET_PORT( piodata );
+-  u16 pin = PLATFORM_IO_GET_PIN( piodata );
+-  unsigned i;
+-
+-  for( i = 0; i &lt; sizeof( exint_group_to_gpio ) / sizeof( u8 ); i ++ )
+-    if( exint_group_to_gpio[ i ] == port )
+-      break;
+-  // Restrictions: only the specified port(s) have interrupt capabilities
+-  //               for port 0 (GPIO3), only pins 2..7 have interrupt capabilities
+-  if( ( i == sizeof( exint_group_to_gpio ) / sizeof( u8 ) ) || ( ( i == 0 ) &amp;&amp; ( pin &lt; 2 ) ) )
+-    return -1;
+-  return ( i &lt;&lt; 3 ) + pin;
+-}
+-
+-// External interrupt handlers
+-static void exint_irq_handler( int group )
+-{
+-  u32 bmask;
+-  u32 pr = WIU-&gt;PR;
+-  u32 mr = WIU-&gt;MR;
+-  u32 tr = WIU-&gt;TR;
+-  u32 shift = group &lt;&lt; 3;
+-  unsigned i;
+-
+-  // Check interrupt mask
+-  if( ( ( pr &gt;&gt; shift ) &amp; 0xFF ) == 0 )
+-  {
+-    VIC1-&gt;VAR = 0xFF;
+-    return;
+-  }
+-
+-  // Iterate through all the bits in the mask, queueing interrupts as needed
+-  for( i = 0, bmask = 1 &lt;&lt; shift; i &lt; 8; i ++, bmask &lt;&lt;= 1 )
+-    if( ( pr &amp; bmask ) &amp;&amp; ( mr &amp; bmask ) )
+-    {
+-      // Enqueue interrupt
+-      if( tr &amp; bmask )
+-        elua_int_add( INT_GPIO_POSEDGE, exint_src_to_gpio( shift + i ) );
+-      else
+-        elua_int_add( INT_GPIO_NEGEDGE, exint_src_to_gpio( shift + i ) );
+-      // Then clear it
+-      WIU-&gt;PR  = bmask;
+-    }
+-
+-  // Clear interrupt source
+-  VIC1-&gt;VAR = 0xFF;
+-}
+-
+-void EXTIT0_IRQHandler()
+-{
+-  exint_irq_handler( 0 );
+-}
+-
+-void EXTIT1_IRQHandler()
+-{
+-  exint_irq_handler( 1 );
+-}
+-
+-void EXTIT2_IRQHandler()
+-{
+-  exint_irq_handler( 2 );
+-}
+-
+-void EXTIT3_IRQHandler()
+-{
+-  exint_irq_handler( 3 );
+-}
+-
+-// ****************************************************************************
+-// CPU functions
+-
+-// Helper: return the status of a specific interrupt (enabled/disabled)
+-static int platform_cpuh_get_int_status( elua_int_id id, elua_int_resnum resnum )
+-{
+-  int temp;
+-  u32 mask;
+-  
+-  if( id == INT_GPIO_POSEDGE || id == INT_GPIO_NEGEDGE )
+-  {
+-    if( ( temp = exint_gpio_to_src( resnum ) ) == -1 )
+-    {
+-      fprintf( stderr, &quot;Error: not a valid source for an external interrupt\n&quot; );
+-      return 0;
+-    }
+-    mask = 1 &lt;&lt; temp;
+-    if( WIU-&gt;MR &amp; mask )
+-    {
+-      if( id == INT_GPIO_POSEDGE )
+-        return ( WIU-&gt;TR &amp; mask ) != 0;
+-      else
+-        return ( WIU-&gt;TR &amp; mask ) == 0;
+-    }
+-    else
+-      return 0;
+-  } 
+-  else
+-    fprintf( stderr, &quot;Error: %d not a valid interrupt ID\n&quot;, id );
+-  return 0;
+-}
+-
+-int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status )
+-{
+-  int crt_status = platform_cpuh_get_int_status( id, resnum );
+-  int temp;
+-  u32 mask;
+-  
+-  if( id == INT_GPIO_POSEDGE || id == INT_GPIO_NEGEDGE )
+-  {
+-    if( ( temp = exint_gpio_to_src( resnum ) ) == -1 )
+-    {
+-      fprintf( stderr, &quot;Error: not a valid source for an external interrupt\n&quot; );
+-      return 0;
+-    }
+-    mask = 1 &lt;&lt; temp;
+-    if( status == PLATFORM_CPU_ENABLE )
+-    {
+-      // Set edge type
+-      if( id == INT_GPIO_POSEDGE )
+-        WIU-&gt;TR |= mask;
+-      else
+-        WIU-&gt;TR &amp;= ~mask;
+-      // Clear interrupt flag?
+-      // WIU-&gt;PR = mask;
+-      // Enable interrupt
+-      WIU-&gt;MR |= mask;
+-    }     
+-    else
+-      WIU-&gt;MR &amp;= ~mask; 
+-  }
+-  else
+-    fprintf( stderr, &quot;Error: %d not a valid interrupt ID\n&quot;, id );
+-  return crt_status;
+-}
+-
+-int platform_cpu_get_interrupt( elua_int_id id, elua_int_resnum resnum )
+-{
+-  return platform_cpuh_get_int_status( id, resnum );
+-}
+-
+-// ****************************************************************************
+ // Platform specific modules go here
+ 
+ #define MIN_OPT_LEVEL 2
+
+Modified: trunk/src/platform/str9/platform_conf.h
+===================================================================
+--- trunk/src/platform/str9/platform_conf.h	2010-11-03 23:57:27 UTC (rev 808)
++++ trunk/src/platform/str9/platform_conf.h	2010-11-04 22:40:09 UTC (rev 809)
+@@ -20,6 +20,7 @@
+ #define BUILD_ADC
+ //#define BUILD_RPC
+ #define BUILD_LUA_INT_HANDLERS
++#define BUILD_C_INT_HANDLERS
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -127,12 +128,9 @@
+   _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
+ 
+  // Interrupt list
+-enum
+-{
+-  // Platform interrupts
+-  INT_GPIO_POSEDGE = ELUA_INT_FIRST_ID,
+-  INT_GPIO_NEGEDGE,
+-};
++#define INT_GPIO_POSEDGE      ELUA_INT_FIRST_ID
++#define INT_GPIO_NEGEDGE      ( ELUA_INT_FIRST_ID + 1 )
++#define INT_ELUA_LAST         INT_GPIO_NEGEDGE
+ 
+ #define PLATFORM_CPU_CONSTANTS\
+  _C( INT_GPIO_POSEDGE ),\
+
+Added: trunk/src/platform/str9/platform_int.c
+===================================================================
+--- trunk/src/platform/str9/platform_int.c	                        (rev 0)
++++ trunk/src/platform/str9/platform_int.c	2010-11-04 22:40:09 UTC (rev 809)
+@@ -0,0 +1,244 @@
++// STR9 interrupt support
++
++// Generic headers
++#include &quot;platform.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;elua_int.h&quot;
++#include &quot;common.h&quot;
++
++// Platform-specific headers
++#include &quot;91x_vic.h&quot;
++#include &quot;91x_wiu.h&quot;
++
++// ****************************************************************************
++// Interrupt handlers
++
++// Dummy interrupt handlers avoid spurious interrupts (AN2593)
++static void dummy_int_handler()
++{
++  VIC0-&gt;VAR = 0xFF;
++  VIC1-&gt;VAR = 0xFF;
++}  
++
++static const u8 exint_group_to_gpio[] = { 3, 5, 6, 7 };
++
++// Convert an EXINT source number to a GPIO ID
++static u16 exint_src_to_gpio( u32 exint )
++{
++  return PLATFORM_IO_ENCODE( exint_group_to_gpio[ exint &gt;&gt; 3 ], exint &amp; 0x07, 0 ); 
++}
++
++// Convert a GPIO ID to a EXINT number
++static int exint_gpio_to_src( pio_type piodata )
++{
++  u16 port = PLATFORM_IO_GET_PORT( piodata );
++  u16 pin = PLATFORM_IO_GET_PIN( piodata );
++  unsigned i;
++
++  for( i = 0; i &lt; sizeof( exint_group_to_gpio ) / sizeof( u8 ); i ++ )
++    if( exint_group_to_gpio[ i ] == port )
++      break;
++  // Restrictions: only the specified port(s) have interrupt capabilities
++  //               for port 0 (GPIO3), only pins 2..7 have interrupt capabilities
++  if( ( i == sizeof( exint_group_to_gpio ) / sizeof( u8 ) ) || ( ( i == 0 ) &amp;&amp; ( pin &lt; 2 ) ) )
++    return PLATFORM_INT_BAD_RESNUM;
++  return ( i &lt;&lt; 3 ) + pin;
++}
++
++// External interrupt handlers
++static void exint_irq_handler( int group )
++{
++  u32 bmask;
++  u32 pr = WIU-&gt;PR;
++  u32 mr = WIU-&gt;MR;
++  u32 tr = WIU-&gt;TR;
++  u32 shift = group &lt;&lt; 3;
++  unsigned i;
++
++  // Check interrupt mask
++  if( ( ( pr &gt;&gt; shift ) &amp; 0xFF ) == 0 )
++  {
++    VIC1-&gt;VAR = 0xFF;
++    return;
++  }
++
++  // Iterate through all the bits in the mask, queueing interrupts as needed
++  for( i = 0, bmask = 1 &lt;&lt; shift; i &lt; 8; i ++, bmask &lt;&lt;= 1 )
++    if( ( pr &amp; bmask ) &amp;&amp; ( mr &amp; bmask ) )
++    {
++      // Enqueue interrupt
++      if( tr &amp; bmask )
++        elua_int_add( INT_GPIO_POSEDGE, exint_src_to_gpio( shift + i ) );
++      else
++        elua_int_add( INT_GPIO_NEGEDGE, exint_src_to_gpio( shift + i ) );
++      // Then clear it
++      WIU-&gt;PR  = bmask;
++    }
++
++  // Clear interrupt source
++  VIC1-&gt;VAR = 0xFF;
++}
++
++void EXTIT0_IRQHandler()
++{
++  exint_irq_handler( 0 );
++}
++
++void EXTIT1_IRQHandler()
++{
++  exint_irq_handler( 1 );
++}
++
++void EXTIT2_IRQHandler()
++{
++  exint_irq_handler( 2 );
++}
++
++void EXTIT3_IRQHandler()
++{
++  exint_irq_handler( 3 );
++}
++
++// ****************************************************************************
++// GPIO helper functions
++
++static int gpioh_get_int_status( elua_int_id id, elua_int_resnum resnum )
++{
++  int temp;
++  u32 mask;
++  
++  if( ( temp = exint_gpio_to_src( resnum ) ) == -1 )
++    return PLATFORM_INT_BAD_RESNUM;
++  mask = 1 &lt;&lt; temp;
++  if( WIU-&gt;MR &amp; mask )
++  {
++    if( id == INT_GPIO_POSEDGE )
++      return ( WIU-&gt;TR &amp; mask ) != 0;
++    else
++      return ( WIU-&gt;TR &amp; mask ) == 0;
++  }
++  else
++    return 0;
++}
++
++static int gpioh_set_int_status( elua_int_id id, elua_int_resnum resnum, int status )
++{
++  int crt_status = gpioh_get_int_status( id, resnum );
++  int temp;
++  u32 mask;
++  
++  if( ( temp = exint_gpio_to_src( resnum ) ) == -1 )
++    return PLATFORM_INT_BAD_RESNUM;
++  mask = 1 &lt;&lt; temp;
++  if( status == PLATFORM_CPU_ENABLE )
++  {
++    // Set edge type
++    if( id == INT_GPIO_POSEDGE )
++      WIU-&gt;TR |= mask;
++    else
++      WIU-&gt;TR &amp;= ~mask;
++    // Clear interrupt flag?
++    WIU-&gt;PR = mask;
++    // Enable interrupt
++    WIU-&gt;MR |= mask;
++  }     
++  else
++    WIU-&gt;MR &amp;= ~mask; 
++  return crt_status;
++}
++
++static int gpioh_get_int_flag( elua_int_id id, elua_int_resnum resnum, int clear )
++{
++  int temp, flag = 0;
++  u32 mask;
++  u32 pr = WIU-&gt;PR;
++  u32 tr = WIU-&gt;TR;
++ 
++  if( ( temp = exint_gpio_to_src( resnum ) ) == -1 )
++    return PLATFORM_INT_BAD_RESNUM;
++  mask = 1 &lt;&lt; temp;
++  if( pr &amp; mask ) 
++  {
++    if( id == INT_GPIO_POSEDGE )
++      flag = ( tr &amp; mask ) != 0;
++    else
++      flag = ( tr &amp; mask ) == 0;
++  }
++  if( flag &amp;&amp; clear )
++    WIU-&gt;PR = mask;
++  return flag;
++}
++
++// ****************************************************************************
++// Interrupt: INT_GPIO_POSEDGE
++
++static int int_gpio_posedge_set_status( elua_int_resnum resnum, int status )
++{
++  return gpioh_set_int_status( INT_GPIO_POSEDGE, resnum, status );
++}
++
++static int int_gpio_posedge_get_status( elua_int_resnum resnum )
++{
++  return gpioh_get_int_status( INT_GPIO_POSEDGE, resnum );
++}
++
++static int int_gpio_posedge_get_flag( elua_int_resnum resnum, int clear )
++{
++  return gpioh_get_int_flag( INT_GPIO_POSEDGE, resnum, clear );
++}
++
++// ****************************************************************************
++// Interrupt: INT_GPIO_NEGEDGE
++
++static int int_gpio_negedge_set_status( elua_int_resnum resnum, int status )
++{
++  return gpioh_set_int_status( INT_GPIO_NEGEDGE, resnum, status );
++}
++
++static int int_gpio_negedge_get_status( elua_int_resnum resnum )
++{
++  return gpioh_get_int_status( INT_GPIO_NEGEDGE, resnum );
++}
++
++static int int_gpio_negedge_get_flag( elua_int_resnum resnum, int clear )
++{
++  return gpioh_get_int_flag( INT_GPIO_NEGEDGE, resnum, clear );
++}
++
++// ****************************************************************************
++// Interrupt initialization
++
++void platform_int_init()
++{
++  // Initialize VIC
++  VIC_DeInit();
++  VIC0-&gt;DVAR = ( u32 )dummy_int_handler;
++  VIC1-&gt;DVAR = ( u32 )dummy_int_handler;
++
++  // Enablue WIU
++  WIU_DeInit();
++  
++  // Initialize all external interrupts
++  VIC_Config( EXTIT0_ITLine, VIC_IRQ, 1 );
++  VIC_Config( EXTIT1_ITLine, VIC_IRQ, 2 );
++  VIC_Config( EXTIT2_ITLine, VIC_IRQ, 3 );
++  VIC_Config( EXTIT3_ITLine, VIC_IRQ, 4 );
++  VIC_ITCmd( EXTIT0_ITLine, ENABLE );
++  VIC_ITCmd( EXTIT1_ITLine, ENABLE );
++  VIC_ITCmd( EXTIT2_ITLine, ENABLE );
++  VIC_ITCmd( EXTIT3_ITLine, ENABLE );
++
++  // Enable interrupt generation on WIU
++  WIU-&gt;CTRL |= 2; 
++}
++
++// ****************************************************************************
++// Interrupt table
++// Must have a 1-to-1 correspondence with the interrupt enum in platform_conf.h!
++
++elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
++{
++  { int_gpio_posedge_set_status, int_gpio_posedge_get_status, int_gpio_posedge_get_flag },
++  { int_gpio_negedge_set_status, int_gpio_negedge_get_status, int_gpio_negedge_get_flag }
++};
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000761.html">[Elua-svn] r808 - in trunk: . inc romfs src src/lua src/modules	src/platform/lpc24xx
+</A></li>
+	<LI>Next message: <A HREF="000763.html">[Elua-svn] r810 - in trunk/doc: . eluadoc en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#762">[ date ]</a>
+              <a href="thread.html#762">[ thread ]</a>
+              <a href="subject.html#762">[ subject ]</a>
+              <a href="author.html#762">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

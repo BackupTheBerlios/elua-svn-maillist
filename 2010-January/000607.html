@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r651 - branches/pre0.7
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r651%20-%20branches/pre0.7&In-Reply-To=%3C201001150119.o0F1J7lR024846%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000606.html">
+   <LINK REL="Next"  HREF="000608.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r651 - branches/pre0.7</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r651%20-%20branches/pre0.7&In-Reply-To=%3C201001150119.o0F1J7lR024846%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r651 - branches/pre0.7">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Jan 15 02:19:07 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000606.html">[Elua-svn] r650 - in branches/pre0.7: . inc src src/modules	src/serial test
+</A></li>
+        <LI>Next message: <A HREF="000608.html">[Elua-svn] r652 - in branches/pre0.7: . inc src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#607">[ date ]</a>
+              <a href="thread.html#607">[ thread ]</a>
+              <a href="subject.html#607">[ subject ]</a>
+              <a href="author.html#607">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-01-15 02:19:05 +0100 (Fri, 15 Jan 2010)
+New Revision: 651
+
+Modified:
+   branches/pre0.7/rpc-lua.py
+Log:
+Disable readline on windows.
+
+Modified: branches/pre0.7/rpc-lua.py
+===================================================================
+--- branches/pre0.7/rpc-lua.py	2010-01-15 01:14:10 UTC (rev 650)
++++ branches/pre0.7/rpc-lua.py	2010-01-15 01:19:05 UTC (rev 651)
+@@ -10,19 +10,22 @@
+ lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
+ lua_full_files += &quot; src/modules/luarpc.c src/luarpc_posix_serial.c &quot;
+ 
++linkcom = &quot;gcc -o $TARGET $SOURCES -lm&quot;
++
+ if platform.system() == &quot;Windows&quot;:
+   lua_full_files += &quot; src/serial/serial_win32.c&quot;
+   cdefs += &quot; -DWIN32_BUILD &quot;
+ else:
+   lua_full_files += &quot; src/serial/serial_posix.c&quot;
++  linkcom += &quot; -lreadline&quot;
+   cdefs += &quot; -DLUA_USE_READLINE &quot;
+ 
+ local_include = &quot;-Isrc/lua -Iinc -Isrc/modules -Iinc/serial&quot;
+ 
+ # Compiler/linker options
+ cccom = &quot;gcc -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+-linkcom = &quot;gcc -o $TARGET $SOURCES -lm -lreadline&quot;
+ 
++
+ # Env for building the program
+ comp = Environment( CCCOM = cccom,
+                     LINKCOM = linkcom,
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000606.html">[Elua-svn] r650 - in branches/pre0.7: . inc src src/modules	src/serial test
+</A></li>
+	<LI>Next message: <A HREF="000608.html">[Elua-svn] r652 - in branches/pre0.7: . inc src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#607">[ date ]</a>
+              <a href="thread.html#607">[ thread ]</a>
+              <a href="subject.html#607">[ subject ]</a>
+              <a href="author.html#607">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

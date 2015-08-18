@@ -1,0 +1,765 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r365 - in trunk: romfs src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r365%20-%20in%20trunk%3A%20romfs%20src/modules&In-Reply-To=%3C200907201939.n6KJdpAE031618%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000320.html">
+   <LINK REL="Next"  HREF="000322.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r365 - in trunk: romfs src/modules</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r365%20-%20in%20trunk%3A%20romfs%20src/modules&In-Reply-To=%3C200907201939.n6KJdpAE031618%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r365 - in trunk: romfs src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Jul 20 21:39:51 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000320.html">[Elua-svn] r364 - in tags/pre0.6: . doc doc/luadoc romfs src	src/modules src/platform src/platform/sim
+</A></li>
+        <LI>Next message: <A HREF="000322.html">[Elua-svn] r366 - tags/pre0.6/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#321">[ date ]</a>
+              <a href="thread.html#321">[ thread ]</a>
+              <a href="subject.html#321">[ subject ]</a>
+              <a href="author.html#321">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-07-20 21:39:51 +0200 (Mon, 20 Jul 2009)
+New Revision: 365
+
+Modified:
+   trunk/romfs/adcpoll.lua
+   trunk/romfs/adcscope.lua
+   trunk/romfs/hangman.lua
+   trunk/romfs/morse.lua
+   trunk/romfs/piano.lua
+   trunk/romfs/pong.lua
+   trunk/src/modules/term.c
+Log:
+syntax revision on term
+
+Modified: trunk/romfs/adcpoll.lua
+===================================================================
+--- trunk/romfs/adcpoll.lua	2009-07-20 19:39:18 UTC (rev 364)
++++ trunk/romfs/adcpoll.lua	2009-07-20 19:39:51 UTC (rev 365)
+@@ -19,12 +19,9 @@
+ 
+ -- Draw static text on terminal
+ term.clrscr()
+-term.gotoxy(1,1)
+-term.putstr(&quot;ADC Status:&quot;)
+-term.gotoxy(1,3)
+-term.putstr(&quot; CH   SLEN   RES&quot;)
+-term.gotoxy(1,#adcchannels+5)
+-term.putstr(&quot;Press ESC to exit.&quot;)
++term.print(1,1,&quot;ADC Status:&quot;)
++term.print(1,3,&quot; CH   SLEN   RES&quot;)
++term.print(1,#adcchannels+5,&quot;Press ESC to exit.&quot;)
+ 
+ -- start sampling on all channels at the same time 
+ adc.sample(adcchannels,128) 
+@@ -39,15 +36,14 @@
+     
+     -- If we have a new sample, then update display
+     if not (tsample == nil) then 
+-    	term.gotoxy(1,i+3)
+-    	term.putstr(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i], tsample))
++    	term.print(1,i+3,string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i], tsample))
+     end
+   end
+   
+   -- Exit if user hits Escape
+-  key = term.getch( term.NOWAIT )
++  key = term.getchar( term.NOWAIT )
+   if key == term.KC_ESC then break end 
+ end
+ 
+ term.clrscr()
+-term.gotoxy(1, 1)
++term.moveto(1, 1)
+
+Modified: trunk/romfs/adcscope.lua
+===================================================================
+--- trunk/romfs/adcscope.lua	2009-07-20 19:39:18 UTC (rev 364)
++++ trunk/romfs/adcscope.lua	2009-07-20 19:39:51 UTC (rev 365)
+@@ -20,12 +20,9 @@
+ 
+ -- Draw static text on terminal
+ term.clrscr()
+-term.gotoxy(1,1)
+-term.putstr(&quot;ADC Status:&quot;)
+-term.gotoxy(1,3)
+-term.putstr(&quot; CH   SLEN   RES&quot;)
+-term.gotoxy(1,#adcchannels+7)
+-term.putstr(&quot;Press ESC to exit.&quot;)
++term.print(1,1,&quot;ADC Status:&quot;)
++term.print(1,3,&quot; CH   SLEN   RES&quot;)
++term.print(1,#adcchannels+7,&quot;Press ESC to exit.&quot;)
+ 
+ -- Use some locals for speed
+ local adcvals = {}
+@@ -47,20 +44,19 @@
+   dtime = tmr.diff(0,etime,stime)/numiter -- compute average acquisition time per cycle
+   
+   -- draw last acquired samples on the console
+-  term.gotoxy(1,4)
++  term.moveto(1,4)
+   for i, v in ipairs(adcchannels) do
+-    term.putstr(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
+-    term.gotoxy(1,i+4)
++    term.print(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
++    term.moveto(1,i+4)
+   end
+   
+   -- draw acquisition statistics
+-  term.putstr(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
+-	term.gotoxy(1,#adcchannels+5)
+-	term.putstr(string.format(&quot;Mem:  %03.2f (kB)\n&quot;,collectgarbage(&quot;count&quot;)))
++  term.print(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
++	term.print(1,#adcchannels+5,string.format(&quot;Mem:  %03.2f (kB)\n&quot;,collectgarbage(&quot;count&quot;)))
+ 
+-  key = term.getch( term.NOWAIT )
++  key = term.getchar( term.NOWAIT )
+   if key == term.KC_ESC then break end -- exit if user hits Escape
+ end
+ 
+ term.clrscr()
+-term.gotoxy( 1 , 1 )
+\ No newline at end of file
++term.moveto( 1 , 1 )
+
+Modified: trunk/romfs/hangman.lua
+===================================================================
+--- trunk/romfs/hangman.lua	2009-07-20 19:39:18 UTC (rev 364)
++++ trunk/romfs/hangman.lua	2009-07-20 19:39:51 UTC (rev 365)
+@@ -8,7 +8,7 @@
+   return
+ end
+ 
+-local h, w = term.lines(), term.cols()
++local h, w = term.getlines(), term.getcols()
+ local tries = 0
+ 
+ -- &quot;Database&quot; with our words
+@@ -19,41 +19,30 @@
+ function hang()
+   if tries == 0 then
+     -- Build the basic structure
+-    term.gotoxy( 5, 1 )
+-    term.putstr( string.rep( '_', 6 ) )
+-    term.gotoxy( 5, 2 )
+-    term.putstr( '|    |')
+-    local i
++    term.print( 5, 1, string.rep( '_', 6 ) )
++    term.print( 5, 2, '|    |')
+     for i = 3, 6 do
+-      term.gotoxy( 5, i )
+-      term.putstr( '|' )
++      term.print( 5, i, '|' )
+     end
+-    term.gotoxy( 3, 7 )
+-    term.putstr( '__|_____')
+-    term.gotoxy( 3, 8 )
+-    term.putstr( '|      |___')
+-    term.gotoxy( 3, 9 )
+-    term.putstr( '|__________|') 
++    term.print( 3, 7, '__|_____')
++    term.print( 3, 8, '|      |___')
++    term.print( 3, 9, '|__________|') 
+     
+   elseif tries == 1 then
+     -- Draw the head
+-    term.gotoxy( 10, 3 )
+-    term.putstr( &quot;O&quot; )
++    term.print( 10, 3, &quot;O&quot; )
+     
+   elseif tries == 2 or tries == 3 then
+     -- First or second part of body
+-    term.gotoxy( 10, tries + 2 )
+-    term.putstr( &quot;|&quot; )
++    term.print( 10, tries + 2, &quot;|&quot; )
+     
+   elseif tries == 4 or tries == 5 then
+     -- First leg / first hand
+-    term.gotoxy( 9, tries == 4 and 6 or 4 )
+-    term.putstr( &quot;/&quot; )
++    term.print( 9, tries == 4 and 6 or 4, &quot;/&quot; )
+   
+   elseif tries == 6 or tries == 7 then
+     -- Second hand / second leg
+-    term.gotoxy( 11, tries == 7 and 6 or 4 )
+-    term.putstr( &quot;\\&quot; )
++    term.print( 11, tries == 7 and 6 or 4, &quot;\\&quot; )
+   end  
+ end
+ 
+@@ -61,18 +50,14 @@
+ 
+ -- Show the game statistics
+ function stats()
+-  term.gotoxy( w - 20, 5 )
+-  term.putstr( &quot;Total words: &quot;, tostring( total ) )
+-  term.gotoxy( w - 20, 6 )
+-  term.putstr( &quot;Guessed words: &quot;, tostring( guessed ) )
++  term.print( w - 20, 5, &quot;Total words: &quot;, tostring( total ) )
++  term.print( w - 20, 6, &quot;Guessed words: &quot;, tostring( guessed ) )
+ end
+ 
+ while true do
+   term.clrscr()
+-  term.gotoxy( 3, 12 )
+-  term.putstr( &quot;eLua hangman&quot; )
+-  term.gotoxy( 3, 13 ) 
+-  term.putstr( &quot;ESC to exit&quot; )
++  term.print( 3, 12, &quot;eLua hangman&quot; )
++  term.print( 3, 13, &quot;ESC to exit&quot; )
+   stats()
+   
+   -- Draw the hanging site
+@@ -80,29 +65,27 @@
+   hang()
+     
+   -- Then write the &quot;Guess&quot; line
+-  term.gotoxy( 2, h - 3 )
+-  term.putstr( &quot;Word: &quot; )
++  term.print( 2, h - 3, &quot;Word: &quot; )
+   local lword = words[ math.random( #words ) ]:lower()
+-  term.putstr( string.rep( &quot;-&quot;, #lword ) )
+-  term.gotoxy( 2, h - 2 )
+-  term.putstr( &quot;Guess: &quot; )
++  term.print( string.rep( &quot;-&quot;, #lword ) )
++  term.print( 2, h - 2, &quot;Guess: &quot; )
+   
+   local nguess = 0
+   local tried = {}
+   local key
+   while tries &lt; 7 and nguess &lt; #lword do     
+-    key = term.getch( term.WAIT )
++    key = term.getchar()
+     if key == term.KC_ESC then break end
+     if key &gt; 0 and key &lt; 255 then
+       key = string.char( key ):lower()
+-      term.gotoxy( 2, h - 1 )
++      term.moveto( 2, h - 1 )
+       term.clreol()       
+       if not key:find( '%l' ) then
+-        term.putstr( &quot;Invalid character&quot; )
++        term.print( &quot;Invalid character&quot; )
+       else
+         key = key:byte()
+         if tried[ key ] ~= nil then
+-          term.putstr( &quot;Already tried this key&quot; )
++          term.print( &quot;Already tried this key&quot; )
+         else
+           tried[ key ] = true
+           local i
+@@ -110,8 +93,7 @@
+           for i = 1, #lword do
+             if key == lword:byte( i ) then
+               ok = true
+-              term.gotoxy( 7 + i, h - 3 )
+-              term.put( key )
++              term.print( 7 + i, h - 3, string.char( key ) )
+               nguess = nguess + 1
+             end
+           end
+@@ -121,28 +103,26 @@
+           end
+         end
+       end
+-      term.gotoxy( 9, h - 2 )
++      term.moveto( 9, h - 2 )
+     end
+   end
+   if key == term.KC_ESC then break end 
+   
+-  term.gotoxy( 2, h - 1 )
++  term.moveto( 2, h - 1 )
+   total = total + 1
+   if nguess == #lword then
+-    term.putstr( &quot;Congratulations! Another game? (y/n)&quot; )
++    term.print( &quot;Congratulations! Another game? (y/n)&quot; )
+     guessed = guessed + 1
+   else
+-    term.gotoxy( 8, h - 3 )
+-    term.putstr( lword )
+-    term.gotoxy( 2, h - 1 )
+-    term.putstr( &quot;Game over. Another game? (y/n)&quot; )
++    term.print( 8, h - 3, lword )
++    term.print( 2, h - 1, &quot;Game over. Another game? (y/n)&quot; )
+   end
+   
+   -- Show statistics again
+   stats()
+   
+   repeat
+-    key = string.char( term.getch( term.WAIT ) ):lower()
++    key = string.char( term.getchar() ):lower()
+   until key == 'y' or key == 'n'
+     
+   if key == 'n' then 
+@@ -152,5 +132,5 @@
+ end
+ 
+ term.clrscr()
+-term.gotoxy( 1 , 1 )
++term.moveto( 1 , 1 )
+ 
+
+Modified: trunk/romfs/morse.lua
+===================================================================
+--- trunk/romfs/morse.lua	2009-07-20 19:39:18 UTC (rev 364)
++++ trunk/romfs/morse.lua	2009-07-20 19:39:51 UTC (rev 365)
+@@ -53,7 +53,7 @@
+ ------------ Auxiliar Functions ------------
+ 
+ local function play(m)
+-  term.putstr(m)
++  term.print(m)
+   if m == ' ' then
+     tmr.delay(tmrid, 2 * dotDelay)
+   else
+@@ -96,19 +96,19 @@
+ 
+ while true do
+   term.clrscr()
+-  term.gotoxy(0, 0)
++  term.moveto(1, 1)
+   print(&quot;Welcome to eLua Morse Playing on &quot; .. pd.cpu())
+   io.write(&quot;Enter phrase (empty phrase to exit): &quot;)
+   local msg, enabled = io.read(), true
+   if #msg == 0 then break end
+ 
+-  term.putstr('   ')
+-  while term.getch(term.NOWAIT) ~= -1 do end        -- flush
++  term.print('   ')
++  while term.getchar(term.NOWAIT) ~= -1 do end        -- flush
+ 
+   while enabled do                                  -- Main Loop
+     for i = 1, #msg do                              -- msg loop
+       local ch = msg:sub(i, i):upper()
+-      term.putstr(ch)                               -- show what will be played
++      term.print(ch)                               -- show what will be played
+       if ch ~= ' ' and Morse[ch] then
+         for j = 1, #Morse[ch] do                    -- Morse symbol loop
+           play(Morse[ch]:sub(j,j))                  -- play each morse symbol
+@@ -117,7 +117,7 @@
+         play(' ') play(' ')                         -- Between words
+       end
+       play(' ')                                     -- Extra between words &amp; lett
+-      key = term.getch(term.NOWAIT)                 -- Handle UI actions
++      key = term.getchar(term.NOWAIT)                 -- Handle UI actions
+       if key ~= -1 then
+         if HandleKbd(key) then
+           enabled = false
+
+Modified: trunk/romfs/piano.lua
+===================================================================
+--- trunk/romfs/piano.lua	2009-07-20 19:39:18 UTC (rev 364)
++++ trunk/romfs/piano.lua	2009-07-20 19:39:51 UTC (rev 365)
+@@ -26,35 +26,35 @@
+   
+ -- Write the curent octave
+ function show_octave()
+-  term.putstrxy( 2, 4, &quot;Oct: &quot; .. tostring( oct ) .. &quot;(+/-)&quot; )
+-  term.gotoxy( 2, 19 )  
++  term.print( 2, 4, &quot;Oct: &quot; .. tostring( oct ) .. &quot;(+/-)&quot; )
++  term.moveto( 2, 19 )  
+ end
+ 
+ -- Write the current pause between notes
+ function show_pause()
+-  term.gotoxy( 2, 5 )
++  term.moveto( 2, 5 )
+   term.clreol()
+-  term.putstrxy( 2, 5, &quot;Pause between notes: &quot; .. tostring( pause ) .. &quot;ms (&lt;/&gt;)&quot; )
+-  term.gotoxy( 2, 19 )  
++  term.print( 2, 5, &quot;Pause between notes: &quot; .. tostring( pause ) .. &quot;ms (&lt;/&gt;)&quot; )
++  term.moveto( 2, 19 )  
+ end
+ 
+ -- Show the main interface
+ function show_all()
+-  term.putstrxy( 2, 2, &quot;eLua piano demo&quot; )  
++  term.print( 2, 2, &quot;eLua piano demo&quot; )  
+   show_octave()
+   show_pause()
+-  term.putstrxy( 4,  7, &quot; w   r  t   u  i  o   [  ]  &quot; )
+-  term.putstrxy( 4,  8, &quot; |   |  |   |  |  |   |  |  &quot; )
+-  term.putstrxy( 4,  9, &quot; A#  C# D#  F# G# A#  C# D# &quot; )
+-  term.putstrxy( 4, 10, &quot;A  BC  D  EF  G  A  BC  D  E&quot; )
+-  term.putstrxy( 4, 11, &quot;|  ||  |  ||  |  |  ||  |  |&quot; )
+-  term.putstrxy( 4, 12, &quot;a  sd  f  gh  j  k  l;  '  \\&quot; )  
+-  term.putstrxy( 2, 14, &quot;Use above keys to play notes.&quot; )
+-  term.putstrxy( 2, 15, &quot;+/- to change octave.&quot; )
+-  term.putstrxy( 2, 16, &quot;&lt;/&gt; to change pause between notes.&quot; )
+-  term.putstrxy( 2, 17, &quot;Space to stop playing.&quot; ) 
+-  term.putstrxy( 2, 18, &quot;ESC to exit.&quot; ) 
+-  term.gotoxy( 2, 19 )
++  term.print( 4,  7, &quot; w   r  t   u  i  o   [  ]  &quot; )
++  term.print( 4,  8, &quot; |   |  |   |  |  |   |  |  &quot; )
++  term.print( 4,  9, &quot; A#  C# D#  F# G# A#  C# D# &quot; )
++  term.print( 4, 10, &quot;A  BC  D  EF  G  A  BC  D  E&quot; )
++  term.print( 4, 11, &quot;|  ||  |  ||  |  |  ||  |  |&quot; )
++  term.print( 4, 12, &quot;a  sd  f  gh  j  k  l;  '  \\&quot; )  
++  term.print( 2, 14, &quot;Use above keys to play notes.&quot; )
++  term.print( 2, 15, &quot;+/- to change octave.&quot; )
++  term.print( 2, 16, &quot;&lt;/&gt; to change pause between notes.&quot; )
++  term.print( 2, 17, &quot;Space to stop playing.&quot; ) 
++  term.print( 2, 18, &quot;ESC to exit.&quot; ) 
++  term.moveto( 2, 19 )
+ end
+ 
+ -- Conversion of note to frequency
+@@ -67,7 +67,7 @@
+ pwm.setclock( pwmid, 1000000 )
+ show_all()
+ while true do
+-  local key = term.getch( term.WAIT )
++  local key = term.getchar()
+   if key == term.KC_ESC then break end
+   local res, strkey = pcall( string.char, key )
+   if res then     
+@@ -99,4 +99,4 @@
+ 
+ pwm.stop( pwmid )
+ term.clrscr()
+-term.gotoxy( 1, 1 )
++term.moveto( 1, 1 )
+
+Modified: trunk/romfs/pong.lua
+===================================================================
+--- trunk/romfs/pong.lua	2009-07-20 19:39:18 UTC (rev 364)
++++ trunk/romfs/pong.lua	2009-07-20 19:39:51 UTC (rev 365)
+@@ -1,9 +1,9 @@
+ require(&quot;LM3S&quot;)
+ 
+ function drawPaddle( y, color )
+-  disp.stringdraw(&quot;|&quot;, 0, y,   color)
+-  disp.stringdraw(&quot;|&quot;, 0, y+4, color)
+-  disp.stringdraw(&quot;|&quot;, 0, y+8, color)
++  disp.print(&quot;|&quot;, 0, y,   color)
++  disp.print(&quot;|&quot;, 0, y+4, color)
++  disp.print(&quot;|&quot;, 0, y+8, color)
+ end
+ 
+ function updateBallPos()
+@@ -14,9 +14,9 @@
+   if(( by &gt;= 89 ) or ( by &lt;= 0 )) then
+     dy = -dy;
+   end
+-  disp.stringdraw( ball, bx, by, 0 )
++  disp.print( ball, bx, by, 0 )
+   bx, by = ( bx + dx ), ( by + dy );
+-  disp.stringdraw( ball, bx, by, 15 )
++  disp.print( ball, bx, by, 15 )
+ end
+ 
+ function updatePaddlePos()
+@@ -41,9 +41,9 @@
+ disp.init(1000000)
+ 
+ term.clrscr()
+-term.gotoxy( 5, 1 )
++term.moveto( 5, 1 )
+ print( &quot;Welcome to eLua Pong on a RIT display&quot; )
+-disp.stringdraw( &quot;eLua Pong&quot;, 30, 40, 11 )
++disp.print( &quot;eLua Pong&quot;, 30, 40, 11 )
+ tmr.delay ( 0, 2000000 )
+ 
+ highscore = 0
+@@ -98,7 +98,7 @@
+         change = 0
+     end
+     
+-    disp.stringdraw( tostring( dscore ), 118, 0, 6 )
++    disp.print( tostring( dscore ), 118, 0, 6 )
+     
+   end
+   
+@@ -107,10 +107,10 @@
+   end
+ 
+   disp.clear()
+-  disp.stringdraw( &quot;Game Over :(&quot;, 30, 20, 11 )
+-  disp.stringdraw( &quot;Your score was &quot; .. tostring( score ), 15, 40, 11 )
+-  disp.stringdraw( &quot;High score: &quot; .. tostring( highscore ), 15, 50, 11 )
+-  disp.stringdraw( &quot;SELECT to restart&quot;, 6, 70, 11 )
++  disp.print( &quot;Game Over :(&quot;, 30, 20, 11 )
++  disp.print( &quot;Your score was &quot; .. tostring( score ), 15, 40, 11 )
++  disp.print( &quot;High score: &quot; .. tostring( highscore ), 15, 50, 11 )
++  disp.print( &quot;SELECT to restart&quot;, 6, 70, 11 )
+   for i=0, 500000 do
+     if LM3S.btnpressed( LM3S.BTN_SELECT ) then
+       play = true
+
+Modified: trunk/src/modules/term.c
+===================================================================
+--- trunk/src/modules/term.c	2009-07-20 19:39:18 UTC (rev 364)
++++ trunk/src/modules/term.c	2009-07-20 19:39:51 UTC (rev 365)
+@@ -24,8 +24,8 @@
+   return 0;
+ }
+ 
+-// Lua: gotoxy( x, y )
+-static int luaterm_gotoxy( lua_State* L )
++// Lua: moveto( x, y )
++static int luaterm_moveto( lua_State* L )
+ {
+   unsigned x, y;
+   
+@@ -35,8 +35,8 @@
+   return 0;
+ }
+ 
+-// Lua: up( lines )
+-static int luaterm_up( lua_State* L )
++// Lua: moveup( lines )
++static int luaterm_moveup( lua_State* L )
+ {
+   unsigned delta;
+   
+@@ -45,8 +45,8 @@
+   return 0;
+ }
+ 
+-// Lua: down( lines )
+-static int luaterm_down( lua_State* L )
++// Lua: movedown( lines )
++static int luaterm_movedown( lua_State* L )
+ {
+   unsigned delta;
+   
+@@ -55,8 +55,8 @@
+   return 0;
+ }
+ 
+-// Lua: left( cols )
+-static int luaterm_left( lua_State* L )
++// Lua: moveleft( cols )
++static int luaterm_moveleft( lua_State* L )
+ {
+   unsigned delta;
+   
+@@ -65,8 +65,8 @@
+   return 0;
+ }
+ 
+-// Lua: right( cols )
+-static int luaterm_right( lua_State* L )
++// Lua: moveright( cols )
++static int luaterm_moveright( lua_State* L )
+ {
+   unsigned delta;
+   
+@@ -75,82 +75,39 @@
+   return 0;
+ }
+ 
+-// Lua: lines = lines()
+-static int luaterm_lines( lua_State* L )
++// Lua: lines = getlines()
++static int luaterm_getlines( lua_State* L )
+ {
+   lua_pushinteger( L, term_get_lines() );
+   return 1;
+ }
+ 
+-// Lua: columns = cols()
+-static int luaterm_cols( lua_State* L )
++// Lua: columns = getcols()
++static int luaterm_getcols( lua_State* L )
+ {
+   lua_pushinteger( L, term_get_cols() );
+   return 1;
+ }
+ 
+-// Lua: put( c1, c2, ... )
+-static int luaterm_put( lua_State* L )
++// Lua: print( string1, string2, ... )
++// or print( x, y, string1, string2, ... )
++static int luaterm_print( lua_State* L )
+ {
+-  int total = lua_gettop( L ), i;
+-  u8 data;
+-  
+-  for( i = 1; i &lt;= total; i ++ )
+-  {
+-    data = ( u8 )luaL_checkinteger( L, 1 );
+-    term_putch( data );
+-  }
+-  return 0;
+-}
+-
+-// Lua: putxy( x, y, c1, c2, ... )
+-static int luaterm_putxy( lua_State* L )
+-{
+-  int total = lua_gettop( L ), i;
+-  unsigned x, y;
+-  u8 data;
+-  
+-  x = ( unsigned )luaL_checkinteger( L, 1 );
+-  y = ( unsigned )luaL_checkinteger( L, 2 );
+-  term_gotoxy( x, y );
+-  for( i = 3; i &lt;= total; i ++ )
+-  {
+-    data = ( u8 )luaL_checkinteger( L, i );
+-    term_putch( data );
+-  }
+-  return 0;
+-}
+-
+-// Lua: putstr( string1, string2, ... )
+-static int luaterm_putstr( lua_State* L )
+-{
+   const char* buf;
+   size_t len, i;
+-  int total = lua_gettop( L ), s;
+-  
+-  for( s = 1; s &lt;= total; s ++ )
+-  {
+-    luaL_checktype( L, s, LUA_TSTRING );
+-    buf = lua_tolstring( L, s, &amp;len );
+-    for( i = 0; i &lt; len; i ++ )
+-      term_putch( buf[ i ] );
+-  }
+-  return 0;
+-}
++  int total = lua_gettop( L ), s = 1;
++  int x = -1, y = -1;
+ 
+-// Lua: putstrxy( x, y, string1, string2, ... )
+-static int luaterm_putstrxy( lua_State* L )
+-{
+-  const char* buf;
+-  unsigned x, y;
+-  size_t len, i;
+-  int total = lua_gettop( L ), s;
+-  
+-  x = ( unsigned )luaL_checkinteger( L, 1 );
+-  y = ( unsigned )luaL_checkinteger( L, 2 );
+-  term_gotoxy( x, y );
+-  for( s = 3; s &lt;= total; s ++ )
++  // Check if the function has integer arguments
++  if( lua_isnumber( L, 1 ) &amp;&amp; lua_isnumber( L, 2 ) )
+   {
++    x = lua_tointeger( L, 1 );
++    y = lua_tointeger( L, 2 );
++    term_gotoxy( x, y );
++    s = 3;
++  } 
++  for( ; s &lt;= total; s ++ )
++  {
+     luaL_checktype( L, s, LUA_TSTRING );
+     buf = lua_tolstring( L, s, &amp;len );
+     for( i = 0; i &lt; len; i ++ )
+@@ -159,26 +116,27 @@
+   return 0;
+ }
+ 
+-// Lua: cursorx = cursorx()
+-static int luaterm_cx( lua_State* L )
++// Lua: cursorx = getcx()
++static int luaterm_getcx( lua_State* L )
+ {
+   lua_pushinteger( L, term_get_cx() );
+   return 1;
+ }
+ 
+-// Lua: cursory = cursory()
+-static int luaterm_cy( lua_State* L )
++// Lua: cursory = getcy()
++static int luaterm_getcy( lua_State* L )
+ {
+   lua_pushinteger( L, term_get_cy() );
+   return 1;
+ }
+ 
+-// Lua: key = getch( mode )
+-static int luaterm_getch( lua_State* L )
++// Lua: key = getchar( [ mode ] )
++static int luaterm_getchar( lua_State* L )
+ {
+-  int temp;
++  int temp = TERM_INPUT_WAIT;
+   
+-  temp = luaL_checkinteger( L, 1 );
++  if( lua_isnumber( L, 1 ) )
++    temp = lua_tointeger( L, 1 );
+   lua_pushinteger( L, term_getch( temp ) );
+   return 1;
+ }
+@@ -216,20 +174,17 @@
+ {
+   { LSTRKEY( &quot;clrscr&quot; ), LFUNCVAL( luaterm_clrscr ) },
+   { LSTRKEY( &quot;clreol&quot; ), LFUNCVAL( luaterm_clreol ) },
+-  { LSTRKEY( &quot;gotoxy&quot; ), LFUNCVAL( luaterm_gotoxy ) },
+-  { LSTRKEY( &quot;up&quot; ), LFUNCVAL( luaterm_up ) },
+-  { LSTRKEY( &quot;down&quot; ), LFUNCVAL( luaterm_down ) },
+-  { LSTRKEY( &quot;left&quot; ), LFUNCVAL( luaterm_left ) },
+-  { LSTRKEY( &quot;right&quot; ), LFUNCVAL( luaterm_right ) },
+-  { LSTRKEY( &quot;lines&quot; ), LFUNCVAL( luaterm_lines ) },
+-  { LSTRKEY( &quot;cols&quot; ), LFUNCVAL( luaterm_cols ) },
+-  { LSTRKEY( &quot;put&quot; ), LFUNCVAL( luaterm_put ) },
+-  { LSTRKEY( &quot;putstr&quot; ), LFUNCVAL( luaterm_putstr ) },
+-  { LSTRKEY( &quot;putxy&quot; ), LFUNCVAL( luaterm_putxy ) },
+-  { LSTRKEY( &quot;putstrxy&quot; ), LFUNCVAL( luaterm_putstrxy ) },
+-  { LSTRKEY( &quot;cursorx&quot; ), LFUNCVAL( luaterm_cx ) },
+-  { LSTRKEY( &quot;cursory&quot; ), LFUNCVAL( luaterm_cy ) },
+-  { LSTRKEY( &quot;getch&quot; ), LFUNCVAL( luaterm_getch ) },
++  { LSTRKEY( &quot;moveto&quot; ), LFUNCVAL( luaterm_moveto ) },
++  { LSTRKEY( &quot;moveup&quot; ), LFUNCVAL( luaterm_moveup ) },
++  { LSTRKEY( &quot;movedown&quot; ), LFUNCVAL( luaterm_movedown ) },
++  { LSTRKEY( &quot;moveleft&quot; ), LFUNCVAL( luaterm_moveleft ) },
++  { LSTRKEY( &quot;moveright&quot; ), LFUNCVAL( luaterm_moveright ) },
++  { LSTRKEY( &quot;getlines&quot; ), LFUNCVAL( luaterm_getlines ) },
++  { LSTRKEY( &quot;getcols&quot; ), LFUNCVAL( luaterm_getcols ) },
++  { LSTRKEY( &quot;print&quot; ), LFUNCVAL( luaterm_print ) },
++  { LSTRKEY( &quot;getcx&quot; ), LFUNCVAL( luaterm_getcx ) },
++  { LSTRKEY( &quot;getcy&quot; ), LFUNCVAL( luaterm_getcy ) },
++  { LSTRKEY( &quot;getchar&quot; ), LFUNCVAL( luaterm_getchar ) },
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;__metatable&quot; ), LROVAL( term_map ) },
+   { LSTRKEY( &quot;NOWAIT&quot; ), LNUMVAL( TERM_INPUT_DONT_WAIT ) },
+@@ -264,3 +219,4 @@
+   return 0;
+ #endif // #ifdef BUILD_TERM  
+ }
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000320.html">[Elua-svn] r364 - in tags/pre0.6: . doc doc/luadoc romfs src	src/modules src/platform src/platform/sim
+</A></li>
+	<LI>Next message: <A HREF="000322.html">[Elua-svn] r366 - tags/pre0.6/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#321">[ date ]</a>
+              <a href="thread.html#321">[ thread ]</a>
+              <a href="subject.html#321">[ subject ]</a>
+              <a href="author.html#321">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

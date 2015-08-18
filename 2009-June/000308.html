@@ -1,0 +1,196 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r352 - in trunk: . src src/lua src/modules test
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r352%20-%20in%20trunk%3A%20.%20src%20src/lua%20src/modules%20test&In-Reply-To=%3C200906300258.n5U2wrRn006874%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000307.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r352 - in trunk: . src src/lua src/modules test</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r352%20-%20in%20trunk%3A%20.%20src%20src/lua%20src/modules%20test&In-Reply-To=%3C200906300258.n5U2wrRn006874%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r352 - in trunk: . src src/lua src/modules test">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Jun 30 04:58:53 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000307.html">[Elua-svn] r351 - tags/pre0.6/doc/wb_img
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#308">[ date ]</a>
+              <a href="thread.html#308">[ thread ]</a>
+              <a href="subject.html#308">[ subject ]</a>
+              <a href="author.html#308">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-30 04:58:52 +0200 (Tue, 30 Jun 2009)
+New Revision: 352
+
+Modified:
+   trunk/remote-lua.py
+   trunk/src/lua/luaconf.h
+   trunk/src/luarpc_posix_serial.c
+   trunk/src/modules/luarpc.c
+   trunk/test/test-rpc.lua
+Log:
+Workaround for bug related to remote server handle getting GC'd.  Solution may
+not clean itself up in all failure cases, however.  Current approach could
+likely be replaced with central table that could handle dispatching for
+multiple concurrent connections.
+
+Modified: trunk/remote-lua.py
+===================================================================
+--- trunk/remote-lua.py	2009-06-29 19:35:42 UTC (rev 351)
++++ trunk/remote-lua.py	2009-06-30 02:58:52 UTC (rev 352)
+@@ -1,7 +1,7 @@
+ import os, sys 
+ 
+ output = 'lua'
+-cdefs = '-DLUA_CROSS_COMPILER -DLUA_REMOTE'
++cdefs = '-DLUA_CROSS_COMPILER -DLUA_REMOTE -DLUA_USE_READLINE'
+ 
+ # Lua source files and include path
+ lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
+@@ -13,7 +13,7 @@
+ 
+ # Compiler/linker options
+ cccom = &quot;gcc -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+-linkcom = &quot;gcc -o $TARGET $SOURCES -lm&quot;
++linkcom = &quot;gcc -o $TARGET $SOURCES -lm -lreadline&quot;
+ 
+ # Env for building the program
+ comp = Environment( CCCOM = cccom,
+
+Modified: trunk/src/lua/luaconf.h
+===================================================================
+--- trunk/src/lua/luaconf.h	2009-06-29 19:35:42 UTC (rev 351)
++++ trunk/src/lua/luaconf.h	2009-06-30 02:58:52 UTC (rev 352)
+@@ -89,13 +89,13 @@
+ 
+ //## Modified for eLua
+ //## Defaults search modules path to our ROM File System
++#ifndef LUA_REMOTE
+ #define LUA_PATH_DEFAULT &quot;/rom/?.lua&quot;
+-/*
+-** ## Original LUA_PATH_DEFAULT
++#else
+ #define LUA_PATH_DEFAULT  \
+ 		&quot;.\\?.lua;&quot;  LUA_LDIR&quot;?.lua;&quot;  LUA_LDIR&quot;?\\init.lua;&quot; \
+ 		             LUA_CDIR&quot;?.lua;&quot;  LUA_CDIR&quot;?\\init.lua&quot;
+-*/		             
++#endif	             
+ #define LUA_CPATH_DEFAULT \
+ 	&quot;.\\?.dll;&quot;  LUA_CDIR&quot;?.dll;&quot; LUA_CDIR&quot;loadall.dll&quot;
+ 
+@@ -103,12 +103,15 @@
+ #define LUA_ROOT	&quot;/usr/local/&quot;
+ #define LUA_LDIR	LUA_ROOT &quot;share/lua/5.1/&quot;
+ #define LUA_CDIR	LUA_ROOT &quot;lib/lua/5.1/&quot;
++
++#ifndef LUA_REMOTE
+ #define LUA_PATH_DEFAULT  &quot;/rom/?.lua&quot;
+-/*
++#else
++
+ #define LUA_PATH_DEFAULT  \
+ 		&quot;./?.lua;&quot;  LUA_LDIR&quot;?.lua;&quot;  LUA_LDIR&quot;?/init.lua;&quot; \
+ 		            LUA_CDIR&quot;?.lua;&quot;  LUA_CDIR&quot;?/init.lua&quot;
+-*/
++#endif
+ #define LUA_CPATH_DEFAULT \
+ 	&quot;./?.so;&quot;  LUA_CDIR&quot;?.so;&quot; LUA_CDIR&quot;loadall.so&quot;
+ #endif
+
+Modified: trunk/src/luarpc_posix_serial.c
+===================================================================
+--- trunk/src/luarpc_posix_serial.c	2009-06-29 19:35:42 UTC (rev 351)
++++ trunk/src/luarpc_posix_serial.c	2009-06-30 02:58:52 UTC (rev 352)
+@@ -59,7 +59,7 @@
+   options.c_cflag     &amp;= ~CSIZE;
+   options.c_cflag     |= CS8;
+   
+-  options.c_cc[VMIN]  = 0;
++  options.c_cc[VMIN]  = 1;
+   options.c_cc[VTIME] = 10;
+ 
+   tcsetattr(tpt-&gt;fd, TCSANOW, &amp;options);
+
+Modified: trunk/src/modules/luarpc.c
+===================================================================
+--- trunk/src/modules/luarpc.c	2009-06-29 19:35:42 UTC (rev 351)
++++ trunk/src/modules/luarpc.c	2009-06-30 02:58:52 UTC (rev 352)
+@@ -1535,12 +1535,19 @@
+ 
+ static int rpc_server( lua_State *L )
+ {
++  int shref;
+   ServerHandle *handle = rpc_listen_helper( L );
++  
++  /* hack to anchor handle in registry */
++  /* @@@ this should be replaced when we create a system for multiple connections */
++  /* @@@   such a mechanism would likely likely create a table for multiple connections that we could service in an event loop */
++  shref = luaL_ref( L, LUA_REGISTRYINDEX );
++  lua_rawgeti(L, LUA_REGISTRYINDEX, shref );
++  
+   while ( transport_is_open( &amp;handle-&gt;ltpt ) )
+     rpc_dispatch_helper( L, handle );
+-  
+-  printf( &quot;LT: %d, AT: %d\n&quot;, handle-&gt;ltpt.fd, handle-&gt;atpt.fd );
+-  
++    
++  luaL_unref( L, LUA_REGISTRYINDEX, shref );
+   server_handle_destroy( handle );
+   return 0;
+ }
+
+Modified: trunk/test/test-rpc.lua
+===================================================================
+--- trunk/test/test-rpc.lua	2009-06-29 19:35:42 UTC (rev 351)
++++ trunk/test/test-rpc.lua	2009-06-30 02:58:52 UTC (rev 352)
+@@ -4,8 +4,8 @@
+ 
+ rpc.on_error (error_handler);
+ 
+--- slave,err = rpc.connect (&quot;/dev/tty.usbserial-ftCYPMYJ&quot;);
+-slave,err = rpc.connect(&quot;/dev/tty.usbserial-04110857B&quot;)
++slave,err = rpc.connect (&quot;/dev/tty.usbserial-ftCYPMYJ&quot;);
++-- slave,err = rpc.connect(&quot;/dev/tty.usbserial-04110857B&quot;)
+ --slave,err = rpc.connect (&quot;/dev/ttys0&quot;);
+ 
+ print(&quot;Platform: &quot; .. slave.pd.platform())
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000307.html">[Elua-svn] r351 - tags/pre0.6/doc/wb_img
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#308">[ date ]</a>
+              <a href="thread.html#308">[ thread ]</a>
+              <a href="subject.html#308">[ subject ]</a>
+              <a href="author.html#308">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

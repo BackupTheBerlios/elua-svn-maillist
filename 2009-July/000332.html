@@ -1,0 +1,350 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r376 - in tags/pre0.6: doc doc/luadoc romfs src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r376%20-%20in%20tags/pre0.6%3A%20doc%20doc/luadoc%20romfs%20src/modules&In-Reply-To=%3C200907311156.n6VBuNne017377%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000331.html">
+   <LINK REL="Next"  HREF="000333.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r376 - in tags/pre0.6: doc doc/luadoc romfs src/modules</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r376%20-%20in%20tags/pre0.6%3A%20doc%20doc/luadoc%20romfs%20src/modules&In-Reply-To=%3C200907311156.n6VBuNne017377%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r376 - in tags/pre0.6: doc doc/luadoc romfs src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Jul 31 13:56:23 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000331.html">[Elua-svn] r375 - trunk/src/modules
+</A></li>
+        <LI>Next message: <A HREF="000333.html">[Elua-svn] r377 - in trunk: romfs src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#332">[ date ]</a>
+              <a href="thread.html#332">[ thread ]</a>
+              <a href="subject.html#332">[ subject ]</a>
+              <a href="author.html#332">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-07-31 13:56:22 +0200 (Fri, 31 Jul 2009)
+New Revision: 376
+
+Added:
+   tags/pre0.6/doc/luadoc/refman_gen_pwm.lua
+   tags/pre0.6/doc/luadoc/refman_gen_tmr.lua
+Modified:
+   tags/pre0.6/doc/builddoc.lua
+   tags/pre0.6/doc/luadoc/arch_platform_timers.lua
+   tags/pre0.6/romfs/adcscope.lua
+   tags/pre0.6/src/modules/tmr.c
+Log:
+syntax revision on tmr, also added documentation for pwm
+
+Modified: tags/pre0.6/doc/builddoc.lua
+===================================================================
+--- tags/pre0.6/doc/builddoc.lua	2009-07-30 19:45:25 UTC (rev 375)
++++ tags/pre0.6/doc/builddoc.lua	2009-07-31 11:56:22 UTC (rev 376)
+@@ -7,7 +7,7 @@
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+-  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot; }
++  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot; }
+ }
+ 
+ -- List here all languages for the documentation (make sure to keep English (&quot;en&quot;) the first one)
+
+Modified: tags/pre0.6/doc/luadoc/arch_platform_timers.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/arch_platform_timers.lua	2009-07-30 19:45:25 UTC (rev 375)
++++ tags/pre0.6/doc/luadoc/arch_platform_timers.lua	2009-07-31 11:56:22 UTC (rev 376)
+@@ -50,7 +50,7 @@
+       desc = [[Waits on a timer, then returns. This function is &quot;split&quot; in two parts: a platform-independent part implemented in %src/common.c% (that
+   handles virtual timers) and a platform-dependent part that must be implemented by each platform in a function named @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_s_timer_delay at platform_s_timer_delay</A>@. This function handles both
+   hardware timer IDs and virtual timer IDs.&lt;br&gt;
+-  &lt;font color=&quot;red&quot;&gt;&lt;a name=&quot;limitations&quot;&gt;$IMPORTANT NOTE$&lt;/font&gt;&lt;/a&gt;: the real delay after executing this functions depends a number of variables, most notably the base clock of the timer 
++  &lt;font color=&quot;red&quot;&gt;&lt;a name=&quot;limitations&quot;&gt;$IMPORTANT NOTE$&lt;/font&gt;&lt;/a&gt;: the real delay after executing this functions depends on a number of variables, most notably the base clock of the timer 
+   and the size of the timer counter register (32 bits on some platforms, 16 bits on most platforms, other values are less common). To ensure that the delay you're requesting is achievable, use 
+   @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_timer_op at platform_timer_op</A>@ with $PLATFORM_TIMER_OP_GET_MAX_DELAY$ and $PLATFORM_TIMER_OP_GET_MIN_DELAY$ to obtain the maximum and the minimum 
+   achievable wait times on your timer, respectively. Even if your delay is within these limits, the $precision$ of this function still varies a lot, mainly as a function of 
+
+Added: tags/pre0.6/doc/luadoc/refman_gen_pwm.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/refman_gen_pwm.lua	2009-07-30 19:45:25 UTC (rev 375)
++++ tags/pre0.6/doc/luadoc/refman_gen_pwm.lua	2009-07-31 11:56:22 UTC (rev 376)
+@@ -0,0 +1,58 @@
++-- eLua reference manual - pwm module
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - pwm module&quot;,
++
++  -- Menu name
++  menu_name = &quot;pwm&quot;,
++
++  -- Overview
++  overview = [[This module contains functions for accessing the PWM (Pulse Width Modulation) modules of the eLua CPU.]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;frequency = #pwm.setup#( id, frequency, duty )&quot;,
++      desc = &quot;Setup the PWM modules.&quot;,
++      args = 
++      {
++        &quot;$id$ - the ID of the PWM module.&quot;,
++        &quot;$frequency$ - the frequency of the PWM module (in Hz).&quot;,
++        [[$duty$ - the duty cycle of the PWM module given in percents. This must be an integer between 0 and 100. $NOTE$: depending on the hardware, some
++duty cycles (particulary 0 and 100) might not be achievable.]]
++      },
++      ret = &quot;The actual frequenct set on the PWM module. Depending on the hardware, this might have a different value than the $frequency$ argument.&quot;
++    },
++
++    { sig = &quot;#pwm.start#( id )&quot;,
++      desc = &quot;Start the PWM signal on the given module.&quot;,
++      args = &quot;$id$ - the ID of the PWM module.&quot;
++    },
++
++    { sig = &quot;#pwm.stop#( id )&quot;,
++      desc = &quot;Stop the PWM signal on the given module.&quot;,
++      args = &quot;$id$ - the ID of the PWM module.&quot;
++    },
++
++    { sig = &quot;clock = #pwm.setclock#( id, clock )&quot;,
++      desc = &quot;Set the base clock of the given PWM module.&quot;,
++      args = 
++      {
++        &quot;$id$ - the ID of the PWM module.&quot;,
++        &quot;$clock$ - the desired base clock.&quot;
++      },
++      ret = &quot;The actual base clock set on the PWM module.  Depending on the hardware, this might have a different value than the $clock$ argument.&quot;
++    },
++
++    {  sig = &quot;clock = #pwm.getclock#( id )&quot;,
++       desc = &quot;Get the base clock of the given PWM module.&quot;,
++       args = &quot;$id$ - the ID of the PWM module.&quot;,
++       ret = &quot;The base clock of the PWM module.&quot;
++    }
++  },
++
++}
++
+
+Added: tags/pre0.6/doc/luadoc/refman_gen_tmr.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/refman_gen_tmr.lua	2009-07-30 19:45:25 UTC (rev 375)
++++ tags/pre0.6/doc/luadoc/refman_gen_tmr.lua	2009-07-31 11:56:22 UTC (rev 376)
+@@ -0,0 +1,93 @@
++-- eLua reference manual - tmr module
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - tmr module&quot;,
++
++  -- Menu name
++  menu_name = &quot;tmr&quot;,
++
++  -- Overview
++  overview = [[This module contains functions for accessing the hardware timers of the eLua CPU. In addition, if virtual timers are enabled 
++  (see @arch_platform_timers.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">virtual_timers at here</A>@ and @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">building.html at here</A>@ for details), they can be used just like the &quot;regular&quot; (hardware)
++  timers with a single exception: you can't set the clock of a virtual timer (using @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">tmr.setclock at tmr.setclock</A>@). To use virtual timers with this
++  module, specify $tmr.VIRTx$ as the timer ID instead of a number. For example, if the eLua image was configured to support 4 virtual timers, they will
++  be available by using $tmr.VIRT0$ to $tmr.VIRT3$ as timer IDs.&lt;/p&gt;
++  &lt;p&gt;All &quot;time units&quot; (delays, differences in time) in this module, as well as in other parts of eLua (timeouts) are expressed in microseconds. However,
++  please keep in mind that the actual timer resolution depends on many factors. For example, it's very likely that the @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">tmr.delay at tmr.delay</A>@ function won't
++  be able to delay for the exact amount you specify (in us), as the real delay depends ona number of variables, most notably the base clock of the timer 
++  and the size of the timer counter register (32 bits on some platforms, 16 bits on most platforms, other values are less common). To ensure that the delay 
++  you're requesting is achievable, use @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">tmr.getmindelay at tmr.getmindelay</A>@ and @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">tmr.getmaxdelay at tmr.getmaxdelay</A>@ to obtain the maximum and the minimum 
++  achievable wait times on your timer, respectively. Even if your delay is within these limits, the $precision$ of this function still varies a lot, 
++  mainly as a function of the timer base clock.]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;#tmr.delay#( id, period )&quot;,
++      desc = &quot;Waits for the specified period, then returns.&quot;,
++      args = 
++      {
++        &quot;$period$ - the timer ID.&quot;,
++        &quot;$period$ - how long to wait (in us).&quot;
++      }
++    },
++
++    { sig = &quot;counter = #tmr.read#( id )&quot;,
++      desc= &quot;Reads the timer counter register.&quot;,
++      args = &quot;$id$ - the timer ID.&quot;,
++      ret = &quot;The value of the timer counter register.&quot;
++    },
++
++    { sig = &quot;counter = #tmr.start#( id )&quot;,
++      desc = &quot;Starts the specified timer.&quot;,
++      args = &quot;$id$ - the timer ID.&quot;,
++      ret = &quot;The value of the timer counter register when the timer started.&quot;,
++    },
++
++    { sig = &quot;delta = #tmr.gettimediff#( id, counter1, counter2 )&quot;,
++      desc = &quot;Computes the time difference between two timer counter values (you can get counter values by calling @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">tmr.read at tmr.read</A>@ or @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">tmr.start at tmr.start</A>@).&quot;,
++      args = 
++      {
++        &quot;$id$ - the timer ID.&quot;,
++        &quot;$counter1$ - the first counter value.&quot;,
++        &quot;$counter2$ - the second counter value.&quot;,
++      },
++      ret = &quot;The time difference (in us).&quot;
++    },
++
++    { sig = &quot;mindelay = #tmr.getmindelay#( id )&quot;,
++      desc = &quot;Get the minimum achieavable delay on the specified timer.&quot;,
++      args = &quot;$id$ - the timer ID.&quot;,
++      ret = &quot;The minimum achievable delay on the specified timer (in us).&quot;
++    },
++
++    { sig = &quot;maxdelay = #tmr.getmaxdelay#( id )&quot;,
++      desc = &quot;Get the maximum achieavable delay on the specified timer.&quot;,
++      args = &quot;$id$ - the timer ID.&quot;,
++      ret = &quot;The maximum achievable delay on the specified timer (in us).&quot;
++    },
++
++    { sig = &quot;clock = #tmr.setclock#( id, clock )&quot;,
++      desc = &quot;Set the timer clock (the clock used to increment the timer counter register).&quot;,
++      args = 
++      {
++        &quot;$id$ - the timer ID.&quot;,
++        &quot;$clock$ - the timer clock (in Hz).&quot;
++      },
++       ret = [[The actual clock set on the timer (in Hz). Depending on the hardware, this might have a different value than the $clock$ argument. 
++$NOTE:$ this function does not work with virtual timers.]]       
++    },
++
++    { sig = &quot;clock = #tmr.getclock#( id )&quot;,
++      desc = &quot;Get the timer clock (the clock used to increment the timer counter register).&quot;,
++      args = &quot;$id$ - the timer ID.&quot;,
++      ret = &quot;The timer clock (in Hz).&quot;
++    }
++   
++  }
++
++}
++
+
+Modified: tags/pre0.6/romfs/adcscope.lua
+===================================================================
+--- tags/pre0.6/romfs/adcscope.lua	2009-07-30 19:45:25 UTC (rev 375)
++++ tags/pre0.6/romfs/adcscope.lua	2009-07-31 11:56:22 UTC (rev 376)
+@@ -41,7 +41,7 @@
+     end
+   end
+   etime = tread(0) -- get cycle end time
+-  dtime = tmr.diff(0,etime,stime)/numiter -- compute average acquisition time per cycle
++  dtime = tmr.gettimediff(0,etime,stime)/numiter -- compute average acquisition time per cycle
+   
+   -- draw last acquired samples on the console
+   term.moveto(1,4)
+
+Modified: tags/pre0.6/src/modules/tmr.c
+===================================================================
+--- tags/pre0.6/src/modules/tmr.c	2009-07-30 19:45:25 UTC (rev 375)
++++ tags/pre0.6/src/modules/tmr.c	2009-07-31 11:56:22 UTC (rev 376)
+@@ -51,8 +51,8 @@
+   return tmrh_timer_op( L, PLATFORM_TIMER_OP_START );
+ }
+ 
+-// Lua: time_us = diff( id, end, start )
+-static int tmr_diff( lua_State* L )
++// Lua: time_us = gettimediff( id, end, start )
++static int tmr_gettimediff( lua_State* L )
+ {
+   timer_data_type end, start;
+   u32 res;
+@@ -60,15 +60,15 @@
+     
+   id = luaL_checkinteger( L, 1 ); 
+   MOD_CHECK_ID( timer, id );
+-  end = luaL_checkinteger( L, 2 );
+-  start = luaL_checkinteger( L, 3 );  
++  end = ( timer_data_type )luaL_checkinteger( L, 2 );
++  start = ( timer_data_type )luaL_checkinteger( L, 3 );  
+   res = platform_timer_get_diff_us( id, end, start );
+   lua_pushinteger( L, res );
+   return 1;    
+ }
+ 
+-// Lua: res = mindelay( id )
+-static int tmr_mindelay( lua_State* L )
++// Lua: res = getmindelay( id )
++static int tmr_getmindelay( lua_State* L )
+ {
+   u32 res;
+   unsigned id;
+@@ -80,8 +80,8 @@
+   return 1;
+ }
+ 
+-// Lua: res = maxdelay( id )
+-static int tmr_maxdelay( lua_State* L )
++// Lua: res = getmaxdelay( id )
++static int tmr_getmaxdelay( lua_State* L )
+ {
+   u32 res;
+   unsigned id;
+@@ -101,7 +101,7 @@
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( timer, id );
+-  clock = luaL_checkinteger( L, 2 );
++  clock = ( u32 )luaL_checkinteger( L, 2 );
+   clock = platform_timer_op( id, PLATFORM_TIMER_OP_SET_CLOCK, clock );
+   lua_pushinteger( L, clock );
+   return 1;
+@@ -151,9 +151,9 @@
+   { LSTRKEY( &quot;delay&quot; ), LFUNCVAL( tmr_delay ) },
+   { LSTRKEY( &quot;read&quot; ), LFUNCVAL( tmr_read ) },
+   { LSTRKEY( &quot;start&quot; ), LFUNCVAL( tmr_start ) },
+-  { LSTRKEY( &quot;diff&quot; ), LFUNCVAL( tmr_diff ) },  
+-  { LSTRKEY( &quot;mindelay&quot; ), LFUNCVAL( tmr_mindelay ) },
+-  { LSTRKEY( &quot;maxdelay&quot; ), LFUNCVAL( tmr_maxdelay ) },
++  { LSTRKEY( &quot;gettimediff&quot; ), LFUNCVAL( tmr_gettimediff ) },  
++  { LSTRKEY( &quot;getmindelay&quot; ), LFUNCVAL( tmr_getmindelay ) },
++  { LSTRKEY( &quot;getmaxdelay&quot; ), LFUNCVAL( tmr_getmaxdelay ) },
+   { LSTRKEY( &quot;setclock&quot; ), LFUNCVAL( tmr_setclock ) },
+   { LSTRKEY( &quot;getclock&quot; ), LFUNCVAL( tmr_getclock ) },
+ #if LUA_OPTIMIZE_MEMORY &gt; 0 &amp;&amp; VTMR_NUM_TIMERS &gt; 0
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000331.html">[Elua-svn] r375 - trunk/src/modules
+</A></li>
+	<LI>Next message: <A HREF="000333.html">[Elua-svn] r377 - in trunk: romfs src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#332">[ date ]</a>
+              <a href="thread.html#332">[ thread ]</a>
+              <a href="subject.html#332">[ subject ]</a>
+              <a href="author.html#332">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

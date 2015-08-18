@@ -1,0 +1,527 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r101 - in trunk: . inc src/modules	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r101%20-%20in%20trunk%3A%20.%20inc%20src/modules%0A%09src/platform/at91sam7x%20src/platform/lm3s%20src/platform/lpc288x%0A%09src/platform/str9&In-Reply-To=%3C200809262041.m8QKfCSU015271%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000056.html">
+   <LINK REL="Next"  HREF="000058.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r101 - in trunk: . inc src/modules	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str9</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r101%20-%20in%20trunk%3A%20.%20inc%20src/modules%0A%09src/platform/at91sam7x%20src/platform/lm3s%20src/platform/lpc288x%0A%09src/platform/str9&In-Reply-To=%3C200809262041.m8QKfCSU015271%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r101 - in trunk: . inc src/modules	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Sep 26 22:41:12 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000056.html">[Elua-svn] r100 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000058.html">[Elua-svn] r102 - trunk/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#57">[ date ]</a>
+              <a href="thread.html#57">[ thread ]</a>
+              <a href="subject.html#57">[ subject ]</a>
+              <a href="author.html#57">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-09-26 22:41:11 +0200 (Fri, 26 Sep 2008)
+New Revision: 101
+
+Added:
+   trunk/src/modules/cpu.c
+   trunk/src/platform/at91sam7x/platform_cpu.h
+   trunk/src/platform/lm3s/platform_cpu.h
+   trunk/src/platform/lpc288x/platform_cpu.h
+   trunk/src/platform/str9/platform_cpu.h
+Modified:
+   trunk/SConstruct
+   trunk/inc/platform.h
+   trunk/src/modules/auxmods.h
+   trunk/src/modules/pd.c
+   trunk/src/platform/at91sam7x/platform.c
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/platform_libs.h
+   trunk/src/platform/lpc288x/platform.c
+   trunk/src/platform/str9/platform.c
+Log:
+- added the &quot;CPU&quot; module. its role: access data directly (read/write) for 32/16/8 bits variables, and also provide access to CPU constants (should be defined in platform_cpu.h, see lm3s code)
+- the &quot;clock&quot; method is now part of the CPU module, thus is out of the platform data module. pd becomes a fully platform independent module. 
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/SConstruct	2008-09-26 20:41:11 UTC (rev 101)
+@@ -128,7 +128,7 @@
+ local_include = local_include + &quot; -Isrc/uip&quot;
+ 
+ # Lua module files
+-module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c&quot;
++module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c&quot;
+ module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+   
+ # Optimizer flags (speed or size)
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/inc/platform.h	2008-09-26 20:41:11 UTC (rev 101)
+@@ -169,6 +169,7 @@
+ 
+ void platform_cpu_enable_interrupts();
+ void platform_cpu_disable_interrupts();
++u32 platform_cpu_get_frequency();
+ 
+ // *****************************************************************************
+ // Ethernet specific functions
+@@ -179,12 +180,6 @@
+ u32 platform_eth_get_elapsed_time();
+ 
+ // *****************************************************************************
+-// Platform data subsection
+-// Contains functions for platform identification
+-
+-u32 platform_pd_get_cpu_frequency();
+-
+-// *****************************************************************************
+ // Allocator support
+ 
+ void* platform_get_first_free_ram( unsigned id );
+
+Modified: trunk/src/modules/auxmods.h
+===================================================================
+--- trunk/src/modules/auxmods.h	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/modules/auxmods.h	2008-09-26 20:41:11 UTC (rev 101)
+@@ -36,6 +36,9 @@
+ #define AUXLIB_NET      &quot;net&quot;
+ LUALIB_API int ( luaopen_net )( lua_State *L );
+ 
++#define AUXLIB_CPU      &quot;cpu&quot;
++LUALIB_API int ( luaopen_cpu )( lua_State* L );
++
+ // Helper macros
+ 
+ #define MOD_CHECK_ID( mod, id )\
+
+Added: trunk/src/modules/cpu.c
+===================================================================
+--- trunk/src/modules/cpu.c	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/modules/cpu.c	2008-09-26 20:41:11 UTC (rev 101)
+@@ -0,0 +1,156 @@
++// Module for interfacing with CPU
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;auxmods.h&quot;
++#include &lt;string.h&gt; 
++
++#define _C( x ) { #x, x }
++#include &quot;platform_cpu.h&quot;
++
++// Lua: w32( address, data )
++static int cpu_w32( lua_State *L )
++{
++  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++  u32 data = ( u32 )luaL_checkinteger( L, 2 );
++  
++  *( u32* )addr = data;
++  return 0;
++}
++
++// Lua: data = r32( address )
++static int cpu_r32( lua_State *L )
++{
++  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++
++  lua_pushinteger( L, ( lua_Integer )( *( u32* )addr ) );  
++  return 1;
++}
++
++// Lua: w16( address, data )
++static int cpu_w16( lua_State *L )
++{
++  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++  u16 data = ( u16 )luaL_checkinteger( L, 2 );
++  
++  *( u16* )addr = data;
++  return 0;
++}
++
++// Lua: data = r16( address )
++static int cpu_r16( lua_State *L )
++{
++  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++
++  lua_pushinteger( L, ( lua_Integer )( *( u16* )addr ) );  
++  return 1;
++}
++
++// Lua: w8( address, data )
++static int cpu_w8( lua_State *L )
++{
++  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++  u8 data = ( u8 )luaL_checkinteger( L, 2 );
++  
++  *( u8* )addr = data;
++  return 0;
++}
++
++// Lua: data = r8( address )
++static int cpu_r8( lua_State *L )
++{
++  u32 addr = ( u32 )luaL_checkinteger( L, 1 );
++
++  lua_pushinteger( L, ( lua_Integer )( *( u8* )addr ) );  
++  return 1;
++}
++
++// Lua: cli()
++static int cpu_cli( lua_State *L )
++{
++  platform_cpu_disable_interrupts();
++  return 0;
++}
++
++// Lua: sei()
++static int cpu_sei( lua_State *L )
++{
++  platform_cpu_enable_interrupts();
++  return 0;
++}
++
++// Lua: frequency = clock()
++static int cpu_clock( lua_State *L )
++{
++  lua_pushinteger( L, platform_cpu_get_frequency() );
++  return 1;
++}
++
++// CPU constants list
++typedef struct
++{
++  const char* name;
++  u32 val;
++} cpu_const_t;
++
++static const cpu_const_t cpu_constants[] = 
++{
++#ifdef PLATFORM_CPU_CONSTANTS
++  PLATFORM_CPU_CONSTANTS,
++#endif
++  { NULL, 0 }
++};
++
++static int cpu_mt_index( lua_State *L )
++{
++  const char *key = luaL_checkstring( L, 2 );
++  unsigned i = 0;
++  
++  while( cpu_constants[ i ].name != NULL )
++  {
++    if( !strcmp( cpu_constants[ i ].name, key ) )
++    {
++      lua_pushinteger( L, cpu_constants[ i ].val );
++      return 1;
++    }
++    i ++;
++  }
++  return 0;
++}
++
++// Metatable data
++static const luaL_reg cpu_mt_map[] =
++{
++  { &quot;__index&quot;, cpu_mt_index },
++  { NULL, NULL }
++};
++
++// Module function map
++static const luaL_reg cpu_map[] = 
++{
++  { &quot;w32&quot;, cpu_w32 },
++  { &quot;r32&quot;, cpu_r32 },
++  { &quot;w16&quot;, cpu_w16 },
++  { &quot;r16&quot;, cpu_r16 },
++  { &quot;w8&quot;, cpu_w8 },
++  { &quot;r8&quot;, cpu_r8 },
++  { &quot;cli&quot;, cpu_cli },
++  { &quot;sei&quot;, cpu_sei },
++  { &quot;clock&quot;, cpu_clock },
++  { NULL, NULL }
++};
++
++LUALIB_API int luaopen_cpu( lua_State *L )
++{
++  // Register methods
++  luaL_register( L, AUXLIB_CPU, cpu_map );
++  
++  // Create and set metatable
++  lua_newtable( L );
++  luaL_register( L, NULL, cpu_mt_map );  
++  lua_setmetatable( L, -2 );  
++  
++  return 1;
++}
+
+Modified: trunk/src/modules/pd.c
+===================================================================
+--- trunk/src/modules/pd.c	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/modules/pd.c	2008-09-26 20:41:11 UTC (rev 101)
+@@ -29,12 +29,6 @@
+   lua_pushstring( L, MACRO_NAME( ELUA_BOARD ) );
+   return 1;
+ }
+-// Lua: speed = frequency()
+-static int pd_clock( lua_State* L )
+-{
+-  lua_pushinteger( L, platform_pd_get_cpu_frequency() );
+-  return 1;
+-}
+ 
+ // Module function map
+ static const luaL_reg pd_map[] = 
+@@ -42,7 +36,6 @@
+   { &quot;platform&quot;,  pd_platform }, 
+   { &quot;cpu&quot;, pd_cpu },
+   { &quot;board&quot;, pd_board },
+-  { &quot;clock&quot;, pd_clock },
+   { NULL, NULL }
+ };
+ 
+
+Modified: trunk/src/platform/at91sam7x/platform.c
+===================================================================
+--- trunk/src/platform/at91sam7x/platform.c	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/platform/at91sam7x/platform.c	2008-09-26 20:41:11 UTC (rev 101)
+@@ -473,9 +473,9 @@
+ }
+ 
+ // ****************************************************************************
+-// Platform data functions
++// CPU functions
+ 
+-u32 platform_pd_get_cpu_frequency()
++u32 platform_cpu_get_frequency()
+ {
+   return BOARD_MCK;
+ }
+
+Added: trunk/src/platform/at91sam7x/platform_cpu.h
+===================================================================
+--- trunk/src/platform/at91sam7x/platform_cpu.h	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/platform/at91sam7x/platform_cpu.h	2008-09-26 20:41:11 UTC (rev 101)
+@@ -0,0 +1,6 @@
++// CPU related constants that should be visible to Lua
++
++#ifndef __PLATFORM_CPU_H__
++#define __PLATFORM_CPU_H__
++
++#endif
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/platform/lm3s/platform.c	2008-09-26 20:41:11 UTC (rev 101)
+@@ -560,6 +560,11 @@
+   IntMasterDisable();
+ }
+ 
++u32 platform_cpu_get_frequency()
++{
++  return SysCtlClockGet();
++}
++
+ // ****************************************************************************
+ // Ethernet functions
+ 
+@@ -699,14 +704,6 @@
+ #endif // #ifdef ELUA_UIP
+ 
+ // ****************************************************************************
+-// Platform data
+-
+-u32 platform_pd_get_cpu_frequency()
+-{
+-  return SysCtlClockGet();
+-}
+-
+-// ****************************************************************************
+ // Allocator support
+ 
+ extern char end[];
+
+Added: trunk/src/platform/lm3s/platform_cpu.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_cpu.h	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/platform/lm3s/platform_cpu.h	2008-09-26 20:41:11 UTC (rev 101)
+@@ -0,0 +1,59 @@
++// CPU related constants that should be visible to Lua
++
++#ifndef __PLATFORM_CPU_H__
++#define __PLATFORM_CPU_H__
++
++#include &quot;hw_ints.h&quot;
++
++#define PLATFORM_CPU_CONSTANTS\
++  _C( INT_GPIOA ),\
++  _C( INT_GPIOB ),\
++  _C( INT_GPIOC ),\
++  _C( INT_GPIOD ),\
++  _C( INT_GPIOE ),\
++  _C( INT_UART0 ),\
++  _C( INT_UART1 ),\
++  _C( INT_SSI0 ),\
++  _C( INT_I2C0 ),\
++  _C( INT_PWM_FAULT ),\
++  _C( INT_PWM0 ),\
++  _C( INT_PWM1 ),\
++  _C( INT_PWM2 ),\
++  _C( INT_QEI0 ),\
++  _C( INT_ADC0 ),\
++  _C( INT_ADC1 ),\
++  _C( INT_ADC2 ),\
++  _C( INT_ADC3 ),\
++  _C( INT_WATCHDOG ),\
++  _C( INT_TIMER0A ),\
++  _C( INT_TIMER0B ),\
++  _C( INT_TIMER1A ),\
++  _C( INT_TIMER1B ),\
++  _C( INT_TIMER2A ),\
++  _C( INT_TIMER2B ),\
++  _C( INT_COMP0 ),\
++  _C( INT_COMP1 ),\
++  _C( INT_COMP2 ),\
++  _C( INT_SYSCTL ),\
++  _C( INT_FLASH ),\
++  _C( INT_GPIOF ),\
++  _C( INT_GPIOG ),\
++  _C( INT_GPIOH ),\
++  _C( INT_UART2 ),\
++  _C( INT_SSI1 ),\
++  _C( INT_TIMER3A ),\
++  _C( INT_TIMER3B ),\
++  _C( INT_I2C1 ),\
++  _C( INT_QEI1 ),\
++  _C( INT_CAN0 ),\
++  _C( INT_CAN1 ),\
++  _C( INT_CAN2 ),\
++  _C( INT_ETH ),\
++  _C( INT_HIBERNATE ),\
++  _C( INT_USB0 ),\
++  _C( INT_PWM3 ),\
++  _C( INT_UDMA ),\
++  _C( INT_UDMAERR )
++
++#endif
++
+
+Modified: trunk/src/platform/lm3s/platform_libs.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_libs.h	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/platform/lm3s/platform_libs.h	2008-09-26 20:41:11 UTC (rev 101)
+@@ -16,6 +16,7 @@
+   { AUXLIB_PACK, luaopen_pack },\
+   { AUXLIB_BIT, luaopen_bit },\
+   { AUXLIB_NET, luaopen_net },\
++  { AUXLIB_CPU, luaopen_cpu },\
+   { LUA_MATHLIBNAME, luaopen_math }
+   
+ #endif
+
+Modified: trunk/src/platform/lpc288x/platform.c
+===================================================================
+--- trunk/src/platform/lpc288x/platform.c	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/platform/lpc288x/platform.c	2008-09-26 20:41:11 UTC (rev 101)
+@@ -286,9 +286,9 @@
+ }
+ 
+ // ****************************************************************************
+-// Platform data functions
++// CPU functions
+ 
+-u32 platform_pd_get_cpu_frequency()
++u32 platform_cpu_get_frequency()
+ {
+   return Fcclk;
+ }
+
+Added: trunk/src/platform/lpc288x/platform_cpu.h
+===================================================================
+--- trunk/src/platform/lpc288x/platform_cpu.h	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/platform/lpc288x/platform_cpu.h	2008-09-26 20:41:11 UTC (rev 101)
+@@ -0,0 +1,6 @@
++// CPU related constants that should be visible to Lua
++
++#ifndef __PLATFORM_CPU_H__
++#define __PLATFORM_CPU_H__
++
++#endif
+
+Modified: trunk/src/platform/str9/platform.c
+===================================================================
+--- trunk/src/platform/str9/platform.c	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/platform/str9/platform.c	2008-09-26 20:41:11 UTC (rev 101)
+@@ -404,9 +404,9 @@
+ }
+ 
+ // ****************************************************************************
+-// Platform data functions
++// CPU functions
+ 
+-u32 platform_pd_get_cpu_frequency()
++u32 platform_cpu_get_frequency()
+ {
+   return SCU_GetMCLKFreqValue() * 1000;
+ }
+
+Added: trunk/src/platform/str9/platform_cpu.h
+===================================================================
+--- trunk/src/platform/str9/platform_cpu.h	2008-09-23 19:41:20 UTC (rev 100)
++++ trunk/src/platform/str9/platform_cpu.h	2008-09-26 20:41:11 UTC (rev 101)
+@@ -0,0 +1,6 @@
++// CPU related constants that should be visible to Lua
++
++#ifndef __PLATFORM_CPU_H__
++#define __PLATFORM_CPU_H__
++
++#endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000056.html">[Elua-svn] r100 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000058.html">[Elua-svn] r102 - trunk/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#57">[ date ]</a>
+              <a href="thread.html#57">[ thread ]</a>
+              <a href="subject.html#57">[ subject ]</a>
+              <a href="author.html#57">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,405 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r674 - in trunk: . inc inc/desktop inc/serial src	src/serial
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r674%20-%20in%20trunk%3A%20.%20inc%20inc/desktop%20inc/serial%20src%0A%09src/serial&In-Reply-To=%3C201001252344.o0PNin1v025436%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000629.html">
+   <LINK REL="Next"  HREF="000631.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r674 - in trunk: . inc inc/desktop inc/serial src	src/serial</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r674%20-%20in%20trunk%3A%20.%20inc%20inc/desktop%20inc/serial%20src%0A%09src/serial&In-Reply-To=%3C201001252344.o0PNin1v025436%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r674 - in trunk: . inc inc/desktop inc/serial src	src/serial">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Jan 26 00:44:49 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000629.html">[Elua-svn] r673 - in trunk: . doc doc/eluadoc doc/en doc/images	doc/pt inc inc/serial romfs src src/fatfs src/lua src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/lm3s	src/platform/lpc24xx src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/str7 src/platform/str9	src/serial test
+</A></li>
+        <LI>Next message: <A HREF="000631.html">[Elua-svn] r675 - in trunk: . inc src/lua src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#630">[ date ]</a>
+              <a href="thread.html#630">[ thread ]</a>
+              <a href="subject.html#630">[ subject ]</a>
+              <a href="author.html#630">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-01-26 00:44:40 +0100 (Tue, 26 Jan 2010)
+New Revision: 674
+
+Added:
+   trunk/inc/desktop/
+   trunk/inc/desktop/type.h
+Removed:
+   trunk/inc/serial/serial.h
+   trunk/src/serial/serial.h
+Modified:
+   trunk/inc/luarpc_rpc.h
+   trunk/rpc-lua.py
+   trunk/src/luarpc_desktop_serial.c
+Log:
+Merge branch 'post07'
+
+Added: trunk/inc/desktop/type.h
+===================================================================
+--- trunk/inc/desktop/type.h	2010-01-25 23:43:05 UTC (rev 673)
++++ trunk/inc/desktop/type.h	2010-01-25 23:44:40 UTC (rev 674)
+@@ -0,0 +1,15 @@
++// Type definitions for desktop platform
++#ifndef __TYPE_H__
++#define __TYPE_H__
++
++#include &lt;stdint.h&gt;
++
++// signed and unsigned 8, 16 and 32 bit types
++typedef uint8_t u8;
++typedef uint16_t u16;
++typedef uint32_t u32;
++typedef int8_t s8;
++typedef int16_t s16;
++typedef int32_t s32;
++
++#endif
+
+Modified: trunk/inc/luarpc_rpc.h
+===================================================================
+--- trunk/inc/luarpc_rpc.h	2010-01-25 23:43:05 UTC (rev 673)
++++ trunk/inc/luarpc_rpc.h	2010-01-25 23:44:40 UTC (rev 674)
+@@ -1,54 +1,37 @@
+ #include &quot;cexcept.h&quot;
+-#include &lt;stdint.h&gt;
++#include &quot;type.h&quot;
+ 
+ #ifdef LUA_RPC
+-/* signed and unsigned 8, 16 and 32 bit types */
+-typedef uint8_t u8;
+-typedef uint16_t u16;
+-typedef uint32_t u32;
+-typedef int8_t s8;
+-typedef int16_t s16;
+-typedef int32_t s32;
+-
+-#include &quot;serial.h&quot;
+-
+ #define LUARPC_ENABLE_SERIAL
+ #define BUILD_RPC
+ #endif
+ 
+-//****************************************************************************
+-// Windows vs POSIX Setup
++#include &quot;serial.h&quot;
+ 
+-#ifdef WIN32_BUILD
+-#include &quot;windows.h&quot;
+-#define transport_strerror strerror
+-#define transport_errno (GetLastError())
+-#else
+-#define transport_errno errno
+-#define transport_strerror strerror
+-#endif
+-
+ /****************************************************************************/
+-/* parameters */
++// Parameters
+ 
+-#define MAXCON 10 /* maximum number of waiting server connections */
++#define NUM_FUNCNAME_CHARS 20 // Maximum function name length
+ 
+-/* a kind of silly way to get the maximum int, but oh well ... */
++#define MAX_LINK_ERRS ( 2 ) // Maximum number of framing errors before connection reset
++
++#define LUARPC_MODE &quot;elua&quot;
++
++// a kind of silly way to get the maximum int, but oh well ...
+ #define MAXINT ((int)((((unsigned int)(-1)) &lt;&lt; 1) &gt;&gt; 1))
+ 
+ /****************************************************************************/
+-/* error handling */
++// Debug Error Handling
+ 
+-/* allow special handling for GCC compiler */
++// allow special handling for GCC compiler
+ #ifdef __GNUC__
+ #define DOGCC(x) x
+ #else
+ #define DOGCC(x) /* */
+ #endif
+ 
+-/* assertions */
+-
+-#ifndef NDEBUG
++// Assertions for debug mode
++#ifdef LUARPC_DEBUG
+ #ifdef __GNUC__
+ #define MYASSERT(a) if (!(a)) rpcdebug ( \
+   &quot;assertion \&quot;&quot; #a &quot;\&quot; failed in %s() [%s]&quot;,__FUNCTION__,__FILE__);
+@@ -61,8 +44,17 @@
+ #endif
+ 
+ //****************************************************************************
+-// more error handling
++// Error Messages &amp; Exceptions
+ 
++#ifdef WIN32_BUILD
++#include &quot;windows.h&quot;
++#define transport_strerror strerror
++#define transport_errno (GetLastError())
++#else
++#define transport_errno errno
++#define transport_strerror strerror
++#endif
++
+ // error numbers passed around are normal system &quot;errno&quot; error numbers
+ //  (normally generated by transport operations), except when they have the
+ //  following values:
+@@ -88,18 +80,14 @@
+ 
+ extern struct exception_context the_exception_context[ 1 ];
+ 
+-#define NUM_FUNCNAME_CHARS 20
++//****************************************************************************
++// LuaRPC Structures
+ 
+-/* Transport Connection Structure */
+-
++// Transport Connection Structure
+ typedef struct _Transport Transport;
+ struct _Transport 
+ {
+-#ifdef ser_handler
+   ser_handler fd;
+-#else
+-  int fd;
+-#endif
+   unsigned tmr_id;
+   u8     loc_little: 1,               // Local is little endian?
+          loc_armflt: 1,               // local float representation is arm float?
+@@ -109,8 +97,6 @@
+   u8     lnum_bytes;
+ };
+ 
+-#define LUARPC_MODE &quot;elua&quot;
+-
+ typedef struct _Handle Handle;
+ struct _Handle 
+ {
+@@ -120,7 +106,6 @@
+   int read_reply_count;               // number of async call return values to read
+ };
+ 
+-
+ typedef struct _Helper Helper;
+ struct _Helper {
+   Handle *handle;                     // pointer to handle object
+@@ -129,7 +114,6 @@
+   char funcname[NUM_FUNCNAME_CHARS];  // name of the function
+ };
+ 
+-
+ typedef struct _ServerHandle ServerHandle;
+ struct _ServerHandle {
+   Transport ltpt;   // listening transport, always valid if no error
+@@ -137,8 +121,8 @@
+ 	int link_errs;
+ };
+ 
+-/* Maximum number of framing errors before connection reset */
+-#define MAX_LINK_ERRS ( 2 )
++
++// Connection State Checking
+ #ifdef WIN32_BUILD
+ #define INVALID_TRANSPORT (INVALID_HANDLE_VALUE)
+ #else
+
+Deleted: trunk/inc/serial/serial.h
+===================================================================
+--- trunk/inc/serial/serial.h	2010-01-25 23:43:05 UTC (rev 673)
++++ trunk/inc/serial/serial.h	2010-01-25 23:44:40 UTC (rev 674)
+@@ -1,48 +0,0 @@
+-// Generic serial interface
+-
+-#ifndef __SERIAL_H__
+-#define __SERIAL_H__
+-
+-#define SER_INF_TIMEOUT         0xFFFFFFFF
+-#define SER_NO_TIMEOUT          0
+-#define SER_OK                  0
+-#define SER_ERR                 1
+-
+-// Serial interface modes (blocking or non blocking)
+-#define SER_MODE_BLOCKING       0
+-#define SER_MODE_NONBLOCKING    1
+-
+-// Setup constants
+-#define SER_PARITY_NONE         0
+-#define SER_PARITY_EVEN         1
+-#define SER_PARITY_ODD          2
+-
+-#define SER_STOPBITS_1          0
+-#define SER_STOPBITS_1_5        1
+-#define SER_STOPBITS_2          2
+-
+-#define SER_DATABITS_5          5
+-#define SER_DATABITS_6          6
+-#define SER_DATABITS_7          7
+-#define SER_DATABITS_8          8
+-
+-// Define serial port &quot;handle&quot; type for each platform
+-#ifdef WIN32_BUILD
+-#include &lt;windows.h&gt;
+-typedef HANDLE ser_handler;
+-#else // assume POSIX here
+-typedef int ser_handler;
+-#endif
+-
+-// Serial access functions (to be implemented by each platform)
+-ser_handler ser_open( const char *sername );
+-void ser_close( ser_handler id );
+-int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits );
+-u32 ser_read( ser_handler id, u8* dest, u32 maxsize );
+-int ser_read_byte( ser_handler id );
+-u32 ser_write( ser_handler id, const u8 *src, u32 size );
+-u32 ser_write_byte( ser_handler id, u8 data );
+-void ser_set_timeout_ms( ser_handler id, u32 timeout );
+-int ser_readable( ser_handler id );
+-
+-#endif
+
+Modified: trunk/rpc-lua.py
+===================================================================
+--- trunk/rpc-lua.py	2010-01-25 23:43:05 UTC (rev 673)
++++ trunk/rpc-lua.py	2010-01-25 23:44:40 UTC (rev 674)
+@@ -20,7 +20,7 @@
+   linkcom += &quot; -lreadline&quot;
+   cdefs += &quot; -DLUA_USE_READLINE &quot;
+ 
+-local_include = &quot;-Isrc/lua -Iinc -Isrc/modules -Iinc/serial&quot;
++local_include = &quot;-Isrc/lua -Iinc -Isrc/modules -Iinc/desktop&quot;
+ 
+ # Compiler/linker options
+ cccom = &quot;gcc -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+
+Modified: trunk/src/luarpc_desktop_serial.c
+===================================================================
+--- trunk/src/luarpc_desktop_serial.c	2010-01-25 23:43:05 UTC (rev 673)
++++ trunk/src/luarpc_desktop_serial.c	2010-01-25 23:44:40 UTC (rev 674)
+@@ -29,7 +29,6 @@
+ void transport_open( Transport *tpt, const char *path )
+ {
+   struct exception e;
+-  int ret;
+   
+   tpt-&gt;fd = ser_open( path );
+ 
+@@ -40,7 +39,7 @@
+     Throw( e );
+   }
+   
+-  ret = ser_setup( tpt-&gt;fd, 115200, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 );
++  ser_setup( tpt-&gt;fd, 115200, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 );
+   ser_set_timeout_ms( tpt-&gt;fd, 1000 );
+ }
+ 
+
+Deleted: trunk/src/serial/serial.h
+===================================================================
+--- trunk/src/serial/serial.h	2010-01-25 23:43:05 UTC (rev 673)
++++ trunk/src/serial/serial.h	2010-01-25 23:44:40 UTC (rev 674)
+@@ -1,60 +0,0 @@
+-// Generic serial interface
+-
+-#ifndef __SERIAL_H__
+-#define __SERIAL_H__
+-
+-typedef char s8;
+-typedef unsigned char u8;
+-
+-typedef short s16;
+-typedef unsigned short u16;
+-
+-typedef long s32;
+-typedef unsigned long u32;
+-
+-typedef long long s64;
+-typedef unsigned long long u64;
+-
+-#define SER_INF_TIMEOUT         0xFFFFFFFF
+-#define SER_NO_TIMEOUT          0
+-#define SER_OK                  0
+-#define SER_ERR                 1
+-
+-// Serial interface modes (blocking or non blocking)
+-#define SER_MODE_BLOCKING       0
+-#define SER_MODE_NONBLOCKING    1
+-
+-// Setup constants
+-#define SER_PARITY_NONE         0
+-#define SER_PARITY_EVEN         1
+-#define SER_PARITY_ODD          2
+-
+-#define SER_STOPBITS_1          0
+-#define SER_STOPBITS_1_5        1
+-#define SER_STOPBITS_2          2
+-
+-#define SER_DATABITS_5          5
+-#define SER_DATABITS_6          6
+-#define SER_DATABITS_7          7
+-#define SER_DATABITS_8          8
+-
+-// Define serial port &quot;handle&quot; type for each platform
+-#ifdef WIN32_BUILD
+-#include &lt;windows.h&gt;
+-typedef HANDLE ser_handler;
+-#else // assume POSIX here
+-typedef int ser_handler;
+-#endif
+-
+-// Serial access functions (to be implemented by each platform)
+-ser_handler ser_open( const char *sername );
+-void ser_close( ser_handler id );
+-int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits );
+-u32 ser_read( ser_handler id, u8* dest, u32 maxsize );
+-int ser_read_byte( ser_handler id );
+-u32 ser_write( ser_handler id, const u8 *src, u32 size );
+-u32 ser_write_byte( ser_handler id, u8 data );
+-void ser_set_timeout_ms( ser_handler id, u32 timeout );
+-int ser_readable( ser_handler id );
+-
+-#endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000629.html">[Elua-svn] r673 - in trunk: . doc doc/eluadoc doc/en doc/images	doc/pt inc inc/serial romfs src src/fatfs src/lua src/modules	src/platform/at91sam7x src/platform/avr32 src/platform/lm3s	src/platform/lpc24xx src/platform/lpc288x src/platform/sim	src/platform/stm32 src/platform/str7 src/platform/str9	src/serial test
+</A></li>
+	<LI>Next message: <A HREF="000631.html">[Elua-svn] r675 - in trunk: . inc src/lua src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#630">[ date ]</a>
+              <a href="thread.html#630">[ thread ]</a>
+              <a href="subject.html#630">[ subject ]</a>
+              <a href="author.html#630">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

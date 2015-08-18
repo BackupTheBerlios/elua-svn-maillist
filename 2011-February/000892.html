@@ -1,0 +1,269 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r939 - branches/pre0.8/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r939%20-%20branches/pre0.8/doc/en&In-Reply-To=%3C20110202122540.D7F2148133C%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000891.html">
+   <LINK REL="Next"  HREF="000893.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r939 - branches/pre0.8/doc/en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r939%20-%20branches/pre0.8/doc/en&In-Reply-To=%3C20110202122540.D7F2148133C%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r939 - branches/pre0.8/doc/en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Feb  2 13:25:40 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000891.html">[Elua-svn] r938 - in branches/pre0.8: . doc/eluadoc doc/en
+</A></li>
+        <LI>Next message: <A HREF="000893.html">[Elua-svn] r940 - branches/pre0.8/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#892">[ date ]</a>
+              <a href="thread.html#892">[ thread ]</a>
+              <a href="subject.html#892">[ subject ]</a>
+              <a href="author.html#892">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-02 13:25:40 +0100 (Wed, 02 Feb 2011)
+New Revision: 939
+
+Added:
+   branches/pre0.8/doc/en/installing_avr32.txt
+Removed:
+   branches/pre0.8/doc/en/installing_avr32.html
+Log:
+'Installing AVR32' page converted to AsciiDoc and updated with links to the Mizar32 wiki for better ways of flashing AVR32 in Linux
+
+Deleted: branches/pre0.8/doc/en/installing_avr32.html
+===================================================================
+--- branches/pre0.8/doc/en/installing_avr32.html	2011-02-02 11:34:43 UTC (rev 938)
++++ branches/pre0.8/doc/en/installing_avr32.html	2011-02-02 12:25:40 UTC (rev 939)
+@@ -1,76 +0,0 @@
+-$$HEADER$$
+-&lt;h3&gt;Installing &lt;b&gt;eLua&lt;/b&gt; on the AVR32 CPUs from Atmel&lt;/h3&gt;
+-&lt;p&gt;&lt;a href=&quot;<A HREF="http://www.atmel.com/products/AVR32/">http://www.atmel.com/products/AVR32/</A>&quot;&gt;AVR32&lt;/a&gt; is a family of high performance 32-bit CPUs from &lt;a 
+-  href=&quot;<A HREF="http://www.atmel.com">http://www.atmel.com</A>&quot;&gt;Atmel&lt;/a&gt;. They were built as direct competitors for the various ARM core implementation of the market, and offer very good
+-  performance (91 MIPS @ 66MHz) and power efficieny (1.3mW/MHz). Atmel claims that their AVR32 core outperforms ARMv5 (in ARM and Thumb mode) in terms of 
+-  both performance and code size. It's a proprietary architecture (so it's only implemented by Atmel), yet it has a very good support package, and an
+-  open source toolchain based on GCC, which made it an ideal candidate for the first non-ARM (and also the first big endian) &lt;b&gt;eLua&lt;/b&gt; target. Atmel
+-  also sells a number of development boards based on their AVR23 CPUs. The one used for &lt;b&gt;eLua&lt;/b&gt; is the 
+-  &lt;a href=&quot;<A HREF="http://www.atmel.com/dyn/Products/tools_card.asp?tool_id=4114">http://www.atmel.com/dyn/Products/tools_card.asp?tool_id=4114</A>&quot;&gt;ATEVK1100 board&lt;/a&gt;, built around the 
+-  &lt;a href=&quot;<A HREF="http://www.atmel.com/dyn/products/product_card.asp?part_id=4117">http://www.atmel.com/dyn/products/product_card.asp?part_id=4117</A>&quot;&gt;AT32UC3A0512 AVR32 MCU&lt;/a&gt; (512k internal Flash/64k internal ARM).
+-  It's a very powerful board, featuring (among other things) an external 32 MByte SDRAM memory, which is more than enough to run any &lt;b&gt;eLua&lt;/b&gt; 
+-  program I can think of :).&lt;/p&gt;
+-&lt;h3&gt;Prerequisites&lt;/h3&gt; 
+- &lt;p&gt;Before you'll be able to use &lt;b&gt;eLua&lt;/b&gt; on the AT32UC3A0512 CPU, make sure that:&lt;/p&gt;
+- &lt;ul&gt;
+- &lt;li&gt;you're using Linux or Windows. It's easier to install and use Atmel's programming software on Windows, so use Windows version if you want to save
+-   yourself from quite a bit of hassle.&lt;/li&gt;
+- &lt;li&gt;you installed Atmel's &lt;a href=&quot;<A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886</A>&quot;&gt;FLIP programming software&lt;/a&gt;, which is what you need
+-    in order to install your &lt;b&gt;eLua&lt;/b&gt; image. Installation in easy under Windows (you just need to run a setup package), but quite tricky under Linux. 
+-    The next paragraph outlines the procedure for installing FLIP in Linux.&lt;/li&gt;
+- &lt;li&gt;you already have your &lt;b&gt;eLua&lt;/b&gt; image for the AT32UC3A0512 CPU (&lt;a href=&quot;building.html&quot;&gt;built&lt;/a&gt; or &lt;a href=&quot;downloads.html&quot;&gt;downloaded&lt;/a&gt;). 
+-    Note that unlike other platforms, the ATEVK1100 needs a .hex file for programming, not a .bin.&lt;/li&gt;
+- &lt;/ul&gt;
+-&lt;h2&gt;Installing FLIP in Ubuntu Linux&lt;/h2&gt;
+-&lt;p&gt;Follow the steps below to install FLIP under Linux:&lt;/p&gt;
+-&lt;ol&gt;
+-  &lt;li&gt;download the Linux version of FLIP from &lt;a href=&quot;<A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886</A>&quot;&gt;the Atmel FLIP page&lt;/a&gt;. Save it 
+-  (or move it later) to your &lt;i&gt;/usr/local/&lt;/i&gt; directory (you need to have superuser privileges to do that). At the moment of writing this tutorial, the
+-  latest FLIP version is 3.2.1, so this is what we're going to use here.&lt;/li&gt;
+-  &lt;li&gt;untar the FLIP archive:
+-  &lt;pre&gt;&lt;code&gt;$ cd /usr/local
+-$ sudo tar xvzf flip_linux_3-2-1.tgz&lt;/code&gt;&lt;/pre&gt;
+-  This will create the &lt;i&gt;/usr/local/flip.3.2.1&lt;/i&gt; directory.&lt;/li&gt;
+-  &lt;li&gt;you need to install OpenJDK if it is not installed:
+-  &lt;pre&gt;&lt;code&gt;$ sudo apt-get install openjdk-6-jre&lt;/code&gt;&lt;/pre&gt;
+-  &lt;/li&gt;
+-  &lt;li&gt;edit &lt;i&gt;/usr/local/flip.3.2.1/bin/batchisp3.sh&lt;/i&gt; and add the two bolded lines before at the beginning of the file:
+-  &lt;pre&gt;&lt;code&gt;#!/bin/bash -f
+-
+-&lt;b&gt;export JAVA_HOME=/usr/lib/jvm/java-6-openjdk/jre/
+-export FLIP_HOME=/usr/local/flip.3.2.1/bin/&lt;/b&gt;
+-
+-if [ &quot;$FLIP_HOME&quot; = &quot;&quot; ]; then&lt;/code&gt;&lt;/pre&gt;
+-  &lt;/li&gt;
+-  &lt;li&gt;you need to edit a binary file this time (&lt;i&gt;/usr/local/flip.3.2.1/libatlibusbdfu.so&lt;/i&gt;). This happens because FLIP comes compiled for RedHat by
+-  default, and Ubuntu some different system paths. See &lt;a href=&quot;<A HREF="http://www.avrfreaks.net/index.php?name=PNphpBB2&amp;amp;file=viewtopic&amp;amp;t=56562">http://www.avrfreaks.net/index.php?name=PNphpBB2&amp;file=viewtopic&amp;t=56562</A>&quot;&gt;this topic&lt;/a&gt; 
+-  for full details. All you have to do is change all the &lt;b&gt;/sys/bus/usb&lt;/b&gt; strings inside &lt;i&gt;libatlibusbdfu.so&lt;/i&gt; to &lt;b&gt;/dev/bus/usb&lt;/b&gt;.&lt;/li&gt;
+-  &lt;li&gt;add the FLIP directory to your PATH:
+-  &lt;pre&gt;&lt;code&gt;$ export PATH=/usr/local/flip.3.2.1/bin:$PATH&lt;/code&gt;&lt;/pre&gt;
+-  &lt;/li&gt;
+-  &lt;li&gt;FLIP interferes with a program that comes pre-installed on Ubuntu system, called &lt;b&gt;brltty&lt;/b&gt;. It's meant to help the visually 
+-  impaired, so if you're not one of them, simply remove it (as it seems to interfere with a lot of other USB devices too):
+-  &lt;pre&gt;&lt;code&gt;$ sudo apt-get remove brltty&lt;/code&gt;&lt;/pre&gt;
+-  &lt;/li&gt;
+-&lt;/ol&gt;
+-
+- &lt;h3&gt;Burning &lt;b&gt;eLua&lt;/b&gt; to the EVK1100 board&lt;/h3&gt;
+-&lt;p&gt;After you installed FLIP and added it to your $PATH, burning the &lt;b&gt;eLua&lt;/b&gt; image should be quite easy:&lt;/p&gt;
+-&lt;ul&gt;
+-  &lt;li&gt;connect your ATEVK1100 board with the PC using an USB cable&lt;/li&gt;
+-  &lt;li&gt;put your board in DFU mode (this is required for FLIP interaction). To do this:
+-    &lt;ol&gt;
+-      &lt;li&gt;press &lt;b&gt;on&lt;/b&gt; the on-board joystick (and keep it pressed)&lt;/li&gt;
+-      &lt;li&gt;press the RESET button on the board briefly&lt;/li&gt;
+-      &lt;li&gt;release the RESET button&lt;/li&gt;
+-      &lt;li&gt;release the joystick&lt;/li&gt;
+-    &lt;/ol&gt;
+-  &lt;/li&gt;
+-  &lt;li&gt;if you're using Windows and it asks you for a driver, you should install it manually from &lt;i&gt;c:\Program Files\Atmel\Flip &lt;version&gt;\usb&lt;/i&gt;&lt;/li&gt;
+-  &lt;li&gt;Execute this from the command line (the command is the same on Windows and Linux, with a single exception: the FLIP executable name is &lt;b&gt;batchisp3&lt;/b&gt; in Linux and &lt;b&gt;batchisp&lt;/b&gt; (without a 3) in Windows):
+-  &lt;pre&gt;&lt;code&gt;$ batchisp3 -hardware usb -device at32uc3a0512 -operation erase f memory flash blankcheck 
+-  loadbuffer &lt;image name&gt;.hex program verify start reset 0&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+-&lt;/ul&gt;
+-&lt;p&gt;That's all, your &lt;b&gt;eLua&lt;/b&gt; image is (finally) installed on your ATEVK1100 board.&lt;/p&gt;
+-$$FOOTER$$
+-
+
+Added: branches/pre0.8/doc/en/installing_avr32.txt
+===================================================================
+--- branches/pre0.8/doc/en/installing_avr32.txt	                        (rev 0)
++++ branches/pre0.8/doc/en/installing_avr32.txt	2011-02-02 12:25:40 UTC (rev 939)
+@@ -0,0 +1,109 @@
++// $$HEADER$$
++Installing eLua on the AVR32 CPUs from Atmel
++--------------------------------------------
++<A HREF="http://www.atmel.com/products/AVR32/[AVR32">http://www.atmel.com/products/AVR32/[AVR32</A>] is a family of high performance 32-bit CPUs from &quot;<A HREF="http://www.atmel.com[Atmel">http://www.atmel.com[Atmel</A>].
++They were built as direct competitors for the various ARM core implementation of the market, and offer very good
++performance (91 MIPS @ 66MHz) and power efficieny (1.3mW/MHz). Atmel claims that their AVR32 core outperforms ARMv5 
++(in ARM and Thumb mode) in terms of both performance and code size. It's a proprietary architecture (so it's only implemented by Atmel), 
++yet it has a very good support package, and an open source toolchain based on GCC, which made it an ideal candidate for the first 
++non-ARM (and also the first big endian) eLua target. Atmel also sells a number of development boards based on their AVR23 CPUs. 
++The one used for eLua is the _ATEVK1100 board built around the _AT32UC3A0512 AVR32 MCU (512k internal Flash/64k internal ARM).
++It's a very powerful board, featuring (among other things) an external 32 MByte SDRAM memory, which is more than enough to run lots and
++lots of eLua programs.
++
++NOTE: eLua version 0.8 added support for the AVR32 based _ATEVK1101 and _Mizar32 boards. The instructions below apply for the _ATEVK1101
++board too; for _Mizar32 read the note xref:buildnote[here].
++
++Prerequisites
++-------------
++Before you'll be able to use eLua on the AT32UC3A0512 CPU, make sure that:
++
++* you're using Linux or Windows. It's easier to install and use Atmel's programming software on Windows, so use Windows version if you want to save
++  yourself from quite a bit of hassle.
++* you installed Atmel's <A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886[FLIP">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886[FLIP</A> programming software], which is what you need
++  in order to burn your eLua&lt; image. Installation in easy under Windows (you just need to run a setup package), but quite tricky under Linux. 
++  The next paragraph outlines the procedure for installing FLIP in Linux.
++* you already have your eLua image for the AT32UC3A0512 CPU (link:building.html[built] or link:downloads.html[downloaded]). Note that unlike other 
++  platforms the ATEVK1100 needs a .hex file for programming, not a .bin.
++
++Installing FLIP in Ubuntu Linux
++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++[[buildnote]]
++IMPORTANT: The instructions below are somewhat hard to put in practice and reports suggests that they don't work well on all Ubuntu versions.
++For updated (and simpler) instructions on how to make FLIP work under Linux and for alternative Linux programming software check
++<A HREF="http://code.google.com/p/mizar32/wiki/FlashingFirmware[the">http://code.google.com/p/mizar32/wiki/FlashingFirmware[the</A> Mizar32 wiki page].
++
++Follow the steps below to install FLIP under Linux:
++
++1. download the Linux version of FLIP from <A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886[the">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=3886[the</A> Atmel FLIP page]. Save it 
++  (or move it later) to your _/usr/local/_ directory (you need to have superuser privileges to do that). At the moment of writing this tutorial, 
++  the latest FLIP version is 3.2.1, so this is what we're going to use here.
++
++2. untar the FLIP archive: 
+++
++------------------------------------
++$ cd /usr/local
++$ sudo tar xvzf flip_linux_3-2-1.tgz
++------------------------------------
+++
++This will create the _/usr/local/flip.3.2.1_ directory.
++
++3. you need to install OpenJDK if it is not installed:
+++
++------------------------------------
++$ sudo apt-get install openjdk-6-jre
++------------------------------------
++
++4. edit _/usr/local/flip.3.2.1/bin/batchisp3.sh_ and add the two bolded lines before at the beginning of the file:
+++
++[subs=&quot;quotes&quot;]
++-------------------------------------------------
++#!/bin/bash -f
++
++*export JAVA_HOME=/usr/lib/jvm/java-6-openjdk/jre/*
++*export FLIP_HOME=/usr/local/flip.3.2.1/bin/*
++
++if [ &quot;$FLIP_HOME&quot; = &quot;&quot; ]; then
++-------------------------------------------------
++
++5. you need to edit a binary file this time (_/usr/local/flip.3.2.1/libatlibusbdfu.so_). This happens because FLIP comes compiled for RedHat 
++   by default and Ubuntu some different system paths. See <A HREF="http://www.avrfreaks.net/index.php?name=PNphpBB2&amp;amp;file=viewtopic&amp;amp;t=56562[this">http://www.avrfreaks.net/index.php?name=PNphpBB2&amp;file=viewtopic&amp;t=56562[this</A> topic]
++   for full details. All you have to do is change all the */sys/bus/usb* strings inside _libatlibusbdfu.so&lt;_ to */dev/bus/usb*.
++
++6. add the FLIP directory to your PATH:
+++
++---------------------------------------------
++$ export PATH=/usr/local/flip.3.2.1/bin:$PATH
++---------------------------------------------
++
++7. FLIP interferes with a program that comes pre-installed on Ubuntu system, called *brltty*. It's meant to help the visually 
++  impaired, so if you don't need it simply remove it (as it seems to interfere with a lot of other USB devices too):
+++
++----------------------------
++$ sudo apt-get remove brltty
++----------------------------
++
++Burning eLua to the EVK1100 board
++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++After you installed FLIP and added it to your $PATH, burning the eLua image should be quite easy:
++
++* connect your ATEVK1100 board with the PC using an USB cable
++* put your board in DFU mode (this is required for FLIP interaction). To do this:
+++
++  1. press *on* the on-board joystick and keep it pressed
++  2. press the RESET button on the board briefly
++  3. release the RESET button
++  4. release the joystick
++
++* if you're using Windows and it asks you for a driver, you should install it manually from __c:\Program Files\Atmel\Flip &lt;version&gt;\usb__
++* execute this from the command line (the command is the same on Windows and Linux, with a single exception: the FLIP executable name is *batchisp3* in Linux 
++  and *batchisp* (without a 3) in Windows):
+++
++--------------------------------------------------------------------------------------------------------------------------------------------------
++$ batchisp3 -hardware usb -device at32uc3a0512 -operation erase f memory flash blankcheck loadbuffer &lt;image name&gt;.hex program verify start reset 0
++--------------------------------------------------------------------------------------------------------------------------------------------------
++
++That's all, your eLua image is (finally) installed on your ATEVK1100 board.
++
++// $$FOOTER$$
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000891.html">[Elua-svn] r938 - in branches/pre0.8: . doc/eluadoc doc/en
+</A></li>
+	<LI>Next message: <A HREF="000893.html">[Elua-svn] r940 - branches/pre0.8/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#892">[ date ]</a>
+              <a href="thread.html#892">[ thread ]</a>
+              <a href="subject.html#892">[ subject ]</a>
+              <a href="author.html#892">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

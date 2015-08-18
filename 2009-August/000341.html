@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r386 - in trunk: romfs src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r386%20-%20in%20trunk%3A%20romfs%20src/platform/lm3s&In-Reply-To=%3C200908031839.n73IdiCT011621%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000340.html">
+   <LINK REL="Next"  HREF="000343.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r386 - in trunk: romfs src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r386%20-%20in%20trunk%3A%20romfs%20src/platform/lm3s&In-Reply-To=%3C200908031839.n73IdiCT011621%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r386 - in trunk: romfs src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Aug  3 20:39:44 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000340.html">[Elua-svn] r385 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000343.html">[Elua-svn] r387 - in tags/pre0.6: doc doc/luadoc src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#341">[ date ]</a>
+              <a href="thread.html#341">[ thread ]</a>
+              <a href="subject.html#341">[ subject ]</a>
+              <a href="author.html#341">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-08-03 20:39:43 +0200 (Mon, 03 Aug 2009)
+New Revision: 386
+
+Added:
+   trunk/src/platform/lm3s/lm3s-9b92.ld
+Modified:
+   trunk/romfs/lhttpd.lua
+   trunk/src/platform/lm3s/platform.c
+Log:
+Working ethernet.
+
+Modified: trunk/romfs/lhttpd.lua
+===================================================================
+--- trunk/romfs/lhttpd.lua	2009-08-03 18:39:33 UTC (rev 385)
++++ trunk/romfs/lhttpd.lua	2009-08-03 18:39:43 UTC (rev 386)
+@@ -1,5 +1,5 @@
+ -- Check platform
+-if pd.board() ~= 'EK-LM3S8962' and pd.board() ~= 'EK-LM3S6965' and pd.board() ~= 'EAGLE-100' then
++if pd.board() ~= 'EK-LM3S8962' and pd.board() ~= 'EK-LM3S6965' and pd.board() ~= 'EAGLE-100' and pd.board() ~= 'EK-LM3S9B92' then
+   print( pd.board() .. &quot; not supported by this example&quot; )
+   return
+ end
+
+Added: trunk/src/platform/lm3s/lm3s-9b92.ld
+===================================================================
+--- trunk/src/platform/lm3s/lm3s-9b92.ld	2009-08-03 18:39:33 UTC (rev 385)
++++ trunk/src/platform/lm3s/lm3s-9b92.ld	2009-08-03 18:39:43 UTC (rev 386)
+@@ -0,0 +1,64 @@
++MEMORY
++{
++    sram (W!RX) : ORIGIN = 0x20000000, LENGTH = 0x00018000
++    flash (RX) : ORIGIN = 0x00000000, LENGTH = 0x00040000
++}
++
++SECTIONS
++{  
++    .text :
++    {
++        . = ALIGN(4);
++        _text = .;
++        PROVIDE(stext = .);
++        KEEP(*(.isr_vector))
++        KEEP(*(.init))
++        *(.text .text.*)        
++        *(.rodata .rodata.*)        
++        *(.gnu.linkonce.t.*)
++        *(.glue_7)
++        *(.glue_7t)
++        *(.gcc_except_table)
++        *(.gnu.linkonce.r.*)
++        . = ALIGN(4);
++        _etext = .;
++        PROVIDE(etext = .);   
++     		_fini = . ;
++				*(.fini)
++
++    } &gt;flash
++
++    .data : AT (_etext)
++    {
++        . = ALIGN(4);
++        _data = .;
++        *(.ramfunc .ramfunc.* .fastrun .fastrun.*)
++        *(.data .data.*)
++        *(.gnu.linkonce.d.*)
++        . = ALIGN(4);
++        _edata = .;
++    } &gt;sram
++		
++		.ARM.extab :
++		{
++		    *(.ARM.extab*)
++		} &gt;sram
++		
++		__exidx_start = .;
++		.ARM.exidx :
++		{
++		    *(.ARM.exidx*)
++		} &gt;sram
++		__exidx_end = .;
++		
++    .bss (NOLOAD) : {
++        _bss = .;
++        *(.bss .bss.*)
++        *(.gnu.linkonce.b.*)
++        *(COMMON)
++        . = ALIGN(4);        
++        _ebss = .;
++    } &gt;sram
++    
++    end = .;
++}
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-08-03 18:39:33 UTC (rev 385)
++++ trunk/src/platform/lm3s/platform.c	2009-08-03 18:39:43 UTC (rev 386)
+@@ -23,6 +23,7 @@
+ #include &quot;hw_types.h&quot;
+ #include &quot;hw_pwm.h&quot;
+ #include &quot;hw_nvic.h&quot;
++#include &quot;hw_ethernet.h&quot;
+ #include &quot;debug.h&quot;
+ #include &quot;gpio.h&quot;
+ #include &quot;interrupt.h&quot;
+@@ -812,6 +813,11 @@
+   MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_ETH );
+   MAP_SysCtlPeripheralReset( SYSCTL_PERIPH_ETH );
+ 
++#ifdef FORLM3S9B92
++  GPIOPinConfigure(GPIO_PF2_LED1);
++  GPIOPinConfigure(GPIO_PF3_LED0);
++#endif
++
+   // Enable Ethernet LEDs
+   MAP_GPIODirModeSet( GPIO_PORTF_BASE, GPIO_PIN_2 | GPIO_PIN_3, GPIO_DIR_MODE_HW );
+   MAP_GPIOPadConfigSet( GPIO_PORTF_BASE, GPIO_PIN_2 | GPIO_PIN_3, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
+@@ -834,8 +840,7 @@
+   // - Full Duplex
+   // - TX CRC Auto Generation
+   // - TX Padding Enabled
+-  MAP_EthernetConfigSet(ETH_BASE, (ETH_CFG_TX_DPLXEN | ETH_CFG_TX_CRCEN |
+-                               ETH_CFG_TX_PADEN));
++  MAP_EthernetConfigSet(ETH_BASE, (ETH_CFG_TX_DPLXEN | ETH_CFG_TX_CRCEN | ETH_CFG_TX_PADEN));
+ 
+   // Enable the Ethernet Controller.
+   MAP_EthernetEnable(ETH_BASE);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000340.html">[Elua-svn] r385 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000343.html">[Elua-svn] r387 - in tags/pre0.6: doc doc/luadoc src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#341">[ date ]</a>
+              <a href="thread.html#341">[ thread ]</a>
+              <a href="subject.html#341">[ subject ]</a>
+              <a href="author.html#341">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

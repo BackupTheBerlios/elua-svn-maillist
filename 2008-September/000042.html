@@ -1,0 +1,148 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r86 - in trunk: . docs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r86%20-%20in%20trunk%3A%20.%20docs&In-Reply-To=%3C200809101852.m8AIqQF8014244%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000041.html">
+   <LINK REL="Next"  HREF="000043.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r86 - in trunk: . docs</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r86%20-%20in%20trunk%3A%20.%20docs&In-Reply-To=%3C200809101852.m8AIqQF8014244%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r86 - in trunk: . docs">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Sep 10 20:52:26 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000041.html">[Elua-svn] r85 - in trunk: . inc romfs src/lua	src/platform/at91sam7x src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000043.html">[Elua-svn] r87 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#42">[ date ]</a>
+              <a href="thread.html#42">[ thread ]</a>
+              <a href="subject.html#42">[ subject ]</a>
+              <a href="author.html#42">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-09-10 20:52:26 +0200 (Wed, 10 Sep 2008)
+New Revision: 86
+
+Modified:
+   trunk/CHANGELOG
+   trunk/LICENSE
+   trunk/docs/generic_modules.txt
+   trunk/docs/platform_modules.txt
+Log:
+getting ready to release 0.4.1
+
+Modified: trunk/CHANGELOG
+===================================================================
+--- trunk/CHANGELOG	2008-09-10 18:41:31 UTC (rev 85)
++++ trunk/CHANGELOG	2008-09-10 18:52:26 UTC (rev 86)
+@@ -1,3 +1,12 @@
++10.09.2008 Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdanm at users.berlios.de</A>&gt;
++
++  * Minor release 0.4.1; its main purpose is to integrate the new Lua 5.1.4
++  * Changed the file system structure; now you can build both Lua versions
++    (floating point and int only) from the same directory
++  * Made the math library configurable using the existent 'platform libraries'
++    mechanism
++  * Project documentation updated
++ 
+ 02.09.2008 Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdanm at users.berlios.de</A>&gt;
+ 
+   * Official release 0.4
+
+Modified: trunk/LICENSE
+===================================================================
+--- trunk/LICENSE	2008-09-10 18:41:31 UTC (rev 85)
++++ trunk/LICENSE	2008-09-10 18:52:26 UTC (rev 86)
+@@ -10,6 +10,9 @@
+ The &quot;bit&quot; module is adapted from the &quot;bitlib&quot; library by Reuben Thomas which
+ is distributed under a MIT license.
+ 
++The &quot;integer only lua&quot; is based on the &quot;Go Long Lua!&quot; patch by John D.
++Ramsdell (from the Lua Power Patches page).
++
+ The multiple memory allocator (dlmalloc) is written by Doug Lea and it's
+ placed on the public domain.
+ 
+
+Modified: trunk/docs/generic_modules.txt
+===================================================================
+--- trunk/docs/generic_modules.txt	2008-09-10 18:41:31 UTC (rev 85)
++++ trunk/docs/generic_modules.txt	2008-09-10 18:52:26 UTC (rev 86)
+@@ -98,3 +98,11 @@
+ 
+ Res = bit.isclear( value, bitno ): returns true if bit at position &quot;bitno&quot; in
+   &quot;value&quot; is 0, false otherwise.
++
++The &quot;math&quot; module
++================================================================================
++This is actually part of the official Lua distribution, not a separate module.
++Its purpose is to provide mathematic functiosn (sin, cos, tan...) to Lua. Since
++these kind of functions are rarely needed in an embedded environment, the &quot;math&quot;
++module can be enabled and disabled just like the other generic and platform 
++modules in eLua.
+
+Modified: trunk/docs/platform_modules.txt
+===================================================================
+--- trunk/docs/platform_modules.txt	2008-09-10 18:41:31 UTC (rev 85)
++++ trunk/docs/platform_modules.txt	2008-09-10 18:52:26 UTC (rev 86)
+@@ -50,17 +50,15 @@
+ #endif
+ (END src/platform/at91sam7x/platform_libs.h)
+ 
+-On the other hand, we don't want any modules for the i386 platform (yet), so the
+-&quot;platform_libs.h&quot; file is empty in this case:
++On the other hand, for a platform that doesn't need to enable any modules at
++all, this can be an empty file:
+ 
+-(BEGIN src/platform/i386/platform_libs.h)
+ // Auxiliary libraries that will be compiled for this platform
+ 
+ #ifndef __PLATFORM_LIBS_H__
+ #define __PLATFORM_LIBS_H__
+   
+ #endif
+-(END src/platform/i386/platform_libs.h)
+ 
+ This is why some of platform functions described in &quot;platform interface.txt&quot; are
+ optional. If there are no modules that use them in one platform, then you don't
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000041.html">[Elua-svn] r85 - in trunk: . inc romfs src/lua	src/platform/at91sam7x src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000043.html">[Elua-svn] r87 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#42">[ date ]</a>
+              <a href="thread.html#42">[ thread ]</a>
+              <a href="subject.html#42">[ subject ]</a>
+              <a href="author.html#42">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

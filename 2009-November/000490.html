@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r534 - trunk/romfs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r534%20-%20trunk/romfs&In-Reply-To=%3C200911080103.nA813cfV007538%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000489.html">
+   <LINK REL="Next"  HREF="000491.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r534 - trunk/romfs</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r534%20-%20trunk/romfs&In-Reply-To=%3C200911080103.nA813cfV007538%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r534 - trunk/romfs">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Sun Nov  8 02:03:38 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000489.html">[Elua-svn] r533 - in trunk: . src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000491.html">[Elua-svn] r535 - in branches/eagle_mmc: inc src src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#490">[ date ]</a>
+              <a href="thread.html#490">[ thread ]</a>
+              <a href="subject.html#490">[ subject ]</a>
+              <a href="author.html#490">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2009-11-08 02:03:37 +0100 (Sun, 08 Nov 2009)
+New Revision: 534
+
+Modified:
+   trunk/romfs/pong.lua
+Log:
+Randomize seed on start now depends on user time delay
+Longer screen power off delay at the end
+
+
+
+Modified: trunk/romfs/pong.lua
+===================================================================
+--- trunk/romfs/pong.lua	2009-11-07 00:24:02 UTC (rev 533)
++++ trunk/romfs/pong.lua	2009-11-08 01:03:37 UTC (rev 534)
+@@ -243,10 +243,9 @@
+ lm3s.disp.init( 1000000 )
+ 
+ tmr.start( tmr_id )
+---menu()
+-math.randomseed( tmr.read( tmr_id ) )    -- If you use the menu function, the time will be used as a seed to the random function
+---tmr.stop( tmr_id )
+-
++lm3s.disp.print( &quot;Pls press SELECT --&gt;&quot;, 0, 34, 12 )          
++while not kit.btn_pressed( kit.BTN_SELECT ) do end -- Random init delay to randomsee
++math.randomseed( tmr.read( tmr_id ) ) 
+ collectgarbage( &quot;collect&quot; )
+ 
+ -- GAME START
+@@ -272,6 +271,7 @@
+   draw_wall( canvas.x )
+   draw_paddle( paddle.y, 11, 0 )
+ 
++  local stop_playing = true
+   while ( true ) do
+     for i = 0, 1 do
+       update_paddle_pos()
+@@ -316,14 +316,12 @@
+   lm3s.disp.print( &quot;Your score was &quot;..tostring( score ), 15, 40, 11 )
+   lm3s.disp.print( &quot;Highscore: &quot;..tostring( highscore ), 15, 50, 11 )
+   lm3s.disp.print( &quot;SELECT to restart&quot;, 6, 70, 11 )
+-  enough = true
+-  for i=1, 100000 do
++  for i=1, 1000000 do
+     if kit.btn_pressed( kit.BTN_SELECT ) then
+-      enough = false
++      stop_playing = false
+       break
+     end
+   end
+-until ( enough )
++until (stop_playing)
+ 
+ lm3s.disp.off()
+-lm3s.disp.init( 1000000 )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000489.html">[Elua-svn] r533 - in trunk: . src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000491.html">[Elua-svn] r535 - in branches/eagle_mmc: inc src src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#490">[ date ]</a>
+              <a href="thread.html#490">[ thread ]</a>
+              <a href="subject.html#490">[ subject ]</a>
+              <a href="author.html#490">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

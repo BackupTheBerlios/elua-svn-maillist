@@ -1,0 +1,964 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r796 - in trunk/doc: . en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r796%20-%20in%20trunk/doc%3A%20.%20en&In-Reply-To=%3C20101005184914.78D5E48080B%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000748.html">
+   <LINK REL="Next"  HREF="000750.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r796 - in trunk/doc: . en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r796%20-%20in%20trunk/doc%3A%20.%20en&In-Reply-To=%3C20101005184914.78D5E48080B%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r796 - in trunk/doc: . en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Oct  5 20:49:14 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000748.html">[Elua-svn] r795 - in trunk/doc: . en
+</A></li>
+        <LI>Next message: <A HREF="000750.html">[Elua-svn] r797 - in trunk/doc/images: . icons
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#749">[ date ]</a>
+              <a href="thread.html#749">[ thread ]</a>
+              <a href="subject.html#749">[ subject ]</a>
+              <a href="author.html#749">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-10-05 20:49:14 +0200 (Tue, 05 Oct 2010)
+New Revision: 796
+
+Removed:
+   trunk/doc/en/status.html
+Modified:
+   trunk/doc/buildall.lua
+   trunk/doc/en/asciidoc.conf
+   trunk/doc/en/status.txt
+   trunk/doc/style1.css
+Log:
+status page switched to AsciiDoc
+
+Modified: trunk/doc/buildall.lua
+===================================================================
+--- trunk/doc/buildall.lua	2010-10-05 15:44:48 UTC (rev 795)
++++ trunk/doc/buildall.lua	2010-10-05 18:49:14 UTC (rev 796)
+@@ -444,8 +444,8 @@
+ ]=], get_menu_title( item, lang ) )
+   header = header .. gen_logo( fname, lang ) .. &quot;\n&quot;
+   local menuitems = gen_html_nav( parentid, lang )
+-  header = header .. menuitems .. '&lt;div id=&quot;content&quot;&gt;\n'
+-  local footer = [[
++  header = header .. menuitems .. '&lt;div id=&quot;content&quot;&gt;\n' .. ( asciimode and &quot;&quot; or '&lt;div class=&quot;sectionbody&quot;&gt;' )
++  local footer = ( asciimode and &quot;&quot; or '&lt;/div&gt;' ) .. [[
+ &lt;/div&gt;
+ &lt;script type=&quot;text/javascript&quot;&gt;
+ var gaJsHost = ((&quot;https:&quot; == document.location.protocol) ? &quot;<A HREF="https://ssl.">https://ssl.</A>&quot; : &quot;<A HREF="http://www.">http://www.</A>&quot;);
+
+Modified: trunk/doc/en/asciidoc.conf
+===================================================================
+--- trunk/doc/en/asciidoc.conf	2010-10-05 15:44:48 UTC (rev 795)
++++ trunk/doc/en/asciidoc.conf	2010-10-05 18:49:14 UTC (rev 796)
+@@ -18,7 +18,7 @@
+ 
+ # Colored table cells
+ # o: white background, orange text color
+-# g: gray background, black text color, bold text
++# g: gray background, black text color, bold text, text is centered
+ [tabledef-default]
+ orange-style=tags=&quot;orange&quot;
+ graybg-style=tags=&quot;graybg&quot;
+@@ -27,7 +27,7 @@
+ bodydata=&lt;td style=&quot;color: rgb(255, 102, 0)&quot;&gt;|&lt;/td&gt;
+ 
+ [tabletags-graybg]
+-bodydata=&lt;td style=&quot;background-color: silver; font-weight: bold;&quot;&gt;|&lt;/td&gt;
++bodydata=&lt;td style=&quot;background-color: silver; font-weight: bold;&quot; align=&quot;center&quot;&gt;|&lt;/td&gt;
+ 
+ [replacements]
+ # Status images
+@@ -36,9 +36,6 @@
+ _snt=image:images/stat_not_tested.png[Status: testing]
+ _sna=image:images/stat_not_applicable.png[Status: not applicable]
+ 
+-# 'Lazy text' (automatic formatting of text color with simple patterns)
+<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">- at o_</A>(\S+)=&lt;font style=&quot;color: rgb(255, 102, 0);&quot;&gt;\1&lt;/font&gt;
+-
+ # CPUs 
+ _LM3S8962=<A HREF="http://www.luminarymicro.com/products/LM3S8962.html[LM3S8962">http://www.luminarymicro.com/products/LM3S8962.html[LM3S8962</A>]
+ _LM3S6965=<A HREF="http://www.luminarymicro.com/products/lm3s6965.html[LM3S6965">http://www.luminarymicro.com/products/lm3s6965.html[LM3S6965</A>]
+@@ -71,3 +68,6 @@
+ _STM3210E-EVAL=<A HREF="http://www.st.com/mcu/contentid-100-110-STM3210E_EVAL.html[STM3210E-EVAL">http://www.st.com/mcu/contentid-100-110-STM3210E_EVAL.html[STM3210E-EVAL</A>]
+ _ET-STM32Stamp=<A HREF="http://www.futurlec.com/ET-STM32_Stamp.shtml[ET-STM32">http://www.futurlec.com/ET-STM32_Stamp.shtml[ET-STM32</A> Stamp]
+ _mbed=<A HREF="http://mbed.org/[mbed">http://mbed.org/[mbed</A>]
++
++# Miscellaneous
++_br=&lt;br /&gt;
+
+Deleted: trunk/doc/en/status.html
+===================================================================
+--- trunk/doc/en/status.html	2010-10-05 15:44:48 UTC (rev 795)
++++ trunk/doc/en/status.html	2010-10-05 18:49:14 UTC (rev 796)
+@@ -1,723 +0,0 @@
+-$$HEADER$$
+-&lt;a name=&quot;status&quot; /&gt;&lt;h3&gt;eLua project status&lt;/h3&gt;
+-&lt;p&gt;
+-The current status of &lt;b&gt;eLua&lt;/b&gt; is given by the list of the
+-currently supported platforms, together with a list of
+-modules-per-platform and their development phase. For better
+-formatting, the lists are organized as tables that use the graphical
+-notation given below:
+-&lt;/p&gt;
+-&lt;table style=&quot;width: 620px;&quot; class=&quot;table_center&quot;&gt;
+-&lt;tbody&gt;
+-&lt;tr&gt;
+-&lt;th style=&quot;text-align: center;&quot;&gt;Symbol&lt;/th&gt;
+-&lt;th style=&quot;text-align: center;&quot;&gt;Meaning&lt;/th&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Implemented and tested&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Implemented, needs more testing&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Not yet implemented&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Not applicable&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;/tbody&gt;
+-&lt;/table&gt;
+-&lt;p/&gt;
+-&lt;a name=&quot;platforms&quot; /&gt;&lt;h3&gt;eLua suported platforms&lt;/h3&gt;
+-&lt;p&gt;The list of CPUs and boards currently supported by &lt;b&gt;eLua&lt;/b&gt; is given below:&lt;/p&gt;
+-&lt;table style=&quot;text-align: left; width: 620px;&quot; class=&quot;table_center&quot;&gt;
+-&lt;tbody&gt;
+-&lt;tr&gt;
+-  &lt;th style=&quot;text-align: left;&quot;&gt;CPU&lt;/th&gt;
+-  &lt;th style=&quot;text-align: center;&quot;&gt;Architecture&lt;/th&gt;
+-  &lt;th style=&quot;text-align: center;&quot;&gt;Platform name&lt;/th&gt;
+-  &lt;th style=&quot;text-align: center;&quot;&gt; Supported boards &lt;/th&gt;
+-  &lt;th style=&quot;text-align: center;&quot;&gt;Status&lt;/th&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.luminarymicro.com/products/LM3S8962.html">http://www.luminarymicro.com/products/LM3S8962.html</A>&quot;&gt;LM3S8962&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;Cortex-M3&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LM3S&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.luminarymicro.com/products/lm3s8962_can_ethernet_evaluation_kit.html">http://www.luminarymicro.com/products/lm3s8962_can_ethernet_evaluation_kit.html</A>&quot;&gt;EK-LM3S8962&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.luminarymicro.com/products/lm3s6965.html">http://www.luminarymicro.com/products/lm3s6965.html</A>&quot;&gt;LM3S6965&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;Cortex-M3&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LM3S&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.luminarymicro.com/products/lm3s6965_ethernet_evaluation_kit.html">http://www.luminarymicro.com/products/lm3s6965_ethernet_evaluation_kit.html</A>&quot;&gt;EK-LM3S6965&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.luminarymicro.com/products/lm3s6918.html">http://www.luminarymicro.com/products/lm3s6918.html</A>&quot;&gt;LM3S6918&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;Cortex-M3&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LM3S&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.micromint.com/index.php/SBC/eagle-100.html">http://www.micromint.com/index.php/SBC/eagle-100.html</A>&quot;&gt;Eagle 100&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.luminarymicro.com/products/lm3s6918.html">http://www.luminarymicro.com/products/lm3s6918.html</A>&quot;&gt;LM3S9B92&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;Cortex-M3&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LM3S&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.luminarymicro.com/products/ek-lm3s9b92.html">http://www.luminarymicro.com/products/ek-lm3s9b92.html</A>&quot;&gt;EK-LM3S9B92&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.atmel.com/dyn/products/product_card.asp?part_id=4117">http://www.atmel.com/dyn/products/product_card.asp?part_id=4117</A>&quot;&gt;AT32UC3A0512&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;AVR32&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;AVR32&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.atmel.com/dyn/Products/tools_card.asp?tool_id=4114">http://www.atmel.com/dyn/Products/tools_card.asp?tool_id=4114</A>&quot;&gt;ATEVK1100&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.atmel.com/dyn/products/Product_card.asp?part_id=3755">http://www.atmel.com/dyn/products/Product_card.asp?part_id=3755</A>&quot;&gt;AT91SAM7X256&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;ARM7TDMI&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;at91sam7x&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.olimex.com/dev/sam7-ex256.html">http://www.olimex.com/dev/sam7-ex256.html</A>&quot;&gt;SAM7-EX256&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.atmel.com/dyn/products/Product_card.asp?part_id=4104">http://www.atmel.com/dyn/products/Product_card.asp?part_id=4104</A>&quot;&gt;AT91SAM7X512&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;ARM7TDMI&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;at91sam7x&lt;/td&gt;
+-  &lt;td&gt;None&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;!--
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.nxp.com/#/pip/pip=[pip=LPC1768_66_65_64_2">http://www.nxp.com/#/pip/pip=[pip=LPC1768_66_65_64_2</A>]|pp=[t=pip,i=LPC1768_66_65_64_2]&quot;&gt;LPC1768&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;Cortex-M3&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LPC17xx&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://hackaday.com/2009/11/21/review-mbed-nxp-lpc1768-microcontroller/">http://hackaday.com/2009/11/21/review-mbed-nxp-lpc1768-microcontroller/</A>&quot;&gt;mbed&lt;/a&gt;&lt;/td&gt;  
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+---&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a
+-  href=&quot;<A HREF="http://www.nxp.com/#/pip/pip=[pip=LPC2468_4">http://www.nxp.com/#/pip/pip=[pip=LPC2468_4</A>]|pp=[t=pip,i=LPC2468_4]&quot;&gt;LPC2468&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;ARM7TDMI&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LPC24xx&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.giga.puc-rio.br/site/embedded/eluademoboard">http://www.giga.puc-rio.br/site/embedded/eluademoboard</A>&quot;&gt;PUC-Rio Demo&lt;/a&gt;&lt;/td&gt;  
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.standardics.nxp.com/microcontrollers/to/pip/LPC2880FET180.html">http://www.standardics.nxp.com/microcontrollers/to/pip/LPC2880FET180.html</A>&quot;&gt;LPC2888&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;ARM7TDMI&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LPC288x&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.olimex.com/dev/lpc-h2888.html">http://www.olimex.com/dev/lpc-h2888.html</A>&quot;&gt;LPC-H2888&lt;/a&gt;&lt;/td&gt;  
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.st.com/mcu/devicedocs-STR711FR2.html">http://www.st.com/mcu/devicedocs-STR711FR2.html</A>&quot;&gt;STR711FR2&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;ARM7TDMI&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;STR7&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.sctec.com.br/content/view/101/30/">http://www.sctec.com.br/content/view/101/30/</A>&quot;&gt;MOD711&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.st.com/mcu/devicedocs-STR912FAW44-101.html">http://www.st.com/mcu/devicedocs-STR912FAW44-101.html</A>&quot;&gt;STR912FAW44&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;ARM966E-S&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;STR9&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.hitex.com/index.php?id=383">http://www.hitex.com/index.php?id=383</A>&quot;&gt;STR9-comStick&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.st.com/mcu/devicedocs-STR912FAW44-101.html">http://www.st.com/mcu/devicedocs-STR912FAW44-101.html</A>&quot;&gt;STR912FAW44&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;ARM966E-S&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;STR9&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.olimex.com/dev/str-e912.html">http://www.olimex.com/dev/str-e912.html</A>&quot;&gt;STR-E912&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.st.com/mcu/devicedocs-STM32F103ZE-110.html">http://www.st.com/mcu/devicedocs-STM32F103ZE-110.html</A>&quot;&gt;STM32F103ZE&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;Cortex-M3&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;STM32&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.st.com/mcu/contentid-100-110-STM3210E_EVAL.html">http://www.st.com/mcu/contentid-100-110-STM3210E_EVAL.html</A>&quot;&gt;STM3210E-EVAL&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.st.com/mcu/devicedocs-STM32F103RE-110.html">http://www.st.com/mcu/devicedocs-STM32F103RE-110.html</A>&quot;&gt;STM32F103RE&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;Cortex-M3&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;STM32&lt;/td&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.futurlec.com/ET-STM32_Stamp.shtml">http://www.futurlec.com/ET-STM32_Stamp.shtml</A>&quot;&gt;ET-STM32 Stamp&lt;/a&gt;&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td&gt;&lt;a href=&quot;<A HREF="http://www.intel.com">http://www.intel.com</A>&quot;&gt;i386 (generic)&lt;/a&gt;&lt;/td&gt;
+-  &lt;td&gt;x86&lt;/td&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;i386&lt;/td&gt;
+-  &lt;td&gt;PCs/emulators&lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;/tbody&gt;
+-&lt;/table&gt;
+-&lt;p/&gt;
+-&lt;a name=&quot;plat_modules&quot; /&gt;&lt;h3&gt;eLua modules x MCUs&lt;/h3&gt;
+-&lt;p&gt;The relationship between a module and its implementation on a particular platform is given in the next table.&lt;/p&gt;
+-&lt;table style=&quot;text-align: left; width: 620px;&quot; class=&quot;table_center&quot;&gt;
+-&lt;tbody&gt;
+-&lt;tr&gt;
+-&lt;th&gt;Module&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;pio&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;spi&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;uart&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;tmr&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;pwm&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;net&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;cpu&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;adc&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;pd&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;term&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;bit&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;pack&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;can&lt;/th&gt;
+-&lt;!-- rowspan=&quot;2&quot;&gt;i2c&lt;/th&gt;&lt;--&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;rpc&lt;/th&gt;
+-&lt;th rowspan=&quot;2&quot;&gt;mmc&lt;/th&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;MCU&lt;/td&gt;
+-&lt;/tr&gt;&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LM3S8962&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img style=&quot;width: 16px; height: 16px;&quot; src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img style=&quot;width: 16px; height: 16px;&quot; src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot;/&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LM3S6965&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LM3S6918&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LM3S9B92&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img style=&quot;width: 16px; height: 16px;&quot; src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img style=&quot;width: 16px; height: 16px;&quot; src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;AT32UC3A0512&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt; &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;  &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt; &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;AT91SAM7X256&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;AT91SAM7X512&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot; &gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;!--
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LPC1768&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot; &gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+---&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LPC2468&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot; &gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;LPC2888&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot; &gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;STR711FR2&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt; &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;  &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt; &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;STR912FAW44&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot; &gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;STM32F103ZE&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt; &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;  &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt; &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;STM32F103RE&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt; &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;  &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt; &lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;i386&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img style=&quot;height: 16px; width: 16px;&quot; src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img style=&quot;height: 16px; width: 16px;&quot; src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;
+-&lt;!--&gt;&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_applicable.png&quot; alt=&quot;Status: not applicable&quot; /&gt;&lt;/td&gt;&lt;--&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;/tbody&gt;
+-&lt;/table&gt;
+-&lt;p/&gt;
+-&lt;a name=&quot;gen_modules&quot; /&gt;&lt;h3&gt;eLua modules&lt;/h3&gt;
+-&lt;p&gt;The following table shows a list of the generic modules currently implemented (and planned to be implemented) in &lt;b&gt;eLua&lt;/b&gt;.&lt;/p&gt;
+-&lt;table style=&quot;text-align: left; width: 620px;&quot; class=&quot;table_center&quot;&gt;
+-&lt;tbody&gt;
+-&lt;tr&gt;
+-&lt;th style=&quot;text-align: left;&quot;&gt;Name&lt;/th&gt; 
+-&lt;th style=&quot;text-align: center;&quot;&gt;Description&lt;/th&gt;
+-&lt;th style=&quot;text-align: center;&quot;&gt;Status&lt;/th&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;pio&lt;/td&gt;
+-&lt;td&gt;programmable input/output&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;tmr&lt;/td&gt;
+-&lt;td&gt;periodic timer / counters&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;pwm&lt;/td&gt;
+-&lt;td&gt;pulse width modulation&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;uart&lt;/td&gt;
+-&lt;td&gt;universal asynchronous receiver transmitter&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;spi&lt;/td&gt;
+-&lt;td&gt;serial peripheral interface&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;net&lt;/td&gt;
+-&lt;td&gt;TCP/IP networking&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;adc&lt;/td&gt;
+-&lt;td&gt;analog to digital converter&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;dac&lt;/td&gt;
+-&lt;td&gt;digital to analog converter&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;cpu&lt;/td&gt;
+-&lt;td&gt;low level system access&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;pd&lt;/td&gt;
+-&lt;td&gt;platform data&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;term&lt;/td&gt;
+-&lt;td&gt;ANSI terminal access&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;bit&lt;/td&gt;
+-&lt;td&gt;bitwise operations&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;pack&lt;/td&gt;
+-&lt;td&gt;pack/unpack binary data&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;cmp&lt;/td&gt;
+-&lt;td&gt;analog comparator&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;i2c&lt;/td&gt;
+-&lt;td&gt;inter-integrated circuit protocol&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;cnt&lt;/td&gt;
+-&lt;td&gt;event counter&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;can&lt;/td&gt;
+-&lt;td&gt;controller area network&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;rpc&lt;/td&gt;
+-&lt;td&gt;remote procedure call&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;i2s&lt;/td&gt;
+-&lt;td&gt;inter-IC sound&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;mmc&lt;/td&gt;
+-&lt;td&gt;sd/mmc card FAT file system&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;/tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;disp&lt;/td&gt;
+-&lt;td&gt;lcd, oled and other displays support&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;/tr&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;int&lt;/td&gt;
+-&lt;td&gt;interrupt service routines&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: testing&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;/tbody&gt;
+-&lt;/table&gt;
+-&lt;p&gt;
+-For some platforms, a number of platform dependent modules are
+-implemented (or in the works) and are listed below. To understand the
+-difference between generic modules and platform specific modules, check
+-&lt;a href=&quot;arch_overview.html&quot;&gt;the eLua architecture page&lt;/a&gt;.
+-&lt;/p&gt;
+-&lt;table style=&quot;width: 620px; margin-bottom: 10px;&quot; class=&quot;table_center&quot;&gt;
+-&lt;tbody&gt;
+-&lt;tr&gt;
+-  &lt;th style=&quot;text-align: left;&quot;&gt;Name&lt;/th&gt;
+-  &lt;th style=&quot;text-align: center;&quot;&gt;Description&lt;/th&gt;
+-  &lt;th style=&quot;text-align: center;&quot;&gt;Boards&lt;/th&gt;
+-  &lt;th style=&quot;text-align: center;&quot;&gt;Status&lt;/th&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-  &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;disp&lt;/td&gt;
+-  &lt;td&gt;OLED display support&lt;/td&gt;
+-  &lt;td&gt;EK-LM3S8962&lt;br&gt;
+-      EK-LM3S6965
+-  &lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-   &lt;td style=&quot;color: rgb(255, 102, 0);&quot;&gt;pio&lt;/td&gt;
+-  &lt;td&gt;Platform specific PIO support&lt;/td&gt;
+-  &lt;td&gt;STR-E912&lt;br /&gt;
+-      STR9-comStick
+-  &lt;/td&gt;
+-  &lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+- 
+-&lt;/tr&gt;
+-&lt;/tbody&gt;
+-&lt;/table&gt;
+-&lt;p/&gt;
+-&lt;p/&gt;
+-&lt;a name=&quot;roadmap&quot; /&gt;&lt;h3&gt;Status of features and roadmap&lt;/h3&gt;
+-&lt;p&gt;The following table shows the status of some existing and planned &lt;b&gt;eLua&lt;/b&gt; features.&lt;/p&gt;
+-&lt;table style=&quot;text-align: left; width: 620px;&quot; class=&quot;table_center&quot;&gt;
+-&lt;tbody&gt;&lt;tr&gt;
+-&lt;th style=&quot;text-align: left;&quot;&gt;eLua Features&lt;/th&gt;
+-&lt;th style=&quot;text-align: center;&quot;&gt;Status&lt;/th&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Full Lua interpreter running on target&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot; &gt;Embedded HTTP web server&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot; &gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Various Lua examples and eLua apps running properly&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Lua floating point or integer number selection&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;eLua FP module (for integer Lua)&lt;/td&gt;
+-&lt;td style=&quot;color: rgb(255, 102, 0); text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;
+-&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;XMODEM protocol support for console file transfer&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Embedded ROM (Flash) file system&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;&lt;a href=&quot;fatfs.html&quot;&gt;FAT File System layer for mmc/sd cards&lt;/a&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;&lt;a href=&quot;using.html#rpc&quot;&gt;LuaRPC - Remote Procedure Calls&lt;/a&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;&lt;a href=&quot;using.html#uart&quot;&gt;Terminal / Console over UART or Ethernet&lt;a&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;&lt;a href=&quot;using.html#shell&quot;&gt;eLua command shell&lt;/a&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;eLua complete interrupt support&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;&lt;a href=&quot;arch_ltr.html&quot;&gt;eLua LTR (Lua Tiny RAM) patch&lt;/a&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;&lt;a href=&quot;elua_egc.html&quot;&gt;eLua EGC (Emergency Garbage Collection) patch&lt;/a&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_ok.png&quot; alt=&quot;Status: OK&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Embedded text editor&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Embedded help/doc subsystem&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Lua debugging (remote/on target)&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;Host (PC) File Sharing&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;GUI/IDE interface for eLua&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_implemented.png&quot; alt=&quot;Status: not implemented&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;tr&gt;
+-&lt;td style=&quot;text-align: left;&quot;&gt;eLua web build service&lt;br&gt;&lt;/td&gt;
+-&lt;td style=&quot;text-align: center;&quot;&gt;&lt;img src=&quot;images/stat_not_tested.png&quot; alt=&quot;Status: not tested&quot; /&gt;&lt;/td&gt;
+-&lt;/tr&gt;
+-&lt;/tbody&gt;
+-&lt;/table&gt;
+-
+-$$FOOTER$$
+-
+
+Modified: trunk/doc/en/status.txt
+===================================================================
+--- trunk/doc/en/status.txt	2010-10-05 15:44:48 UTC (rev 795)
++++ trunk/doc/en/status.txt	2010-10-05 18:49:14 UTC (rev 796)
+@@ -21,7 +21,7 @@
+ 
+ [width=&quot;70%&quot;, cols=&quot;&lt;2, &lt;3, &lt;3, &lt;3, ^1&quot;, options=&quot;header&quot;]
+ |=====================================================================================
+-^| CPU          ^| Architecture ^|    Platform name      ^| Supported boards ^| Status
++^| CPU          ^| Architecture  ^|   Platform name      ^| Supported boards ^| Status
+ | _LM3S8962      |  Cortex-M3    o|    LM3S               |  _EK-LM3S8962     | _sok
+ | _LM3S6965      |  Cortex-M3    o|    LM3S               |  _EK-LM3S6965     | _sok
+ | _LM3S6918      |  Cortex-M3    o|    LM3S               |  _Eagle-100       | _sok
+@@ -48,7 +48,7 @@
+ [width=&quot;70%&quot;, cols=&quot;&lt;4, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1&quot;, options=&quot;header&quot;]
+ |===================================================================================================================================
+ ^| MCU            15+| Module
+-|                g|  pio g|  spi g|  uart g|  tmr g|  pwm g|  net g|  cpu g|  adc g|   pd g| term g|  bit g| pack g|  can g|  rpc g|mmc
++|               g|  pio g|  spi g|  uart g|  tmr g|  pwm g|  net g|  cpu g|  adc g|   pd g| term g|  bit g| pack g|  can g|  rpc g|mmc
+ | _LM3S8962      | _sok | _snt | _sok | _sok | _sok | _sok | _sok | _sok | _sok | _sok | _sok | _sok | _sni | _snt | _sok 
+ | _LM3S6965      | _sok | _snt | _sok | _sok | _snt | _snt | _sok | _sok | _sok | _sok | _sok | _sok | _sna | _sok | _sok
+ | _LM3S6918      | _sok | _snt | _sok | _sok | _sna | _snt | _sok | _snt | _sok | _sok | _sok | _sok | _sna | _snt | _sni
+@@ -72,7 +72,7 @@
+ 
+ [width=&quot;70%&quot;, cols=&quot;&lt;1, &lt;5, ^1&quot;, options=&quot;header&quot;]
+ |=========================================================================
+-|Name      ^|Description                                          | Status 
++|Name     ^|Description                                           | Status 
+ o|pio      | programmable input/output                            | _sok
+ o|tmr      | periodic timer / counters                            | _sok
+ o|pwm 	   | pulse width modulation 	                            | _sok
+@@ -96,6 +96,46 @@
+ o|disp 	   | LCD, OLED and other displays support                 | _sok
+ o|int 	   | interrupt service routines                           | _sni
+ |=========================================================================
+-               
++
++For some platforms, a number of platform dependent modules are implemented (or in the works) and are listed below. To understand the difference between generic 
++modules and platform specific modules, check link:arch_overview.html[the eLua architecture page].
++
++[width=&quot;70%&quot;, cols=&quot;&lt;.^1, &lt;.^4, &lt;.^3, &lt;.^1&quot;, options=&quot;header&quot;]
++|=======================================================================================
++^|    Name   ^| Description                   ^|      Boards                   ^| Status
++o| disp       | OLED display support           | _EK-LM3S8962 _br _EK-LM3S6965  | _sok
++o| pio        | Platform specific PIO support  | _STR-E912 _br _STR9-comStick   | _sok
++|=======================================================================================
++
++[[roadmap]]
++Status of features and roadmap
++------------------------------
++The following table shows the status of some existing and planned eLua features.
++
++[width=&quot;70%&quot;, cols=&quot;&lt;6,^1&quot;, options=&quot;header&quot;]
++|=============================================================================
++| Feature                                                             | Status 
++| Full Lua interpreter running on target                              | _sok
++| Embedded HTTP web server                                            | _sok
++| Various Lua examples and eLua apps running properly                 | _sok
++| Lua floating point or integer number selection                      | _sok
++| eLua FP module (for integer Lua)                                    | _sni
++| XMODEM protocol support for console file transfer                   | _sok
++| Embedded ROM (Flash) file system                                    | _sok
++| link:fatfs.html[FAT File System layer for mmc/sd cards]             | _sok
++| link:using.html#rpc[LuaRPC - Remote Procedure Calls]                | _snt
++| link:using.html#uart[Terminal / Console over UART or Ethernet]      | _sok
++| link:using.html#shell[eLua command shell]                           | _sok
++| eLua complete interrupt support                                     | _sni
++| link:arch_ltr.html[eLua LTR (Lua Tiny RAM) patch]                   | _sok
++| link:elua_egc.html[eLua EGC (Emergency Garbage Collection) patch]   | _sok
++| Embedded text editor                                                | _sni
++| Embedded help/doc subsystem                                         | _sni
++| Lua debugging (remote/on target)                                    | _sni
++| Host (PC) File Sharing                                              | _sni
++| GUI/IDE interface for eLua                                          | _sni
++| eLua web build service                                              | _snt
++|=============================================================================
++
+ // $$FOOTER$$                                                    
+ 
+
+Modified: trunk/doc/style1.css
+===================================================================
+--- trunk/doc/style1.css	2010-10-05 15:44:48 UTC (rev 795)
++++ trunk/doc/style1.css	2010-10-05 18:49:14 UTC (rev 796)
+@@ -90,14 +90,13 @@
+  * Content styling
+  ******************************************************************************/
+ 
+-div.paragraph p {
++/*div.paragraph p {
+ 	line-height: 120%;
+ 	padding-left: 1em;
+-}
++}*/
+ 
+-/* [TODO] remove this rule once all the HTMLs are rewritten to use classes
+-  instead of ids */
+-#content p {
++/*#content p {*/
++.sectionbody p {
+ 	line-height: 120%;
+ 	padding-left: 1em;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000748.html">[Elua-svn] r795 - in trunk/doc: . en
+</A></li>
+	<LI>Next message: <A HREF="000750.html">[Elua-svn] r797 - in trunk/doc/images: . icons
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#749">[ date ]</a>
+              <a href="thread.html#749">[ thread ]</a>
+              <a href="subject.html#749">[ subject ]</a>
+              <a href="author.html#749">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

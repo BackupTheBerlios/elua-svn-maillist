@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r565 - trunk/src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r565%20-%20trunk/src/platform/stm32&In-Reply-To=%3C200912030115.nB31FcMf026579%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000520.html">
+   <LINK REL="Next"  HREF="000522.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r565 - trunk/src/platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r565%20-%20trunk/src/platform/stm32&In-Reply-To=%3C200912030115.nB31FcMf026579%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r565 - trunk/src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Dec  3 02:15:38 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000520.html">[Elua-svn] r564 - trunk
+</A></li>
+        <LI>Next message: <A HREF="000522.html">[Elua-svn] r566 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#521">[ date ]</a>
+              <a href="thread.html#521">[ thread ]</a>
+              <a href="subject.html#521">[ subject ]</a>
+              <a href="author.html#521">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-03 02:15:36 +0100 (Thu, 03 Dec 2009)
+New Revision: 565
+
+Modified:
+   trunk/src/platform/stm32/platform.c
+Log:
+Fix for STM32 timer clocks.
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2009-12-02 21:22:41 UTC (rev 564)
++++ trunk/src/platform/stm32/platform.c	2009-12-03 01:15:36 UTC (rev 565)
+@@ -106,8 +106,6 @@
+ {
+   SystemInit();
+   
+-  RCC_PCLK1Config(RCC_HCLK_Div2);
+-
+   RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+ }
+ 
+@@ -689,7 +687,8 @@
+ 
+ // We leave out TIM6/TIM for now, as they are dedicated
+ static TIM_TypeDef * const timer[] = { TIM1, TIM2, TIM3, TIM4, TIM5 };
+-#define TIM_GET_BASE_CLK( id ) ( ( id ) == 0 || ( id ) == 5 ? ( HCLK / PCLK2_DIV ) : ( HCLK / PCLK1_DIV ) )
++#define TIM_GET_PRESCALE( id ) ( ( id ) == 0 || ( id ) == 5 ? ( PCLK2_DIV ) : ( PCLK1_DIV ) )
++#define TIM_GET_BASE_CLK( id ) ( TIM_GET_PRESCALE( id ) == 1 ? ( HCLK / TIM_GET_PRESCALE( id ) ) : ( HCLK / ( TIM_GET_PRESCALE( id ) / 2 ) ) )
+ #define TIM_STARTUP_CLOCK       50000
+ 
+ static u32 timer_set_clock( unsigned id, u32 clock );
+@@ -731,7 +730,7 @@
+ {
+   TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+   TIM_TypeDef *ptimer = timer[ id ];
+-  u16 pre = TIM_GET_BASE_CLK( id ) / clock;
++  u16 pre = ( TIM_GET_BASE_CLK( id ) / clock ) - 1;
+   
+   TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
+   TIM_TimeBaseStructure.TIM_Prescaler = pre;
+@@ -741,8 +740,7 @@
+   TIM_TimeBaseInit( timer[ id ], &amp;TIM_TimeBaseStructure );
+   TIM_Cmd( ptimer, ENABLE );
+   
+-  TIM_PrescalerConfig( ptimer, pre, TIM_PSCReloadMode_Immediate );
+-  return TIM_GET_BASE_CLK( id ) / pre;
++  return TIM_GET_BASE_CLK( id ) / ( pre + 1 );
+ }
+ 
+ void platform_s_timer_delay( unsigned id, u32 delay_us )
+@@ -1144,12 +1142,12 @@
+   	period /= prescaler;
+ 
+   	timer_base_struct.TIM_Period = period - 1;
+-  	timer_base_struct.TIM_Prescaler = (2 * prescaler) - 1;
++  	timer_base_struct.TIM_Prescaler = prescaler - 1;
+   	timer_base_struct.TIM_ClockDivision = TIM_CKD_DIV1;
+   	timer_base_struct.TIM_CounterMode = TIM_CounterMode_Down;
+   	TIM_TimeBaseInit( timer[ d-&gt;timer_id ], &amp;timer_base_struct );
+     
+-    frequency = 2 * ( TIM_GET_BASE_CLK( id ) / ( TIM_GetPrescaler( timer[ d-&gt;timer_id ] ) + 1 ) ) / period;
++    frequency = ( TIM_GET_BASE_CLK( id ) / ( TIM_GetPrescaler( timer[ d-&gt;timer_id ] ) + 1 ) ) / period;
+     
+     // Set up output compare for timer
+     TIM_SelectOutputTrigger(timer[ d-&gt;timer_id ], TIM_TRGOSource_Update);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000520.html">[Elua-svn] r564 - trunk
+</A></li>
+	<LI>Next message: <A HREF="000522.html">[Elua-svn] r566 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#521">[ date ]</a>
+              <a href="thread.html#521">[ thread ]</a>
+              <a href="subject.html#521">[ subject ]</a>
+              <a href="author.html#521">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

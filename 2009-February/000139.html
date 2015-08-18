@@ -1,0 +1,947 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r183 - in trunk: . doc doc/wb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r183%20-%20in%20trunk%3A%20.%20doc%20doc/wb&In-Reply-To=%3C200902120352.n1C3qlwZ027085%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000138.html">
+   <LINK REL="Next"  HREF="000140.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r183 - in trunk: . doc doc/wb</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r183%20-%20in%20trunk%3A%20.%20doc%20doc/wb&In-Reply-To=%3C200902120352.n1C3qlwZ027085%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r183 - in trunk: . doc doc/wb">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Thu Feb 12 04:52:47 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000138.html">[Elua-svn] r182 - trunk/doc/wb
+</A></li>
+        <LI>Next message: <A HREF="000140.html">[Elua-svn] r184 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#139">[ date ]</a>
+              <a href="thread.html#139">[ thread ]</a>
+              <a href="subject.html#139">[ subject ]</a>
+              <a href="author.html#139">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2009-02-12 04:52:46 +0100 (Thu, 12 Feb 2009)
+New Revision: 183
+
+Modified:
+   trunk/SConstruct
+   trunk/doc/wb/wb_usr.lua
+   trunk/doc/wb_search_en.txt
+   trunk/doc/wb_search_pt.txt
+   trunk/doc/wb_tree_en.html
+   trunk/doc/wb_tree_pt.html
+Log:
+New site sections added
+Minor corrections
+Site content will begin to migrate soon now
+Ongoing work
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-02-11 05:16:37 UTC (rev 182)
++++ trunk/SConstruct	2009-02-12 03:52:46 UTC (rev 183)
+@@ -9,7 +9,7 @@
+ romfs = { 'bisect' : [ 'bisect.lua' ],
+           'hangman' : [ 'hangman.lua' ],
+           'lhttpd' : [ 'index.pht', 'lhttpd.lua', 'test.lua' ],
+-          'pong' : [ 'pong.lua', 'LM3S.lua' ],
++          'pong' : [ 'pong.lua', 'LM3S.lua', 'logo.rit', 'img.rit'],
+           'led' : [ 'led.lua' ],
+           'piano' : [ 'piano.lua' ],
+           'pwmled' : [ 'pwmled.lua' ],
+
+Modified: trunk/doc/wb/wb_usr.lua
+===================================================================
+--- trunk/doc/wb/wb_usr.lua	2009-02-11 05:16:37 UTC (rev 182)
++++ trunk/doc/wb/wb_usr.lua	2009-02-12 03:52:46 UTC (rev 183)
+@@ -68,8 +68,8 @@
+       },
+     },
+     {
+-      name = {en = &quot;Comunity&quot;, pt = &quot;Comunidade&quot; },
+-      link = &quot;comunity.html&quot;,
++      name = {en = &quot;Community&quot;, pt = &quot;Comunidade&quot; },
++      link = &quot;community.html&quot;,
+       folder =
+       {
+         {  name = { en =&quot;Lists&quot;, pt = &quot;Listas&quot; },
+@@ -551,53 +551,71 @@
+       },
+     },
+     {
+-      name = {en = &quot;Downloads&quot;, pt = &quot;Downloads&quot; },
++      name = { en = &quot;Downloads&quot;, pt = &quot;Downloads&quot; },
+       link = &quot;binaries.html&quot;,
+       folder =
+       {
+-        name = { en = &quot;Binaries&quot;, pt = &quot;Binaries&quot; },
+-        link = &quot;binaries.html&quot;,
+-        folder =
+-        { 
+-          name = { en = &quot;Luminary Micro&quot;, pt = &quot;Luminary Micro&quot; },
+-          link = &quot;lm_bin.html&quot;,
+-        },
+         {
+-          name = { en = &quot;Atmel&quot;, pt = &quot;Atmel&quot; },
+-          link = &quot;lm_bin.html&quot;,
+-        },
+-      },
+-      { 
+-        name = { en = &quot;Source Code&quot;, pt = &quot;Fontes&quot; },
+-        link = &quot;sources.html&quot;,
+-        folder = 
++          name = { en = &quot;Binaries&quot;, pt = &quot;Binaries&quot; },
++          link = &quot;binaries.html&quot;,
++          folder =
++          { 
++            {
++              name = { en = &quot;Atmel&quot;, pt = &quot;Atmel&quot; },
++              link = &quot;lm_bin.html&quot;,
++            },
++            {
++              name = { en = &quot;Luminary Micro&quot;, pt = &quot;Luminary Micro&quot; },
++              link = &quot;lm_bin.html&quot;,
++            },
++            {
++              name = { en = &quot;PC i386&quot;, pt = &quot;PC i386&quot; },
++              link = &quot;lm_bin.html&quot;,
++            },
++            {
++              name = { en = &quot;Phillips&quot;, pt = &quot;Phillips&quot; },
++              link = &quot;lm_bin.html&quot;,
++            },
++            {
++              name = { en = &quot;ST Micro&quot;, pt = &quot;ST Micro&quot; },
++              link = &quot;lm_bin.html&quot;,
++            },
++          },
++        },     
+         { 
+-          name = { en = &quot;v0.6&quot;, pt = &quot;v0.6&quot; },
+-          link = &quot;sources.html#06&quot;
+-        },
+-        { 
+-          name = { en = &quot;trunk&quot;, pt = &quot;trunk&quot; },
+-          link = &quot;sources.html#trunk&quot;
+-        },
+-        { 
+-          name = { en = &quot;old versions&quot;, pt = &quot;anteriores&quot; },
+-          link = &quot;oldversions.html&quot;,
+-          folder = 
++          name = { en = &quot;Source Code&quot;, pt = &quot;Fontes&quot; },
++          link = &quot;sources.html&quot;,
++          folder = 
+           {
+             { 
+-              name = { en = &quot;v0.5&quot;, pt = &quot;v0.5&quot; },
+-              link = &quot;oldversions.html#05&quot;
++              name = { en = &quot;v0.6&quot;, pt = &quot;v0.6&quot; },
++              link = &quot;sources.html#06&quot;
+             },
+             { 
+-              name = { en = &quot;v0.4&quot;, pt = &quot;v0.4&quot; },
+-              link = &quot;sources.html#04&quot;
+-            },
+-          },
++              name = { en = &quot;trunk&quot;, pt = &quot;trunk&quot; },
++              link = &quot;sources.html#trunk&quot;
++            }, 
++            { 
++              name = { en = &quot;old versions&quot;, pt = &quot;anteriores&quot; },
++              link = &quot;oldversions.html&quot;,
++              folder = 
++              {
++                { 
++                  name = { en = &quot;v0.5&quot;, pt = &quot;v0.5&quot; },
++                  link = &quot;oldversions.html#05&quot;
++                },
++                { 
++                  name = { en = &quot;v0.4&quot;, pt = &quot;v0.4&quot; },
++                  link = &quot;sources.html#04&quot;
++                },
++              },
++              { 
++                name = { en = &quot;Developers&quot;, pt = &quot;Desenvolvedores&quot; },
++                link = &quot;developers.html&quot;
++              },
++            },
++          },
+         },
+-        { 
+-          name = { en = &quot;Developers&quot;, pt = &quot;Desenvolvedores&quot; },
+-          link = &quot;developers.html&quot;
+-        },
+       },
+     },
+   },
+
+Modified: trunk/doc/wb_search_en.txt
+===================================================================
+--- trunk/doc/wb_search_en.txt	2009-02-11 05:16:37 UTC (rev 182)
++++ trunk/doc/wb_search_en.txt	2009-02-12 03:52:46 UTC (rev 183)
+@@ -1,33 +1,39 @@
+ en/history.html
+ en/building.html
+-en/net_ref.html
+-en/comunity.html
++en/cpu_ref.html
++en/roadmap.html
++en/status.html
+ en/whatis.html
+ en/genericmodules.html
++en/sources.html
+ en/licence.html
+ en/gpio_ref.html
++en/news.html
+ en/overview.html
+ en/projects.html
+ en/faq.html
++en/community.html
+ en/refmanual.html
+ en/doc.html
+ en/disp_ref.html
+ en/authors.html
++en/platforms.html
+ en/pwm_ref.html
+ en/sys_ref.html
+ en/uart_ref.html
+ en/contacts.html
+ en/term_ref.html
++en/oldversions.html
+ en/lm_bin.html
+ en/binaries.html
+ en/using.html
+ en/bit_ref.html
+ en/platdependentmodules.html
++en/net_ref.html
++en/examples.html
+ en/
+-en/examples.html
++en/spi_ref.html
+ en/tutorials.html
+-en/spi_ref.html
+-en/cpu_ref.html
+ en/credits.html
+ en/galery.html
+ en/tmr_ref.html
+
+Modified: trunk/doc/wb_search_pt.txt
+===================================================================
+--- trunk/doc/wb_search_pt.txt	2009-02-11 05:16:37 UTC (rev 182)
++++ trunk/doc/wb_search_pt.txt	2009-02-12 03:52:46 UTC (rev 183)
+@@ -1,33 +1,39 @@
+ pt/history.html
+ pt/building.html
+-pt/net_ref.html
+-pt/comunity.html
++pt/cpu_ref.html
++pt/roadmap.html
++pt/status.html
+ pt/whatis.html
+ pt/genericmodules.html
++pt/sources.html
+ pt/licence.html
+ pt/gpio_ref.html
++pt/news.html
+ pt/overview.html
+ pt/projects.html
+ pt/faq.html
++pt/community.html
+ pt/refmanual.html
+ pt/doc.html
+ pt/disp_ref.html
+ pt/authors.html
++pt/platforms.html
+ pt/pwm_ref.html
+ pt/sys_ref.html
+ pt/uart_ref.html
+ pt/contacts.html
+ pt/term_ref.html
++pt/oldversions.html
+ pt/lm_bin.html
+ pt/binaries.html
+ pt/using.html
+ pt/bit_ref.html
+ pt/platdependentmodules.html
++pt/net_ref.html
++pt/examples.html
+ pt/
+-pt/examples.html
++pt/spi_ref.html
+ pt/tutorials.html
+-pt/spi_ref.html
+-pt/cpu_ref.html
+ pt/credits.html
+ pt/galery.html
+ pt/tmr_ref.html
+
+Modified: trunk/doc/wb_tree_en.html
+===================================================================
+--- trunk/doc/wb_tree_en.html	2009-02-11 05:16:37 UTC (rev 182)
++++ trunk/doc/wb_tree_en.html	2009-02-12 03:52:46 UTC (rev 183)
+@@ -228,153 +228,176 @@
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link6folder.1&quot; href=&quot;en/contacts.html&quot;&gt;Contacts&lt;/a&gt;&lt;/p&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link7folder.1&quot; href=&quot;en/licence.html&quot;&gt;Licence&lt;/a&gt;&lt;/p&gt;
+       &lt;/div&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.2')&quot;&gt;&lt;a name=&quot;link8folder.2&quot; class=&quot;el&quot; href=&quot;en/comunity.html&quot;&gt;Comunity&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.2')&quot;&gt;&lt;a name=&quot;link8folder.2&quot; class=&quot;el&quot; href=&quot;en/community.html&quot;&gt;Community&lt;/a&gt;&lt;/p&gt;
+       &lt;div id=&quot;folder.2&quot;&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link9folder.2&quot; href=&quot;en/lists.html&quot;&gt;Lists&lt;/a&gt;&lt;/p&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link10folder.2&quot; href=&quot;en/credits.html&quot;&gt;Credits&lt;/a&gt;&lt;/p&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link11folder.2&quot; href=&quot;en/galery.html&quot;&gt;Galery&lt;/a&gt;&lt;/p&gt;
+         &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link12folder.2&quot; href=&quot;en/projects.html&quot;&gt;Projects&lt;/a&gt;&lt;/p&gt;
+       &lt;/div&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.3&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.3')&quot;&gt;&lt;a name=&quot;link13folder.3&quot; class=&quot;el&quot; href=&quot;en/doc.html&quot;&gt;Documentation&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.3&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.3')&quot;&gt;&lt;a name=&quot;link13folder.3&quot; class=&quot;el&quot; href=&quot;en/status.html&quot;&gt;Status&lt;/a&gt;&lt;/p&gt;
+       &lt;div id=&quot;folder.3&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link14folder.3&quot; href=&quot;en/using.html&quot;&gt;Using&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link15folder.3&quot; href=&quot;en/building.html&quot;&gt;Building&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.3.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.3.1')&quot;&gt;&lt;a name=&quot;link16folder.3.1&quot; class=&quot;el&quot; href=&quot;en/examples.html&quot;&gt;Examples&lt;/a&gt;&lt;/p&gt;
+-        &lt;div id=&quot;folder.3.1&quot;&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link17folder.3.1&quot; href=&quot;en/examples.html#hello&quot;&gt;hello.lua&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link18folder.3.1&quot; href=&quot;en/examples.html#info&quot;&gt;info.lua&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link19folder.3.1&quot; href=&quot;en/examples.html#led&quot;&gt;led.lua&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link14folder.3&quot; href=&quot;en/news.html&quot;&gt;News&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link15folder.3&quot; href=&quot;en/platforms.html&quot;&gt;Platforms&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link16folder.3&quot; href=&quot;en/roadmap.html&quot;&gt;Roadmap&lt;/a&gt;&lt;/p&gt;
++      &lt;/div&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.4&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4')&quot;&gt;&lt;a name=&quot;link17folder.4&quot; class=&quot;el&quot; href=&quot;en/doc.html&quot;&gt;Documentation&lt;/a&gt;&lt;/p&gt;
++      &lt;div id=&quot;folder.4&quot;&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link18folder.4&quot; href=&quot;en/using.html&quot;&gt;Using&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link19folder.4&quot; href=&quot;en/building.html&quot;&gt;Building&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1')&quot;&gt;&lt;a name=&quot;link20folder.4.1&quot; class=&quot;el&quot; href=&quot;en/examples.html&quot;&gt;Examples&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.4.1&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link21folder.4.1&quot; href=&quot;en/examples.html#hello&quot;&gt;hello.lua&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link22folder.4.1&quot; href=&quot;en/examples.html#info&quot;&gt;info.lua&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link23folder.4.1&quot; href=&quot;en/examples.html#led&quot;&gt;led.lua&lt;/a&gt;&lt;/p&gt;
+         &lt;/div&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.3.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.3.2')&quot;&gt;&lt;a name=&quot;link20folder.3.2&quot; class=&quot;el&quot; href=&quot;en/tutorials.html&quot;&gt;Tutorials&lt;/a&gt;&lt;/p&gt;
+-        &lt;div id=&quot;folder.3.2&quot;&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link21folder.3.2&quot; href=&quot;en/whatis.html&quot;&gt;OpenOCD&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link22folder.3.2&quot; href=&quot;en/whatis.html&quot;&gt;Tut&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link23folder.3.2&quot; href=&quot;en/whatis.html&quot;&gt;Tut&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.2')&quot;&gt;&lt;a name=&quot;link24folder.4.2&quot; class=&quot;el&quot; href=&quot;en/tutorials.html&quot;&gt;Tutorials&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.4.2&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link25folder.4.2&quot; href=&quot;en/whatis.html&quot;&gt;OpenOCD&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link26folder.4.2&quot; href=&quot;en/whatis.html&quot;&gt;Tut&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link27folder.4.2&quot; href=&quot;en/whatis.html&quot;&gt;Tut&lt;/a&gt;&lt;/p&gt;
+         &lt;/div&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link24folder.3&quot; href=&quot;en/faq.html&quot;&gt;FAQ&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.3.3&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.3.3')&quot;&gt;&lt;a name=&quot;link25folder.3.3&quot; class=&quot;el&quot; href=&quot;en/history.html&quot;&gt;Version History&lt;/a&gt;&lt;/p&gt;
+-        &lt;div id=&quot;folder.3.3&quot;&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link26folder.3.3&quot; href=&quot;en/history.html#04&quot;&gt;v 0.4&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link27folder.3.3&quot; href=&quot;en/history.html#05&quot;&gt;v 0.5&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link28folder.3.3&quot; href=&quot;en/history.html#06&quot;&gt;v 0.6&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link28folder.4&quot; href=&quot;en/faq.html&quot;&gt;FAQ&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.3&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.4.3')&quot;&gt;&lt;a name=&quot;link29folder.4.3&quot; class=&quot;el&quot; href=&quot;en/history.html&quot;&gt;Version History&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.4.3&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link30folder.4.3&quot; href=&quot;en/history.html#04&quot;&gt;v 0.4&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link31folder.4.3&quot; href=&quot;en/history.html#05&quot;&gt;v 0.5&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link32folder.4.3&quot; href=&quot;en/history.html#06&quot;&gt;v 0.6&lt;/a&gt;&lt;/p&gt;
+         &lt;/div&gt;
+       &lt;/div&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.4&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4')&quot;&gt;&lt;a name=&quot;link29folder.4&quot; class=&quot;el&quot; href=&quot;en/refmanual.html&quot;&gt;Reference Manual&lt;/a&gt;&lt;/p&gt;
+-      &lt;div id=&quot;folder.4&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1')&quot;&gt;&lt;a name=&quot;link30folder.4.1&quot; class=&quot;el&quot; href=&quot;en/genericmodules.html&quot;&gt;Generic Modules&lt;/a&gt;&lt;/p&gt;
+-        &lt;div id=&quot;folder.4.1&quot;&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.1')&quot;&gt;&lt;a name=&quot;link31folder.4.1.1&quot; class=&quot;el&quot; href=&quot;en/bit_ref.html&quot;&gt;bit&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.1&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link32folder.4.1.1&quot; href=&quot;en/bit_ref.html#bnot&quot;&gt;bnot&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link33folder.4.1.1&quot; href=&quot;en/bit_ref.html#band&quot;&gt;band&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link34folder.4.1.1&quot; href=&quot;en/bit_ref.html#bor&quot;&gt;bor&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link35folder.4.1.1&quot; href=&quot;en/bit_ref.html#bxor&quot;&gt;bxor&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link36folder.4.1.1&quot; href=&quot;en/bit_ref.html#lshift&quot;&gt;lshift&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link37folder.4.1.1&quot; href=&quot;en/bit_ref.html#rshift&quot;&gt;rshift&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link38folder.4.1.1&quot; href=&quot;en/bit_ref.html#bit&quot;&gt;bit&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link39folder.4.1.1&quot; href=&quot;en/bit_ref.html#set&quot;&gt;set&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link40folder.4.1.1&quot; href=&quot;en/bit_ref.html#clear&quot;&gt;clear&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link41folder.4.1.1&quot; href=&quot;en/bit_ref.html#isset&quot;&gt;isset&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link42folder.4.1.1&quot; href=&quot;en/bit_ref.html#isclear&quot;&gt;isclear&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.5&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5')&quot;&gt;&lt;a name=&quot;link33folder.5&quot; class=&quot;el&quot; href=&quot;en/refmanual.html&quot;&gt;Reference Manual&lt;/a&gt;&lt;/p&gt;
++      &lt;div id=&quot;folder.5&quot;&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1')&quot;&gt;&lt;a name=&quot;link34folder.5.1&quot; class=&quot;el&quot; href=&quot;en/genericmodules.html&quot;&gt;Generic Modules&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.5.1&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.1')&quot;&gt;&lt;a name=&quot;link35folder.5.1.1&quot; class=&quot;el&quot; href=&quot;en/bit_ref.html&quot;&gt;bit&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.1&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link36folder.5.1.1&quot; href=&quot;en/bit_ref.html#bnot&quot;&gt;bnot&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link37folder.5.1.1&quot; href=&quot;en/bit_ref.html#band&quot;&gt;band&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link38folder.5.1.1&quot; href=&quot;en/bit_ref.html#bor&quot;&gt;bor&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link39folder.5.1.1&quot; href=&quot;en/bit_ref.html#bxor&quot;&gt;bxor&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link40folder.5.1.1&quot; href=&quot;en/bit_ref.html#lshift&quot;&gt;lshift&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link41folder.5.1.1&quot; href=&quot;en/bit_ref.html#rshift&quot;&gt;rshift&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link42folder.5.1.1&quot; href=&quot;en/bit_ref.html#bit&quot;&gt;bit&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link43folder.5.1.1&quot; href=&quot;en/bit_ref.html#set&quot;&gt;set&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link44folder.5.1.1&quot; href=&quot;en/bit_ref.html#clear&quot;&gt;clear&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link45folder.5.1.1&quot; href=&quot;en/bit_ref.html#isset&quot;&gt;isset&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link46folder.5.1.1&quot; href=&quot;en/bit_ref.html#isclear&quot;&gt;isclear&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.2')&quot;&gt;&lt;a name=&quot;link43folder.4.1.2&quot; class=&quot;el&quot; href=&quot;en/cpu_ref.html&quot;&gt;cpu&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.2&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link44folder.4.1.2&quot; href=&quot;en/cpu_ref.html#write32&quot;&gt;write32&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link45folder.4.1.2&quot; href=&quot;en/cpu_ref.html#write16&quot;&gt;write16&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link46folder.4.1.2&quot; href=&quot;en/cpu_ref.html#write8&quot;&gt;write8&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link47folder.4.1.2&quot; href=&quot;en/cpu_ref.html#read32&quot;&gt;reat32&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link48folder.4.1.2&quot; href=&quot;en/cpu_ref.html#read16&quot;&gt;read16&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link49folder.4.1.2&quot; href=&quot;en/cpu_ref.html#read8&quot;&gt;read8&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link50folder.4.1.2&quot; href=&quot;en/cpu_ref.html#disableinterrupts&quot;&gt;disableinterrupts&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link51folder.4.1.2&quot; href=&quot;en/cpu_ref.html#enableinterrupts&quot;&gt;enableinterrupts&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link52folder.4.1.2&quot; href=&quot;en/cpu_ref.html#clockfrequency&quot;&gt;clockfrequency&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.2')&quot;&gt;&lt;a name=&quot;link47folder.5.1.2&quot; class=&quot;el&quot; href=&quot;en/cpu_ref.html&quot;&gt;cpu&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.2&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link48folder.5.1.2&quot; href=&quot;en/cpu_ref.html#write32&quot;&gt;write32&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link49folder.5.1.2&quot; href=&quot;en/cpu_ref.html#write16&quot;&gt;write16&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link50folder.5.1.2&quot; href=&quot;en/cpu_ref.html#write8&quot;&gt;write8&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link51folder.5.1.2&quot; href=&quot;en/cpu_ref.html#read32&quot;&gt;reat32&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link52folder.5.1.2&quot; href=&quot;en/cpu_ref.html#read16&quot;&gt;read16&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link53folder.5.1.2&quot; href=&quot;en/cpu_ref.html#read8&quot;&gt;read8&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link54folder.5.1.2&quot; href=&quot;en/cpu_ref.html#disableinterrupts&quot;&gt;disableinterrupts&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link55folder.5.1.2&quot; href=&quot;en/cpu_ref.html#enableinterrupts&quot;&gt;enableinterrupts&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link56folder.5.1.2&quot; href=&quot;en/cpu_ref.html#clockfrequency&quot;&gt;clockfrequency&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.3&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.3')&quot;&gt;&lt;a name=&quot;link53folder.4.1.3&quot; class=&quot;el&quot; href=&quot;en/gpio_ref.html&quot;&gt;gpio&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.3&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link54folder.4.1.3&quot; href=&quot;en/gpio_ref.html#configpin&quot;&gt;configpin&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link55folder.4.1.3&quot; href=&quot;en/gpio_ref.html#setpinvalue&quot;&gt;setpinvalue&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link56folder.4.1.3&quot; href=&quot;en/gpio_ref.html#getpinvalue&quot;&gt;getpinvalue&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link57folder.4.1.3&quot; href=&quot;en/gpio_ref.html#setpinhigh&quot;&gt;setpinhigh&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link58folder.4.1.3&quot; href=&quot;en/gpio_ref.html#setpinlow&quot;&gt;setpinlow&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.3&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.3')&quot;&gt;&lt;a name=&quot;link57folder.5.1.3&quot; class=&quot;el&quot; href=&quot;en/gpio_ref.html&quot;&gt;gpio&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.3&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link58folder.5.1.3&quot; href=&quot;en/gpio_ref.html#configpin&quot;&gt;configpin&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link59folder.5.1.3&quot; href=&quot;en/gpio_ref.html#setpinvalue&quot;&gt;setpinvalue&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link60folder.5.1.3&quot; href=&quot;en/gpio_ref.html#getpinvalue&quot;&gt;getpinvalue&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link61folder.5.1.3&quot; href=&quot;en/gpio_ref.html#setpinhigh&quot;&gt;setpinhigh&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link62folder.5.1.3&quot; href=&quot;en/gpio_ref.html#setpinlow&quot;&gt;setpinlow&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.4&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.4')&quot;&gt;&lt;a name=&quot;link59folder.4.1.4&quot; class=&quot;el&quot; href=&quot;en/net_ref.html&quot;&gt;net&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.4&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link60folder.4.1.4&quot; href=&quot;en/net_ref.html#setup&quot;&gt;to be added ...&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.4&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.4')&quot;&gt;&lt;a name=&quot;link63folder.5.1.4&quot; class=&quot;el&quot; href=&quot;en/net_ref.html&quot;&gt;net&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.4&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link64folder.5.1.4&quot; href=&quot;en/net_ref.html#setup&quot;&gt;to be added ...&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.5&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.5')&quot;&gt;&lt;a name=&quot;link61folder.4.1.5&quot; class=&quot;el&quot; href=&quot;en/pwm_ref.html&quot;&gt;pwm&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.5&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link62folder.4.1.5&quot; href=&quot;en/pwm_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link63folder.4.1.5&quot; href=&quot;en/pwm_ref.html#setcycle&quot;&gt;setcycle&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link64folder.4.1.5&quot; href=&quot;en/pwm_ref.html#start&quot;&gt;start&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link65folder.4.1.5&quot; href=&quot;en/pwm_ref.html#stop&quot;&gt;stop&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link66folder.4.1.5&quot; href=&quot;en/pwm_ref.html#setclock&quot;&gt;setclock&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link67folder.4.1.5&quot; href=&quot;en/pwm_ref.html#getclock[A&quot;&gt;getclock&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.5&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.5')&quot;&gt;&lt;a name=&quot;link65folder.5.1.5&quot; class=&quot;el&quot; href=&quot;en/pwm_ref.html&quot;&gt;pwm&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.5&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link66folder.5.1.5&quot; href=&quot;en/pwm_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link67folder.5.1.5&quot; href=&quot;en/pwm_ref.html#setcycle&quot;&gt;setcycle&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link68folder.5.1.5&quot; href=&quot;en/pwm_ref.html#start&quot;&gt;start&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link69folder.5.1.5&quot; href=&quot;en/pwm_ref.html#stop&quot;&gt;stop&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link70folder.5.1.5&quot; href=&quot;en/pwm_ref.html#setclock&quot;&gt;setclock&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link71folder.5.1.5&quot; href=&quot;en/pwm_ref.html#getclock[A&quot;&gt;getclock&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.6&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.6')&quot;&gt;&lt;a name=&quot;link68folder.4.1.6&quot; class=&quot;el&quot; href=&quot;en/spi_ref.html&quot;&gt;spi&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.6&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link69folder.4.1.6&quot; href=&quot;en/spi_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link70folder.4.1.6&quot; href=&quot;en/spi_ref.html#select&quot;&gt;select&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link71folder.4.1.6&quot; href=&quot;en/spi_ref.html#unselect&quot;&gt;unselect&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link72folder.4.1.6&quot; href=&quot;en/spi_ref.html#send&quot;&gt;send&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link73folder.4.1.6&quot; href=&quot;en/spi_ref.html#sendrecv&quot;&gt;sendrecv&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.6&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.6')&quot;&gt;&lt;a name=&quot;link72folder.5.1.6&quot; class=&quot;el&quot; href=&quot;en/spi_ref.html&quot;&gt;spi&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.6&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link73folder.5.1.6&quot; href=&quot;en/spi_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link74folder.5.1.6&quot; href=&quot;en/spi_ref.html#select&quot;&gt;select&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link75folder.5.1.6&quot; href=&quot;en/spi_ref.html#unselect&quot;&gt;unselect&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link76folder.5.1.6&quot; href=&quot;en/spi_ref.html#send&quot;&gt;send&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link77folder.5.1.6&quot; href=&quot;en/spi_ref.html#sendrecv&quot;&gt;sendrecv&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.7&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.7')&quot;&gt;&lt;a name=&quot;link74folder.4.1.7&quot; class=&quot;el&quot; href=&quot;en/sys_ref.html&quot;&gt;sys&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.7&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link75folder.4.1.7&quot; href=&quot;en/sys_ref.html#platforms&quot;&gt;platform&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link76folder.4.1.7&quot; href=&quot;en/sys_ref.html#mcu&quot;&gt;mcu&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link77folder.4.1.7&quot; href=&quot;en/sys_ref.html#cpu&quot;&gt;cpu&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link78folder.4.1.7&quot; href=&quot;en/sys_ref.html#board&quot;&gt;board&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.7&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.7')&quot;&gt;&lt;a name=&quot;link78folder.5.1.7&quot; class=&quot;el&quot; href=&quot;en/sys_ref.html&quot;&gt;sys&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.7&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link79folder.5.1.7&quot; href=&quot;en/sys_ref.html#platforms&quot;&gt;platform&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link80folder.5.1.7&quot; href=&quot;en/sys_ref.html#mcu&quot;&gt;mcu&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link81folder.5.1.7&quot; href=&quot;en/sys_ref.html#cpu&quot;&gt;cpu&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link82folder.5.1.7&quot; href=&quot;en/sys_ref.html#board&quot;&gt;board&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.8&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.8')&quot;&gt;&lt;a name=&quot;link79folder.4.1.8&quot; class=&quot;el&quot; href=&quot;en/term_ref.html&quot;&gt;term&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.8&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link80folder.4.1.8&quot; href=&quot;en/term_ref.html#clear&quot;&gt;clear&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link81folder.4.1.8&quot; href=&quot;en/term_ref.html#cleareol&quot;&gt;cleareol&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link82folder.4.1.8&quot; href=&quot;en/term_ref.html#moveto&quot;&gt;moveto&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link83folder.4.1.8&quot; href=&quot;en/term_ref.html#moveup&quot;&gt;moveup&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link84folder.4.1.8&quot; href=&quot;en/term_ref.html#movedown&quot;&gt;movedown&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link85folder.4.1.8&quot; href=&quot;en/term_ref.html#moveleft&quot;&gt;moveleft&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link86folder.4.1.8&quot; href=&quot;en/term_ref.html#moveright&quot;&gt;moveright&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link87folder.4.1.8&quot; href=&quot;en/term_ref.html#getlinecount&quot;&gt;getlinecount&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link88folder.4.1.8&quot; href=&quot;en/term_ref.html#getcolcount&quot;&gt;getcolcount&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link89folder.4.1.8&quot; href=&quot;en/term_ref.html#printstr&quot;&gt;printstr&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link90folder.4.1.8&quot; href=&quot;en/term_ref.html#getx&quot;&gt;getx&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link91folder.4.1.8&quot; href=&quot;en/term_ref.html#gety&quot;&gt;gety&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link92folder.4.1.8&quot; href=&quot;en/term_ref.html#inputchar&quot;&gt;inputchar&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.8&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.8')&quot;&gt;&lt;a name=&quot;link83folder.5.1.8&quot; class=&quot;el&quot; href=&quot;en/term_ref.html&quot;&gt;term&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.8&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link84folder.5.1.8&quot; href=&quot;en/term_ref.html#clear&quot;&gt;clear&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link85folder.5.1.8&quot; href=&quot;en/term_ref.html#cleareol&quot;&gt;cleareol&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link86folder.5.1.8&quot; href=&quot;en/term_ref.html#moveto&quot;&gt;moveto&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link87folder.5.1.8&quot; href=&quot;en/term_ref.html#moveup&quot;&gt;moveup&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link88folder.5.1.8&quot; href=&quot;en/term_ref.html#movedown&quot;&gt;movedown&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link89folder.5.1.8&quot; href=&quot;en/term_ref.html#moveleft&quot;&gt;moveleft&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link90folder.5.1.8&quot; href=&quot;en/term_ref.html#moveright&quot;&gt;moveright&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link91folder.5.1.8&quot; href=&quot;en/term_ref.html#getlinecount&quot;&gt;getlinecount&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link92folder.5.1.8&quot; href=&quot;en/term_ref.html#getcolcount&quot;&gt;getcolcount&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link93folder.5.1.8&quot; href=&quot;en/term_ref.html#printstr&quot;&gt;printstr&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link94folder.5.1.8&quot; href=&quot;en/term_ref.html#getx&quot;&gt;getx&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link95folder.5.1.8&quot; href=&quot;en/term_ref.html#gety&quot;&gt;gety&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link96folder.5.1.8&quot; href=&quot;en/term_ref.html#inputchar&quot;&gt;inputchar&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.9&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.9')&quot;&gt;&lt;a name=&quot;link93folder.4.1.9&quot; class=&quot;el&quot; href=&quot;en/tmr_ref.html&quot;&gt;tmr&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.9&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link94folder.4.1.9&quot; href=&quot;en/tmr_ref.html#delay&quot;&gt;delay&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link95folder.4.1.9&quot; href=&quot;en/tmr_ref.html#read&quot;&gt;read&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link96folder.4.1.9&quot; href=&quot;en/tmr_ref.html#start&quot;&gt;start&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link97folder.4.1.9&quot; href=&quot;en/tmr_ref.html#diff&quot;&gt;diff&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link98folder.4.1.9&quot; href=&quot;en/tmr_ref.html#mindelay&quot;&gt;mindelay&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link99folder.4.1.9&quot; href=&quot;en/tmr_ref.html#maxdelay&quot;&gt;maxdelay&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link100folder.4.1.9&quot; href=&quot;en/tmr_ref.html#setclock&quot;&gt;setclock&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.9&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.9')&quot;&gt;&lt;a name=&quot;link97folder.5.1.9&quot; class=&quot;el&quot; href=&quot;en/tmr_ref.html&quot;&gt;tmr&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.9&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link98folder.5.1.9&quot; href=&quot;en/tmr_ref.html#delay&quot;&gt;delay&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link99folder.5.1.9&quot; href=&quot;en/tmr_ref.html#read&quot;&gt;read&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link100folder.5.1.9&quot; href=&quot;en/tmr_ref.html#start&quot;&gt;start&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link101folder.5.1.9&quot; href=&quot;en/tmr_ref.html#diff&quot;&gt;diff&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link102folder.5.1.9&quot; href=&quot;en/tmr_ref.html#mindelay&quot;&gt;mindelay&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link103folder.5.1.9&quot; href=&quot;en/tmr_ref.html#maxdelay&quot;&gt;maxdelay&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link104folder.5.1.9&quot; href=&quot;en/tmr_ref.html#setclock&quot;&gt;setclock&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.10&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.4.1.10')&quot;&gt;&lt;a name=&quot;link101folder.4.1.10&quot; class=&quot;el&quot; href=&quot;en/uart_ref.html&quot;&gt;uart&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.10&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link102folder.4.1.10&quot; href=&quot;en/uart_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link103folder.4.1.10&quot; href=&quot;en/uart_ref.html#send&quot;&gt;send&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link104folder.4.1.10&quot; href=&quot;en/uart_ref.html#recv&quot;&gt;recv&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.10&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.5.1.10')&quot;&gt;&lt;a name=&quot;link105folder.5.1.10&quot; class=&quot;el&quot; href=&quot;en/uart_ref.html&quot;&gt;uart&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.10&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link106folder.5.1.10&quot; href=&quot;en/uart_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link107folder.5.1.10&quot; href=&quot;en/uart_ref.html#send&quot;&gt;send&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link108folder.5.1.10&quot; href=&quot;en/uart_ref.html#recv&quot;&gt;recv&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+         &lt;/div&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.2&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.4.2')&quot;&gt;&lt;a name=&quot;link105folder.4.2&quot; class=&quot;el&quot; href=&quot;en/platdependentmodules.html&quot;&gt;Platform Dependent Modules&lt;/a&gt;&lt;/p&gt;
+-        &lt;div id=&quot;folder.4.2&quot;&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img name=&quot;imgfolder.4.2.1&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.4.2.1')&quot;&gt;&lt;a name=&quot;link106folder.4.2.1&quot; class=&quot;el&quot; href=&quot;en/disp_ref.html&quot;&gt;disp&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.2.1&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link107folder.4.2.1&quot; href=&quot;en/disp_ref.html#init&quot;&gt;init&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link108folder.4.2.1&quot; href=&quot;en/disp_ref.html#enable&quot;&gt;enable&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link109folder.4.2.1&quot; href=&quot;en/disp_ref.html#disable&quot;&gt;disable&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link110folder.4.2.1&quot; href=&quot;en/disp_ref.html#on&quot;&gt;on&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link111folder.4.2.1&quot; href=&quot;en/disp_ref.html#off&quot;&gt;off&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link112folder.4.2.1&quot; href=&quot;en/disp_ref.html#print&quot;&gt;print&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link113folder.4.2.1&quot; href=&quot;en/disp_ref.html#draw&quot;&gt;draw&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.2&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.5.2')&quot;&gt;&lt;a name=&quot;link109folder.5.2&quot; class=&quot;el&quot; href=&quot;en/platdependentmodules.html&quot;&gt;Platform Dependent Modules&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.5.2&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img name=&quot;imgfolder.5.2.1&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.5.2.1')&quot;&gt;&lt;a name=&quot;link110folder.5.2.1&quot; class=&quot;el&quot; href=&quot;en/disp_ref.html&quot;&gt;disp&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.2.1&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link111folder.5.2.1&quot; href=&quot;en/disp_ref.html#init&quot;&gt;init&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link112folder.5.2.1&quot; href=&quot;en/disp_ref.html#enable&quot;&gt;enable&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link113folder.5.2.1&quot; href=&quot;en/disp_ref.html#disable&quot;&gt;disable&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link114folder.5.2.1&quot; href=&quot;en/disp_ref.html#on&quot;&gt;on&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link115folder.5.2.1&quot; href=&quot;en/disp_ref.html#off&quot;&gt;off&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link116folder.5.2.1&quot; href=&quot;en/disp_ref.html#print&quot;&gt;print&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link117folder.5.2.1&quot; href=&quot;en/disp_ref.html#draw&quot;&gt;draw&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+         &lt;/div&gt;
+       &lt;/div&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.5&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.5')&quot;&gt;&lt;a name=&quot;link114folder.5&quot; class=&quot;el&quot; href=&quot;en/binaries.html&quot;&gt;Downloads&lt;/a&gt;&lt;/p&gt;
+-      &lt;div id=&quot;folder.5&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link115folder.5&quot; href=&quot;en/lm_bin.html&quot;&gt;Atmel&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.6&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.6')&quot;&gt;&lt;a name=&quot;link118folder.6&quot; class=&quot;el&quot; href=&quot;en/binaries.html&quot;&gt;Downloads&lt;/a&gt;&lt;/p&gt;
++      &lt;div id=&quot;folder.6&quot;&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img name=&quot;imgfolder.6.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.6.1')&quot;&gt;&lt;a name=&quot;link119folder.6.1&quot; class=&quot;el&quot; href=&quot;en/binaries.html&quot;&gt;Binaries&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.6.1&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link120folder.6.1&quot; href=&quot;en/lm_bin.html&quot;&gt;Atmel&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link121folder.6.1&quot; href=&quot;en/lm_bin.html&quot;&gt;Luminary Micro&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link122folder.6.1&quot; href=&quot;en/lm_bin.html&quot;&gt;PC i386&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link123folder.6.1&quot; href=&quot;en/lm_bin.html&quot;&gt;Phillips&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link124folder.6.1&quot; href=&quot;en/lm_bin.html&quot;&gt;ST Micro&lt;/a&gt;&lt;/p&gt;
++        &lt;/div&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img name=&quot;imgfolder.6.2&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.6.2')&quot;&gt;&lt;a name=&quot;link125folder.6.2&quot; class=&quot;el&quot; href=&quot;en/sources.html&quot;&gt;Source Code&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.6.2&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link126folder.6.2&quot; href=&quot;en/sources.html#06&quot;&gt;v0.6&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link127folder.6.2&quot; href=&quot;en/sources.html#trunk&quot;&gt;trunk&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img name=&quot;imgfolder.6.2.1&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.6.2.1')&quot;&gt;&lt;a name=&quot;link128folder.6.2.1&quot; class=&quot;el&quot; href=&quot;en/oldversions.html&quot;&gt;old versions&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.6.2.1&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link129folder.6.2.1&quot; href=&quot;en/oldversions.html#05&quot;&gt;v0.5&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link130folder.6.2.1&quot; href=&quot;en/sources.html#04&quot;&gt;v0.4&lt;/a&gt;&lt;/p&gt;
++          &lt;/div&gt;
++        &lt;/div&gt;
+       &lt;/div&gt;
+   &lt;/div&gt;
+ &lt;/body&gt;
+
+Modified: trunk/doc/wb_tree_pt.html
+===================================================================
+--- trunk/doc/wb_tree_pt.html	2009-02-11 05:16:37 UTC (rev 182)
++++ trunk/doc/wb_tree_pt.html	2009-02-12 03:52:46 UTC (rev 183)
+@@ -219,162 +219,185 @@
+ &lt;body style=&quot;margin: 2px; background-color: #F1F1F1&quot; onload=&quot;showStartPage()&quot;&gt; 
+   &lt;div class=&quot;tree&quot; onmouseout=&quot;clearLastLink()&quot;&gt;
+     &lt;h3&gt;&lt;a name=&quot;link0folder.0&quot; class=&quot;el&quot; href=&quot;pt/&quot;&gt;eLua&lt;/a&gt;&lt;/h3&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.1&quot; src=&quot;wb_img/minusnode.png&quot; onclick=&quot;toggleFolder('folder.1')&quot;&gt;&lt;a name=&quot;link116folder.1&quot; class=&quot;el&quot; href=&quot;pt/overview.html&quot;&gt;Apresenta&#231;&#227;o&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.1&quot; src=&quot;wb_img/minusnode.png&quot; onclick=&quot;toggleFolder('folder.1')&quot;&gt;&lt;a name=&quot;link131folder.1&quot; class=&quot;el&quot; href=&quot;pt/overview.html&quot;&gt;Apresenta&#231;&#227;o&lt;/a&gt;&lt;/p&gt;
+       &lt;div id=&quot;folder.1&quot; style=&quot;display:block&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link117folder.1&quot; href=&quot;pt/overview.html#whatis&quot;&gt;O que &#233; eLua ?&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link118folder.1&quot; href=&quot;pt/overview.html#audience&quot;&gt;P&#250;blico alvo&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link119folder.1&quot; href=&quot;pt/overview.html#uses&quot;&gt;Aplica&#231;&#245;es&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link120folder.1&quot; href=&quot;pt/authors.html&quot;&gt;Autores&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link121folder.1&quot; href=&quot;pt/contacts.html&quot;&gt;Contatos&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link122folder.1&quot; href=&quot;pt/licence.html&quot;&gt;Licen&#231;a&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link132folder.1&quot; href=&quot;pt/overview.html#whatis&quot;&gt;O que &#233; eLua ?&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link133folder.1&quot; href=&quot;pt/overview.html#audience&quot;&gt;P&#250;blico alvo&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link134folder.1&quot; href=&quot;pt/overview.html#uses&quot;&gt;Aplica&#231;&#245;es&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link135folder.1&quot; href=&quot;pt/authors.html&quot;&gt;Autores&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link136folder.1&quot; href=&quot;pt/contacts.html&quot;&gt;Contatos&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link137folder.1&quot; href=&quot;pt/licence.html&quot;&gt;Licen&#231;a&lt;/a&gt;&lt;/p&gt;
+       &lt;/div&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.2')&quot;&gt;&lt;a name=&quot;link123folder.2&quot; class=&quot;el&quot; href=&quot;pt/comunity.html&quot;&gt;Comunidade&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.2')&quot;&gt;&lt;a name=&quot;link138folder.2&quot; class=&quot;el&quot; href=&quot;pt/community.html&quot;&gt;Comunidade&lt;/a&gt;&lt;/p&gt;
+       &lt;div id=&quot;folder.2&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link124folder.2&quot; href=&quot;pt/lists.html&quot;&gt;Listas&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link125folder.2&quot; href=&quot;pt/credits.html&quot;&gt;Cr&#233;ditos&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link126folder.2&quot; href=&quot;pt/galery.html&quot;&gt;Galeria&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link127folder.2&quot; href=&quot;pt/projects.html&quot;&gt;Projetos&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link139folder.2&quot; href=&quot;pt/lists.html&quot;&gt;Listas&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link140folder.2&quot; href=&quot;pt/credits.html&quot;&gt;Cr&#233;ditos&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link141folder.2&quot; href=&quot;pt/galery.html&quot;&gt;Galeria&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link142folder.2&quot; href=&quot;pt/projects.html&quot;&gt;Projetos&lt;/a&gt;&lt;/p&gt;
+       &lt;/div&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.3&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.3')&quot;&gt;&lt;a name=&quot;link128folder.3&quot; class=&quot;el&quot; href=&quot;pt/doc.html&quot;&gt;Documenta&#231;&#227;o&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.3&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.3')&quot;&gt;&lt;a name=&quot;link143folder.3&quot; class=&quot;el&quot; href=&quot;pt/status.html&quot;&gt;Status&lt;/a&gt;&lt;/p&gt;
+       &lt;div id=&quot;folder.3&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link129folder.3&quot; href=&quot;pt/using.html&quot;&gt;Usando&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link130folder.3&quot; href=&quot;pt/building.html&quot;&gt;Building&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.3.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.3.1')&quot;&gt;&lt;a name=&quot;link131folder.3.1&quot; class=&quot;el&quot; href=&quot;pt/examples.html&quot;&gt;Exemplos&lt;/a&gt;&lt;/p&gt;
+-        &lt;div id=&quot;folder.3.1&quot;&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link132folder.3.1&quot; href=&quot;pt/examples.html#hello&quot;&gt;hello.lua&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link133folder.3.1&quot; href=&quot;pt/examples.html#info&quot;&gt;info.lua&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link134folder.3.1&quot; href=&quot;pt/examples.html#led&quot;&gt;led.lua&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link144folder.3&quot; href=&quot;pt/news.html&quot;&gt;Not&#237;cias&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link145folder.3&quot; href=&quot;pt/platforms.html&quot;&gt;Plataformas&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link146folder.3&quot; href=&quot;pt/roadmap.html&quot;&gt;Futuro&lt;/a&gt;&lt;/p&gt;
++      &lt;/div&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.4&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4')&quot;&gt;&lt;a name=&quot;link147folder.4&quot; class=&quot;el&quot; href=&quot;pt/doc.html&quot;&gt;Documenta&#231;&#227;o&lt;/a&gt;&lt;/p&gt;
++      &lt;div id=&quot;folder.4&quot;&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link148folder.4&quot; href=&quot;pt/using.html&quot;&gt;Usando&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link149folder.4&quot; href=&quot;pt/building.html&quot;&gt;Building&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1')&quot;&gt;&lt;a name=&quot;link150folder.4.1&quot; class=&quot;el&quot; href=&quot;pt/examples.html&quot;&gt;Exemplos&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.4.1&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link151folder.4.1&quot; href=&quot;pt/examples.html#hello&quot;&gt;hello.lua&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link152folder.4.1&quot; href=&quot;pt/examples.html#info&quot;&gt;info.lua&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link153folder.4.1&quot; href=&quot;pt/examples.html#led&quot;&gt;led.lua&lt;/a&gt;&lt;/p&gt;
+         &lt;/div&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.3.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.3.2')&quot;&gt;&lt;a name=&quot;link135folder.3.2&quot; class=&quot;el&quot; href=&quot;pt/tutorials.html&quot;&gt;Tutoriais&lt;/a&gt;&lt;/p&gt;
+-        &lt;div id=&quot;folder.3.2&quot;&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link136folder.3.2&quot; href=&quot;pt/whatis.html&quot;&gt;O que &#233; eLua ?&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link137folder.3.2&quot; href=&quot;pt/whatis.html&quot;&gt;O que &#233; eLua ?&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link138folder.3.2&quot; href=&quot;pt/whatis.html&quot;&gt;O que &#233; eLua ?&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.2')&quot;&gt;&lt;a name=&quot;link154folder.4.2&quot; class=&quot;el&quot; href=&quot;pt/tutorials.html&quot;&gt;Tutoriais&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.4.2&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link155folder.4.2&quot; href=&quot;pt/whatis.html&quot;&gt;O que &#233; eLua ?&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link156folder.4.2&quot; href=&quot;pt/whatis.html&quot;&gt;O que &#233; eLua ?&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link157folder.4.2&quot; href=&quot;pt/whatis.html&quot;&gt;O que &#233; eLua ?&lt;/a&gt;&lt;/p&gt;
+         &lt;/div&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link139folder.3&quot; href=&quot;pt/faq.html&quot;&gt;FAQ&lt;/a&gt;&lt;/p&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.3.3&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.3.3')&quot;&gt;&lt;a name=&quot;link140folder.3.3&quot; class=&quot;el&quot; href=&quot;pt/history.html&quot;&gt;Hist&#243;rico de Vers&#245;es&lt;/a&gt;&lt;/p&gt;
+-        &lt;div id=&quot;folder.3.3&quot;&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link141folder.3.3&quot; href=&quot;pt/history.html#04&quot;&gt;v 0.4&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link142folder.3.3&quot; href=&quot;pt/history.html#05&quot;&gt;v 0.5&lt;/a&gt;&lt;/p&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link143folder.3.3&quot; href=&quot;pt/history.html#06&quot;&gt;v 0.6&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link158folder.4&quot; href=&quot;pt/faq.html&quot;&gt;FAQ&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.3&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.4.3')&quot;&gt;&lt;a name=&quot;link159folder.4.3&quot; class=&quot;el&quot; href=&quot;pt/history.html&quot;&gt;Hist&#243;rico de Vers&#245;es&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.4.3&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link160folder.4.3&quot; href=&quot;pt/history.html#04&quot;&gt;v 0.4&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link161folder.4.3&quot; href=&quot;pt/history.html#05&quot;&gt;v 0.5&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link162folder.4.3&quot; href=&quot;pt/history.html#06&quot;&gt;v 0.6&lt;/a&gt;&lt;/p&gt;
+         &lt;/div&gt;
+       &lt;/div&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.4&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4')&quot;&gt;&lt;a name=&quot;link144folder.4&quot; class=&quot;el&quot; href=&quot;pt/refmanual.html&quot;&gt;Manual de Refer&#234;ncia&lt;/a&gt;&lt;/p&gt;
+-      &lt;div id=&quot;folder.4&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1')&quot;&gt;&lt;a name=&quot;link145folder.4.1&quot; class=&quot;el&quot; href=&quot;pt/genericmodules.html&quot;&gt;M&#243;dulos Gen&#233;ricos&lt;/a&gt;&lt;/p&gt;
+-        &lt;div id=&quot;folder.4.1&quot;&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.1')&quot;&gt;&lt;a name=&quot;link146folder.4.1.1&quot; class=&quot;el&quot; href=&quot;pt/bit_ref.html&quot;&gt;bit&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.1&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link147folder.4.1.1&quot; href=&quot;pt/bit_ref.html#bnot&quot;&gt;bnot&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link148folder.4.1.1&quot; href=&quot;pt/bit_ref.html#band&quot;&gt;band&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link149folder.4.1.1&quot; href=&quot;pt/bit_ref.html#bor&quot;&gt;bor&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link150folder.4.1.1&quot; href=&quot;pt/bit_ref.html#bxor&quot;&gt;bxor&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link151folder.4.1.1&quot; href=&quot;pt/bit_ref.html#lshift&quot;&gt;lshift&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link152folder.4.1.1&quot; href=&quot;pt/bit_ref.html#rshift&quot;&gt;rshift&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link153folder.4.1.1&quot; href=&quot;pt/bit_ref.html#bit&quot;&gt;bit&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link154folder.4.1.1&quot; href=&quot;pt/bit_ref.html#set&quot;&gt;set&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link155folder.4.1.1&quot; href=&quot;pt/bit_ref.html#clear&quot;&gt;clear&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link156folder.4.1.1&quot; href=&quot;pt/bit_ref.html#isset&quot;&gt;isset&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link157folder.4.1.1&quot; href=&quot;pt/bit_ref.html#isclear&quot;&gt;isclear&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.5&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5')&quot;&gt;&lt;a name=&quot;link163folder.5&quot; class=&quot;el&quot; href=&quot;pt/refmanual.html&quot;&gt;Manual de Refer&#234;ncia&lt;/a&gt;&lt;/p&gt;
++      &lt;div id=&quot;folder.5&quot;&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1')&quot;&gt;&lt;a name=&quot;link164folder.5.1&quot; class=&quot;el&quot; href=&quot;pt/genericmodules.html&quot;&gt;M&#243;dulos Gen&#233;ricos&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.5.1&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.1')&quot;&gt;&lt;a name=&quot;link165folder.5.1.1&quot; class=&quot;el&quot; href=&quot;pt/bit_ref.html&quot;&gt;bit&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.1&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link166folder.5.1.1&quot; href=&quot;pt/bit_ref.html#bnot&quot;&gt;bnot&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link167folder.5.1.1&quot; href=&quot;pt/bit_ref.html#band&quot;&gt;band&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link168folder.5.1.1&quot; href=&quot;pt/bit_ref.html#bor&quot;&gt;bor&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link169folder.5.1.1&quot; href=&quot;pt/bit_ref.html#bxor&quot;&gt;bxor&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link170folder.5.1.1&quot; href=&quot;pt/bit_ref.html#lshift&quot;&gt;lshift&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link171folder.5.1.1&quot; href=&quot;pt/bit_ref.html#rshift&quot;&gt;rshift&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link172folder.5.1.1&quot; href=&quot;pt/bit_ref.html#bit&quot;&gt;bit&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link173folder.5.1.1&quot; href=&quot;pt/bit_ref.html#set&quot;&gt;set&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link174folder.5.1.1&quot; href=&quot;pt/bit_ref.html#clear&quot;&gt;clear&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link175folder.5.1.1&quot; href=&quot;pt/bit_ref.html#isset&quot;&gt;isset&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link176folder.5.1.1&quot; href=&quot;pt/bit_ref.html#isclear&quot;&gt;isclear&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.2')&quot;&gt;&lt;a name=&quot;link158folder.4.1.2&quot; class=&quot;el&quot; href=&quot;pt/cpu_ref.html&quot;&gt;cpu&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.2&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link159folder.4.1.2&quot; href=&quot;pt/cpu_ref.html#write32&quot;&gt;write32&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link160folder.4.1.2&quot; href=&quot;pt/cpu_ref.html#write16&quot;&gt;write16&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link161folder.4.1.2&quot; href=&quot;pt/cpu_ref.html#write8&quot;&gt;write8&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link162folder.4.1.2&quot; href=&quot;pt/cpu_ref.html#read32&quot;&gt;read32&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link163folder.4.1.2&quot; href=&quot;pt/cpu_ref.html#read16&quot;&gt;read16&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link164folder.4.1.2&quot; href=&quot;pt/cpu_ref.html#read8&quot;&gt;read8&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link165folder.4.1.2&quot; href=&quot;pt/cpu_ref.html#disableinterrupts&quot;&gt;disableinterrupts&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link166folder.4.1.2&quot; href=&quot;pt/cpu_ref.html#enableinterrupts&quot;&gt;enableinterrupts&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link167folder.4.1.2&quot; href=&quot;pt/cpu_ref.html#clockfrequency&quot;&gt;clockfrequency&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.2&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.2')&quot;&gt;&lt;a name=&quot;link177folder.5.1.2&quot; class=&quot;el&quot; href=&quot;pt/cpu_ref.html&quot;&gt;cpu&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.2&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link178folder.5.1.2&quot; href=&quot;pt/cpu_ref.html#write32&quot;&gt;write32&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link179folder.5.1.2&quot; href=&quot;pt/cpu_ref.html#write16&quot;&gt;write16&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link180folder.5.1.2&quot; href=&quot;pt/cpu_ref.html#write8&quot;&gt;write8&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link181folder.5.1.2&quot; href=&quot;pt/cpu_ref.html#read32&quot;&gt;read32&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link182folder.5.1.2&quot; href=&quot;pt/cpu_ref.html#read16&quot;&gt;read16&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link183folder.5.1.2&quot; href=&quot;pt/cpu_ref.html#read8&quot;&gt;read8&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link184folder.5.1.2&quot; href=&quot;pt/cpu_ref.html#disableinterrupts&quot;&gt;disableinterrupts&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link185folder.5.1.2&quot; href=&quot;pt/cpu_ref.html#enableinterrupts&quot;&gt;enableinterrupts&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link186folder.5.1.2&quot; href=&quot;pt/cpu_ref.html#clockfrequency&quot;&gt;clockfrequency&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.3&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.3')&quot;&gt;&lt;a name=&quot;link168folder.4.1.3&quot; class=&quot;el&quot; href=&quot;pt/gpio_ref.html&quot;&gt;gpio&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.3&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link169folder.4.1.3&quot; href=&quot;pt/gpio_ref.html#configpin&quot;&gt;configpin&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link170folder.4.1.3&quot; href=&quot;pt/gpio_ref.html#setpinvalue&quot;&gt;setpinvalue&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link171folder.4.1.3&quot; href=&quot;pt/gpio_ref.html#getpinvalue&quot;&gt;getpinvalue&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link172folder.4.1.3&quot; href=&quot;pt/gpio_ref.html#setpinhigh&quot;&gt;setpinhigh&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link173folder.4.1.3&quot; href=&quot;pt/gpio_ref.html#setpinlow&quot;&gt;setpinlow&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.3&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.3')&quot;&gt;&lt;a name=&quot;link187folder.5.1.3&quot; class=&quot;el&quot; href=&quot;pt/gpio_ref.html&quot;&gt;gpio&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.3&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link188folder.5.1.3&quot; href=&quot;pt/gpio_ref.html#configpin&quot;&gt;configpin&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link189folder.5.1.3&quot; href=&quot;pt/gpio_ref.html#setpinvalue&quot;&gt;setpinvalue&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link190folder.5.1.3&quot; href=&quot;pt/gpio_ref.html#getpinvalue&quot;&gt;getpinvalue&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link191folder.5.1.3&quot; href=&quot;pt/gpio_ref.html#setpinhigh&quot;&gt;setpinhigh&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link192folder.5.1.3&quot; href=&quot;pt/gpio_ref.html#setpinlow&quot;&gt;setpinlow&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.4&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.4')&quot;&gt;&lt;a name=&quot;link174folder.4.1.4&quot; class=&quot;el&quot; href=&quot;pt/net_ref.html&quot;&gt;net&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.4&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link175folder.4.1.4&quot; href=&quot;pt/net_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.4&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.4')&quot;&gt;&lt;a name=&quot;link193folder.5.1.4&quot; class=&quot;el&quot; href=&quot;pt/net_ref.html&quot;&gt;net&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.4&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link194folder.5.1.4&quot; href=&quot;pt/net_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.5&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.5')&quot;&gt;&lt;a name=&quot;link176folder.4.1.5&quot; class=&quot;el&quot; href=&quot;pt/pwm_ref.html&quot;&gt;pwm&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.5&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link177folder.4.1.5&quot; href=&quot;pt/pwm_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link178folder.4.1.5&quot; href=&quot;pt/pwm_ref.html#setcycle&quot;&gt;setcycle&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link179folder.4.1.5&quot; href=&quot;pt/pwm_ref.html#start&quot;&gt;start&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link180folder.4.1.5&quot; href=&quot;pt/pwm_ref.html#stop&quot;&gt;stop&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link181folder.4.1.5&quot; href=&quot;pt/pwm_ref.html#setclock&quot;&gt;setclock&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link182folder.4.1.5&quot; href=&quot;pt/pwm_ref.html#getclock[A&quot;&gt;getclock&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.5&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.5')&quot;&gt;&lt;a name=&quot;link195folder.5.1.5&quot; class=&quot;el&quot; href=&quot;pt/pwm_ref.html&quot;&gt;pwm&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.5&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link196folder.5.1.5&quot; href=&quot;pt/pwm_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link197folder.5.1.5&quot; href=&quot;pt/pwm_ref.html#setcycle&quot;&gt;setcycle&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link198folder.5.1.5&quot; href=&quot;pt/pwm_ref.html#start&quot;&gt;start&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link199folder.5.1.5&quot; href=&quot;pt/pwm_ref.html#stop&quot;&gt;stop&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link200folder.5.1.5&quot; href=&quot;pt/pwm_ref.html#setclock&quot;&gt;setclock&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link201folder.5.1.5&quot; href=&quot;pt/pwm_ref.html#getclock[A&quot;&gt;getclock&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.6&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.6')&quot;&gt;&lt;a name=&quot;link183folder.4.1.6&quot; class=&quot;el&quot; href=&quot;pt/spi_ref.html&quot;&gt;spi&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.6&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link184folder.4.1.6&quot; href=&quot;pt/spi_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link185folder.4.1.6&quot; href=&quot;pt/spi_ref.html#select&quot;&gt;select&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link186folder.4.1.6&quot; href=&quot;pt/spi_ref.html#unselect&quot;&gt;unselect&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link187folder.4.1.6&quot; href=&quot;pt/spi_ref.html#send&quot;&gt;send&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link188folder.4.1.6&quot; href=&quot;pt/spi_ref.html#sendrecv&quot;&gt;sendrecv&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.6&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.6')&quot;&gt;&lt;a name=&quot;link202folder.5.1.6&quot; class=&quot;el&quot; href=&quot;pt/spi_ref.html&quot;&gt;spi&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.6&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link203folder.5.1.6&quot; href=&quot;pt/spi_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link204folder.5.1.6&quot; href=&quot;pt/spi_ref.html#select&quot;&gt;select&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link205folder.5.1.6&quot; href=&quot;pt/spi_ref.html#unselect&quot;&gt;unselect&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link206folder.5.1.6&quot; href=&quot;pt/spi_ref.html#send&quot;&gt;send&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link207folder.5.1.6&quot; href=&quot;pt/spi_ref.html#sendrecv&quot;&gt;sendrecv&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.7&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.7')&quot;&gt;&lt;a name=&quot;link189folder.4.1.7&quot; class=&quot;el&quot; href=&quot;pt/sys_ref.html&quot;&gt;sys&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.7&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link190folder.4.1.7&quot; href=&quot;pt/sys_ref.html#platforms&quot;&gt;platform&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link191folder.4.1.7&quot; href=&quot;pt/sys_ref.html#mcu&quot;&gt;mcu&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link192folder.4.1.7&quot; href=&quot;pt/sys_ref.html#cpu&quot;&gt;cpu&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link193folder.4.1.7&quot; href=&quot;pt/sys_ref.html#board&quot;&gt;board&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.7&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.7')&quot;&gt;&lt;a name=&quot;link208folder.5.1.7&quot; class=&quot;el&quot; href=&quot;pt/sys_ref.html&quot;&gt;sys&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.7&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link209folder.5.1.7&quot; href=&quot;pt/sys_ref.html#platforms&quot;&gt;platform&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link210folder.5.1.7&quot; href=&quot;pt/sys_ref.html#mcu&quot;&gt;mcu&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link211folder.5.1.7&quot; href=&quot;pt/sys_ref.html#cpu&quot;&gt;cpu&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link212folder.5.1.7&quot; href=&quot;pt/sys_ref.html#board&quot;&gt;board&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.8&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.8')&quot;&gt;&lt;a name=&quot;link194folder.4.1.8&quot; class=&quot;el&quot; href=&quot;pt/term_ref.html&quot;&gt;term&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.8&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link195folder.4.1.8&quot; href=&quot;pt/term_ref.html#clear&quot;&gt;clear&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link196folder.4.1.8&quot; href=&quot;pt/term_ref.html#cleareol&quot;&gt;cleareol&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link197folder.4.1.8&quot; href=&quot;pt/term_ref.html#moveto&quot;&gt;moveto&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link198folder.4.1.8&quot; href=&quot;pt/term_ref.html#moveup&quot;&gt;moveup&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link199folder.4.1.8&quot; href=&quot;pt/term_ref.html#movedown&quot;&gt;movedown&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link200folder.4.1.8&quot; href=&quot;pt/term_ref.html#moveleft&quot;&gt;moveleft&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link201folder.4.1.8&quot; href=&quot;pt/term_ref.html#moveright&quot;&gt;moveright&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link202folder.4.1.8&quot; href=&quot;pt/term_ref.html#getlinecount&quot;&gt;getlinecount&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link203folder.4.1.8&quot; href=&quot;pt/term_ref.html#getcolcount&quot;&gt;getcolcount&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link204folder.4.1.8&quot; href=&quot;pt/term_ref.html#printstr&quot;&gt;printstr&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link205folder.4.1.8&quot; href=&quot;pt/term_ref.html#getx&quot;&gt;getx&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link206folder.4.1.8&quot; href=&quot;pt/term_ref.html#gety&quot;&gt;gety&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link207folder.4.1.8&quot; href=&quot;pt/term_ref.html#inputchar&quot;&gt;inputchar&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.8&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.8')&quot;&gt;&lt;a name=&quot;link213folder.5.1.8&quot; class=&quot;el&quot; href=&quot;pt/term_ref.html&quot;&gt;term&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.8&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link214folder.5.1.8&quot; href=&quot;pt/term_ref.html#clear&quot;&gt;clear&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link215folder.5.1.8&quot; href=&quot;pt/term_ref.html#cleareol&quot;&gt;cleareol&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link216folder.5.1.8&quot; href=&quot;pt/term_ref.html#moveto&quot;&gt;moveto&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link217folder.5.1.8&quot; href=&quot;pt/term_ref.html#moveup&quot;&gt;moveup&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link218folder.5.1.8&quot; href=&quot;pt/term_ref.html#movedown&quot;&gt;movedown&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link219folder.5.1.8&quot; href=&quot;pt/term_ref.html#moveleft&quot;&gt;moveleft&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link220folder.5.1.8&quot; href=&quot;pt/term_ref.html#moveright&quot;&gt;moveright&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link221folder.5.1.8&quot; href=&quot;pt/term_ref.html#getlinecount&quot;&gt;getlinecount&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link222folder.5.1.8&quot; href=&quot;pt/term_ref.html#getcolcount&quot;&gt;getcolcount&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link223folder.5.1.8&quot; href=&quot;pt/term_ref.html#printstr&quot;&gt;printstr&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link224folder.5.1.8&quot; href=&quot;pt/term_ref.html#getx&quot;&gt;getx&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link225folder.5.1.8&quot; href=&quot;pt/term_ref.html#gety&quot;&gt;gety&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link226folder.5.1.8&quot; href=&quot;pt/term_ref.html#inputchar&quot;&gt;inputchar&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.9&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.4.1.9')&quot;&gt;&lt;a name=&quot;link208folder.4.1.9&quot; class=&quot;el&quot; href=&quot;pt/tmr_ref.html&quot;&gt;tmr&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.9&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link209folder.4.1.9&quot; href=&quot;pt/tmr_ref.html#delay&quot;&gt;delay&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link210folder.4.1.9&quot; href=&quot;pt/tmr_ref.html#read&quot;&gt;read&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link211folder.4.1.9&quot; href=&quot;pt/tmr_ref.html#start&quot;&gt;start&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link212folder.4.1.9&quot; href=&quot;pt/tmr_ref.html#diff&quot;&gt;diff&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link213folder.4.1.9&quot; href=&quot;pt/tmr_ref.html#mindelay&quot;&gt;mindelay&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link214folder.4.1.9&quot; href=&quot;pt/tmr_ref.html#maxdelay&quot;&gt;maxdelay&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link215folder.4.1.9&quot; href=&quot;pt/tmr_ref.html#setclock&quot;&gt;setclock&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.9&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.5.1.9')&quot;&gt;&lt;a name=&quot;link227folder.5.1.9&quot; class=&quot;el&quot; href=&quot;pt/tmr_ref.html&quot;&gt;tmr&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.9&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link228folder.5.1.9&quot; href=&quot;pt/tmr_ref.html#delay&quot;&gt;delay&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link229folder.5.1.9&quot; href=&quot;pt/tmr_ref.html#read&quot;&gt;read&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link230folder.5.1.9&quot; href=&quot;pt/tmr_ref.html#start&quot;&gt;start&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link231folder.5.1.9&quot; href=&quot;pt/tmr_ref.html#diff&quot;&gt;diff&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link232folder.5.1.9&quot; href=&quot;pt/tmr_ref.html#mindelay&quot;&gt;mindelay&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link233folder.5.1.9&quot; href=&quot;pt/tmr_ref.html#maxdelay&quot;&gt;maxdelay&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link234folder.5.1.9&quot; href=&quot;pt/tmr_ref.html#setclock&quot;&gt;setclock&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.1.10&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.4.1.10')&quot;&gt;&lt;a name=&quot;link216folder.4.1.10&quot; class=&quot;el&quot; href=&quot;pt/uart_ref.html&quot;&gt;uart&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.1.10&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link217folder.4.1.10&quot; href=&quot;pt/uart_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link218folder.4.1.10&quot; href=&quot;pt/uart_ref.html#send&quot;&gt;send&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link219folder.4.1.10&quot; href=&quot;pt/uart_ref.html#recv&quot;&gt;recv&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.1.10&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.5.1.10')&quot;&gt;&lt;a name=&quot;link235folder.5.1.10&quot; class=&quot;el&quot; href=&quot;pt/uart_ref.html&quot;&gt;uart&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.1.10&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link236folder.5.1.10&quot; href=&quot;pt/uart_ref.html#setup&quot;&gt;setup&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link237folder.5.1.10&quot; href=&quot;pt/uart_ref.html#send&quot;&gt;send&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link238folder.5.1.10&quot; href=&quot;pt/uart_ref.html#recv&quot;&gt;recv&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+         &lt;/div&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.4.2&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.4.2')&quot;&gt;&lt;a name=&quot;link220folder.4.2&quot; class=&quot;el&quot; href=&quot;pt/platdependentmodules.html&quot;&gt;Dependentes de Plataforma&lt;/a&gt;&lt;/p&gt;
+-        &lt;div id=&quot;folder.4.2&quot;&gt;
+-          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img name=&quot;imgfolder.4.2.1&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.4.2.1')&quot;&gt;&lt;a name=&quot;link221folder.4.2.1&quot; class=&quot;el&quot; href=&quot;pt/disp_ref.html&quot;&gt;disp&lt;/a&gt;&lt;/p&gt;
+-          &lt;div id=&quot;folder.4.2.1&quot;&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link222folder.4.2.1&quot; href=&quot;pt/disp_ref.html#init&quot;&gt;init&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link223folder.4.2.1&quot; href=&quot;pt/disp_ref.html#enable&quot;&gt;enable&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link224folder.4.2.1&quot; href=&quot;pt/disp_ref.html#disable&quot;&gt;disable&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link225folder.4.2.1&quot; href=&quot;pt/disp_ref.html#on&quot;&gt;on&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link226folder.4.2.1&quot; href=&quot;pt/disp_ref.html#off&quot;&gt;off&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link227folder.4.2.1&quot; href=&quot;pt/disp_ref.html#print&quot;&gt;print&lt;/a&gt;&lt;/p&gt;
+-            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link228folder.4.2.1&quot; href=&quot;pt/disp_ref.html#draw&quot;&gt;draw&lt;/a&gt;&lt;/p&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img name=&quot;imgfolder.5.2&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.5.2')&quot;&gt;&lt;a name=&quot;link239folder.5.2&quot; class=&quot;el&quot; href=&quot;pt/platdependentmodules.html&quot;&gt;Dependentes de Plataforma&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.5.2&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img name=&quot;imgfolder.5.2.1&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.5.2.1')&quot;&gt;&lt;a name=&quot;link240folder.5.2.1&quot; class=&quot;el&quot; href=&quot;pt/disp_ref.html&quot;&gt;disp&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.5.2.1&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link241folder.5.2.1&quot; href=&quot;pt/disp_ref.html#init&quot;&gt;init&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link242folder.5.2.1&quot; href=&quot;pt/disp_ref.html#enable&quot;&gt;enable&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link243folder.5.2.1&quot; href=&quot;pt/disp_ref.html#disable&quot;&gt;disable&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link244folder.5.2.1&quot; href=&quot;pt/disp_ref.html#on&quot;&gt;on&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link245folder.5.2.1&quot; href=&quot;pt/disp_ref.html#off&quot;&gt;off&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link246folder.5.2.1&quot; href=&quot;pt/disp_ref.html#print&quot;&gt;print&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link247folder.5.2.1&quot; href=&quot;pt/disp_ref.html#draw&quot;&gt;draw&lt;/a&gt;&lt;/p&gt;
+           &lt;/div&gt;
+         &lt;/div&gt;
+       &lt;/div&gt;
+-      &lt;p&gt;&lt;img name=&quot;imgfolder.5&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.5')&quot;&gt;&lt;a name=&quot;link229folder.5&quot; class=&quot;el&quot; href=&quot;pt/binaries.html&quot;&gt;Downloads&lt;/a&gt;&lt;/p&gt;
+-      &lt;div id=&quot;folder.5&quot;&gt;
+-        &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link230folder.5&quot; href=&quot;pt/lm_bin.html&quot;&gt;Atmel&lt;/a&gt;&lt;/p&gt;
++      &lt;p&gt;&lt;img name=&quot;imgfolder.6&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.6')&quot;&gt;&lt;a name=&quot;link248folder.6&quot; class=&quot;el&quot; href=&quot;pt/binaries.html&quot;&gt;Downloads&lt;/a&gt;&lt;/p&gt;
++      &lt;div id=&quot;folder.6&quot;&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img name=&quot;imgfolder.6.1&quot; src=&quot;wb_img/plusnode.png&quot; onclick=&quot;toggleFolder('folder.6.1')&quot;&gt;&lt;a name=&quot;link249folder.6.1&quot; class=&quot;el&quot; href=&quot;pt/binaries.html&quot;&gt;Binaries&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.6.1&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link250folder.6.1&quot; href=&quot;pt/lm_bin.html&quot;&gt;Atmel&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link251folder.6.1&quot; href=&quot;pt/lm_bin.html&quot;&gt;Luminary Micro&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link252folder.6.1&quot; href=&quot;pt/lm_bin.html&quot;&gt;PC i386&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link253folder.6.1&quot; href=&quot;pt/lm_bin.html&quot;&gt;Phillips&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/vertline.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link254folder.6.1&quot; href=&quot;pt/lm_bin.html&quot;&gt;ST Micro&lt;/a&gt;&lt;/p&gt;
++        &lt;/div&gt;
++        &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img name=&quot;imgfolder.6.2&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.6.2')&quot;&gt;&lt;a name=&quot;link255folder.6.2&quot; class=&quot;el&quot; href=&quot;pt/sources.html&quot;&gt;Fontes&lt;/a&gt;&lt;/p&gt;
++        &lt;div id=&quot;folder.6.2&quot;&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link256folder.6.2&quot; href=&quot;pt/sources.html#06&quot;&gt;v0.6&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link257folder.6.2&quot; href=&quot;pt/sources.html#trunk&quot;&gt;trunk&lt;/a&gt;&lt;/p&gt;
++          &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img name=&quot;imgfolder.6.2.1&quot; src=&quot;wb_img/plusnodelast.png&quot; onclick=&quot;toggleFolder('folder.6.2.1')&quot;&gt;&lt;a name=&quot;link258folder.6.2.1&quot; class=&quot;el&quot; href=&quot;pt/oldversions.html&quot;&gt;anteriores&lt;/a&gt;&lt;/p&gt;
++          &lt;div id=&quot;folder.6.2.1&quot;&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/node.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link259folder.6.2.1&quot; href=&quot;pt/oldversions.html#05&quot;&gt;v0.5&lt;/a&gt;&lt;/p&gt;
++            &lt;p&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/blank.png&quot;&gt;&lt;img src=&quot;wb_img/nodelast.png&quot;&gt;&lt;a class=&quot;el&quot; name=&quot;link260folder.6.2.1&quot; href=&quot;pt/sources.html#04&quot;&gt;v0.4&lt;/a&gt;&lt;/p&gt;
++          &lt;/div&gt;
++        &lt;/div&gt;
+       &lt;/div&gt;
+   &lt;/div&gt;
+ &lt;/body&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000138.html">[Elua-svn] r182 - trunk/doc/wb
+</A></li>
+	<LI>Next message: <A HREF="000140.html">[Elua-svn] r184 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#139">[ date ]</a>
+              <a href="thread.html#139">[ thread ]</a>
+              <a href="subject.html#139">[ subject ]</a>
+              <a href="author.html#139">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

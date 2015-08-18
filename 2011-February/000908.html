@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r955 - in trunk: . src/lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r955%20-%20in%20trunk%3A%20.%20src/lua&In-Reply-To=%3C20110204211018.42702481359%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000907.html">
+   <LINK REL="Next"  HREF="000909.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r955 - in trunk: . src/lua</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r955%20-%20in%20trunk%3A%20.%20src/lua&In-Reply-To=%3C20110204211018.42702481359%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r955 - in trunk: . src/lua">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Feb  4 22:10:18 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000907.html">[Elua-svn] r954 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000909.html">[Elua-svn] r956 - trunk/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#908">[ date ]</a>
+              <a href="thread.html#908">[ thread ]</a>
+              <a href="subject.html#908">[ subject ]</a>
+              <a href="author.html#908">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-04 22:10:17 +0100 (Fri, 04 Feb 2011)
+New Revision: 955
+
+Modified:
+   trunk/
+   trunk/src/lua/luaconf.h
+Log:
+fix for issue #174
+
+
+Property changes on: trunk
+___________________________________________________________________
+Modified: svn:ignore
+   - .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+*.hex
+*.tmp
+*.map
+core
+build-setup.conf
+config.log
+.sconf_temp
+*.exe
+*.obj
+mux
+rfs_server
+dist
+
+   + .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+*.hex
+*.tmp
+*.map
+core
+build-setup.conf
+config.log
+.sconf_temp
+*.exe
+*.obj
+mux
+rfs_server
+dist
+luarpc
+
+
+
+Modified: trunk/src/lua/luaconf.h
+===================================================================
+--- trunk/src/lua/luaconf.h	2011-02-04 20:55:20 UTC (rev 954)
++++ trunk/src/lua/luaconf.h	2011-02-04 21:10:17 UTC (rev 955)
+@@ -90,33 +90,36 @@
+ //## Modified for eLua
+ //## Defaults search modules path to our ROM File System
+ #ifndef LUA_RPC
+-#define LUA_PATH_DEFAULT &quot;/rfs/?.lua;/rfs/?.lc;/mmc/?.lua;/mmc/?.lc;/rom/?.lua;/rom/?.lc&quot;
+-#else
++#define LUA_PATH_DEFAULT  &quot;/rfs/?.lua;/rfs/?.lc;/mmc/?.lua;/mmc/?.lc;/rom/?.lua;/rom/?.lc&quot;
++#define LUA_CPATH_DEFAULT &quot;&quot;
++#else // #ifndef LUA_RPC
+ #define LUA_PATH_DEFAULT  \
+ 		&quot;.\\?.lua;&quot;  LUA_LDIR&quot;?.lua;&quot;  LUA_LDIR&quot;?\\init.lua;&quot; \
+ 		             LUA_CDIR&quot;?.lua;&quot;  LUA_CDIR&quot;?\\init.lua&quot;
+-#endif	             
+ #define LUA_CPATH_DEFAULT \
+ 	&quot;.\\?.dll;&quot;  LUA_CDIR&quot;?.dll;&quot; LUA_CDIR&quot;loadall.dll&quot;
++#endif // #ifndef LUA_RPC
+ 
+-#else
++#else // #if defined(_WIN32)
++
+ #define LUA_ROOT	&quot;/usr/local/&quot;
+ #define LUA_LDIR	LUA_ROOT &quot;share/lua/5.1/&quot;
+ #define LUA_CDIR	LUA_ROOT &quot;lib/lua/5.1/&quot;
+ 
+ #ifndef LUA_RPC
+ #define LUA_PATH_DEFAULT  &quot;/mmc/?.lua;/mmc/?.lc;/rom/?.lua;/rom/?.lc&quot;
+-#else
+-
++#define LUA_CPATH_DEFAULT &quot;&quot;
++#else // #ifndef LUA_RPC
+ #define LUA_PATH_DEFAULT  \
+ 		&quot;./?.lua;&quot;  LUA_LDIR&quot;?.lua;&quot;  LUA_LDIR&quot;?/init.lua;&quot; \
+ 		            LUA_CDIR&quot;?.lua;&quot;  LUA_CDIR&quot;?/init.lua&quot;
+-#endif
+ #define LUA_CPATH_DEFAULT \
+ 	&quot;./?.so;&quot;  LUA_CDIR&quot;?.so;&quot; LUA_CDIR&quot;loadall.so&quot;
+-#endif
++#endif // #ifndef LUA_RPC
+ 
++#endif // #if defined(_WIN32)
+ 
++
+ /*
+ @@ LUA_DIRSEP is the directory separator (for submodules).
+ ** CHANGE it if your machine does not use &quot;/&quot; as the directory separator
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000907.html">[Elua-svn] r954 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000909.html">[Elua-svn] r956 - trunk/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#908">[ date ]</a>
+              <a href="thread.html#908">[ thread ]</a>
+              <a href="subject.html#908">[ subject ]</a>
+              <a href="author.html#908">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

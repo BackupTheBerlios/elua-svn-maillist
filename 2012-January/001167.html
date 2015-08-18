@@ -1,0 +1,707 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] e8cb4c: Add bounds checking for duty &lt; 0 and freq &lt; 1 in p...
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2012-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20e8cb4c%3A%20Add%20bounds%20checking%20for%20duty%20%3C%200%20and%0A%20freq%20%3C%201%20in%20p...&In-Reply-To=%3C4f13bc0b5020b_358a3f89af6d8af8721fd%40sh1.rs.github.com.mail%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001166.html">
+   <LINK REL="Next"  HREF="001168.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] e8cb4c: Add bounds checking for duty &lt; 0 and freq &lt; 1 in p...</H1>
+    <B>GitHub</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20e8cb4c%3A%20Add%20bounds%20checking%20for%20duty%20%3C%200%20and%0A%20freq%20%3C%201%20in%20p...&In-Reply-To=%3C4f13bc0b5020b_358a3f89af6d8af8721fd%40sh1.rs.github.com.mail%3E"
+       TITLE="[eLua-svn] [elua/elua] e8cb4c: Add bounds checking for duty &lt; 0 and freq &lt; 1 in p...">noreply at github.com
+       </A><BR>
+    <I>Mon Jan 16 06:56:27 CET 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001166.html">[eLua-svn] [elua/elua] dbf721: jaFix typo in previous commit
+</A></li>
+        <LI>Next message: <A HREF="001168.html">[eLua-svn] [elua/elua] 98d857: Mizar32 conf: enable DHCP client by	default
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1167">[ date ]</a>
+              <a href="thread.html#1167">[ thread ]</a>
+              <a href="subject.html#1167">[ subject ]</a>
+              <a href="author.html#1167">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/Mizar32
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+  Commit: e8cb4cec4b508701891f6626a50483681825b311
+      <A HREF="https://github.com/elua/elua/commit/e8cb4cec4b508701891f6626a50483681825b311">https://github.com/elua/elua/commit/e8cb4cec4b508701891f6626a50483681825b311</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/modules/pwm.c
+
+  Log Message:
+  -----------
+  Add bounds checking for duty &lt; 0 and freq &lt; 1 in pwm.setup()
+
+Previously, you could ask for a PWM frequency of 0 and negative
+duty cycles, and each platform would do a different thing: failing
+or setting some random values.  This change replaces such values
+with the minimum, the same way that duty is bounded to 100.
+
+
+  Commit: 11a6f77c61ccf15360faa681b9050aa81e90b2f9
+      <A HREF="https://github.com/elua/elua/commit/11a6f77c61ccf15360faa681b9050aa81e90b2f9">https://github.com/elua/elua/commit/11a6f77c61ccf15360faa681b9050aa81e90b2f9</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  AVR32 PWM: Improve frequency precision and reporting
+
+Previously, pwm.setup() would set a frequency equal to or less
+than the one asked for, and report an integer less than or equal
+to the actual frequency set.  This change makes it set the closest
+available frequency and report the closest integer to that.
+
+
+  Commit: a118c093485340fa0d5c7bbedc4c299a03c298fd
+      <A HREF="https://github.com/elua/elua/commit/a118c093485340fa0d5c7bbedc4c299a03c298fd">https://github.com/elua/elua/commit/a118c093485340fa0d5c7bbedc4c299a03c298fd</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  Fix AVR32 PWM rturning -1 for very large values of frequency
+
+Previously, if you set a frequency value ten times the PWM clock
+frequency, it would calculate a period of 0 and return foo/0, which
+gives -1 on AVR32.  With this change, everything &gt; pwmclk sets and
+returns a frequency of pwmclk.
+
+
+  Commit: 19c3107115dc6c1b5477cc7c8f169e3a854f9ebd
+      <A HREF="https://github.com/elua/elua/commit/19c3107115dc6c1b5477cc7c8f169e3a854f9ebd">https://github.com/elua/elua/commit/19c3107115dc6c1b5477cc7c8f169e3a854f9ebd</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/modules/i2c.c
+  M src/modules/pwm.c
+
+  Log Message:
+  -----------
+  Add checks for invalid parameters in Lua i2c.*() and pwm.*() functions
+
+Instead of &quot;correcting&quot; or ignoring bad parameter values in i2c and pwm
+(see commit e6b20231b4eea4054070b1f6a4e36216e80d2d1d)
+apply the eLua policy of signalling the error on the console and aborting.
+
+All &quot;clock&quot; and &quot;frequency&quot; errors here use the same message (&quot;frequency&quot;)
+so as to reduce the firmware bloat from extra message strings.
+
+
+  Commit: ef58b0945d24f8049c7242caad72a089e484709d
+      <A HREF="https://github.com/elua/elua/commit/ef58b0945d24f8049c7242caad72a089e484709d">https://github.com/elua/elua/commit/ef58b0945d24f8049c7242caad72a089e484709d</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  Fix two bugs in AVR32 PWM code
+
+- Very low frequencies with very high clock rates (ratio &gt; 1048576)
+  selected random requencies (overflow of 20-bit period register was
+  not checked
+
+- initialization of prescaler selector to 0 was missing.
+  It just happened to get 0 off the stack every time by chance (!).
+
+
+  Commit: 5448d5c4a68263d8005fe3c63e0f2ed57a0395d2
+      <A HREF="https://github.com/elua/elua/commit/5448d5c4a68263d8005fe3c63e0f2ed57a0395d2">https://github.com/elua/elua/commit/5448d5c4a68263d8005fe3c63e0f2ed57a0395d2</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  Initial fix for AVR32 ADC sequencer issues
+
+
+  Commit: 3ea5eaae01ebeb8722a3e28a3c703585c11a9878
+      <A HREF="https://github.com/elua/elua/commit/3ea5eaae01ebeb8722a3e28a3c703585c11a9878">https://github.com/elua/elua/commit/3ea5eaae01ebeb8722a3e28a3c703585c11a9878</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/adc.c
+
+  Log Message:
+  -----------
+  Fix bug in AVR32 ADC code: reading write-only register adc-&gt;chdr
+
+
+  Commit: faf9284cd2a44bb04ba45844949bb8de27c910fe
+      <A HREF="https://github.com/elua/elua/commit/faf9284cd2a44bb04ba45844949bb8de27c910fe">https://github.com/elua/elua/commit/faf9284cd2a44bb04ba45844949bb8de27c910fe</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M inc/remotefs/client.h
+  M src/remotefs/client.c
+  M src/remotefs/elua_rfs.c
+
+  Log Message:
+  -----------
+  fix timeout data type in the RFS implementation
+
+
+  Commit: 2e3f365dbfbd524f72724a8e64d8ac7023fa23d7
+      <A HREF="https://github.com/elua/elua/commit/2e3f365dbfbd524f72724a8e64d8ac7023fa23d7">https://github.com/elua/elua/commit/2e3f365dbfbd524f72724a8e64d8ac7023fa23d7</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/remotefs/elua_rfs.c
+
+  Log Message:
+  -----------
+  another timeout type fix
+
+
+  Commit: 14781144403d20989b550200d7fd95db8319fd5b
+      <A HREF="https://github.com/elua/elua/commit/14781144403d20989b550200d7fd95db8319fd5b">https://github.com/elua/elua/commit/14781144403d20989b550200d7fd95db8319fd5b</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  Fix PWM clock select commentary
+
+
+  Commit: 376d31534fcd8198aa7728a8e3fe2cf29f7bbba9
+      <A HREF="https://github.com/elua/elua/commit/376d31534fcd8198aa7728a8e3fe2cf29f7bbba9">https://github.com/elua/elua/commit/376d31534fcd8198aa7728a8e3fe2cf29f7bbba9</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/at91sam7x/platform_conf.h
+  M src/platform/avr32/EVK1100/evk1100_conf.h
+  M src/platform/avr32/EVK1101/evk1101_conf.h
+  M src/platform/avr32/MIZAR32/mizar32_conf.h
+  M src/platform/i386/platform_conf.h
+  M src/platform/lm3s/platform_conf.h
+  M src/platform/lpc17xx/platform_conf.h
+  M src/platform/lpc24xx/platform_conf.h
+  M src/platform/lpc288x/platform_conf.h
+  M src/platform/sim/platform_conf.h
+  M src/platform/stm32/platform_conf.h
+  M src/platform/str7/platform_conf.h
+  M src/platform/str9/platform_conf.h
+
+  Log Message:
+  -----------
+  aAdd commentary about second use of CPU_FREQUENCY macro
+
+
+  Commit: bb740c66bfe634949e60e265df6c1d53912bf6eb
+      <A HREF="https://github.com/elua/elua/commit/bb740c66bfe634949e60e265df6c1d53912bf6eb">https://github.com/elua/elua/commit/bb740c66bfe634949e60e265df6c1d53912bf6eb</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+  M src/platform/avr32/spi.c
+  M src/platform/avr32/spi.h
+
+  Log Message:
+  -----------
+  Fix AVR32 SPI initialization
+
+This fixes the following AVR32 SPI clock setting bugs:
+- it used to set the SPI frequency at a quarter of what you asked for
+  (by calculating it from the wrong clock)
+- it did not report what actual frequency it had set
+- spi.setup() always seemed to succeed even if it failed
+- it used to set the nearest frequency instead of the next lowest available
+  so half the time would drive devices at higher than their maximum speed.
+  This was hidden by it always setting a quarter of what you asked for (!)
+- it would set a junk frequency if you asked for a clock lower than its minimum
+- asking for a baud rate of zero made it divide by zero, which went undetected
+  and set a random baud rate instead of the minimum available
+- Now, if you ask for an invalid number of data bits (&lt; 8 or &gt; 16),
+  spi.setup() returns zero.
+  This is still wrong and undocumented.
+  It should give an error message in platform-independent spi_setup() and stop
+  but unfortunately the current code structure does not allow this, since the
+  possible numbers of data bits is platform-specific.
+
+
+  Commit: 6a5381475dae9e5f6a76f38edb1d951b41451b82
+      <A HREF="https://github.com/elua/elua/commit/6a5381475dae9e5f6a76f38edb1d951b41451b82">https://github.com/elua/elua/commit/6a5381475dae9e5f6a76f38edb1d951b41451b82</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  Remove unused variable
+
+
+  Commit: 1731f74ad041569d0b4f74000c17e97ffcef0771
+      <A HREF="https://github.com/elua/elua/commit/1731f74ad041569d0b4f74000c17e97ffcef0771">https://github.com/elua/elua/commit/1731f74ad041569d0b4f74000c17e97ffcef0771</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/board.h
+  M src/platform/avr32/ethernet.h
+
+  Log Message:
+  -----------
+  Raise Mizar32 CPU freq from 60 to 66MHz and PBA from 15 to 16.5
+
+All derived frequencies (sdram, USB, tmr, VTMRs, SPI, UARTs, PWM, MMC,
+and ethernet) compensate correctly for the different PBA freq and
+tmr.getmaxdelay() is still just over 0.5 sec (by a hair!).
+This may work for EVK110X too - the reason they chose 60MHz is unknown.
+
+
+  Commit: b72bf232dfb91f827740fc6d64bf510a86bbb3c6
+      <A HREF="https://github.com/elua/elua/commit/b72bf232dfb91f827740fc6d64bf510a86bbb3c6">https://github.com/elua/elua/commit/b72bf232dfb91f827740fc6d64bf510a86bbb3c6</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+
+  Log Message:
+  -----------
+  Tiny optimisation
+
+cpol and cpha are already checked as being 0 or 1 in modules/spi.c
+so don't bother masking them.
+
+
+  Commit: c2583b09f3e4ab0a3393c3665bbeea8abad18b1d
+      <A HREF="https://github.com/elua/elua/commit/c2583b09f3e4ab0a3393c3665bbeea8abad18b1d">https://github.com/elua/elua/commit/c2583b09f3e4ab0a3393c3665bbeea8abad18b1d</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M inc/eluarpc.h
+  M src/eluarpc.c
+  M src/platform/avr32/ethernet.c
+  M src/platform/avr32/ethernet.h
+
+  Log Message:
+  -----------
+  Fix CRLF
+
+
+  Commit: f690e54cfa18f2172f45b4d591b01aa7c99ba810
+      <A HREF="https://github.com/elua/elua/commit/f690e54cfa18f2172f45b4d591b01aa7c99ba810">https://github.com/elua/elua/commit/f690e54cfa18f2172f45b4d591b01aa7c99ba810</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M SConstruct
+  M build_elua.lua
+
+  Log Message:
+  -----------
+  Added options to build systems to filter out certain file name patterns for ROMFS.
+
+
+  Commit: 978c7641c12506bd6e9a8f56354f814040519f12
+      <A HREF="https://github.com/elua/elua/commit/978c7641c12506bd6e9a8f56354f814040519f12">https://github.com/elua/elua/commit/978c7641c12506bd6e9a8f56354f814040519f12</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M build_elua.lua
+
+  Log Message:
+  -----------
+  Remove extra unneeded set function from lua build system
+
+
+  Commit: ce954bb8924b2827c6c62156eedb1c2916a99eb6
+      <A HREF="https://github.com/elua/elua/commit/ce954bb8924b2827c6c62156eedb1c2916a99eb6">https://github.com/elua/elua/commit/ce954bb8924b2827c6c62156eedb1c2916a99eb6</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/i2c.c
+
+  Log Message:
+  -----------
+  Fix bugs in I2C speed setting for AVR32
+
+- Always set a speed &lt;= the one requested, never higher
+- Return the closest integer to the actual speed that we set,
+  instead of just returning the speed they asked for
+- Limit the range of the speed to the possible values
+  to avoid divisions by zero
+
+
+  Commit: a06fb8fc25e69b9d9a8c41cf78311ca02452a1e1
+      <A HREF="https://github.com/elua/elua/commit/a06fb8fc25e69b9d9a8c41cf78311ca02452a1e1">https://github.com/elua/elua/commit/a06fb8fc25e69b9d9a8c41cf78311ca02452a1e1</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M README.asciidoc
+
+  Log Message:
+  -----------
+  Update README to include information about where to find doc
+
+
+  Commit: f451adf891069a8a59426e00b6ce942199d455b2
+      <A HREF="https://github.com/elua/elua/commit/f451adf891069a8a59426e00b6ce942199d455b2">https://github.com/elua/elua/commit/f451adf891069a8a59426e00b6ce942199d455b2</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/newlib/stubs.c
+
+  Log Message:
+  -----------
+  Fix two spellos in commentary
+
+
+  Commit: 9bf0f47a5bb043f92ec6126383283a2f27dcf578
+      <A HREF="https://github.com/elua/elua/commit/9bf0f47a5bb043f92ec6126383283a2f27dcf578">https://github.com/elua/elua/commit/9bf0f47a5bb043f92ec6126383283a2f27dcf578</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+  M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  Use a #define for the LCD_RESET command, not a literal value
+
+
+  Commit: c21fe6b7e67585dc2bab3266ae717dadf1dc5d42
+      <A HREF="https://github.com/elua/elua/commit/c21fe6b7e67585dc2bab3266ae717dadf1dc5d42">https://github.com/elua/elua/commit/c21fe6b7e67585dc2bab3266ae717dadf1dc5d42</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M doc/eluadoc/refman_ps_mizar32_lcd.lua
+
+  Log Message:
+  -----------
+  Fix mizar32.lcd.*() documentation
+
+
+  Commit: 8a66bdf867ca5a0def041243c14aaf8112199acd
+      <A HREF="https://github.com/elua/elua/commit/8a66bdf867ca5a0def041243c14aaf8112199acd">https://github.com/elua/elua/commit/8a66bdf867ca5a0def041243c14aaf8112199acd</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  Conform in-bracket spacing to eLua convention
+
+
+  Commit: 13df32c8645d9bcad4af0e3c5e9803cccad17e80
+      <A HREF="https://github.com/elua/elua/commit/13df32c8645d9bcad4af0e3c5e9803cccad17e80">https://github.com/elua/elua/commit/13df32c8645d9bcad4af0e3c5e9803cccad17e80</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M doc/eluadoc/refman_ps_mizar32_lcd.lua
+  M src/platform/avr32/lcd.c
+  M src/platform/avr32/lcd.h
+
+  Log Message:
+  -----------
+  Implement and document mizar32.lcd.{getpos,buttons}() functions
+
+The new LCD PIC firmware has the ability to return the cursor position
+in the LCD character RAM and the state of the buttons. This commit
+implements eLua module functions to make these available to users.
+
+
+  Commit: 935e98db706161582311b443bdaa0bc3ddd9224b
+      <A HREF="https://github.com/elua/elua/commit/935e98db706161582311b443bdaa0bc3ddd9224b">https://github.com/elua/elua/commit/935e98db706161582311b443bdaa0bc3ddd9224b</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  When defining a user character, restore cursor position using getpos()
+
+When defining a user-defined character on the LCD panel, the hardware
+forgets the current cursor position on the display.  We used to
+restore it by keeping track of the cursor in software, but now that
+the LCD firmware has a &quot;report current cursor position&quot; command,
+we simply use that to save and restore the cursor position when
+defining a char. Code saving: 272 bytes.
+
+The old firmware could not return the current cursor position, so
+previously, when defining a user-definable character, it could
+
+
+  Commit: 29826a2ffbc9f13033eb2bc1d75117de81533fdd
+      <A HREF="https://github.com/elua/elua/commit/29826a2ffbc9f13033eb2bc1d75117de81533fdd">https://github.com/elua/elua/commit/29826a2ffbc9f13033eb2bc1d75117de81533fdd</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  Fix signed/unsigned conflicts in i2c data and integer parameters
+
+
+  Commit: d24258bbdbc19f4f5ef62f4808fd282fe4b6d147
+      <A HREF="https://github.com/elua/elua/commit/d24258bbdbc19f4f5ef62f4808fd282fe4b6d147">https://github.com/elua/elua/commit/d24258bbdbc19f4f5ef62f4808fd282fe4b6d147</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  For new LCD firmware, drop need to limit data to 31 bytes
+
+The previous Mizar32 LCD firmware had a limit of 31 bytes per
+data message, while the new has no limit. This commit drops the
+code that used to split long data transfers into 31-byte chunks.
+
+
+  Commit: c00e51d5c9ddec2f21a5e3da5cb35efb744d96ec
+      <A HREF="https://github.com/elua/elua/commit/c00e51d5c9ddec2f21a5e3da5cb35efb744d96ec">https://github.com/elua/elua/commit/c00e51d5c9ddec2f21a5e3da5cb35efb744d96ec</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  optimize LCD reset code, as it is now a single command
+
+
+  Commit: e4436f5c81dc1277173a3c9ab96496aacc3fa2e4
+      <A HREF="https://github.com/elua/elua/commit/e4436f5c81dc1277173a3c9ab96496aacc3fa2e4">https://github.com/elua/elua/commit/e4436f5c81dc1277173a3c9ab96496aacc3fa2e4</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/lcd.c
+
+  Log Message:
+  -----------
+  Move saving of old LCD cursor position to after the arg checking.
+
+
+  Commit: 2837fb69b3ce156f555653daaef9e86d70427bdc
+      <A HREF="https://github.com/elua/elua/commit/2837fb69b3ce156f555653daaef9e86d70427bdc">https://github.com/elua/elua/commit/2837fb69b3ce156f555653daaef9e86d70427bdc</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M rfs_server_src/serial_posix.c
+
+  Log Message:
+  -----------
+  RFS server fix
+
+Read from the UART file descriptor until no data can be read
+anymore (POSIX only). This is needed because sometimes the
+RFS server didn't read all the available data and signaled errors.
+
+
+  Commit: eb94c3386f1481048268ac9d9a4b12d957279bb2
+      <A HREF="https://github.com/elua/elua/commit/eb94c3386f1481048268ac9d9a4b12d957279bb2">https://github.com/elua/elua/commit/eb94c3386f1481048268ac9d9a4b12d957279bb2</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M rfs_server_src/serial_posix.c
+
+  Log Message:
+  -----------
+  RFS server fix for serial connections
+
+On Linux, the serial connection was not setup properly, which led to
+weird errors in the RFS server. This fix disables any input processing
+in the termios layer, thus fixing the problem. Thanks to Markus Korber
+for reporting and fixing the issue.
+
+
+  Commit: 0b01a928ac1bdca9571d0f7dc08b3b88b7574fce
+      <A HREF="https://github.com/elua/elua/commit/0b01a928ac1bdca9571d0f7dc08b3b88b7574fce">https://github.com/elua/elua/commit/0b01a928ac1bdca9571d0f7dc08b3b88b7574fce</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/lua/lvm.c
+
+  Log Message:
+  -----------
+  Apply fix to Lua 5.1.4 bug #10
+
+See <A HREF="http://www.lua.org/bugs.html">http://www.lua.org/bugs.html</A> -&gt; Lua 5.1.4 -&gt; bug 10
+Repeat-by:
+  meta={}
+  setmetatable(meta, meta)
+  meta.__newindex = function(t, key, value) print(&quot;set&quot;) end
+  o = setmetatable({}, meta)
+  o.x = 10    -- should print 'set'
+Lua 5.1.4 fix adapted to eLua's rotable mods
+
+
+  Commit: 51000926153dd8007d9ad8a4a1d239b7a242c58a
+      <A HREF="https://github.com/elua/elua/commit/51000926153dd8007d9ad8a4a1d239b7a242c58a">https://github.com/elua/elua/commit/51000926153dd8007d9ad8a4a1d239b7a242c58a</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/lua/lparser.c
+
+  Log Message:
+  -----------
+  Apply fix to Lua 5.1.4 bug #11
+
+See <A HREF="http://www.lua.org/bugs.html">http://www.lua.org/bugs.html</A> -&gt; Lua 5.1.4 -&gt; bug 11
+&quot;Parser may collect a prototype while building it.&quot;
+
+
+  Commit: e894d15b08aaf3678c278ef7c331c7dfb21961fd
+      <A HREF="https://github.com/elua/elua/commit/e894d15b08aaf3678c278ef7c331c7dfb21961fd">https://github.com/elua/elua/commit/e894d15b08aaf3678c278ef7c331c7dfb21961fd</A>
+  Author: Robert G. Jakabosky &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bobby at sharedrealm.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/lua/lauxlib.c
+  M src/lua/lgc.c
+  M src/lua/lgc.h
+  M src/lua/lparser.c
+  M src/lua/lstring.c
+  M src/lua/luaconf.h
+
+  Log Message:
+  -----------
+  Update EGC to r6 from r4
+
+
+  Commit: fa963b7b88627b09fcecbf544b42fba1b1f3932d
+      <A HREF="https://github.com/elua/elua/commit/fa963b7b88627b09fcecbf544b42fba1b1f3932d">https://github.com/elua/elua/commit/fa963b7b88627b09fcecbf544b42fba1b1f3932d</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/i2c.c
+  M src/platform/avr32/sdramc.c
+
+  Log Message:
+  -----------
+  Fix random 60-second pause bug in AVR32 I2C code
+
+The I2C delay routine would very occasionally pause execution for
+60 seconds then continue. This was due to an Atmel delay routine
+that claimed to handle the 32-bit counter register overflowing
+but didn't. Specifically, in the old code, when delay_end_cycle was
+very close to 2^32, the counter register could wrap to 0 before it
+was compared for being &gt; delay_end_cycle, resulting in a 2^32-cycle
+pause, about a minute.  If the end_cycle were exactly 2^32-1,
+the delay might have takes several minute-long cycles to finish.
+
+This commit also fixes the bug in the SDRAM init code where the
+delay code was copied from. In that case the odds of the bug biting
+were very small indeed, since it was immediately after system startup
+and in SDRAM init code there are no interrupt routines running.
+However, the correct code is also shorter.
+
+
+  Commit: a2e322d1e4619c3c2009b3088cd9bfc670384935
+      <A HREF="https://github.com/elua/elua/commit/a2e322d1e4619c3c2009b3088cd9bfc670384935">https://github.com/elua/elua/commit/a2e322d1e4619c3c2009b3088cd9bfc670384935</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-14 (Sat, 14 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/i2c.c
+  M src/platform/avr32/sdramc.c
+
+  Log Message:
+  -----------
+  Fix commentary in previous commit
+
+The new AVR32 delay code doesn't just handle up to 30 second delays;
+it handles the whole range.
+
+
+  Commit: 56ae1feca2ffde9abaed94a8919f0a8db5c62ff1
+      <A HREF="https://github.com/elua/elua/commit/56ae1feca2ffde9abaed94a8919f0a8db5c62ff1">https://github.com/elua/elua/commit/56ae1feca2ffde9abaed94a8919f0a8db5c62ff1</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2012-01-15 (Sun, 15 Jan 2012)
+
+  Changed paths:
+    M src/platform/avr32/MIZAR32/mizar32_conf.h
+
+  Log Message:
+  -----------
+  Mizar32 conf: enable DHCP client by default
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/e8cb4ce^...56ae1fe">https://github.com/elua/elua/compare/e8cb4ce^...56ae1fe</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001166.html">[eLua-svn] [elua/elua] dbf721: jaFix typo in previous commit
+</A></li>
+	<LI>Next message: <A HREF="001168.html">[eLua-svn] [elua/elua] 98d857: Mizar32 conf: enable DHCP client by	default
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1167">[ date ]</a>
+              <a href="thread.html#1167">[ thread ]</a>
+              <a href="subject.html#1167">[ subject ]</a>
+              <a href="author.html#1167">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

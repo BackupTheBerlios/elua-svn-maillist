@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r139 - trunk/docs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r139%20-%20trunk/docs&In-Reply-To=%3C200812312157.mBVLvWMo002009%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000094.html">
+   <LINK REL="Next"  HREF="000096.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r139 - trunk/docs</H1>
+    <B>dadosutter at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r139%20-%20trunk/docs&In-Reply-To=%3C200812312157.mBVLvWMo002009%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r139 - trunk/docs">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Wed Dec 31 22:57:32 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000094.html">[Elua-svn] r138 - trunk/docs
+</A></li>
+        <LI>Next message: <A HREF="000096.html">[Elua-svn] r140 - trunk/docs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#95">[ date ]</a>
+              <a href="thread.html#95">[ thread ]</a>
+              <a href="subject.html#95">[ subject ]</a>
+              <a href="author.html#95">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2008-12-31 22:57:32 +0100 (Wed, 31 Dec 2008)
+New Revision: 139
+
+Removed:
+   trunk/docs/console_input_output.txt
+Log:
+Independent txt doc files beeing removed.
+They are all migrating to the eLua_Manual.pdf
+
+
+
+Deleted: trunk/docs/console_input_output.txt
+===================================================================
+--- trunk/docs/console_input_output.txt	2008-12-30 04:18:11 UTC (rev 138)
++++ trunk/docs/console_input_output.txt	2008-12-31 21:57:32 UTC (rev 139)
+@@ -1,41 +0,0 @@
+-(NOTE: view this file with a monospaced font)
+-
+-Console input/output in eLua
+-================================================================================
+-
+-NOTE: this document describes the terminal support over serial connections
+-only. Refer to docs/elua_components.txt to learn how to enable console
+-support over TCP/IP instead of serial connections.
+-
+-The console input/output is handled by a generic layer (src/newlib/genstd.c) 
+-that can be adapted to a variety of input/output devices. It needs just two
+-functions, one for displaying characters and another one for receiving input:
+-
+-(BEGIN inc/newlib/genstd.h)
+-// Send/receive function types
+-typedef void ( *p_std_send_char )( int fd, char c );
+-typedef int ( *p_std_get_char )();
+-(END inc/newlib/genstd.h)
+-
+-(the send faction gets an additional 'fd' parameter that you can use to 
+-differentiate between STDOUT and STDERR).
+-To set them, use std_set_send_func and std_set_get_func. Generally this happens
+-in the &quot;platform_init&quot; function (see &quot;platform interface.txt&quot;) to set the 
+-initial &quot;console&quot; device:
+-
+-(BEGIN src/platform/at91sam7x/platform.c)
+-int platform_init()
+-{
+-.........................
+-  // Set the send/recv functions                          
+-  std_set_send_func( uart_send );
+-  std_set_get_func( uart_recv );
+-.........................
+-}
+-(END src/platform/at91sam7x/platform.c)
+-
+-The code above makes it possible for you to use the UART as the Lua console, 
+-thus being able to use the standard Lua interpreter (for example) via your 
+-serial connection.
+-If you need another console device, just call std_set_send_func/std_set_get_func
+-with the appropriate function pointer.
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000094.html">[Elua-svn] r138 - trunk/docs
+</A></li>
+	<LI>Next message: <A HREF="000096.html">[Elua-svn] r140 - trunk/docs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#95">[ date ]</a>
+              <a href="thread.html#95">[ thread ]</a>
+              <a href="subject.html#95">[ subject ]</a>
+              <a href="author.html#95">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

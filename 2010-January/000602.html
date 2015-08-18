@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r646 - in branches/pre0.7/doc: . en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r646%20-%20in%20branches/pre0.7/doc%3A%20.%20en&In-Reply-To=%3C201001142052.o0EKqRC2019613%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000601.html">
+   <LINK REL="Next"  HREF="000603.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r646 - in branches/pre0.7/doc: . en</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r646%20-%20in%20branches/pre0.7/doc%3A%20.%20en&In-Reply-To=%3C201001142052.o0EKqRC2019613%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r646 - in branches/pre0.7/doc: . en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Jan 14 21:52:27 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000601.html">[Elua-svn] r645 - branches/pre0.7
+</A></li>
+        <LI>Next message: <A HREF="000603.html">[Elua-svn] r647 - in branches/pre0.7: doc/en src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#602">[ date ]</a>
+              <a href="thread.html#602">[ thread ]</a>
+              <a href="subject.html#602">[ subject ]</a>
+              <a href="author.html#602">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-01-14 21:52:26 +0100 (Thu, 14 Jan 2010)
+New Revision: 646
+
+Modified:
+   branches/pre0.7/doc/docdata.lua
+   branches/pre0.7/doc/en/tut_openocd.html
+Log:
+updated OpenOCD with info about the STR-E912 board
+
+Modified: branches/pre0.7/doc/docdata.lua
+===================================================================
+--- branches/pre0.7/doc/docdata.lua	2010-01-14 19:49:19 UTC (rev 645)
++++ branches/pre0.7/doc/docdata.lua	2010-01-14 20:52:26 UTC (rev 646)
+@@ -75,6 +75,7 @@
+       },
+       { { &quot;Old versions&quot;, &quot;Vers&#245;es Anteriores&quot; }, &quot;dl_old.html&quot;, 
+         {
++          { &quot;0.6&quot;, &quot;dl_old.html#v060&quot; },
+           { &quot;0.5&quot;, &quot;dl_old.html#v050&quot; },
+           { &quot;0.4.1&quot;, &quot;dl_old.html#v041&quot; },
+           { &quot;0.4&quot;, &quot;dl_old.html#v04&quot; },
+
+Modified: branches/pre0.7/doc/en/tut_openocd.html
+===================================================================
+--- branches/pre0.7/doc/en/tut_openocd.html	2010-01-14 19:49:19 UTC (rev 645)
++++ branches/pre0.7/doc/en/tut_openocd.html	2010-01-14 20:52:26 UTC (rev 646)
+@@ -6,6 +6,7 @@
+ 
+ &lt;ul&gt;
+   &lt;li&gt;&lt;a href=&quot;#str9files&quot;&gt;Configuration files for STR9-comStick&lt;/a&gt;&lt;/li&gt;
++  &lt;li&gt;&lt;a href=&quot;#stre912files&quot;&gt;Configuration files for STR-E912&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#lpc2888files&quot;&gt;Configuration files for LPC2888&lt;/a&gt;&lt;/li&gt;
+   &lt;li&gt;&lt;a href=&quot;#str7files&quot;&gt;Configuration files for STR7&lt;/a&gt;&lt;/li&gt;
+ &lt;/ul&gt;
+@@ -261,7 +262,8 @@
+   &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str91x_reset.script">http://elua.berlios.de/other/str91x_reset.script</A>&quot;&gt;str91x_reset.script&lt;/a&gt;&lt;/li&gt;
+ &lt;/ul&gt;
+ 
+-&lt;p&gt;The &lt;b&gt;comstick.cfg&lt;/b&gt; configuration file is for programming the
++&lt;p&gt;For STR9 I'm using the Yagarto OpenOCD build for Windows (repository
++version 717, as described at the beginning of this tutorial).The &lt;b&gt;comstick.cfg&lt;/b&gt; configuration file is for programming the
+ STR9-comStick. &lt;b&gt;comrst.cfg&lt;/b&gt; is for resetting it. The comStick has a very
+ interesting habit: after you power it (via USB) it does not start
+ executing the code from the internal flash, you need to execute OpenOCD
+@@ -272,10 +274,41 @@
+ the CPU RESET line isn't properly handled by the on-board USB-to-JTAG
+ converter, and the only solution I have for this is to execute this
+ script everytime you power the board and everytime you need to do a
+-RESET.&lt;/p&gt;
++RESET. To use the programming script, invoke the OpenOCD executable like this:&lt;/p&gt;
++
++&lt;pre&gt;&lt;code&gt;openocd-ftd2xx -f comstick.cfg&lt;/code&gt;&lt;/pre&gt;
++
++&lt;p&gt;(&lt;b&gt;note&lt;/b&gt;: under Windows, the OpenOCD executable name is often
++&quot;openocd-ftd2xx&quot;. Under Linux it's simply &quot;openocd&quot;. Replace it with
++the actualy name with your executable).&lt;/p&gt;
++
+ &lt;p&gt;Also, be sure to modify &lt;b&gt;str91x_flashprogram.script&lt;/b&gt; if your image name is
+ not &lt;b&gt;main.bin&lt;/b&gt;&lt;/p&gt;
+ 
++&lt;a name=&quot;stre912files&quot; /&gt;&lt;h2&gt;Configuration files for STR-E912 (Olimex)&lt;/h2&gt;
++
++&lt;p&gt;Download them below:&lt;/p&gt;
++
++&lt;ul&gt;
++  &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str-e912.cfg">http://elua.berlios.de/other/str-e912.cfg</A>&quot;&gt;str-e912.cfg&lt;/a&gt;&lt;/li&gt;
++  &lt;li&gt;&lt;a href=&quot;<A HREF="http://elua.berlios.de/other/str91x_flashprogram.script">http://elua.berlios.de/other/str91x_flashprogram.script</A>&quot;&gt;str91x_flashprogram.script&lt;/a&gt;&lt;/li&gt;
++&lt;/ul&gt;
++
++&lt;p&gt;For the &lt;a href=&quot;<A HREF="http://www.olimex.com/dev/str-e912.html">http://www.olimex.com/dev/str-e912.html</A>&quot;&gt;STR-E912 board&lt;/a&gt; I'm using the Yagarto OpenOCD build for Windows (repository
++version 717, as described at the beginning of this tutorial). As this board doesn't have a built-in USB to JTAG adapter, an external one
++is needed. The one used by the &lt;b&gt;str-e912.cfg&lt;/b&gt; script is the &lt;a href=&quot;<A HREF="http://olimex.com/dev/arm-usb-ocd.html">http://olimex.com/dev/arm-usb-ocd.html</A>&quot;&gt;ARM-USB-OCD&lt;/a&gt; adapter (also from Olimex).
++The &lt;b&gt;str-e912.cfg&lt;/b&gt; configuration file is for programming the board. To use the programming script, invoke the OpenOCD executable like this:&lt;/p&gt;
++
++&lt;pre&gt;&lt;code&gt;openocd-ftd2xx -f str-e912.cfg&lt;/code&gt;&lt;/pre&gt;
++
++&lt;p&gt;(&lt;b&gt;note&lt;/b&gt;: under Windows, the OpenOCD executable name is often
++&quot;openocd-ftd2xx&quot;. Under Linux it's simply &quot;openocd&quot;. Replace it with
++the actualy name with your executable).&lt;/p&gt;
++
++&lt;p&gt;Also, be sure to modify &lt;b&gt;str91x_flashprogram.script&lt;/b&gt; if your image name is
++not &lt;b&gt;main.bin&lt;/b&gt;&lt;/p&gt;
++
++
+ &lt;a name=&quot;lpc2888files&quot; /&gt;&lt;h2&gt;Configuration files for LPC2888&lt;/h2&gt;
+ 
+ &lt;p&gt;LPC2888 is quite a different animal. I couldn't find any &quot;official&quot;
+@@ -300,7 +333,7 @@
+ from Olimex, but it should be easy to use the script with any other
+ JTAG adapter (don't forget to change the script to match your adapter).&lt;/p&gt;
+ 
+-&lt;a name=&quot;str7files&quot; /&gt;&lt;h2&gt;#Configuration files for STR711FR2 (STR7 from ST)&lt;/h2&gt;
++&lt;a name=&quot;str7files&quot; /&gt;&lt;h2&gt;Configuration files for STR711FR2 (STR7 from ST)&lt;/h2&gt;
+ 
+ &lt;p&gt;Download them below:&lt;/p&gt;
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000601.html">[Elua-svn] r645 - branches/pre0.7
+</A></li>
+	<LI>Next message: <A HREF="000603.html">[Elua-svn] r647 - in branches/pre0.7: doc/en src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#602">[ date ]</a>
+              <a href="thread.html#602">[ thread ]</a>
+              <a href="subject.html#602">[ subject ]</a>
+              <a href="author.html#602">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r966 - trunk/utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r966%20-%20trunk/utils&In-Reply-To=%3C20110221075744.AC4C3481259%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000918.html">
+   <LINK REL="Next"  HREF="000920.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r966 - trunk/utils</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r966%20-%20trunk/utils&In-Reply-To=%3C20110221075744.AC4C3481259%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r966 - trunk/utils">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Feb 21 08:57:44 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000918.html">[Elua-svn] r965 - in trunk: . src/platform/stm32 utils
+</A></li>
+        <LI>Next message: <A HREF="000920.html">[Elua-svn] r967 - in trunk: . src/platform/avr32 utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#919">[ date ]</a>
+              <a href="thread.html#919">[ thread ]</a>
+              <a href="subject.html#919">[ subject ]</a>
+              <a href="author.html#919">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-21 08:57:44 +0100 (Mon, 21 Feb 2011)
+New Revision: 966
+
+Modified:
+   trunk/utils/mkfs.lua
+Log:
+mkfs.lua bug fixes; now it works with actual ROMFS data in all modes (verbatim, compress, compile)
+
+Modified: trunk/utils/mkfs.lua
+===================================================================
+--- trunk/utils/mkfs.lua	2011-02-21 01:01:21 UTC (rev 965)
++++ trunk/utils/mkfs.lua	2011-02-21 07:57:44 UTC (rev 966)
+@@ -76,9 +76,9 @@
+           return false
+         end
+         -- Do we need to process the file?
+-        local fextpart = ''
++        local fextpart, fnamepart = ''
+         if mode == &quot;compile&quot; or mode == &quot;compress&quot; then
+-          local fnamepart, fextpart = utils.split_path( realname )
++          fnamepart, fextpart = utils.split_path( realname )
+           local newext = mode == &quot;compress&quot; and &quot;.lua.tmp&quot; or &quot;.lc&quot;
+           if fextpart == &quot;.lua&quot; then
+             newname = fnamepart .. newext
+@@ -94,7 +94,7 @@
+               return false
+             end
+             crtfile:close()
+-            crtile = io.open( newname, &quot;rb&quot; )
++            crtfile = io.open( newname, &quot;rb&quot; )
+             if not crtfile then
+               outfile:close()
+               os.remove( outfname )
+@@ -103,7 +103,7 @@
+             end
+             if mode == &quot;compile&quot; then
+               fnamepart, fextpart = utils.split_path( fname )
+-              fname = fnamepart + &quot;.lc&quot;
++              fname = fnamepart .. &quot;.lc&quot;
+             end
+           end
+         end
+@@ -118,8 +118,8 @@
+         end
+         _add_data( 0, outfile ) -- ASCIIZ
+         local plen = string.pack( &quot;&lt;h&quot;, #filedata )
+-        _add_data( plen[ 1 ], outfile )
+-        _add_data( plen[ 2 ], outfile )
++        _add_data( plen:byte( 1 ), outfile )
++        _add_data( plen:byte( 2 ), outfile )
+         -- Then write the rest of the file
+         for i = 1, #filedata do
+           _add_data( filedata:byte( i ), outfile )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000918.html">[Elua-svn] r965 - in trunk: . src/platform/stm32 utils
+</A></li>
+	<LI>Next message: <A HREF="000920.html">[Elua-svn] r967 - in trunk: . src/platform/avr32 utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#919">[ date ]</a>
+              <a href="thread.html#919">[ thread ]</a>
+              <a href="subject.html#919">[ subject ]</a>
+              <a href="author.html#919">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

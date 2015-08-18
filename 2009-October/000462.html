@@ -1,0 +1,300 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r506 - in branches/eagle_mmc/src: fatfs platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r506%20-%20in%20branches/eagle_mmc/src%3A%20fatfs%20platform/lm3s&In-Reply-To=%3C200910302310.n9UNAdHZ000859%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000461.html">
+   <LINK REL="Next"  HREF="000463.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r506 - in branches/eagle_mmc/src: fatfs platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r506%20-%20in%20branches/eagle_mmc/src%3A%20fatfs%20platform/lm3s&In-Reply-To=%3C200910302310.n9UNAdHZ000859%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r506 - in branches/eagle_mmc/src: fatfs platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Oct 31 00:10:39 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000461.html">[Elua-svn] r505 - in branches/eagle_mmc/src: . fatfs platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000463.html">[Elua-svn] r507 - branches/eagle_mmc/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#462">[ date ]</a>
+              <a href="thread.html#462">[ thread ]</a>
+              <a href="subject.html#462">[ subject ]</a>
+              <a href="author.html#462">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-10-31 00:10:38 +0100 (Sat, 31 Oct 2009)
+New Revision: 506
+
+Modified:
+   branches/eagle_mmc/src/fatfs/diskio.h
+   branches/eagle_mmc/src/platform/lm3s/mmc.c
+   branches/eagle_mmc/src/platform/lm3s/platform.c
+   branches/eagle_mmc/src/platform/lm3s/platform_conf.h
+Log:
+SD/MMC bug fixed.
+
+Modified: branches/eagle_mmc/src/fatfs/diskio.h
+===================================================================
+--- branches/eagle_mmc/src/fatfs/diskio.h	2009-10-30 23:10:23 UTC (rev 505)
++++ branches/eagle_mmc/src/fatfs/diskio.h	2009-10-30 23:10:38 UTC (rev 506)
+@@ -34,6 +34,7 @@
+ DRESULT disk_write (BYTE, const BYTE*, DWORD, BYTE);
+ #endif
+ DRESULT disk_ioctl (BYTE, BYTE, void*);
++void	disk_timerproc (void);
+ 
+ 
+ 
+
+Modified: branches/eagle_mmc/src/platform/lm3s/mmc.c
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/mmc.c	2009-10-30 23:10:23 UTC (rev 505)
++++ branches/eagle_mmc/src/platform/lm3s/mmc.c	2009-10-30 23:10:38 UTC (rev 506)
+@@ -10,6 +10,7 @@
+  * web site. It was modified to work with a LM3S boards.
+  */
+  
++#include &quot;platform_conf.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;diskio.h&quot;
+ 
+@@ -89,8 +90,8 @@
+ static volatile
+ DSTATUS Stat = STA_NOINIT;    /* Disk status */
+ 
+-static volatile
+-BYTE Timer1, Timer2;    /* 100Hz decrement timer */
++static volatile UINT Timer1 = 0;
++static volatile UINT Timer2 = 0;    /* decrement timer */
+ 
+ static
+ BYTE CardType;            /* b0:MMC, b1:SDC, b2:Block addressing */
+@@ -107,9 +108,7 @@
+ static
+ void xmit_spi (BYTE dat)
+ {
+-    DWORD rcvdat;
+-
+-    rcvdat = platform_spi_send_recv(spi_id, dat );
++    platform_spi_send_recv( spi_id, dat );
+ }
+ 
+ 
+@@ -122,9 +121,9 @@
+ {
+     DWORD rcvdat;
+ 
+-    rcvdat  = platform_spi_send_recv(spi_id, 0xFF );
++    rcvdat  = platform_spi_send_recv( spi_id, 0xFF );
+ 
+-    return (BYTE)rcvdat;
++    return ( BYTE )rcvdat;
+ }
+ 
+ 
+@@ -143,7 +142,7 @@
+ {
+     BYTE res;
+ 
+-    Timer2 = 50;    /* Wait for ready in timeout of 500ms */
++    Timer2 = 500/MMCFS_TICK_MS;    /* Wait for ready in timeout of 500ms */
+     rcvr_spi();
+     do
+         res = rcvr_spi();
+@@ -163,17 +162,14 @@
+     /* Ensure CS is held high. */
+     DESELECT();
+ 
+-    /* Switch the SSI TX line to a GPIO and drive it high too. */
++    /* Switch the SPI TX line to a GPIO and drive it high too. */
+     platform_pio_op( SDC_SPI_PORT, ( ( u32 ) 1 &lt;&lt; SDC_TX_PIN ), PLATFORM_IO_PIN_DIR_OUTPUT );
+     platform_pio_op( SDC_SPI_PORT, ( ( u32 ) 1 &lt;&lt; SDC_TX_PIN ), PLATFORM_IO_PIN_SET );
+     
+     /* Send 10 bytes over the SSI. This causes the clock to wiggle the */
+     /* required number of times. */
+     for(i = 0 ; i &lt; 10 ; i++)
+-    {
+-        /* Write DUMMY data. */
+         rcvr_spi();
+-    }
+ 
+     /* Revert to hardware control of the SSI TX line. */
+     platform_spi_setup( SDC_SPI_NUM, PLATFORM_SPI_MASTER, 400000, 0, 0, 8 );
+@@ -214,8 +210,6 @@
+ {
+     unsigned long i;
+ 
+-    /* Disable the SSI */
+-
+     /* Set the maximum speed as half the system clock, with a max of 12.5 MHz. */
+     i = platform_cpu_get_frequency() / 2;
+     if(i &gt; 12500000)
+@@ -252,7 +246,7 @@
+     BYTE token;
+ 
+ 
+-    Timer1 = 10;
++    Timer1 = 100/MMCFS_TICK_MS ? 100/MMCFS_TICK_MS : 1;
+     do {                            /* Wait for data packet in timeout of 100ms */
+         token = rcvr_spi();
+     } while ((token == 0xFF) &amp;&amp; Timer1);
+@@ -364,13 +358,13 @@
+ 
+     if (drv) return STA_NOINIT;            /* Supports only single drive */
+     if (Stat &amp; STA_NODISK) return Stat;    /* No card in the socket */
++    
++    power_on();                           /* Force socket power on */
+ 
+-    power_on();                            /* Force socket power on */
+-
+     SELECT();                /* CS = L */
+     ty = 0;
+     if (send_cmd(CMD0, 0) == 1) {            /* Enter Idle state */
+-        Timer1 = 100;                        /* Initialization timeout of 1000 msec */
++        Timer1 = 1000/MMCFS_TICK_MS;     /* Initialization timeout of 1000 msec */
+         if (send_cmd(CMD8, 0x1AA) == 1) {    /* SDC Ver2+ */
+             for (n = 0; n &lt; 4; n++) ocr[n] = rcvr_spi();
+             if (ocr[2] == 0x01 &amp;&amp; ocr[3] == 0xAA) {    /* The card can work at vdd range of 2.7-3.6V */
+@@ -624,13 +618,11 @@
+ /*-----------------------------------------------------------------------*/
+ /* This function must be called in period of 10ms                        */
+ 
+-void disk_timerproc (void)
++void disk_timerproc( void )
+ {
+-//    BYTE n, s;
+-    BYTE n;
++    UINT n;
+ 
+-
+-    n = Timer1;                        /* 100Hz decrement timer */
++    n = Timer1;
+     if (n) Timer1 = --n;
+     n = Timer2;
+     if (n) Timer2 = --n;
+
+Modified: branches/eagle_mmc/src/platform/lm3s/platform.c
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/platform.c	2009-10-30 23:10:23 UTC (rev 505)
++++ branches/eagle_mmc/src/platform/lm3s/platform.c	2009-10-30 23:10:38 UTC (rev 506)
+@@ -16,6 +16,7 @@
+ #include &quot;platform_conf.h&quot;
+ #include &quot;common.h&quot;
+ #include &quot;math.h&quot;
++#include &quot;diskio.h&quot;
+ 
+ // Platform specific includes
+ #include &quot;hw_ints.h&quot;
+@@ -203,16 +204,16 @@
+   unsigned protocol;
+ 
+   if( cpol == 0 )
+-    protocol == cpha ? SSI_FRF_MOTO_MODE_1 : SSI_FRF_MOTO_MODE_0;
++    protocol = cpha ? SSI_FRF_MOTO_MODE_1 : SSI_FRF_MOTO_MODE_0;
+   else
+-    protocol == cpha ? SSI_FRF_MOTO_MODE_3 : SSI_FRF_MOTO_MODE_2;
++    protocol = cpha ? SSI_FRF_MOTO_MODE_3 : SSI_FRF_MOTO_MODE_2;
+   mode = mode == PLATFORM_SPI_MASTER ? SSI_MODE_MASTER : SSI_MODE_SLAVE;
+   SSIDisable( spi_base[ id ] );
+ 
+   GPIOPinTypeSSI( spi_gpio_base[ id ], spi_gpio_pins[ id ] );
+ 
+   // FIXME: not sure this is always &quot;right&quot;
+-  GPIOPadConfigSet(spi_gpio_base[ id ], spi_gpio_clk_pin[ id ], GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
++  GPIOPadConfigSet(spi_gpio_base[ id ], spi_gpio_pins[ id ], GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU);
+ 
+   SSIConfigSetExpClk( spi_base[ id ], SysCtlClockGet(), protocol, mode, clock, databits );
+   SSIEnable( spi_base[ id ] );
+@@ -750,7 +751,7 @@
+   GPIOPadConfigSet( GPIO_PORTF_BASE, GPIO_PIN_2 | GPIO_PIN_3, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD );
+ 
+   // Configure SysTick for a periodic interrupt.
+-  SysTickPeriodSet(SysCtlClockGet() / SYSTICKHZ);
++  SysTickPeriodSet(SysCtlClockGet() / SYSTICKHZ );
+   SysTickEnable();
+   SysTickIntEnable();
+ 
+@@ -842,6 +843,10 @@
+   // Handle virtual timers
+   cmn_virtual_timer_cb();
+ 
++#ifdef BUILD_MMCFS
++  disk_timerproc();
++#endif
++
+   // Indicate that a SysTick interrupt has occurred.
+   eth_timer_fired = 1;
+ 
+@@ -867,6 +872,10 @@
+ void SysTickIntHandler()
+ {
+   cmn_virtual_timer_cb();
++
++#ifdef BUILD_MMCFS
++  disk_timerproc();
++#endif
+ }
+ 
+ void EthernetIntHandler()
+
+Modified: branches/eagle_mmc/src/platform/lm3s/platform_conf.h
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/platform_conf.h	2009-10-30 23:10:23 UTC (rev 505)
++++ branches/eagle_mmc/src/platform/lm3s/platform_conf.h	2009-10-30 23:10:38 UTC (rev 506)
+@@ -106,6 +106,7 @@
+ #define VTMR_NUM_TIMERS       4
+ #define VTMR_FREQ_HZ          4
+ 
++
+ // Number of resources (0 if not available/not implemented)
+ #define NUM_PIO               7
+ #define NUM_SPI               1
+@@ -136,6 +137,9 @@
+ #define ADC_TIMER_FIRST_ID    0
+ #define ADC_NUM_TIMERS        NUM_TIMER  
+ 
++// SD/MMC Filesystem Setup
++#define MMCFS_TICK_HZ     4
++#define MMCFS_TICK_MS     ( 1000 / MMCFS_TICK_HZ )
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ #define CPU_FREQUENCY         SysCtlClockGet()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000461.html">[Elua-svn] r505 - in branches/eagle_mmc/src: . fatfs platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000463.html">[Elua-svn] r507 - branches/eagle_mmc/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#462">[ date ]</a>
+              <a href="thread.html#462">[ thread ]</a>
+              <a href="subject.html#462">[ subject ]</a>
+              <a href="author.html#462">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

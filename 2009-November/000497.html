@@ -1,0 +1,315 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r541 - in trunk: doc doc/eluadoc src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r541%20-%20in%20trunk%3A%20doc%20doc/eluadoc%20src/modules&In-Reply-To=%3C200911142256.nAEMumHK026205%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000496.html">
+   <LINK REL="Next"  HREF="000498.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r541 - in trunk: doc doc/eluadoc src/modules</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r541%20-%20in%20trunk%3A%20doc%20doc/eluadoc%20src/modules&In-Reply-To=%3C200911142256.nAEMumHK026205%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r541 - in trunk: doc doc/eluadoc src/modules">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Nov 14 23:56:48 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000496.html">[Elua-svn] r540 - trunk/src/modules
+</A></li>
+        <LI>Next message: <A HREF="000498.html">[Elua-svn] r542 - trunk/src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#497">[ date ]</a>
+              <a href="thread.html#497">[ thread ]</a>
+              <a href="subject.html#497">[ subject ]</a>
+              <a href="author.html#497">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-11-14 23:56:47 +0100 (Sat, 14 Nov 2009)
+New Revision: 541
+
+Added:
+   trunk/doc/eluadoc/refman_gen_rpc.lua
+Modified:
+   trunk/doc/buildall.lua
+   trunk/doc/eluadoc.lua
+   trunk/doc/eluadoc/refman_gen_can.lua
+   trunk/src/modules/luarpc.c
+Log:
+- add initial LuaRPC reference
+- comment cleanup in luarpc.c
+- prepend doc pages with &quot;eLua -&quot; (google link to our main page is just
+  &quot;News&quot;)
+
+Modified: trunk/doc/buildall.lua
+===================================================================
+--- trunk/doc/buildall.lua	2009-11-14 22:56:35 UTC (rev 540)
++++ trunk/doc/buildall.lua	2009-11-14 22:56:47 UTC (rev 541)
+@@ -85,7 +85,7 @@
+ -- Returns the english name if the name for the specified language can't be found
+ -- If the link field doesn't exists, the name is returned instead
+ local function get_menu_title( menuitem, lang )
+-  return get_menu_field( menuitem, lang, title_idx ) or get_menu_field( menuitem, lang, name_idx )
++  return &quot;eLua - &quot; .. ( get_menu_field( menuitem, lang, title_idx ) or  get_menu_field( menuitem, lang, name_idx ) )
+ end
+ 
+ -- Set &quot;print&quot; to print indented (with 2 spaces)
+
+Modified: trunk/doc/eluadoc/refman_gen_can.lua
+===================================================================
+--- trunk/doc/eluadoc/refman_gen_can.lua	2009-11-14 22:56:35 UTC (rev 540)
++++ trunk/doc/eluadoc/refman_gen_can.lua	2009-11-14 22:56:47 UTC (rev 541)
+@@ -67,70 +67,4 @@
+   },
+ }
+ 
+-data_pt = 
+-{
+-
+-  -- Title
+-  title = &quot;eLua reference manual - CAN module&quot;,
+-
+-  -- Menu name
+-  menu_name = &quot;can&quot;,
+-
+-  -- Overview
+-  overview = [[This module contains functions for accessing the CAN interfaces of the eLua CPU]],
+-  
+-  -- Structures
+-  structures =
+-  {
+-    { text = [[// eLua CAN ID types
+-enum
+-{
+-  ELUA_CAN_ID_STD = 0,      // exported as $net.ID_STD$
+-  ELUA_CAN_ID_EXT,          // exported as $can.ID_EXT$
+-};]],
+-      name = &quot;CAN ID types&quot;,
+-      desc = &quot;These are the CAN identifier types supported by eLua. Standard identifiers are 11 bits in length, extended identifiers are 29 bits.&quot;,
+-    }
+-  },
+-
+-  -- Functions
+-  funcs = 
+-  {
+-    { sig = &quot;clock = #can.setup#( id, clock )&quot;,
+-      desc = &quot;Setup the CAN interface&quot;,
+-      args = 
+-      {
+-        &quot;$id$ - the ID of the CAN interface.&quot;,
+-        &quot;$clock$ - the clock of the CAN interface.&quot;,
+-      },
+-      ret = &quot;The actual clock set on the CAN interface. Depending on the hardware, this might have a different value than the $clock$ parameter.&quot;
+-    },
+-
+-    { sig = &quot;#can.send#( id, canid, canidtype, message )&quot;,
+-      desc = &quot;Send message over the CAN bus.&quot;,
+-      args = 
+-      {
+-        &quot;$id$ - the ID of the CAN interface.&quot;,
+-        &quot;$canid$ - CAN identifier number.&quot;,
+-        &quot;$canidtype$ - identifier type as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">can_id_types at here</A>@.&quot;,
+-        &quot;$message$ - message in string format, 8 or fewer bytes.&quot;
+-      },
+-    },
+-
+-    { sig = &quot;canid, canidtype, message = #can.recv#( id )&quot;,
+-      desc = &quot;Receive CAN bus message.&quot;,
+-      args =
+-      {
+-        &quot;$id$ - the ID of the CAN interface.&quot;,
+-      },
+-      ret =
+-      {
+-        &quot;$canid$ - CAN identifier number.&quot;,
+-        &quot;$canidtype$ - identifier type as defined @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">can_id_types at here</A>@.&quot;,
+-        &quot;$message$ - message in string format, 8 or fewer bytes.&quot;
+-      }
+-    }
+-   
+-  },
+-}
+-
++data_pt = data_en
+
+Added: trunk/doc/eluadoc/refman_gen_rpc.lua
+===================================================================
+--- trunk/doc/eluadoc/refman_gen_rpc.lua	2009-11-14 22:56:35 UTC (rev 540)
++++ trunk/doc/eluadoc/refman_gen_rpc.lua	2009-11-14 22:56:47 UTC (rev 541)
+@@ -0,0 +1,64 @@
++-- eLua reference manual - SPI module
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - LuaRPC module&quot;,
++
++  -- Menu name
++  menu_name = &quot;rpc&quot;,
++
++  -- Overview
++  overview = [[LuaRPC allows one to remotely control a lua state running on another machine.]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;handle = #rpc.connect#( transport_identifiers )&quot;,
++      desc = &quot;Initiate connection from client to server.&quot;,
++      args = 
++      {
++        &quot;$transport_identifiers$ - identifiers for channel connecting to server (specific to selected transport)&quot;,
++      },
++      ret = &quot;$handle$ - used to interact with the remote Lua state.&quot;
++    },
++
++    { sig = &quot;#rpc.close#( handle )&quot;,
++      desc = &quot;Close an active RPC session.&quot;,
++      args = &quot;$handle$ - handle associated with the connection.&quot;,
++    },
++
++    { sig = &quot;#rpc.server#( transport_identifiers )&quot;,
++      desc = &quot;Start a blocking/captive RPC server, which will wait for incoming connections.&quot;,
++      args = &quot;$transport_identifiers$ - identifiers for the transport channel to listen on (specific to selected transport).&quot;,
++    },
++
++    { sig = &quot;#rpc.on_error#( err_handler )&quot;,
++      desc = &quot;Define client-side error handler to deal with server-side error responses.&quot;,
++      args = &quot;$err_handler$ - function to handle error messages. string error messages may be passed to this function.&quot;,
++    },
++
++    { sig = &quot;server_handle = #rpc.listen#( transport_identifiers )&quot;,
++      desc = &quot;Open a listener on transport and await incoming connections.&quot;,
++      args = &quot;$transport_identifiers$ - identifiers for the transport channel to listen on (specific to selected transport).&quot;,
++      ret = &quot;server handle to use with @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">rpc.peek at rpc.peek</A>@ and @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">rpc.dispatch at rpc.dispatch</A>@&quot;
++    },
++    
++    { sig = &quot;data_available = #rpc.peek#( server_handle )&quot;,
++      desc = &quot;Check if data are available to read on transport.&quot;,
++      args = &quot;$server_handle$ - handle to refer to server session, created by @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">rpc.listen at rpc.listen</A>@&quot;,
++      ret = &quot;$data_available$ - 1 if data are available, 0 if data are unavailable&quot;
++    },
++    
++    { sig = &quot;#rpc.dispatch#( server_handle )&quot;,
++      desc = &quot;Read transport and handle incoming command.&quot;,
++      args = &quot;$server_handle$ - handle to refer to server session, created by @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">rpc.listen at rpc.listen</A>@&quot;,
++    },
++   
++  },
++
++}
++
++data_pt = data_en
++
+
+Modified: trunk/doc/eluadoc.lua
+===================================================================
+--- trunk/doc/eluadoc.lua	2009-11-14 22:56:35 UTC (rev 540)
++++ trunk/doc/eluadoc.lua	2009-11-14 22:56:47 UTC (rev 541)
+@@ -15,7 +15,7 @@
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+-  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot;, &quot;can&quot; },
++  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot;, &quot;can&quot;, &quot;rpc&quot; },
+   refman_ps_lm3s = { &quot;disp&quot; }
+ }
+ 
+
+Modified: trunk/src/modules/luarpc.c
+===================================================================
+--- trunk/src/modules/luarpc.c	2009-11-14 22:56:35 UTC (rev 540)
++++ trunk/src/modules/luarpc.c	2009-11-14 22:56:47 UTC (rev 541)
+@@ -747,13 +747,13 @@
+     hstack[ helper-&gt;nparents - 1 ] = helper-&gt;parent;
+     len += strlen( hstack[ helper-&gt;nparents - 1 ]-&gt;funcname ) + 1;
+   
+-    for(i = helper-&gt;nparents - 1 ; i &gt; 0 ; i -- )
++    for( i = helper-&gt;nparents - 1 ; i &gt; 0 ; i -- )
+     {
+       hstack[ i - 1 ] = hstack[ i ]-&gt;parent;
+       len += strlen( hstack[ i ]-&gt;funcname ) + 1;
+     }
+ 	
+-	transport_write_u32( tpt, len );
++	  transport_write_u32( tpt, len );
+ 
+     // replay helper key names      
+     for( i = 0 ; i &lt; helper-&gt;nparents ; i ++ )
+@@ -1054,14 +1054,14 @@
+   server_handle_shutdown( h );
+ }
+ 
+-/****************************************************************************/
+-/* remote function calling (client side) */
++// **************************************************************************
++// remote function calling (client side)
+ 
+-/* rpc_connect (ip_address, port)
+- *     returns a handle to the new connection, or nil if there was an error.
+- *     if there is an RPC error function defined, it will be called on error.
+- */
++// rpc_connect (ip_address, port)
++//      returns a handle to the new connection, or nil if there was an error.
++//      if there is an RPC error function defined, it will be called on error.
+ 
++
+ static int rpc_connect( lua_State *L )
+ {
+   struct exception e;
+@@ -1084,13 +1084,13 @@
+ }
+ 
+ 
+-/* rpc_close (handle)
+- *     this closes the transport, but does not free the handle object. that's
+- *     because the handle will still be in the user's name space and might be
+- *     referred to again. we'll let garbage collection free the object.
+- *     it's a lua runtime error to refer to a transport after it has been closed.
+- */
++// rpc_close( handle )
++//     this closes the transport, but does not free the handle object. that's
++//     because the handle will still be in the user's name space and might be
++//     referred to again. we'll let garbage collection free the object.
++//     it's a lua runtime error to refer to a transport after it has been closed.
+ 
++
+ static int rpc_close( lua_State *L )
+ {
+   check_num_args( L, 1 );
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000496.html">[Elua-svn] r540 - trunk/src/modules
+</A></li>
+	<LI>Next message: <A HREF="000498.html">[Elua-svn] r542 - trunk/src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#497">[ date ]</a>
+              <a href="thread.html#497">[ thread ]</a>
+              <a href="subject.html#497">[ subject ]</a>
+              <a href="author.html#497">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

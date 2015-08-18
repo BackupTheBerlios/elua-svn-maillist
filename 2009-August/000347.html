@@ -1,0 +1,355 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r391 - in tags/pre0.6/doc: . en luadoc pt wb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r391%20-%20in%20tags/pre0.6/doc%3A%20.%20en%20luadoc%20pt%20wb&In-Reply-To=%3C200908071212.n77CCkF8018996%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000346.html">
+   <LINK REL="Next"  HREF="000348.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r391 - in tags/pre0.6/doc: . en luadoc pt wb</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r391%20-%20in%20tags/pre0.6/doc%3A%20.%20en%20luadoc%20pt%20wb&In-Reply-To=%3C200908071212.n77CCkF8018996%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r391 - in tags/pre0.6/doc: . en luadoc pt wb">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Aug  7 14:12:46 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000346.html">[Elua-svn] r390 - trunk/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000348.html">[Elua-svn] r392 - branches/eagle_mmc/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#347">[ date ]</a>
+              <a href="thread.html#347">[ thread ]</a>
+              <a href="subject.html#347">[ subject ]</a>
+              <a href="author.html#347">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-08-07 14:12:45 +0200 (Fri, 07 Aug 2009)
+New Revision: 391
+
+Added:
+   tags/pre0.6/doc/en/modules_lm3s.html
+   tags/pre0.6/doc/en/refman_dep.html
+   tags/pre0.6/doc/luadoc/refman_ps_lm3s_disp.lua
+   tags/pre0.6/doc/pt/modules_lm3s.html
+   tags/pre0.6/doc/pt/refman_dep.html
+Modified:
+   tags/pre0.6/doc/build_dist_doc.sh
+   tags/pre0.6/doc/builddoc.lua
+   tags/pre0.6/doc/wb/wb_usr_template.lua
+Log:
+added documentation for lm3s.disp module, also added an actual 'platform-dependent modules' section in our manual
+
+Modified: tags/pre0.6/doc/build_dist_doc.sh
+===================================================================
+--- tags/pre0.6/doc/build_dist_doc.sh	2009-08-07 10:36:04 UTC (rev 390)
++++ tags/pre0.6/doc/build_dist_doc.sh	2009-08-07 12:12:45 UTC (rev 391)
+@@ -36,6 +36,7 @@
+   do
+     rm -f $lang/arch_platform_*.html
+     rm -f $lang/refman_gen_*.html
++    rm -f $lang/refman_ps_lm3s_*.html
+   done
+   rm -f index_*.html wb/wb_usr.lua ssSearch*.html wb_bar_*.html
+   rm -f wb_search*.txt wb_title*.html wb_tree*.html
+
+Modified: tags/pre0.6/doc/builddoc.lua
+===================================================================
+--- tags/pre0.6/doc/builddoc.lua	2009-08-07 10:36:04 UTC (rev 390)
++++ tags/pre0.6/doc/builddoc.lua	2009-08-07 12:12:45 UTC (rev 391)
+@@ -1,13 +1,14 @@
+ -- eLua doc builder tool 
+ 
+ -- List here all the sections for which we're generating the documentation
+-local doc_sections = { &quot;arch_platform&quot;, &quot;refman_gen&quot; }
++local doc_sections = { &quot;arch_platform&quot;, &quot;refman_gen&quot;, &quot;refman_ps_lm3s&quot; }
+ 
+ -- List here all the components of each section
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+-  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot; }
++  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot; },
++  refman_ps_lm3s = { &quot;disp&quot; }
+ }
+ 
+ -- List here all languages for the documentation (make sure to keep English (&quot;en&quot;) the first one)
+
+Added: tags/pre0.6/doc/en/modules_lm3s.html
+===================================================================
+--- tags/pre0.6/doc/en/modules_lm3s.html	2009-08-07 10:36:04 UTC (rev 390)
++++ tags/pre0.6/doc/en/modules_lm3s.html	2009-08-07 12:12:45 UTC (rev 391)
+@@ -0,0 +1,10 @@
++&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
++&lt;html&gt;&lt;head&gt;
++&lt;meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=ISO-8859-1&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;eLua reference manual - generic modules&lt;/title&gt;
++
++&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
++&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++&lt;h3&gt;Reference manual - LM3S platform dependent modules&lt;/h3&gt;
++&lt;p&gt;This paragraph presents all the modules specific to the &lt;a href=&quot;status.html&quot;&gt;LM3S&lt;/a&gt; platform.&lt;/p&gt;
++&lt;/body&gt;&lt;/html&gt;
+
+Added: tags/pre0.6/doc/en/refman_dep.html
+===================================================================
+--- tags/pre0.6/doc/en/refman_dep.html	2009-08-07 10:36:04 UTC (rev 390)
++++ tags/pre0.6/doc/en/refman_dep.html	2009-08-07 12:12:45 UTC (rev 391)
+@@ -0,0 +1,11 @@
++&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
++&lt;html&gt;&lt;head&gt;
++&lt;meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=ISO-8859-1&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;eLua reference manual - generic modules&lt;/title&gt;
++
++&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
++&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++&lt;h3&gt;Reference manual - platform dependent modules&lt;/h3&gt;
++&lt;p&gt;This part of the reference manual presents the platform specifics in &lt;b&gt;eLua&lt;/b&gt; (see &lt;a href=&quot;refman.html&quot;&gt;here&lt;/a&gt; for more information about platform
++specific modules).&lt;/p&gt;
++&lt;/body&gt;&lt;/html&gt;
+
+Added: tags/pre0.6/doc/luadoc/refman_ps_lm3s_disp.lua
+===================================================================
+--- tags/pre0.6/doc/luadoc/refman_ps_lm3s_disp.lua	2009-08-07 10:36:04 UTC (rev 390)
++++ tags/pre0.6/doc/luadoc/refman_ps_lm3s_disp.lua	2009-08-07 12:12:45 UTC (rev 391)
+@@ -0,0 +1,69 @@
++-- eLua reference manual - platform data
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - LM3S disp module&quot;,
++
++  -- Menu name
++  menu_name = &quot;disp&quot;,
++
++  -- Overview
++  overview = [[This module contains functions for working with the OLED display on the EKx-LM3S8962 boards and others.]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;#lm3s.disp.init#( frequency )&quot;,
++      desc = &quot;Initialize the display.&quot;,
++      args = &quot;$frequency$ - the clock frequency of the SSI interface used to control the display.&quot;
++    },
++
++    { sig = &quot;#lm3s.disp.enable#( frequency )&quot;,
++      desc = &quot;Enable the display.&quot;,
++      args = &quot;$frequency$ - the clock frequency of the SSI interface used to control the display.&quot;     
++    },
++
++    { sig = &quot;#lm3s.disp.disable#()&quot;,
++      desc = &quot;Disable the display.&quot;,
++    },
++
++    { sig = &quot;#lm3s.disp.on#()&quot;,
++      desc = &quot;Turn the display on.&quot;
++    },
++
++    { sig = &quot;#lm3s.disp.off#()&quot;,
++      desc = &quot;Turn the display off.&quot;
++    },
++
++    { sig = &quot;#lm3s.disp.clear#()&quot;,
++      desc = &quot;Cleaer the display.&quot;
++    },
++
++    { sig = &quot;#lm3s.disp.print#( str, x, y, col )&quot;,
++      desc = &quot;Write a string on the display. A 5x7 font (in a 6x8 cell) is used for drawing the text.&quot;,
++      args = 
++      {
++        &quot;$str$ - the string to write.&quot;,
++        &quot;$x$ - the horizonal position of the text (specified in columns).&quot;,
++        &quot;$y$ - the vertical position of the text (specified in lines).&quot;,
++        &quot;$col$ - the 4-bit gray scale value to be used for the text.&quot;
++      }
++    },
++
++    { sig = &quot;#lm3s.disp.draw#( img, x, y, width, height )&quot;,
++      desc = &quot;Draw an image on the display.&quot;,
++      args = 
++      {
++        &quot;$img$ - the image to draw in string format.&quot;,
++        &quot;$x$ - the horizontal position of the image (specified in pixels).&quot;,
++        &quot;$y$ - the vertical position of the image (specified in pixels).&quot;,
++        &quot;$width$ - the width of the image.&quot;,
++        &quot;$height$ - the height of the image.&quot;
++      }
++    },
++    
++  },
++}
++
+
+Added: tags/pre0.6/doc/pt/modules_lm3s.html
+===================================================================
+--- tags/pre0.6/doc/pt/modules_lm3s.html	2009-08-07 10:36:04 UTC (rev 390)
++++ tags/pre0.6/doc/pt/modules_lm3s.html	2009-08-07 12:12:45 UTC (rev 391)
+@@ -0,0 +1,10 @@
++&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
++&lt;html&gt;&lt;head&gt;
++&lt;meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=ISO-8859-1&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;eLua reference manual - generic modules&lt;/title&gt;
++
++&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
++&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++&lt;h3&gt;Reference manual - LM3S platform dependent modules&lt;/h3&gt;
++&lt;p&gt;This paragraph presents all the modules specific to the &lt;a href=&quot;status.html&quot;&gt;LM3S&lt;/a&gt; platform.&lt;/p&gt;
++&lt;/body&gt;&lt;/html&gt;
+
+Added: tags/pre0.6/doc/pt/refman_dep.html
+===================================================================
+--- tags/pre0.6/doc/pt/refman_dep.html	2009-08-07 10:36:04 UTC (rev 390)
++++ tags/pre0.6/doc/pt/refman_dep.html	2009-08-07 12:12:45 UTC (rev 391)
+@@ -0,0 +1,11 @@
++&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
++&lt;html&gt;&lt;head&gt;
++&lt;meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=ISO-8859-1&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;eLua reference manual - generic modules&lt;/title&gt;
++
++&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
++&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++&lt;h3&gt;Reference manual - platform dependent modules&lt;/h3&gt;
++&lt;p&gt;This part of the reference manual presents the platform specifics in &lt;b&gt;eLua&lt;/b&gt; (see &lt;a href=&quot;refman.html&quot;&gt;here&lt;/a&gt; for more information about platform
++specific modules).&lt;/p&gt;
++&lt;/body&gt;&lt;/html&gt;
+
+Modified: tags/pre0.6/doc/wb/wb_usr_template.lua
+===================================================================
+--- tags/pre0.6/doc/wb/wb_usr_template.lua	2009-08-07 10:36:04 UTC (rev 390)
++++ tags/pre0.6/doc/wb/wb_usr_template.lua	2009-08-07 12:12:45 UTC (rev 391)
+@@ -367,89 +367,15 @@
+         },
+         {
+           name = {en = &quot;Platform Dependent Modules&quot;, pt = &quot;Dependentes de Plataforma&quot; },
+-          link = &quot;refman.html#platdepmodules&quot;,
++          link = &quot;refman_dep.html&quot;,
+           folder =
+           {
+-            {  name = { en = &quot;adc&quot;, pt = &quot;adc&quot; },
+-               link = &quot;refman.html#adcmodule&quot;,
+-               folder =
+-               {
+-                 {
+-                   name ={ en = &quot;sample&quot;, pt = &quot;sample&quot; },
+-                   link = &quot;refman.html#adc_sample&quot;
+-                 },
+-                 {
+-                   name ={ en = &quot;getsamples&quot;, pt = &quot;getsamples&quot; },
+-                   link = &quot;refman.html#adc_getsamples&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;maxval&quot;, pt = &quot;maxval&quot; },
+-                   link = &quot;refman.html#adc_maxval&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;samplesready&quot;, pt = &quot;samplesready&quot; },
+-                   link = &quot;refman.html#adc_samplesready&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;dataready&quot;, pt = &quot;dataready&quot; },
+-                   link = &quot;refman.html#adc_dataready&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;setmode&quot;, pt = &quot;setmode&quot; },
+-                   link = &quot;refman.html#adc_setmode&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;setsmoothing&quot;, pt = &quot;setsmoothing&quot; },
+-                   link = &quot;refman.html#adc_setsmoothing&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;getsmoothing&quot;, pt = &quot;getsmoothing&quot; },
+-                   link = &quot;refman.html#adc_getsmoothing&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;burst&quot;, pt = &quot;burst&quot; },
+-                   link = &quot;refman.html#adc_burst&quot;
+-                 },
+-              },   
++            {  name = { en = &quot;lm3s&quot;, pt = &quot;lm3s&quot; },
++               link = &quot;modules_lm3s.html&quot;,
++               folder = {
++                 $$REFMAN_PS_LM3S$$
++               },   
+             },
+-            {  name = { en = &quot;disp&quot;, pt = &quot;disp&quot; },
+-               link = &quot;refman.html#dispmodule&quot;,
+-               folder =
+-               {
+-                 {
+-                   name ={ en = &quot;init&quot;, pt = &quot;init&quot; },
+-                   link = &quot;refman.html#disp_init&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;enable&quot;, pt = &quot;enable&quot; },
+-                   link = &quot;refman.html#disp_enable&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;disable&quot;, pt = &quot;disable&quot; },
+-                   link = &quot;refman.html#disp_disable&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;on&quot;, pt = &quot;on&quot; },
+-                   link = &quot;refman.html#disp_on&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;off&quot;, pt = &quot;off&quot; },
+-                   link = &quot;refman.html#disp_off&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;clear&quot;, pt = &quot;clear&quot; },
+-                   link = &quot;refman.html#disp_clear&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;print&quot;, pt = &quot;print&quot; },
+-                   link = &quot;refman.html#disp_print&quot;
+-                 },
+-                 {
+-                   name = { en = &quot;draw&quot;, pt = &quot;draw&quot; },
+-                   link = &quot;refman.html#disp_draw&quot;
+-                 },
+-              },   
+-            },
+           },
+         },
+       },
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000346.html">[Elua-svn] r390 - trunk/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000348.html">[Elua-svn] r392 - branches/eagle_mmc/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#347">[ date ]</a>
+              <a href="thread.html#347">[ thread ]</a>
+              <a href="subject.html#347">[ subject ]</a>
+              <a href="author.html#347">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,272 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r868 - branches/remotefs_int/doc/eluadoc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r868%20-%20branches/remotefs_int/doc/eluadoc&In-Reply-To=%3C20101219163450.49639481467%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000820.html">
+   <LINK REL="Next"  HREF="000822.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r868 - branches/remotefs_int/doc/eluadoc</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r868%20-%20branches/remotefs_int/doc/eluadoc&In-Reply-To=%3C20101219163450.49639481467%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r868 - branches/remotefs_int/doc/eluadoc">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Dec 19 17:34:50 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000820.html">[Elua-svn] r867 - in branches/remotefs_int: inc mux src src/modules	src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000822.html">[Elua-svn] r869 - in branches/remotefs_int: . mux_src rfs_server_src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#821">[ date ]</a>
+              <a href="thread.html#821">[ thread ]</a>
+              <a href="subject.html#821">[ subject ]</a>
+              <a href="author.html#821">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-12-19 17:34:49 +0100 (Sun, 19 Dec 2010)
+New Revision: 868
+
+Modified:
+   branches/remotefs_int/doc/eluadoc/arch_platform_uart.lua
+   branches/remotefs_int/doc/eluadoc/refman_gen_uart.lua
+Log:
+added documentation for the flow control functions
+
+Modified: branches/remotefs_int/doc/eluadoc/arch_platform_uart.lua
+===================================================================
+--- branches/remotefs_int/doc/eluadoc/arch_platform_uart.lua	2010-12-19 16:12:55 UTC (rev 867)
++++ branches/remotefs_int/doc/eluadoc/arch_platform_uart.lua	2010-12-19 16:34:49 UTC (rev 868)
+@@ -49,6 +49,16 @@
+       name = &quot;Virtual UART IDs&quot;,
+       desc = &quot;If @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">sermux.html at virtual</A> UART@ support is enabled these constants define the IDs of the virtual UARTs in the system (defined in %inc/sermux.h%).&quot;,
+     },
++
++     { text = [[// Flow control type
++#define PLATFORM_UART_FLOW_NONE               0
++#define PLATFORM_UART_FLOW_RTS                1
++#define PLATFORM_UART_FLOW_CTS                2
++]],
++      name = &quot;Flow control type&quot;,
++      desc = &quot;Used to set the flow control type on a serial interface. These constans can be ORed together ($PLATFORM_UART_FLOW_RTS | PLATFORM_UART_FLOW_CTS$)&quot;,
++    },
++
+    
+   },
+ 
+@@ -125,7 +135,7 @@
+ 
+     { sig = &quot;int #platform_s_uart_recv#( unsigned id, s32 timeout );&quot;,
+       link = &quot;platform_s_uart_recv&quot;,
+-      desc = [[This is the platform-dependent part of the UART receive function @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_uart_recv at platform_uart_recv</A>@, and is in fact a &quot;subset&quot; of the full function 
++      desc = [[This is the platform-dependent part of the UART receive function @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_uart_recv at platform_uart_recv</A>@ and is in fact a &quot;subset&quot; of the full function 
+   (thus being easier to implement by each platform in part). In particular, it never needs to deal with the $timeout &gt; 0$ case, which is handled by @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_uart_recv at platform_uart_recv</A>@.]],
+        args = 
+       {
+@@ -152,131 +162,32 @@
+       },
+       ret = &quot;$PLATFORM_OK$ if the operation succeeded, $PLATFORM_ERR$ otherwise.&quot;
+     },
+-   
+-  }
+-}
+ 
+-data_pt = 
+-{
+-  -- Title
+-  title = &quot;eLua platform interface - UART&quot;,
+-
+-  -- Menu name
+-  menu_name = &quot;UART&quot;,
+-
+-  -- Overview
+-  overview = &quot;This part of the platform interface groups functions related to the UART interface(s) of the MCU.&quot;,
+-
+-  -- Data structures, constants and types
+-  structures = 
+-  {
+-    { text = [[// Parity
+-enum
+-{
+-  PLATFORM_UART_PARITY_EVEN,
+-  PLATFORM_UART_PARITY_ODD,
+-  PLATFORM_UART_PARITY_NONE
+-};]],
+-      name = &quot;UART parity&quot;,
+-      desc = &quot;Constants used to specify the UART parity mode.&quot;
+-    },
+-
+-    { text = [[// Stop bits
+-enum
+-{
+-  PLATFORM_UART_STOPBITS_1,
+-  PLATFORM_UART_STOPBITS_1_5,
+-  PLATFORM_UART_STOPBITS_2
+-};]],
+-      name = &quot;UART stop bits&quot;,
+-      desc = &quot;Constants used to specify the number of UART stop bits.&quot;,
+-    },
+-
+-    { text = [[// &quot;Infinite timeout&quot; constant for recv
+-#define PLATFORM_UART_INFINITE_TIMEOUT        (-1)]],
+-      name = &quot;UART timeout&quot;,
+-      desc = &quot;This constant is used as a special timeout value (infinite timeout) in the UART functions that expect a timeout as argument.&quot;,
+-    }
+-  },
+-
+-  -- Functions
+-  funcs = 
+-  {
+-    { sig = &quot;int #platform_uart_exists#( unsigned id );&quot;,
+-      desc = [[Checks if the platform has the hardware UART specified as argument. Implemented in %src/common.c%, it uses the $NUM_UART$ macro that must be defined in the
+-  platform's $platform_conf.h$ file (see @arch_overview.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platforms at here</A>@ for details). For example:&lt;/p&gt;
+-  ~#define NUM_UART   2      $// The platform has 2 UART interfaces$~&lt;p&gt;]],
+-      args = &quot;$id$ - UART interface ID&quot;,
+-      ret = &quot;1 if the specified UART exists, 0 otherwise&quot;
+-    },
+-
+-    { sig = &quot;u32 #platform_uart_setup#( unsigned id, u32 baud, int databits, int parity, int stopbits );&quot;,
+-      desc = &quot;This function is used to initialize the parameters of the UART interface.&quot;,
++     { sig = &quot;int #platform_uart_set_flow_control#( unsigned id, int type );&quot;,
++      desc = [[Sets the flow control type.&lt;br&gt;
++      This function is &quot;split&quot; in two parts: a platform independent part that is implemented in %src/common.c% and a platform-dependent part that must be implemented by each
++      platform in a function named @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_s_uart_set_flow_control at platform_s_uart_set_flow_control</A>@.]],
+       args = 
+       {
+         &quot;$id$ - UART interface ID.&quot;,
+-        &quot;$baud$ - baud rate.&quot;,
+-        &quot;$databits$ - number of databits (maximum 8).&quot;,
+-        &quot;$parity$ - parity type (can be either $PLATFORM_UART_PARITY_EVEN$, $PLATFORM_UART_PARITY_ODD$ or $PLATFORM_UART_PARITY_NONE$, see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_parity at here</A>@).&quot;,
+-        [[$stopbits$ - number of stop bits (can be either $PLATFORM_UART_STOPBITS_1$, $PLATFORM_UART_STOPBITS_1_5$ or $PLATFORM_UART_STOPBITS_2$, see
+-           @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_stop_bits at here</A>@).]],
++        [[$type$ - the desired flow control. It can be either $PLATFORM_UART_FLOW_NONE$, $PLATFORM_UART_FLOW_RTS$ or $PLATFORM_UART_FLOW_CTS$ or a bitwise combination of these constants
++        (see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">flow_control_type at here</A>@ for details).]]
+       },
+-      ret = &quot;the actual baud rate. Depending on the hardware, this may have a different value than the $baud$ argument.&quot;,
++      ret = &quot;$PLATFORM_OK$ if the operation succeeded, $PLATFORM_ERR$ otherwise.&quot;
+     },
+-
+-    { sig = &quot;void #platform_uart_send#( unsigned id, u8 data );&quot;,
+-      desc = &quot;Send data to an UART interface.&quot;,
++   
++      { sig = &quot;int #platform_s_uart_set_flow_control#( unsigned id, int type );&quot;,
++      desc = [[This is the platform-dependent part of the UART set flow control function @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_uart_set_flow_control at platform_uart_set_flow_control</A>@ and is in fact a &quot;subset&quot; of the
++      full function (thus being easier to implement by each platform in part). In particular, it never needs to deal with virtual UARTs.]],
+       args = 
+       {
+         &quot;$id$ - UART interface ID.&quot;,
+-        &quot;$data$ - data to be sent.&quot;,
++        [[$type$ - the desired flow control. It can be either $PLATFORM_UART_FLOW_NONE$, $PLATFORM_UART_FLOW_RTS$ or $PLATFORM_UART_FLOW_CTS$ or a bitwise combination of these constants
++        (see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">flow_control_type at here</A>@ for details).]]
+       },
++      ret = &quot;$PLATFORM_OK$ if the operation succeeded, $PLATFORM_ERR$ otherwise.&quot;
+     },
+-
+-    { sig = &quot;int #platform_uart_recv#( unsigned id, unsigned timer_id, s32 timeout );&quot;,
+-      link = &quot;platform_uart_recv&quot;,
+-      desc = [[Receive data from the UART interface (blocking/non blocking with timeout/immediate).&lt;br&gt;
+-  This function is &quot;split&quot; in two parts: a platform-independent part that is implemented in %src/common.c%, and a platform-dependent part that must be implemented by each
+-  platform in a function named @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_s_uart_recv at platform_s_uart_recv</A>@.]],
+-      args = 
+-      {
+-        &quot;$id$ - UART interface ID.&quot;,
+-        &quot;$timer_id$ - the ID of the timer used in this operation (see @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">arch_platform_timers.html at here</A>@ for details). See also the description of the $timeout$ argument.&quot;,
+-        [[$timeout$ - specifies a timeout for the receive operation as follows:
+-  &lt;ul&gt;
+-    &lt;li&gt;$timeout &gt; 0$: the timer with the specified $timer_id$ will be used to timeout the receive operation after $timeout$ microseconds.&lt;/li&gt;
+-    &lt;li&gt;$timeout = 0$: the function returns immediately regardless of data being available or not. $timer_id$ is ignored.&lt;/li&gt;
+-    &lt;li&gt;$timeout$ = @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_timeout at PLATFORM_UART_INFINITE_TIMEOUT</A>@: the function waits indefinitely for UART data to be available and returns it. In this mode the function doesn't 
+-        time out, so $timer_id$ is ignored.&lt;/li&gt;
+-  &lt;/ul&gt;]],
+-      },
+-      ret = 
+-      {
+-        &quot;if $timeout &gt; 0$ and data from the UART is available in $timeout$ microseconds of less it is returned, otherwise -1 is returned&quot;,
+-        &quot;if $timeout = 0$ and data from the UART is available when the function is called it is returned, otherwise -1 is returned&quot;,
+-        &quot;if $timeout$ = @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_timeout at PLATFORM_UART_INIFINITE_TIMEOUT</A>@ it returns the data read from the UART after it becomes available&quot;
+-      }
+-    },
+-
+-    { sig = &quot;int #platform_s_uart_recv#( unsigned id, s32 timeout );&quot;,
+-      link = &quot;platform_s_uart_recv&quot;,
+-      desc = [[This is the platform-dependent part of the UART receive function @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_uart_recv at platform_uart_recv</A>@, and is in fact a &quot;subset&quot; of the full function 
+-  (thus being easier to implement by each platform in part). In particular, it never needs to deal with the $timeout &gt; 0$ case, which is handled by @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_uart_recv at platform_uart_recv</A>@.]],
+-       args = 
+-      {
+-        &quot;$id$ - UART interface ID.&quot;,
+-        [[$timeout$ - specifies a timeout for the receive operation as follows:
+-  &lt;ul&gt;
+-    &lt;li&gt;$timeout = 0$: the function returns immediately regardless of data being available or not.&lt;/li&gt;
+-    &lt;li&gt;$timeout$ = @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_timeout at PLATFORM_UART_INFINITE_TIMEOUT</A>@: the function waits indefinitely for UART data to be available and returns it.&lt;/li&gt;
+-  &lt;/ul&gt;]],
+-      },
+-      ret = 
+-      {
+-        &quot;if $timeout = 0$ and data from the UART is available when the function is called it is returned, otherwise -1 is returned&quot;,
+-        &quot;if $timeout$ = @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">uart_timeout at PLATFORM_UART_INIFINITE_TIMEOUT</A>@ it returns the data read from the UART after it becomes available&quot;
+-      }
+-    }
++  
+   }
+ }
+ 
+
+Modified: branches/remotefs_int/doc/eluadoc/refman_gen_uart.lua
+===================================================================
+--- branches/remotefs_int/doc/eluadoc/refman_gen_uart.lua	2010-12-19 16:12:55 UTC (rev 867)
++++ branches/remotefs_int/doc/eluadoc/refman_gen_uart.lua	2010-12-19 16:34:49 UTC (rev 868)
+@@ -95,7 +95,16 @@
+         &quot;$bufsize$ - the size of the buffer (must be a power of 2) or 0 to disable buffering on the specified UART.&quot;
+       },
+     },
+-   
++
++    { sig = &quot;#uart.set_flow_control#( id, type )&quot;,
++      desc = &quot;Sets the flow control on the UART. Note that this function works only on physical ports, it will return an error if called on a virtual UART.&quot;,
++      args =
++      {
++        &quot;$id$ - the ID of the serial port.&quot;,
++        [[$type$ - the flow control type, it can be either $uart.FLOW_NONE$ (no flow control), $uart.FLOW_RTS$ for RTS flow control, $uart.FLOW_CTS$ for CTS flow control or 
++          $uart.FLOW_RTS + uart.FLOW_CTS$ for full RTS/CTS flow control.]]
++      }
++    }
+   },
+ 
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000820.html">[Elua-svn] r867 - in branches/remotefs_int: inc mux src src/modules	src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000822.html">[Elua-svn] r869 - in branches/remotefs_int: . mux_src rfs_server_src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#821">[ date ]</a>
+              <a href="thread.html#821">[ thread ]</a>
+              <a href="subject.html#821">[ subject ]</a>
+              <a href="author.html#821">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

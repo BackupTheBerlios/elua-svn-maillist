@@ -1,0 +1,399 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r911 - in branches/pre0.8: doc/eluadoc doc/en src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r911%20-%20in%20branches/pre0.8%3A%20doc/eluadoc%20doc/en%20src/modules&In-Reply-To=%3C20110130000643.9F2FA4808C8%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000863.html">
+   <LINK REL="Next"  HREF="000865.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r911 - in branches/pre0.8: doc/eluadoc doc/en src/modules</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r911%20-%20in%20branches/pre0.8%3A%20doc/eluadoc%20doc/en%20src/modules&In-Reply-To=%3C20110130000643.9F2FA4808C8%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r911 - in branches/pre0.8: doc/eluadoc doc/en src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Jan 30 01:06:43 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000863.html">[Elua-svn] r910 - branches/pre0.8
+</A></li>
+        <LI>Next message: <A HREF="000865.html">[Elua-svn] r912 - branches/pre0.8/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#864">[ date ]</a>
+              <a href="thread.html#864">[ thread ]</a>
+              <a href="subject.html#864">[ subject ]</a>
+              <a href="author.html#864">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-01-30 01:06:43 +0100 (Sun, 30 Jan 2011)
+New Revision: 911
+
+Modified:
+   branches/pre0.8/doc/eluadoc/refman_gen_cpu.lua
+   branches/pre0.8/doc/en/inthandlers.txt
+   branches/pre0.8/src/modules/cpu.c
+Log:
+Interrupt system changes because of a bug found by James in the interrupt code (thanks!). Documentation updated accordingly.
+
+
+
+Modified: branches/pre0.8/doc/eluadoc/refman_gen_cpu.lua
+===================================================================
+--- branches/pre0.8/doc/eluadoc/refman_gen_cpu.lua	2011-01-29 21:41:57 UTC (rev 910)
++++ branches/pre0.8/doc/eluadoc/refman_gen_cpu.lua	2011-01-30 00:06:43 UTC (rev 911)
+@@ -85,7 +85,7 @@
+     },
+ 
+     { sig = &quot;#cpu.cli#( [id], [resnum1], [resnum2], ... [resnumn])&quot;,
+-      desc = &quot;Disables the global CPU interrupt flag if called without arguments, or a specific interrupt (and the interrupt's capability of triggering Lua interrupt handlers) for a list of resource IDs if called with arguments.&quot;,
++      desc = &quot;Disables the global CPU interrupt flag if called without arguments, or a specific interrupt for a list of resource IDs if called with arguments.&quot;,
+       args =
+       {
+         &quot;$id$ - the interrupt ID. If specified, at least one resource ID must also be specified.&quot;,
+@@ -95,20 +95,8 @@
+       }
+     },
+ 
+-    { sig = &quot;#cpu.hw_cli#( [id], [resnum1], [resnum2], ... [resnumn])&quot;,
+-      desc = &quot;Disables the global CPU interrupt flag if called without arguments, or a specific interrupt for a list of resource IDs if called with arguments. The interrupt is only disabled at hardware level, this function doesn't affect the interrupt's ability of triggering Lua interrupt handlers.&quot;,
+-      args =
+-      {
+-        &quot;$id$ - the interrupt ID. If specified, at least one resource ID must also be specified.&quot;,
+-        &quot;$resnum1$ - the first resource ID, required if $id$ is specified.&quot;,
+-        &quot;$resnum2 (optional)$ - the second resource ID.&quot;,
+-        &quot;$resnumn (optional)$ - the #n#-th resource ID.&quot;
+-      }
+-    },
+-   
+-
+     { sig = &quot;#cpu.sei#( [id], [resnum1], [resnum2], ... [resnumn])&quot;,
+-      desc = &quot;Enables the global CPU interrupt flag if called without arguments, or a specific interrupt (and the interrupt's capability of triggering Lua interrupt handlers) for a list of resource IDs if called with arguments.&quot;,
++      desc = &quot;Enables the global CPU interrupt flag if called without arguments, or a specific interrupt for a list of resource IDs if called with arguments.&quot;,
+       args =
+       {
+         &quot;$id$ - the interrupt ID. If specified, at least one resource ID must also be specified.&quot;,
+@@ -118,17 +106,6 @@
+       }     
+     },
+     
+-    { sig = &quot;#cpu.hw_sei#( [id], [resnum1], [resnum2], ... [resnumn])&quot;,
+-      desc = &quot;Enables the global CPU interrupt flag if called without arguments, or a specific interrupt for a list of resource IDs if called with arguments. The interrupt is only enabled at hardware level, this function doesn't affect the interrupt's ability of triggering Lua interrupt handlers.&quot;,
+-      args =
+-      {
+-        &quot;$id$ - the interrupt ID. If specified, at least one resource ID must also be specified.&quot;,
+-        &quot;$resnum1$ - the first resource ID, required if $id$ is specified.&quot;,
+-        &quot;$resnum2 (optional)$ - the second resource ID.&quot;,
+-        &quot;$resnumn (optional)$ - the #n#-th resource ID.&quot;
+-      }     
+-    },
+-
+     { sig = &quot;clock = #cpu.clock#()&quot;,
+       desc = &quot;Get the CPU core frequency.&quot;,
+       ret = &quot;$clock$ - the CPU clock (in Hertz).&quot;
+
+Modified: branches/pre0.8/doc/en/inthandlers.txt
+===================================================================
+--- branches/pre0.8/doc/en/inthandlers.txt	2011-01-29 21:41:57 UTC (rev 910)
++++ branches/pre0.8/doc/en/inthandlers.txt	2011-01-30 00:06:43 UTC (rev 911)
+@@ -6,36 +6,36 @@
+ interrupt is generated. A *supported interrupt* is any interrupt that is handled by the platform C code (see link:arch_ints.html[here] for more details).
+ 
+ [red]*IMPORTANT*: before learning how to use interrupt handlers in Lua, please keep in mind that Lua interrupt handlers don't work the same way as 
+-regular \(C) interrupt handlers. As Lua doesn't have direct suport for interrupts, they have to be emulated. eLua emulates them using a  queue that is populated with 
++regular \(C) interrupt handlers. As Lua doesn't have direct support for interrupts, they have to be emulated. eLua emulates them using a  queue that is populated with 
+ interrupt data by the C support code. As long as the queue is not empty, a Lua hook is set to run every 2 Lua bytecode instructions. This hook function is the Lua interrupt 
+ handler. After all the interrupts are handled and the queue is emptied, the hook is automatically disabled. Consequently:
+ 
+ * When the interrupt queue is full (a situation that might appear when interrupts are added to the queue faster than the Lua code can handle them) subsequent interrupts are
+     ignored (not added to the queue) and an error message is printed on the eLua console device. The interrupt queue size can be configured at build time, as explained
+-    link:TODO[here]. Even if the interrupt queue is large, one most remember that Lua code is significantly slower than C code, thus not all C interrupts make
++    link:building.html[here]. Even if the interrupt queue is large, one most remember that Lua code is significantly slower than C code, thus not all C interrupts make
+     suitable candidates for Lua interrupt handlers. For example, a serial interrupt that is generated each time a char is received at 115200 baud might be too fast for Lua
+     (this is largely dependent on the platform). On the other hand, a GPIO interrupt-on-change on a GPIO line connected with a matrix keyboard is a very good candidate for
+     a Lua handler. Experimenting with different interrupt types is the best way to find the interrupts that work well with Lua.
+ 
+ * A more subtle point is that the Lua virtual machine must *run* for the interrupt handlers to work. A simple analogy is that a CPU must have a running clock in order
+-    to function properly (and in order to take care of the hardware interrupts). If the clock is stopped, the CPU doesn't run and the interrupt handlers aren't called anymore,
++    to function properly (and in order to take care of the hardware interrupts). If the clock is stopped the CPU doesn't run and the interrupt handlers aren't called anymore,
+     although the occurence of the interrupt might be recorded inside the CPU. This is the exact same situation with Lua: if the virtual machine doesn't run, the interrupts
+     are still recorded in the interrupt queue, but the Lua handler won't be called until the virtual machine runs again. In this case though, the &quot;clock&quot; of the Lua VM is a 
+     C function that is executed for every VM instruction. If this function blocks for some reason, the VM instructions are not executed anymore. It's not hard to make
+-    this function block; for example, it blocks everytime the Lua code waits for some user input at the console, or when a TODO tmr.delay is executed, or when TODO uart.read is called 
+-    with an infinite or very large timeout; in general, any function from a Lua library that doesn't return immediately (or after a short ammount of time) will block the VM. 
+-    Care must be taken to avoid such operations as much as possible, otherwise the interrupt support code won't run properly.
++    this function block; for example, it blocks everytime the Lua code waits for some user input at the console, or when a link:refman_gen_tmr.html#tmr.delay[tmr.delay] is executed, 
++    or when TODO link:refman_gen_uart.html#uart.read[uart.read] is called  with an infinite or very large timeout; in general, any function from a Lua library that doesn't return 
++    immediately or after a short ammount of time will block the VM. Care must be taken to avoid such operations as much as possible, otherwise the interrupt support code won't run properly.
+ 
+ * There is a single interrupt handler per interrupt type in Lua (the same holds true for C interrupt support), as opposed to the many hardware interrupts 
+    handlers usually found on the eLua targets. It is however easy to differentiate between different interrupt sources, as will be explained in the next 
+-   paragraph.
++   section.
+ 
+-* Lua interrupt handlers are never reentrant.
++* Lua interrupt handlers are not reentrant.
+ 
+ While this might seem restrictive, Lua interrupt handlers work quite well in practical situations. As an added bonus, since they are implemented by C support code, there's nothing
+ preventing eLua from implementing &quot;custom interrupts&quot; (software generated interrupts that don't correspond to a hardware interrupt on the CPU), such as serial interrupt on
+-char match (generate an interrupt when a certain char is received on the serial port, for example a newline), timer interrupts for link:TODO[virtual timers], TCP/UDP data
+-packet received interrupt and many others.
++char match (generate an interrupt when a certain char is received on the serial port, for example a newline), timer interrupts for link:arch_platform_timers.html#virtual_timers[virtual timers]
++, TCP/UDP data packet received interrupt and many others.
+ 
+ Using interrupt handlers in Lua
+ --------------------------------
+@@ -47,8 +47,8 @@
+   set for the interrupt). In most cases, your interrupt handler should call the previous handler to ensure proper interrupt management.  
+ 
+ * use _cpu.sei( int_id, resnum1, [resnum2], ..., [resnumn])_ and _cpu.cli( int_id, resnum1, [resnum2], ..., [resnumn])_ to enable/disable specific CPU interrupts 
+-    that will trigger the interrupt handler. You can also use _cpu.sei()_ and _cpu.cli_ (without parameters) to enable/disable global interrupts on the CPU, although this
+-    is not recommended.
++  that will trigger the interrupt handler. You can also use _cpu.sei()_ and _cpu.cli_ (without parameters) to enable/disable global interrupts on the CPU, although this
++  is not recommended.
+ 
+ The interrupt handler receives the *resource ID* that specifies the resource that fired the interrupt. It can be a timer ID for a timer overflow interrupt, 
+ a GPIO port/pin combination for a GPIO interrupt on pin change, a SPI interface ID for a SPI data available interrupt, and so on.
+@@ -124,9 +124,10 @@
+ It defaults to *true*, and in most cases it shouldn't be changed. Using this feature, it becomes easy to wait for one or more interrupt flag(s) to be set. To use interrupt 
+ polling:
+ 
+-* Disable the interrrupt(s) to be polled with _cpu.hw_cli_ or _cpu.cli_. _cpu.hw_cli_ disables interrupts only in hardware, as opposed to _cpu.cli_ that also clears
+-  an internal flag which makes the interrupt able to trigger a Lua handler. Use _cpu.cli_ if you already set an interrupt handler with _cpu.hw_sei_ or _cpu.hw_cli_ otherwise.
++* Disable the interrrupt(s) to be polled with _cpu.cli_.
+ 
++* (optional) disable the interrupt handler for the interrupt with _cpu.set_interrupt_handler( id, nil )_
++
+ * Use _cpu.get_int_flag_ to get the interrupt flag.
+ 
+ The *int_select* function below is a possible implementation of a function that gets an array of interrupts and returns the first one that gets active:
+@@ -144,8 +145,8 @@
+  end
+ end
+ 
+-[bblue]*cpu.hw_cli( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )*
+-[bblue]*cpu.hw_cli( cpu.INT_TMR_MATCH, tmr.VIRT0 )*
++[bblue]*cpu.cli( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )*
++[bblue]*cpu.cli( cpu.INT_TMR_MATCH, tmr.VIRT0 )*
+ local ints = { { cpu.INT_GPIO_NEGEDGE, pio.P0_0 }, { cpu.INT_TMR_MATCH, tmr.VIRT0 } }
+ -- int_select will wait for either INT_GPIO_NEGEDGE or INT_TMR_MATCH to become active
+ print( int_select( ints ) )
+@@ -214,5 +215,39 @@
+ 
+ ------------------------------
+ 
++Sharing an interrupt between Lua and C
++--------------------------------------
++
++As seen above the eLua interrupt subsystem consists of two parts: the C side interrupt support and the Lua side interrupt support. When an interrupt handler is
++enabled on both sides (C and Lua) the interrupt subsystem knows to enqueue the interrupt for the Lua handler and to call the C interrupt handler directly. When the
++same interrupt (with the same ID) is handled by both the C and Lua code it becomes a *shared* interrupt. Shared interrupts might be problematic in some scenarios.
++To avoid potential issues one should should try to remember a few simple rules:
++
++Always check your resource number.::
++  The Lua side might enable an interrupt for a resource number while the C side might enable the same interrupt for another
++  resource number. The effect of this is that both interrupt handlers (in Lua and C) will be called with both resource numbers (since there is a single interrupt
++  handler per interrupt ID). Thus each side should check for the resource number that it needs before acting on the interrupt.
++
++Disable your Lua handlers when you don't need them anymore.::
++  Starting from the same scenario as above (a shared interrupt with a resource number on the C side and another resource number on the Lua side) let's assume that
++  at some point you don't need to receive interrupts on the Lua side anymore. You might think that calling _cpu.cli_ with the Lua resource number is enough to acomplish this 
++  but this is not the case. Since the C side still has a resource number active your Lua handler will still be called with the resource number from the C side. If you
++  followed the first rule (above) your code will behave as expected but it will run slower because of the interrupt support overhead. To completely inhibit the
++  interrupt handler on the Lua side call _cpu.set_int_handler_ with *nil* for the \'handler' argument. After this the Lua interrupt subsystem will not queue 
++  interrupts for the given interrupt ID and thus the handler won't be called anymore. You can re-enable the handler by calling _cpu.set_int_handler_ with an
++  actual function for the \'handler' argument.
++
++ ::
++  Note that this doesn't hold true for the C side. If an interrupt ID/resource number pair is disabled using _platform_cpu_set_interrupt_ the C side handler will
++  not be called anymore, calling _elua_int_set_c_handler_ with NULL is not needed.
++
++Use cpu.cli and cpu.sei carefully.::
++  The _cpu.cli_ and _cpu.sei_ functions in the link:refman_gen_cpu.html[CPU module] are wrappers for the _platform_cpu_set_interrupt_ function described above.
++  This means that eventually they manipulate hardware interrupts directly. If you disable an interrupt ID/resource number pair (with _cpu.cli_) that is
++  used by the C side the C interrupt handler won't be called anymore and eLua will most likely malfuction. Most of the time this isn't an issue since the Lua
++  code is not supposed to enable/disable interrupts used by the C code. It might become a real issue when Lua and C share the same interrupt ID/resource number pair.
++  In this case it is recommended that the Lua code doesn't call _cpu.cli_ at all, instead it should simply set an interrupt handler and service the interrupt.
++  By contrast, _cpu.sei_ can be called even if the interrupt is already enabled.
++
+ // $$FOOTER$$
+ 
+
+Modified: branches/pre0.8/src/modules/cpu.c
+===================================================================
+--- branches/pre0.8/src/modules/cpu.c	2011-01-29 21:41:57 UTC (rev 910)
++++ branches/pre0.8/src/modules/cpu.c	2011-01-30 00:06:43 UTC (rev 911)
+@@ -81,10 +81,8 @@
+   return 1;
+ }
+ 
+-// cli helper, does either hw_cli (clear interrupt only in hardware) or full cli (also clear the Lua interrupt flag)
+-// Lua: [hw_]cli() - to disable all interrupts
+-// or [hw_]cli( id1, resnum1, [resnum2], ..., [resnumn] ) - to disable a specific id/resnum(s)
+-static int cpuh_cli( lua_State *L, int hwmode )
++// Either disables or enables the given interrupt(s)
++static int cpuh_int_helper( lua_State *L, int mode )
+ {
+ #ifdef BUILD_LUA_INT_HANDLERS
+   unsigned i;
+@@ -100,95 +98,37 @@
+     for( i = 2; i &lt;= lua_gettop( L ); i ++ )
+     {
+       resnum = ( elua_int_resnum )luaL_checkinteger( L, i );
+-      res = platform_cpu_set_interrupt( id, resnum, PLATFORM_CPU_DISABLE );
++      res = platform_cpu_set_interrupt( id, resnum, mode );
+       if( res == PLATFORM_INT_INVALID )
+         return luaL_error( L, &quot;%d is not a valid interrupt ID&quot;, ( int )id );
+       else if( res == PLATFORM_INT_NOT_HANDLED )
+-        return luaL_error( L, &quot;cli operation not implemented for interrupt %d with resource %d&quot;, ( int )id, ( int )resnum );
++        return luaL_error( L, &quot;'%s' not implemented for interrupt %d with resource %d&quot;, mode == PLATFORM_CPU_ENABLE ? &quot;sei&quot; : &quot;cli&quot;, ( int )id, ( int )resnum );
+       else if( res == PLATFORM_INT_BAD_RESNUM )
+         return luaL_error( L, &quot;resource %d not valid for interrupt %d&quot;, ( int )resnum, ( int )id );
+     }
+-    if( !hwmode )
+-      elua_int_disable( id );
+   }
+   else
+ #else // #ifdef BUILD_LUA_INT_HANDLERS
+   if( lua_gettop( L ) &gt; 0 )
+     return luaL_error( L, &quot;Lua interrupt support not available.&quot; );
+ #endif // #ifdef BUILD_LUA_INT_HANDLERS
+-  platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
++  platform_cpu_set_global_interrupts( mode );
+   return 0;
+-}
+ 
+-
+-// sei helper, does either hw_sei (set interrupt only in hardware) or full sei (also set the Lua interrupt flag)
+-// Lua: [hw_]sei() - to enable all interrupts
+-// or [hw_]sei( id1, resnum1, [resnum2], ..., [resnumn] ) - to enable a specific id/resnum(s)
+-static int cpuh_sei( lua_State *L, int hwmode )
+-{
+-#ifdef BUILD_LUA_INT_HANDLERS  
+-  unsigned i;
+-  elua_int_id id;
+-  elua_int_resnum resnum;  
+-  int res;
+-
+-  if( lua_gettop( L ) &gt; 0 )
+-  {
+-    id = ( elua_int_id )luaL_checkinteger( L, 1 );
+-    if( id &lt; ELUA_INT_FIRST_ID || id &gt; INT_ELUA_LAST )
+-      return luaL_error( L, &quot;invalid interrupt ID&quot; );
+-    if( !hwmode )
+-    {
+-      // Check if we have a handler for this interrupt
+-      lua_rawgeti( L, LUA_REGISTRYINDEX, LUA_INT_HANDLER_KEY ); // inttable
+-      lua_rawgeti( L, -1, id ); // inttable f
+-      if( lua_isnil( L, -1 ) )
+-        return luaL_error( L, &quot;no handler is set for this interrupt, set a handler before enabling it.\n&quot; );
+-      lua_pop( L, 2 ); 
+-    }
+-    for( i = 2; i &lt;= lua_gettop( L ); i ++ )
+-    {
+-      resnum = ( elua_int_resnum )luaL_checkinteger( L, i );
+-      res = platform_cpu_set_interrupt( id, resnum, PLATFORM_CPU_ENABLE );
+-      if( res == PLATFORM_INT_INVALID )
+-        return luaL_error( L, &quot;%d is not a valid interrupt ID&quot;, ( int )id );
+-      else if( res == PLATFORM_INT_NOT_HANDLED )
+-        return luaL_error( L, &quot;sei operation not implemented for interrupt %d with resnum %d&quot;, ( int )id, ( int )resnum );
+-      else if( res == PLATFORM_INT_BAD_RESNUM )
+-        return luaL_error( L, &quot;resource %d not valid for interrupt %d&quot;, ( int )resnum, ( int )id );
+-    }
+-    if( !hwmode )
+-      elua_int_enable( id );
+-  }
+-  else
+-#else // #ifdef BUILD_LUA_INT_HANDLERS
+-  if( lua_gettop( L ) &gt; 0 )
+-    return luaL_error( L, &quot;Lua interrupt support not available.&quot; );
+-#endif // #ifdef BUILD_LUA_INT_HANDLERS  
+-  platform_cpu_set_global_interrupts( PLATFORM_CPU_ENABLE );
+-  return 0;
+ }
+ 
++// Lua: cpu.cli( id, resnum1, [resnum2], ... [resnumn] )
+ static int cpu_cli( lua_State *L )
+ {
+-  return cpuh_cli( L, 0 );
++  return cpuh_int_helper( L, PLATFORM_CPU_DISABLE );
+ }
+ 
+-static int cpu_hw_cli( lua_State *L )
+-{
+-  return cpuh_cli( L, 1 );
+-}
+-
++// Lua: cpu.sei( id, resnum1, [resnum2], ... [resnumn] )
+ static int cpu_sei( lua_State *L )
+ {
+-  return cpuh_sei( L, 0 );
++  return cpuh_int_helper( L, PLATFORM_CPU_ENABLE );
+ }
+ 
+-static int cpu_hw_sei( lua_State *L )
+-{
+-  return cpuh_sei( L, 1 );
+-}
+-
+ // Lua: frequency = clock()
+ static int cpu_clock( lua_State *L )
+ {
+@@ -239,8 +179,10 @@
+     return luaL_error( L, &quot;invalid interrupt ID&quot; );
+   if( lua_type( L, 2 ) == LUA_TFUNCTION || lua_type( L, 2 ) == LUA_TLIGHTFUNCTION || lua_type( L, 2 ) == LUA_TNIL )
+   {
+-    if( lua_type( L, 2 ) == LUA_TNIL &amp;&amp; elua_int_is_enabled( id ) )
+-      return luaL_error( L, &quot;interrupt is enabled, disable it before setting its handler to nil.\n&quot; );
++    if( lua_type( L, 2 ) == LUA_TNIL )
++      elua_int_disable( id );
++    else
++      elua_int_enable( id );
+     lua_settop( L, 2 ); // id f
+     lua_rawgeti( L, LUA_REGISTRYINDEX, LUA_INT_HANDLER_KEY ); // id f inttable
+     lua_rawgeti( L, -1, id ); // id f inttable prevf
+@@ -309,9 +251,7 @@
+   { LSTRKEY( &quot;w8&quot; ), LFUNCVAL( cpu_w8 ) },
+   { LSTRKEY( &quot;r8&quot; ), LFUNCVAL( cpu_r8 ) },
+   { LSTRKEY( &quot;cli&quot; ), LFUNCVAL( cpu_cli ) },
+-  { LSTRKEY( &quot;hw_cli&quot; ), LFUNCVAL( cpu_hw_cli ) },
+   { LSTRKEY( &quot;sei&quot; ), LFUNCVAL( cpu_sei ) },
+-  { LSTRKEY( &quot;hw_sei&quot; ), LFUNCVAL( cpu_hw_sei ) },
+   { LSTRKEY( &quot;clock&quot; ), LFUNCVAL( cpu_clock ) },
+ #ifdef BUILD_LUA_INT_HANDLERS
+   { LSTRKEY( &quot;set_int_handler&quot; ), LFUNCVAL( cpu_set_int_handler ) },
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000863.html">[Elua-svn] r910 - branches/pre0.8
+</A></li>
+	<LI>Next message: <A HREF="000865.html">[Elua-svn] r912 - branches/pre0.8/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#864">[ date ]</a>
+              <a href="thread.html#864">[ thread ]</a>
+              <a href="subject.html#864">[ subject ]</a>
+              <a href="author.html#864">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

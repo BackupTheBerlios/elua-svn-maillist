@@ -1,0 +1,1122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r108 - in trunk: inc src src/lua src/modules src/newlib	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str7 src/platform/str9 src/uip
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r108%20-%20in%20trunk%3A%20inc%20src%20src/lua%20src/modules%20src/newlib%0A%09src/platform/at91sam7x%20src/platform/lm3s%20src/platform/lpc288x%0A%09src/platform/str7%20src/platform/str9%20src/uip&In-Reply-To=%3C200810091049.m99AnCaE006809%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000063.html">
+   <LINK REL="Next"  HREF="000065.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r108 - in trunk: inc src src/lua src/modules src/newlib	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str7 src/platform/str9 src/uip</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r108%20-%20in%20trunk%3A%20inc%20src%20src/lua%20src/modules%20src/newlib%0A%09src/platform/at91sam7x%20src/platform/lm3s%20src/platform/lpc288x%0A%09src/platform/str7%20src/platform/str9%20src/uip&In-Reply-To=%3C200810091049.m99AnCaE006809%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r108 - in trunk: inc src src/lua src/modules src/newlib	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str7 src/platform/str9 src/uip">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Oct  9 12:49:12 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000063.html">[Elua-svn] r107 - trunk/src/platform/str7
+</A></li>
+        <LI>Next message: <A HREF="000065.html">[Elua-svn] r109 - in trunk/src: . modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#64">[ date ]</a>
+              <a href="thread.html#64">[ thread ]</a>
+              <a href="subject.html#64">[ subject ]</a>
+              <a href="author.html#64">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-10-09 12:49:07 +0200 (Thu, 09 Oct 2008)
+New Revision: 108
+
+Added:
+   trunk/src/platform/at91sam7x/platform_conf.h
+   trunk/src/platform/lm3s/platform_conf.h
+   trunk/src/platform/lpc288x/platform_conf.h
+   trunk/src/platform/str7/platform_conf.h
+   trunk/src/platform/str9/platform_conf.h
+Removed:
+   trunk/src/platform/at91sam7x/build.h
+   trunk/src/platform/at91sam7x/platform_cpu.h
+   trunk/src/platform/at91sam7x/platform_libs.h
+   trunk/src/platform/lm3s/build.h
+   trunk/src/platform/lm3s/platform_cpu.h
+   trunk/src/platform/lm3s/platform_libs.h
+   trunk/src/platform/lpc288x/build.h
+   trunk/src/platform/lpc288x/platform_cpu.h
+   trunk/src/platform/lpc288x/platform_libs.h
+   trunk/src/platform/str7/build.h
+   trunk/src/platform/str7/platform_cpu.h
+   trunk/src/platform/str7/platform_libs.h
+   trunk/src/platform/str9/build.h
+   trunk/src/platform/str9/platform_cpu.h
+   trunk/src/platform/str9/platform_libs.h
+Modified:
+   trunk/inc/validate.h
+   trunk/src/elua_uip.c
+   trunk/src/lua/linit.c
+   trunk/src/main.c
+   trunk/src/modules/cpu.c
+   trunk/src/modules/net.c
+   trunk/src/modules/term.c
+   trunk/src/newlib/devman.c
+   trunk/src/newlib/genstd.c
+   trunk/src/newlib/stdtcp.c
+   trunk/src/newlib/stubs.c
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/romfs.c
+   trunk/src/shell.c
+   trunk/src/term.c
+   trunk/src/uip/dhcpc.c
+   trunk/src/uip/psock.c
+   trunk/src/uip/resolv.c
+   trunk/src/uip/uip.c
+   trunk/src/uip/uip_arp.c
+   trunk/src/uip/uiplib.c
+   trunk/src/xmodem.c
+Log:
+changed the build system a bit; now all the configuration for a specific target is done in a file called 'platform_conf.h' from the src/platform/&lt;target&gt; directory. I did this because the number of mandatory target specific files was continuously increasing
+
+Modified: trunk/inc/validate.h
+===================================================================
+--- trunk/inc/validate.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/inc/validate.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -6,7 +6,7 @@
+ #ifndef __VALIDATE_H__
+ #define __VALIDATE_H__
+ 
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ 
+ // Can't define more than one console devices
+ #if defined( BUILD_CON_TCP ) &amp;&amp; defined( BUILD_CON_GENERIC )
+
+Modified: trunk/src/elua_uip.c
+===================================================================
+--- trunk/src/elua_uip.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/elua_uip.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,4 +1,4 @@
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_UIP
+ 
+ // UIP &quot;helper&quot; for eLua
+
+Modified: trunk/src/lua/linit.c
+===================================================================
+--- trunk/src/lua/linit.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/lua/linit.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -13,7 +13,7 @@
+ #include &quot;lauxlib.h&quot;
+ 
+ #ifndef LUA_CROSS_COMPILER
+-#include &quot;platform_libs.h&quot;
++#include &quot;platform_conf.h&quot;
+ #endif
+ 
+ static const luaL_Reg lualibs[] = {
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/main.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -8,9 +8,9 @@
+ #include &quot;romfs.h&quot;
+ #include &quot;xmodem.h&quot;
+ #include &quot;shell.h&quot;
+-#include &quot;build.h&quot;
+ #include &quot;lua.h&quot;
+ #include &quot;term.h&quot;
++#include &quot;platform_conf.h&quot;
+ 
+ // Validate eLua configuratin options
+ #include &quot;validate.h&quot;
+@@ -26,13 +26,6 @@
+ 
+ #ifdef BUILD_XMODEM
+ 
+-#if ELUA_BOARD == MOD711
+-#define XMODEM_UART_ID          1
+-#else
+-#define XMODEM_UART_ID          0
+-#endif // #if ELUA_BOARD == MOD711
+-#define XMODEM_TIMER_ID         0
+-
+ static void xmodem_send( u8 data )
+ {
+   platform_uart_send( XMODEM_UART_ID, data );
+@@ -61,19 +54,8 @@
+ // ****************************************************************************
+ // Terminal support code
+ 
+-#define TERMINAL_LINES        25
+-#define TERMINAL_COLS         80
+-
+ #ifdef BUILD_TERM
+ 
+-#if ELUA_BOARD == MOD711
+-#define TERM_UART_ID          1
+-#else
+-#define TERM_UART_ID          0
+-#endif // #if ELUA_BOARD == MOD711
+-#define TERM_TIMER_ID         0
+-#define TERM_TIMEOUT          100000
+-
+ static void term_out( u8 data )
+ {
+   platform_uart_send( TERM_UART_ID, data );
+@@ -186,7 +168,7 @@
+   xmodem_init( xmodem_send, xmodem_recv );    
+   
+   // Initialize terminal
+-  term_init( TERMINAL_LINES, TERMINAL_COLS, term_out, term_in, term_translate );
++  term_init( TERM_LINES, TERM_COLS, term_out, term_in, term_translate );
+ 
+   // Autorun: if &quot;autorun.lua&quot; is found in the ROM file system, run it first
+   if( ( fp = fopen( &quot;/rom/autorun.lua&quot;, &quot;r&quot; ) ) != NULL )
+
+Modified: trunk/src/modules/cpu.c
+===================================================================
+--- trunk/src/modules/cpu.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/modules/cpu.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -8,7 +8,7 @@
+ #include &lt;string.h&gt; 
+ 
+ #define _C( x ) { #x, x }
+-#include &quot;platform_cpu.h&quot;
++#include &quot;platform_conf.h&quot;
+ 
+ // Lua: w32( address, data )
+ static int cpu_w32( lua_State *L )
+
+Modified: trunk/src/modules/net.c
+===================================================================
+--- trunk/src/modules/net.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/modules/net.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -10,7 +10,7 @@
+ #include &lt;string.h&gt;
+ #include &lt;stddef.h&gt;
+ 
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_UIP
+ 
+ // Lua: sock, remoteip, err = accept( port, [ timer_id, timeout ] )
+
+Modified: trunk/src/modules/term.c
+===================================================================
+--- trunk/src/modules/term.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/modules/term.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -6,7 +6,7 @@
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
+ #include &quot;term.h&quot;
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #include &lt;string.h&gt;
+ 
+ // Lua: clrscr()
+
+Modified: trunk/src/newlib/devman.c
+===================================================================
+--- trunk/src/newlib/devman.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/newlib/devman.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -5,7 +5,7 @@
+ #include &lt;fcntl.h&gt;
+ #include &quot;devman.h&quot;
+ #include &quot;genstd.h&quot;
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ 
+ static DM_DEVICE dm_list[ DM_MAX_DEVICES ];           // list of devices
+ static int dm_num_devs;                               // number of devices
+
+Modified: trunk/src/newlib/genstd.c
+===================================================================
+--- trunk/src/newlib/genstd.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/newlib/genstd.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,6 +1,6 @@
+ // Generic stdin/stdout/stderr support functions
+ 
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_CON_GENERIC
+ 
+ #include &quot;type.h&quot;
+
+Modified: trunk/src/newlib/stdtcp.c
+===================================================================
+--- trunk/src/newlib/stdtcp.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/newlib/stdtcp.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,6 +1,6 @@
+ // Console (stdin/stdout/stderr) over TCP
+ 
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_CON_TCP
+ 
+ #include &quot;type.h&quot;
+
+Modified: trunk/src/newlib/stubs.c
+===================================================================
+--- trunk/src/newlib/stubs.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/newlib/stubs.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -9,7 +9,7 @@
+ #include &quot;devman.h&quot;
+ #include &quot;ioctl.h&quot;
+ #include &quot;platform.h&quot;
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #include &quot;genstd.h&quot;
+ 
+ #ifdef USE_MULTIPLE_ALLOCATOR
+
+Deleted: trunk/src/platform/at91sam7x/build.h
+===================================================================
+--- trunk/src/platform/at91sam7x/build.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/at91sam7x/build.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,12 +0,0 @@
+-// Define here what components you want for this platform
+-
+-#ifndef __BUILD_H__
+-#define __BUILD_H__
+-
+-#define BUILD_XMODEM
+-#define BUILD_SHELL
+-#define BUILD_ROMFS
+-#define BUILD_TERM
+-#define BUILD_CON_GENERIC
+-
+-#endif
+
+Added: trunk/src/platform/at91sam7x/platform_conf.h
+===================================================================
+--- trunk/src/platform/at91sam7x/platform_conf.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/at91sam7x/platform_conf.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -0,0 +1,42 @@
++// eLua platform configuration
++
++#ifndef __PLATFORM_CONF_H__
++#define __PLATFORM_CONF_H__
++
++#include &quot;auxmods.h&quot;
++
++// *****************************************************************************
++// Define here what components you want for this platform
++
++#define BUILD_XMODEM
++#define BUILD_SHELL
++#define BUILD_ROMFS
++#define BUILD_TERM
++#define BUILD_CON_GENERIC
++
++// *****************************************************************************
++// UART/Timer IDs configuration data (used in main.c)
++
++#define XMODEM_UART_ID        0
++#define XMODEM_TIMER_ID       0
++#define TERM_UART_ID          0
++#define TERM_TIMER_ID         0
++#define TERM_LINES            25
++#define TERM_COLS             80
++#define TERM_TIMEOUT          100000
++
++// *****************************************************************************
++// Auxiliary libraries that will be compiled for this platform
++
++#define LUA_PLATFORM_LIBS\
++  { AUXLIB_PIO, luaopen_pio },\
++  { AUXLIB_TMR, luaopen_tmr },\
++  { AUXLIB_PD, luaopen_pd },\
++  { AUXLIB_UART, luaopen_uart },\
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PWM, luaopen_pwm },\
++  { AUXLIB_PACK, luaopen_pack },\
++  { AUXLIB_BIT, luaopen_bit },\
++  { LUA_MATHLIBNAME, luaopen_math }
++  
++#endif // #ifndef __PLATFORM_CONF_H__
+
+Deleted: trunk/src/platform/at91sam7x/platform_cpu.h
+===================================================================
+--- trunk/src/platform/at91sam7x/platform_cpu.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/at91sam7x/platform_cpu.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,6 +0,0 @@
+-// CPU related constants that should be visible to Lua
+-
+-#ifndef __PLATFORM_CPU_H__
+-#define __PLATFORM_CPU_H__
+-
+-#endif
+
+Deleted: trunk/src/platform/at91sam7x/platform_libs.h
+===================================================================
+--- trunk/src/platform/at91sam7x/platform_libs.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/at91sam7x/platform_libs.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,19 +0,0 @@
+-// Auxiliary libraries that will be compiled for this platform
+-
+-#ifndef __PLATFORM_LIBS_H__
+-#define __PLATFORM_LIBS_H__
+-
+-#include &quot;auxmods.h&quot;
+-
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PWM, luaopen_pwm },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { LUA_MATHLIBNAME, luaopen_math }
+-  
+-#endif
+
+Deleted: trunk/src/platform/lm3s/build.h
+===================================================================
+--- trunk/src/platform/lm3s/build.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/lm3s/build.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,38 +0,0 @@
+-// Define here what components you want for this platform
+-// Also used for compile-time configuration constants (like TCP/IP config)
+-
+-#ifndef __BUILD_H__
+-#define __BUILD_H__
+-
+-#define BUILD_XMODEM
+-#define BUILD_SHELL
+-#define BUILD_ROMFS
+-#define BUILD_TERM
+-#define BUILD_UIP
+-#define BUILD_DHCPC
+-#define BUILD_DNS
+-#define BUILD_CON_GENERIC
+-//#define BUILD_CON_TCP
+-
+-// Static TCP/IP configuration
+-#define ELUA_CONF_IPADDR0         192
+-#define ELUA_CONF_IPADDR1         168
+-#define ELUA_CONF_IPADDR2         1
+-#define ELUA_CONF_IPADDR3         13
+-
+-#define ELUA_CONF_NETMASK0        255
+-#define ELUA_CONF_NETMASK1        255
+-#define ELUA_CONF_NETMASK2        255
+-#define ELUA_CONF_NETMASK3        0
+-
+-#define ELUA_CONF_DEFGW0          192
+-#define ELUA_CONF_DEFGW1          168
+-#define ELUA_CONF_DEFGW2          1
+-#define ELUA_CONF_DEFGW3          1
+-
+-#define ELUA_CONF_DNS0            192
+-#define ELUA_CONF_DNS1            168
+-#define ELUA_CONF_DNS2            1
+-#define ELUA_CONF_DNS3            1
+-
+-#endif
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/lm3s/platform.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -12,7 +12,7 @@
+ #include &quot;uip_arp.h&quot;
+ #include &quot;elua_uip.h&quot; 
+ #include &quot;uip-conf.h&quot;
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ 
+ // Platform specific includes
+ #include &quot;hw_ints.h&quot;
+
+Added: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/lm3s/platform_conf.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -0,0 +1,128 @@
++// eLua platform configuration
++
++#ifndef __PLATFORM_CONF_H__
++#define __PLATFORM_CONF_H__
++
++#include &quot;auxmods.h&quot;
++
++// *****************************************************************************
++// Define here what components you want for this platform
++
++#define BUILD_XMODEM
++#define BUILD_SHELL
++#define BUILD_ROMFS
++#define BUILD_TERM
++#define BUILD_UIP
++#define BUILD_DHCPC
++#define BUILD_DNS
++#define BUILD_CON_GENERIC
++//#define BUILD_CON_TCP
++
++// *****************************************************************************
++// UART/Timer IDs configuration data (used in main.c)
++
++#define XMODEM_UART_ID        0
++#define XMODEM_TIMER_ID       0
++#define TERM_UART_ID          0
++#define TERM_TIMER_ID         0
++#define TERM_LINES            25
++#define TERM_COLS             80
++#define TERM_TIMEOUT          100000
++
++// *****************************************************************************
++// Auxiliary libraries that will be compiled for this platform
++
++#define LUA_PLATFORM_LIBS\
++  { AUXLIB_PIO, luaopen_pio },\
++  { AUXLIB_SPI, luaopen_spi },\
++  { AUXLIB_TMR, luaopen_tmr },\
++  { AUXLIB_PD, luaopen_pd },\
++  { AUXLIB_UART, luaopen_uart },\
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PWM, luaopen_pwm },\
++  { AUXLIB_PACK, luaopen_pack },\
++  { AUXLIB_BIT, luaopen_bit },\
++  { AUXLIB_NET, luaopen_net },\
++  { AUXLIB_CPU, luaopen_cpu },\
++  { LUA_MATHLIBNAME, luaopen_math }
++  
++// *****************************************************************************
++// Configuration data
++
++// Static TCP/IP configuration
++#define ELUA_CONF_IPADDR0         192
++#define ELUA_CONF_IPADDR1         168
++#define ELUA_CONF_IPADDR2         1
++#define ELUA_CONF_IPADDR3         13
++
++#define ELUA_CONF_NETMASK0        255
++#define ELUA_CONF_NETMASK1        255
++#define ELUA_CONF_NETMASK2        255
++#define ELUA_CONF_NETMASK3        0
++
++#define ELUA_CONF_DEFGW0          192
++#define ELUA_CONF_DEFGW1          168
++#define ELUA_CONF_DEFGW2          1
++#define ELUA_CONF_DEFGW3          1
++
++#define ELUA_CONF_DNS0            192
++#define ELUA_CONF_DNS1            168
++#define ELUA_CONF_DNS2            1
++#define ELUA_CONF_DNS3            1
++
++// *****************************************************************************
++// CPU constants that should be exposed to the eLua &quot;cpu&quot; module
++
++#include &quot;hw_ints.h&quot;
++
++#define PLATFORM_CPU_CONSTANTS\
++  _C( INT_GPIOA ),\
++  _C( INT_GPIOB ),\
++  _C( INT_GPIOC ),\
++  _C( INT_GPIOD ),\
++  _C( INT_GPIOE ),\
++  _C( INT_UART0 ),\
++  _C( INT_UART1 ),\
++  _C( INT_SSI0 ),\
++  _C( INT_I2C0 ),\
++  _C( INT_PWM_FAULT ),\
++  _C( INT_PWM0 ),\
++  _C( INT_PWM1 ),\
++  _C( INT_PWM2 ),\
++  _C( INT_QEI0 ),\
++  _C( INT_ADC0 ),\
++  _C( INT_ADC1 ),\
++  _C( INT_ADC2 ),\
++  _C( INT_ADC3 ),\
++  _C( INT_WATCHDOG ),\
++  _C( INT_TIMER0A ),\
++  _C( INT_TIMER0B ),\
++  _C( INT_TIMER1A ),\
++  _C( INT_TIMER1B ),\
++  _C( INT_TIMER2A ),\
++  _C( INT_TIMER2B ),\
++  _C( INT_COMP0 ),\
++  _C( INT_COMP1 ),\
++  _C( INT_COMP2 ),\
++  _C( INT_SYSCTL ),\
++  _C( INT_FLASH ),\
++  _C( INT_GPIOF ),\
++  _C( INT_GPIOG ),\
++  _C( INT_GPIOH ),\
++  _C( INT_UART2 ),\
++  _C( INT_SSI1 ),\
++  _C( INT_TIMER3A ),\
++  _C( INT_TIMER3B ),\
++  _C( INT_I2C1 ),\
++  _C( INT_QEI1 ),\
++  _C( INT_CAN0 ),\
++  _C( INT_CAN1 ),\
++  _C( INT_CAN2 ),\
++  _C( INT_ETH ),\
++  _C( INT_HIBERNATE ),\
++  _C( INT_USB0 ),\
++  _C( INT_PWM3 ),\
++  _C( INT_UDMA ),\
++  _C( INT_UDMAERR )
++  
++#endif // #ifndef __PLATFORM_CONF_H__
+
+Deleted: trunk/src/platform/lm3s/platform_cpu.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_cpu.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/lm3s/platform_cpu.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,59 +0,0 @@
+-// CPU related constants that should be visible to Lua
+-
+-#ifndef __PLATFORM_CPU_H__
+-#define __PLATFORM_CPU_H__
+-
+-#include &quot;hw_ints.h&quot;
+-
+-#define PLATFORM_CPU_CONSTANTS\
+-  _C( INT_GPIOA ),\
+-  _C( INT_GPIOB ),\
+-  _C( INT_GPIOC ),\
+-  _C( INT_GPIOD ),\
+-  _C( INT_GPIOE ),\
+-  _C( INT_UART0 ),\
+-  _C( INT_UART1 ),\
+-  _C( INT_SSI0 ),\
+-  _C( INT_I2C0 ),\
+-  _C( INT_PWM_FAULT ),\
+-  _C( INT_PWM0 ),\
+-  _C( INT_PWM1 ),\
+-  _C( INT_PWM2 ),\
+-  _C( INT_QEI0 ),\
+-  _C( INT_ADC0 ),\
+-  _C( INT_ADC1 ),\
+-  _C( INT_ADC2 ),\
+-  _C( INT_ADC3 ),\
+-  _C( INT_WATCHDOG ),\
+-  _C( INT_TIMER0A ),\
+-  _C( INT_TIMER0B ),\
+-  _C( INT_TIMER1A ),\
+-  _C( INT_TIMER1B ),\
+-  _C( INT_TIMER2A ),\
+-  _C( INT_TIMER2B ),\
+-  _C( INT_COMP0 ),\
+-  _C( INT_COMP1 ),\
+-  _C( INT_COMP2 ),\
+-  _C( INT_SYSCTL ),\
+-  _C( INT_FLASH ),\
+-  _C( INT_GPIOF ),\
+-  _C( INT_GPIOG ),\
+-  _C( INT_GPIOH ),\
+-  _C( INT_UART2 ),\
+-  _C( INT_SSI1 ),\
+-  _C( INT_TIMER3A ),\
+-  _C( INT_TIMER3B ),\
+-  _C( INT_I2C1 ),\
+-  _C( INT_QEI1 ),\
+-  _C( INT_CAN0 ),\
+-  _C( INT_CAN1 ),\
+-  _C( INT_CAN2 ),\
+-  _C( INT_ETH ),\
+-  _C( INT_HIBERNATE ),\
+-  _C( INT_USB0 ),\
+-  _C( INT_PWM3 ),\
+-  _C( INT_UDMA ),\
+-  _C( INT_UDMAERR )
+-
+-#endif
+-
+
+Deleted: trunk/src/platform/lm3s/platform_libs.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_libs.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/lm3s/platform_libs.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,22 +0,0 @@
+-// Auxiliary libraries that will be compiled for this platform
+-
+-#ifndef __PLATFORM_LIBS_H__
+-#define __PLATFORM_LIBS_H__
+-
+-#include &quot;auxmods.h&quot;
+-
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_SPI, luaopen_spi },\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PWM, luaopen_pwm },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { AUXLIB_NET, luaopen_net },\
+-  { AUXLIB_CPU, luaopen_cpu },\
+-  { LUA_MATHLIBNAME, luaopen_math }
+-  
+-#endif
+
+Deleted: trunk/src/platform/lpc288x/build.h
+===================================================================
+--- trunk/src/platform/lpc288x/build.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/lpc288x/build.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,12 +0,0 @@
+-// Define here what components you want for this platform
+-
+-#ifndef __BUILD_H__
+-#define __BUILD_H__
+-
+-#define BUILD_XMODEM
+-#define BUILD_SHELL
+-#define BUILD_ROMFS
+-#define BUILD_TERM
+-#define BUILD_CON_GENERIC
+-
+-#endif
+
+Added: trunk/src/platform/lpc288x/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc288x/platform_conf.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/lpc288x/platform_conf.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -0,0 +1,41 @@
++// eLua platform configuration
++
++#ifndef __PLATFORM_CONF_H__
++#define __PLATFORM_CONF_H__
++
++#include &quot;auxmods.h&quot;
++
++// *****************************************************************************
++// Define here what components you want for this platform
++
++#define BUILD_XMODEM
++#define BUILD_SHELL
++#define BUILD_ROMFS
++#define BUILD_TERM
++#define BUILD_CON_GENERIC
++
++// *****************************************************************************
++// UART/Timer IDs configuration data (used in main.c)
++
++#define XMODEM_UART_ID        0
++#define XMODEM_TIMER_ID       0
++#define TERM_UART_ID          0
++#define TERM_TIMER_ID         0
++#define TERM_LINES            25
++#define TERM_COLS             80
++#define TERM_TIMEOUT          100000
++
++// *****************************************************************************
++// Auxiliary libraries that will be compiled for this platform
++
++#define LUA_PLATFORM_LIBS\
++  { AUXLIB_PIO, luaopen_pio },\
++  { AUXLIB_TMR, luaopen_tmr },\
++  { AUXLIB_PD, luaopen_pd },\
++  { AUXLIB_UART, luaopen_uart },\
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PACK, luaopen_pack },\
++  { AUXLIB_BIT, luaopen_bit },\
++  { LUA_MATHLIBNAME, luaopen_math }  
++  
++#endif // #ifndef __PLATFORM_CONF_H__
+
+Deleted: trunk/src/platform/lpc288x/platform_cpu.h
+===================================================================
+--- trunk/src/platform/lpc288x/platform_cpu.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/lpc288x/platform_cpu.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,6 +0,0 @@
+-// CPU related constants that should be visible to Lua
+-
+-#ifndef __PLATFORM_CPU_H__
+-#define __PLATFORM_CPU_H__
+-
+-#endif
+
+Deleted: trunk/src/platform/lpc288x/platform_libs.h
+===================================================================
+--- trunk/src/platform/lpc288x/platform_libs.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/lpc288x/platform_libs.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,18 +0,0 @@
+-// Auxiliary libraries that will be compiled for this platform
+-
+-#ifndef __PLATFORM_LIBS_H__
+-#define __PLATFORM_LIBS_H__
+-
+-#include &quot;auxmods.h&quot;
+-
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { LUA_MATHLIBNAME, luaopen_math }
+-  
+-#endif
+
+Deleted: trunk/src/platform/str7/build.h
+===================================================================
+--- trunk/src/platform/str7/build.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/str7/build.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,12 +0,0 @@
+-// Define here what components you want for this platform
+-
+-#ifndef __BUILD_H__
+-#define __BUILD_H__
+-
+-#define BUILD_XMODEM
+-#define BUILD_SHELL
+-#define BUILD_ROMFS
+-#define BUILD_TERM
+-#define BUILD_CON_GENERIC
+-
+-#endif
+
+Added: trunk/src/platform/str7/platform_conf.h
+===================================================================
+--- trunk/src/platform/str7/platform_conf.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/str7/platform_conf.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -0,0 +1,42 @@
++// eLua platform configuration
++
++#ifndef __PLATFORM_CONF_H__
++#define __PLATFORM_CONF_H__
++
++#include &quot;auxmods.h&quot;
++
++// *****************************************************************************
++// Define here what components you want for this platform
++
++#define BUILD_XMODEM
++#define BUILD_SHELL
++#define BUILD_ROMFS
++#define BUILD_TERM
++#define BUILD_CON_GENERIC
++
++// *****************************************************************************
++// UART/Timer IDs configuration data (used in main.c)
++
++#define XMODEM_UART_ID        1
++#define XMODEM_TIMER_ID       0
++#define TERM_UART_ID          1
++#define TERM_TIMER_ID         0
++#define TERM_LINES            25
++#define TERM_COLS             80
++#define TERM_TIMEOUT          100000
++
++// *****************************************************************************
++// Auxiliary libraries that will be compiled for this platform
++
++#define LUA_PLATFORM_LIBS\
++  { AUXLIB_PIO, luaopen_pio },\
++  { AUXLIB_TMR, luaopen_tmr },\
++  { AUXLIB_PD, luaopen_pd },\
++  { AUXLIB_PWM, luaopen_pwm },\
++  { AUXLIB_UART, luaopen_uart },\
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PACK, luaopen_pack },\
++  { AUXLIB_BIT, luaopen_bit },\
++  { LUA_MATHLIBNAME, luaopen_math }    
++  
++#endif // #ifndef __PLATFORM_CONF_H__
+
+Deleted: trunk/src/platform/str7/platform_cpu.h
+===================================================================
+--- trunk/src/platform/str7/platform_cpu.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/str7/platform_cpu.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,6 +0,0 @@
+-// CPU related constants that should be visible to Lua
+-
+-#ifndef __PLATFORM_CPU_H__
+-#define __PLATFORM_CPU_H__
+-
+-#endif
+
+Deleted: trunk/src/platform/str7/platform_libs.h
+===================================================================
+--- trunk/src/platform/str7/platform_libs.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/str7/platform_libs.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,19 +0,0 @@
+-// Auxiliary libraries that will be compiled for this platform
+-
+-#ifndef __PLATFORM_LIBS_H__
+-#define __PLATFORM_LIBS_H__
+-
+-#include &quot;auxmods.h&quot;
+-
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio },\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_PWM, luaopen_pwm },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { LUA_MATHLIBNAME, luaopen_math }  
+-  
+-#endif
+
+Deleted: trunk/src/platform/str9/build.h
+===================================================================
+--- trunk/src/platform/str9/build.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/str9/build.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,12 +0,0 @@
+-// Define here what components you want for this platform
+-
+-#ifndef __BUILD_H__
+-#define __BUILD_H__
+-
+-#define BUILD_XMODEM
+-#define BUILD_SHELL
+-#define BUILD_ROMFS
+-#define BUILD_TERM
+-#define BUILD_CON_GENERIC
+-
+-#endif
+
+Added: trunk/src/platform/str9/platform_conf.h
+===================================================================
+--- trunk/src/platform/str9/platform_conf.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/str9/platform_conf.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -0,0 +1,41 @@
++// eLua platform configuration
++
++#ifndef __PLATFORM_CONF_H__
++#define __PLATFORM_CONF_H__
++
++#include &quot;auxmods.h&quot;
++
++// *****************************************************************************
++// Define here what components you want for this platform
++
++#define BUILD_XMODEM
++#define BUILD_SHELL
++#define BUILD_ROMFS
++#define BUILD_TERM
++#define BUILD_CON_GENERIC
++
++// *****************************************************************************
++// UART/Timer IDs configuration data (used in main.c)
++
++#define XMODEM_UART_ID        0
++#define XMODEM_TIMER_ID       0
++#define TERM_UART_ID          0
++#define TERM_TIMER_ID         0
++#define TERM_LINES            25
++#define TERM_COLS             80
++#define TERM_TIMEOUT          100000
++
++// *****************************************************************************
++// Auxiliary libraries that will be compiled for this platform
++
++#define LUA_PLATFORM_LIBS\
++  { AUXLIB_PIO, luaopen_pio},\
++  { AUXLIB_TMR, luaopen_tmr },\
++  { AUXLIB_PD, luaopen_pd },\
++  { AUXLIB_UART, luaopen_uart },\
++  { AUXLIB_TERM, luaopen_term },\
++  { AUXLIB_PACK, luaopen_pack },\
++  { AUXLIB_BIT, luaopen_bit },\
++  { LUA_MATHLIBNAME, luaopen_math }    
++  
++#endif // #ifndef __PLATFORM_CONF_H__
+
+Deleted: trunk/src/platform/str9/platform_cpu.h
+===================================================================
+--- trunk/src/platform/str9/platform_cpu.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/str9/platform_cpu.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,6 +0,0 @@
+-// CPU related constants that should be visible to Lua
+-
+-#ifndef __PLATFORM_CPU_H__
+-#define __PLATFORM_CPU_H__
+-
+-#endif
+
+Deleted: trunk/src/platform/str9/platform_libs.h
+===================================================================
+--- trunk/src/platform/str9/platform_libs.h	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/platform/str9/platform_libs.h	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,18 +0,0 @@
+-// Auxiliary libraries that will be compiled for this platform
+-
+-#ifndef __PLATFORM_LIBS_H__
+-#define __PLATFORM_LIBS_H__
+-
+-#include &quot;auxmods.h&quot;
+-
+-#define LUA_PLATFORM_LIBS\
+-  { AUXLIB_PIO, luaopen_pio},\
+-  { AUXLIB_TMR, luaopen_tmr },\
+-  { AUXLIB_PD, luaopen_pd },\
+-  { AUXLIB_UART, luaopen_uart },\
+-  { AUXLIB_TERM, luaopen_term },\
+-  { AUXLIB_PACK, luaopen_pack },\
+-  { AUXLIB_BIT, luaopen_bit },\
+-  { LUA_MATHLIBNAME, luaopen_math }  
+-  
+-#endif
+
+Modified: trunk/src/romfs.c
+===================================================================
+--- trunk/src/romfs.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/romfs.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -8,7 +8,7 @@
+ #include &lt;stdio.h&gt;
+ #include &quot;ioctl.h&quot;
+ 
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_ROMFS
+ 
+ #define ROMFS_MAX_FDS   4
+
+Modified: trunk/src/shell.c
+===================================================================
+--- trunk/src/shell.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/shell.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -12,7 +12,7 @@
+ #include &quot;platform.h&quot;
+ #include &quot;elua_net.h&quot;
+ 
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_SHELL
+ 
+ // Shell alternate ' ' char
+
+Modified: trunk/src/term.c
+===================================================================
+--- trunk/src/term.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/term.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -6,7 +6,7 @@
+ #include &lt;stdio.h&gt;
+ #include &lt;stdarg.h&gt;
+ 
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_TERM
+ 
+ // Local variables
+
+Modified: trunk/src/uip/dhcpc.c
+===================================================================
+--- trunk/src/uip/dhcpc.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/uip/dhcpc.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,4 +1,4 @@
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #if defined(BUILD_UIP) &amp;&amp; defined(BUILD_DHCPC)
+ /*
+  * Copyright (c) 2005, Swedish Institute of Computer Science
+
+Modified: trunk/src/uip/psock.c
+===================================================================
+--- trunk/src/uip/psock.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/uip/psock.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,4 +1,4 @@
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_UIP
+ 
+ /*
+
+Modified: trunk/src/uip/resolv.c
+===================================================================
+--- trunk/src/uip/resolv.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/uip/resolv.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,4 +1,4 @@
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_DNS
+ 
+ /**
+
+Modified: trunk/src/uip/uip.c
+===================================================================
+--- trunk/src/uip/uip.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/uip/uip.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,4 +1,4 @@
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_UIP
+ 
+ #define DEBUG_PRINTF(...) /*printf(__VA_ARGS__)*/
+
+Modified: trunk/src/uip/uip_arp.c
+===================================================================
+--- trunk/src/uip/uip_arp.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/uip/uip_arp.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,4 +1,4 @@
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_UIP
+ 
+ /**
+
+Modified: trunk/src/uip/uiplib.c
+===================================================================
+--- trunk/src/uip/uiplib.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/uip/uiplib.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -1,4 +1,4 @@
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_UIP
+ 
+ /*
+
+Modified: trunk/src/xmodem.c
+===================================================================
+--- trunk/src/xmodem.c	2008-10-06 21:09:14 UTC (rev 107)
++++ trunk/src/xmodem.c	2008-10-09 10:49:07 UTC (rev 108)
+@@ -21,7 +21,7 @@
+ #include &quot;xmodem.h&quot;
+ #include &quot;platform.h&quot;
+ 
+-#include &quot;build.h&quot;
++#include &quot;platform_conf.h&quot;
+ #ifdef BUILD_XMODEM
+ 
+ #define XMODEM_BUFFER_SIZE    128
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000063.html">[Elua-svn] r107 - trunk/src/platform/str7
+</A></li>
+	<LI>Next message: <A HREF="000065.html">[Elua-svn] r109 - in trunk/src: . modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#64">[ date ]</a>
+              <a href="thread.html#64">[ thread ]</a>
+              <a href="subject.html#64">[ subject ]</a>
+              <a href="author.html#64">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

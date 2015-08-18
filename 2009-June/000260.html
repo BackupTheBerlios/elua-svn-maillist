@@ -1,0 +1,254 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r304 - in branches/luarpc: . inc src/lua src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r304%20-%20in%20branches/luarpc%3A%20.%20inc%20src/lua%20src/modules&In-Reply-To=%3C200906172249.n5HMnWmo019194%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000259.html">
+   <LINK REL="Next"  HREF="000261.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r304 - in branches/luarpc: . inc src/lua src/modules</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r304%20-%20in%20branches/luarpc%3A%20.%20inc%20src/lua%20src/modules&In-Reply-To=%3C200906172249.n5HMnWmo019194%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r304 - in branches/luarpc: . inc src/lua src/modules">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Jun 18 00:49:32 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000259.html">[Elua-svn] r303 - in branches/luarpc: . src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000261.html">[Elua-svn] r305 - in branches/luarpc: . src/modules test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#260">[ date ]</a>
+              <a href="thread.html#260">[ thread ]</a>
+              <a href="subject.html#260">[ subject ]</a>
+              <a href="author.html#260">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-18 00:49:25 +0200 (Thu, 18 Jun 2009)
+New Revision: 304
+
+Modified:
+   branches/luarpc/inc/luarpc_rpc.h
+   branches/luarpc/src/lua/lua.c
+   branches/luarpc/src/modules/luarpc.c
+   branches/luarpc/test-rpc.lua
+Log:
+Server must now ackowledge that command is supported before going forward.
+
+Modified: branches/luarpc/inc/luarpc_rpc.h
+===================================================================
+--- branches/luarpc/inc/luarpc_rpc.h	2009-06-17 17:36:22 UTC (rev 303)
++++ branches/luarpc/inc/luarpc_rpc.h	2009-06-17 22:49:25 UTC (rev 304)
+@@ -1,13 +1,14 @@
+ #include &quot;cexcept.h&quot;
++#include &lt;stdint.h&gt;
+ 
+-#ifdef LUA_CROSS_COMPILER
++#ifdef LUA_REMOTE
+ /* signed and unsigned 8, 16 and 32 bit types */
+-typedef unsigned char u8;
+-typedef unsigned short u16;
+-typedef unsigned int u32;
+-typedef signed char s8;
+-typedef signed short s16;
+-typedef signed int s32;
++typedef uint8_t u8;
++typedef uint16_t u16;
++typedef uint32_t u32;
++typedef int8_t s8;
++typedef int16_t s16;
++typedef int32_t s32;
+ 
+ #define LUARPC_ENABLE_SERIAL
+ #define BUILD_LUARPC
+
+Modified: branches/luarpc/src/lua/lua.c
+===================================================================
+--- branches/luarpc/src/lua/lua.c	2009-06-17 17:36:22 UTC (rev 303)
++++ branches/luarpc/src/lua/lua.c	2009-06-17 22:49:25 UTC (rev 304)
+@@ -373,7 +373,7 @@
+   return 0;
+ }
+ 
+-#ifdef LUA_CROSS_COMPILER
++#ifdef LUA_REMOTE
+ int main (int argc, char **argv) {
+ #else
+ int lua_main (int argc, char **argv) {
+
+Modified: branches/luarpc/src/modules/luarpc.c
+===================================================================
+--- branches/luarpc/src/modules/luarpc.c	2009-06-17 17:36:22 UTC (rev 303)
++++ branches/luarpc/src/modules/luarpc.c	2009-06-17 22:49:25 UTC (rev 304)
+@@ -77,6 +77,7 @@
+   case ERR_DATALINK: return &quot;transmission error at data link level&quot;;
+   case ERR_NODATA: return &quot;no data received when attempting to read&quot;;
+   case ERR_BADFNAME: return &quot;function name is too long&quot;;
++  case RPC_UNSUPPORTED_CMD: return &quot;an unsupported action was requested&quot;;
+   default: return transport_strerror (n);
+   }
+ }
+@@ -251,6 +252,12 @@
+   RPC_CMD_NEWINDEX
+ };
+ 
++enum
++{
++  RPC_READY = 64,
++  RPC_UNSUPPORTED_CMD
++};
++
+ enum { RPC_PROTOCOL_VERSION = 3 };
+ 
+ /* write a table at the given index in the stack. the index must be absolute
+@@ -637,10 +644,18 @@
+   
+   Try
+   {
+-    int len;        
++    int len;
++    u8 cmdresp;
+     /* write function name */
+     len = strlen( helper-&gt;funcname );
+     transport_write_u8( tpt, RPC_CMD_GET );
++    cmdresp = transport_read_u8( tpt );
++    if ( cmdresp != RPC_READY )
++    {
++  		e.errnum = cmdresp;
++  		e.type = nonfatal;
++  		Throw( e );
++    }
+     helper_remote_index( helper );
+ 
+     /* read variable back */
+@@ -699,6 +714,7 @@
+     {
+       int i,len,n;
+       u32 nret,ret_code;
++      u8 cmdresp;
+ 
+       /* first read out any pending return values for old async calls */
+       for (; h-&gt;handle-&gt;read_reply_count &gt; 0; h-&gt;handle-&gt;read_reply_count--) {
+@@ -729,6 +745,13 @@
+ 
+       /* write function name */
+       transport_write_u8( tpt, RPC_CMD_CALL );
++      cmdresp = transport_read_u8( tpt );
++      if ( cmdresp != RPC_READY )
++      {
++    		e.errnum = cmdresp;
++    		e.type = nonfatal;
++    		Throw( e );
++      }
+       helper_remote_index( h );
+ 
+       /* write number of arguments */
+@@ -814,10 +837,18 @@
+   Try
+   {
+     int len;
++    u8 cmdresp;
+         
+     /* write function name */
+     len = strlen( h-&gt;funcname );
+     transport_write_u8( tpt, RPC_CMD_NEWINDEX );
++    cmdresp = transport_read_u8( tpt );
++    if ( cmdresp != RPC_READY )
++    {
++  		e.errnum = cmdresp;
++  		e.type = nonfatal;
++  		Throw( e );
++    }
+     helper_remote_index( h );
+ 
+     write_variable( tpt, L, lua_gettop( L ) - 1 );
+@@ -898,14 +929,12 @@
+   return h;
+ }
+ 
+-
+ static void server_handle_shutdown( ServerHandle *h )
+ {
+   transport_close( &amp;h-&gt;ltpt );
+   transport_close( &amp;h-&gt;atpt );
+ }
+ 
+-
+ static void server_handle_destroy( ServerHandle *h )
+ {
+   server_handle_shutdown( h );
+@@ -1247,9 +1276,11 @@
+         switch ( transport_read_u8( &amp;handle-&gt;atpt ) )
+         {
+           case RPC_CMD_CALL:
++            transport_write_u8( &amp;handle-&gt;atpt, RPC_READY );
+             read_cmd_call( &amp;handle-&gt;atpt, L );
+             break;
+           case RPC_CMD_GET:
++            transport_write_u8( &amp;handle-&gt;atpt, RPC_READY );
+             read_cmd_get( &amp;handle-&gt;atpt, L );
+             break;
+           case RPC_CMD_CON: /*  @@@ allow client to &quot;reconnect&quot;, should support better mechanism */
+@@ -1257,9 +1288,11 @@
+             write_header( &amp;handle-&gt;atpt );
+             break;
+           case RPC_CMD_NEWINDEX:
++            transport_write_u8( &amp;handle-&gt;atpt, RPC_READY );
+             read_cmd_newindex( &amp;handle-&gt;atpt, L );
+             break;
+           default:
++            transport_write_u8(&amp;handle-&gt;atpt, RPC_UNSUPPORTED_CMD );
+             e.type = nonfatal;
+             e.errnum = ERR_COMMAND;
+             Throw( e );
+
+Modified: branches/luarpc/test-rpc.lua
+===================================================================
+--- branches/luarpc/test-rpc.lua	2009-06-17 17:36:22 UTC (rev 303)
++++ branches/luarpc/test-rpc.lua	2009-06-17 22:49:25 UTC (rev 304)
+@@ -35,7 +35,7 @@
+ adc = slave.adc
+ 
+ adc.setblocking(0,1)
+-adc.setclock(0, 10 ,2)
++adc.setclock(0, 64 ,2)
+ 
+ adc.sample(0,128)
+ print(slave.collectgarbage(&quot;count&quot;))
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000259.html">[Elua-svn] r303 - in branches/luarpc: . src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000261.html">[Elua-svn] r305 - in branches/luarpc: . src/modules test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#260">[ date ]</a>
+              <a href="thread.html#260">[ thread ]</a>
+              <a href="subject.html#260">[ subject ]</a>
+              <a href="author.html#260">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,584 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] c8cf56: Starting point for kinetis port.
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2012-April/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20c8cf56%3A%20Starting%20point%20for%20kinetis%20port.&In-Reply-To=%3C4f961c0f9dec8_2c34123aaf49877%40sh3.rs.github.com.mail%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001229.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] c8cf56: Starting point for kinetis port.</H1>
+    <B>GitHub</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20c8cf56%3A%20Starting%20point%20for%20kinetis%20port.&In-Reply-To=%3C4f961c0f9dec8_2c34123aaf49877%40sh3.rs.github.com.mail%3E"
+       TITLE="[eLua-svn] [elua/elua] c8cf56: Starting point for kinetis port.">noreply at github.com
+       </A><BR>
+    <I>Tue Apr 24 05:20:47 CEST 2012</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001229.html">[eLua-svn] [elua/elua] c8b89a: Fix possible Lua stack corruption	issue
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1230">[ date ]</a>
+              <a href="thread.html#1230">[ thread ]</a>
+              <a href="subject.html#1230">[ subject ]</a>
+              <a href="author.html#1230">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/kinetis
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+  Commit: c8cf56b837888b40eaebeea235afec89dab05176
+      <A HREF="https://github.com/elua/elua/commit/c8cf56b837888b40eaebeea235afec89dab05176">https://github.com/elua/elua/commit/c8cf56b837888b40eaebeea235afec89dab05176</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-03-19 (Sat, 19 Mar 2011)
+
+  Changed paths:
+    M SConstruct
+    M build_elua.lua
+    A src/platform/kinetis/conf.lua
+    A src/platform/kinetis/conf.py
+    A src/platform/kinetis/mk60n512md100.h
+    A src/platform/kinetis/stacks.h
+    A src/platform/kinetis/type.h
+
+  Log Message:
+  -----------
+  Starting point for kinetis port.
+
+Some initial notes:
+- may have to do some interesting things with timers since there appear to be two general purpose/quadrature timers + one &quot;FlexTimer&quot;
+- cant remember if we have trouble with ports with pin counts greater than 16. I know AVR32 had a special case, but this platform allows up to 32 pins per port.
+- MCU is labeled as PK60N512... which comes up in part search on freescale part search, datasheet and manuals refer to MK60N512, docs for eval kit also refer to MK, did they change the part name at some point?  In build system I've used MK for now...
+
+Still need to solidify some way to flash code onto the MCU, and platform.c will need to be started.
+
+
+  Commit: e5d2b1e0b038c684c9152239cb8a9723da3325fc
+      <A HREF="https://github.com/elua/elua/commit/e5d2b1e0b038c684c9152239cb8a9723da3325fc">https://github.com/elua/elua/commit/e5d2b1e0b038c684c9152239cb8a9723da3325fc</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-03-27 (Sun, 27 Mar 2011)
+
+  Changed paths:
+    M SConstruct
+    A romfs/hello.lua
+    A romfs/info.lua
+    M src/common.c
+    A src/platform/kinetis/common_kinetis.h
+    M src/platform/kinetis/conf.py
+    A src/platform/kinetis/cpu/arm_cm4.c
+    A src/platform/kinetis/cpu/arm_cm4.h
+    A src/platform/kinetis/cpu/headers/MK40X256VMD100.h
+    A src/platform/kinetis/cpu/headers/MK60N512VMD100.h
+    A src/platform/kinetis/cpu/sysinit.c
+    A src/platform/kinetis/cpu/sysinit.h
+    A src/platform/kinetis/drivers/mcg/mcg.c
+    A src/platform/kinetis/drivers/mcg/mcg.h
+    A src/platform/kinetis/drivers/uart/uart.c
+    A src/platform/kinetis/drivers/uart/uart.h
+    A src/platform/kinetis/drivers/wdog/wdog.c
+    A src/platform/kinetis/drivers/wdog/wdog.h
+    R src/platform/kinetis/mk60n512md100.h
+    A src/platform/kinetis/mk60n512md100.ld
+    A src/platform/kinetis/platform.c
+    A src/platform/kinetis/platform_conf.h
+    A src/platform/kinetis/platforms/tower.h
+    M src/platform/kinetis/stacks.h
+    A src/platform/kinetis/startup_kinetis.c
+
+  Log Message:
+  -----------
+  First very basic eLua kinetis version that actually works.
+
+Changes:
+- integrated peripheral support code from the Freescale TSS (Touch Sensing Software) kit. Need to verify the license.
+- very basic UART support. eLua console is assigned to UART 3 (which in turn goes to the serial connector on the tower serial module).
+- extremely basic timer support (only one timer, fixed fequency, not sure if the initialization is right).
+- ROMFS is back for now. It's very convenient in this test phase.
+
+Build with:
+
+scons board=twr-k60n512 prog -j2
+
+Tow main ways to flash (Windows only, sorry):
+
+1. CodeWarrior: drap&amp;drop ELF file into the IDE, create project, run &quot;Debug&quot; target under Project Settings/Debugger. Quite slow.
+2. Keil: Keil can't flash the file directly, you need a few magic incantations:
+
+2a. arm-none-eabi-readelf -S elua_lua_mk60n512vmd100.elf
+
+There are 11 section headers, starting at offset 0x3b618:
+
+Section Headers:
+[Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+[ 0]                   NULL            00000000 000000 000000 00      0   0  0
+[ 1] .text             PROGBITS        00000000 008000 02a460 00  AX  0   0  8
+[ 2] .data             PROGBITS        1fff0000 038000 0005cc 00  WA  0   0  4
+..............
+
+Take a note of the 'size' field of the .text section above (i'll call it 'textsize')
+
+2b. arm-none-eabi-objcopy -F elf32-little -j .text -j .data --change-section-vma .data=0x&lt;textsize&gt; elua_lua_mk60n512vmd100.elf b.elf
+
+2c. Open Keil, open a Kinetis project (for example a sample), go to Project/Download/Download file ... and choose b.elf above
+(you'll probably also need to modify &quot;Debuger&quot; to &quot;PE micro&quot; in the project properties).
+
+The advantage of using 2 is that the whole process is noticeably faster.
+After ANY method unplug &amp; plug the USB cable into the board again to execute the new flash image.
+
+
+  Commit: 195a58ff51d1aa171bd4d18fb987fc51cb72038e
+      <A HREF="https://github.com/elua/elua/commit/195a58ff51d1aa171bd4d18fb987fc51cb72038e">https://github.com/elua/elua/commit/195a58ff51d1aa171bd4d18fb987fc51cb72038e</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-03-28 (Mon, 28 Mar 2011)
+
+  Changed paths:
+    M SConstruct
+    A romfs/kinled.lua
+    M src/platform/kinetis/cpu/sysinit.c
+    M src/platform/kinetis/drivers/uart/uart.c
+    M src/platform/kinetis/drivers/uart/uart.h
+    M src/platform/kinetis/platform.c
+    M src/platform/kinetis/platform_conf.h
+    M src/platform/kinetis/platforms/tower.h
+
+  Log Message:
+  -----------
+  More functional port: UART, timers, GPIO
+
+Changes to the port:
+- actual UART initialization
+- actual timers implementation (note that right now we use the PITs, not the FTMs, we'll keep those for PWM)
+- working GPIO
+- added romfs/kinled.lua to prove working GPIO+timers
+- added more modules/components to the image
+
+
+  Commit: a752c8e872fc1983b19bc17f4cb7751b8e1646b8
+      <A HREF="https://github.com/elua/elua/commit/a752c8e872fc1983b19bc17f4cb7751b8e1646b8">https://github.com/elua/elua/commit/a752c8e872fc1983b19bc17f4cb7751b8e1646b8</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-03-28 (Mon, 28 Mar 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform.c
+
+  Log Message:
+  -----------
+  Fixed a case error that prevented compilation under Linux
+
+
+  Commit: 553f1ac991c7c29c53f886e1d14d4fe5c499b5f6
+      <A HREF="https://github.com/elua/elua/commit/553f1ac991c7c29c53f886e1d14d4fe5c499b5f6">https://github.com/elua/elua/commit/553f1ac991c7c29c53f886e1d14d4fe5c499b5f6</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-03-30 (Wed, 30 Mar 2011)
+
+  Changed paths:
+    A romfs/kinpwm.lua
+    M src/platform/kinetis/platform.c
+    M src/platform/kinetis/platform_conf.h
+
+  Log Message:
+  -----------
+  Added PWM support
+
+6 channels of PWM, 2 per each FTM. Added demo romfs/kinpwm.lua
+to demonstrate functionality.
+
+
+  Commit: 8c2e748ac339095ffec30679c3c537a4b54a0905
+      <A HREF="https://github.com/elua/elua/commit/8c2e748ac339095ffec30679c3c537a4b54a0905">https://github.com/elua/elua/commit/8c2e748ac339095ffec30679c3c537a4b54a0905</A>
+  Author: Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdan.marinescu at gmail.com</A>&gt;
+  Date:   2011-03-30 (Wed, 30 Mar 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform.c
+
+  Log Message:
+  -----------
+  Merge branch 'master' of <A HREF="ssh://svn.giga.puc-rio.br/git-repos/elua-kinetis">ssh://svn.giga.puc-rio.br/git-repos/elua-kinetis</A>
+
+
+  Commit: 62ce3cfa26e63b1c65c2238415a7fe8f3ec2fd96
+      <A HREF="https://github.com/elua/elua/commit/62ce3cfa26e63b1c65c2238415a7fe8f3ec2fd96">https://github.com/elua/elua/commit/62ce3cfa26e63b1c65c2238415a7fe8f3ec2fd96</A>
+  Author: Dado Sutter &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">dadosutter at gmail.com</A>&gt;
+  Date:   2011-04-04 (Mon, 04 Apr 2011)
+
+  Changed paths:
+    M README.md
+
+  Log Message:
+  -----------
+  More of a test commit, to check our new (Indefero-based) repo system
+
+
+  Commit: 19ef512d8a562280b25f0ea41cf7a3bda7b55b35
+      <A HREF="https://github.com/elua/elua/commit/19ef512d8a562280b25f0ea41cf7a3bda7b55b35">https://github.com/elua/elua/commit/19ef512d8a562280b25f0ea41cf7a3bda7b55b35</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-04-11 (Mon, 11 Apr 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform_conf.h
+
+  Log Message:
+  -----------
+  enable LuaRPC since it appears to be working fine on this platform
+
+
+  Commit: 50efe42973cc35a0d5e9b19c0aba6b51f527096f
+      <A HREF="https://github.com/elua/elua/commit/50efe42973cc35a0d5e9b19c0aba6b51f527096f">https://github.com/elua/elua/commit/50efe42973cc35a0d5e9b19c0aba6b51f527096f</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-04-11 (Mon, 11 Apr 2011)
+
+  Changed paths:
+    M README.md
+
+  Log Message:
+  -----------
+  Merge branch 'master' of repos.giga.puc-rio.br:eluakinetis
+
+
+  Commit: 10d0a019be916108c28bff060a0e15a9fc484619
+      <A HREF="https://github.com/elua/elua/commit/10d0a019be916108c28bff060a0e15a9fc484619">https://github.com/elua/elua/commit/10d0a019be916108c28bff060a0e15a9fc484619</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-04-11 (Mon, 11 Apr 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform_conf.h
+
+  Log Message:
+  -----------
+  enable LuaRPC since it appears to be working fine on this platform
+
+
+  Commit: 7162ee469454f92234bf6b6a366d5ce7f96a37b9
+      <A HREF="https://github.com/elua/elua/commit/7162ee469454f92234bf6b6a366d5ce7f96a37b9">https://github.com/elua/elua/commit/7162ee469454f92234bf6b6a366d5ce7f96a37b9</A>
+  Author: Dado Sutter &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">dadosutter at gmail.com</A>&gt;
+  Date:   2011-04-22 (Fri, 22 Apr 2011)
+
+  Changed paths:
+    A romfs/simon.lua
+
+  Log Message:
+  -----------
+  - Initial version of Simon game for the Kinetis tower
+- No support for the Touch Pads on eLua yet. Button/pads entries are read from the Terminal
+- Prints on terminal are only for debugging and will be completely removed on final version
+- Speed will increase with &quot;levels&quot; on the game in the future
+- Support for pwm on a buzzer will be added (is there one on the Tower ? :)
+
+
+  Commit: 9d0927e23289a3ea23b126bad18339d604280856
+      <A HREF="https://github.com/elua/elua/commit/9d0927e23289a3ea23b126bad18339d604280856">https://github.com/elua/elua/commit/9d0927e23289a3ea23b126bad18339d604280856</A>
+  Author: Dado Sutter &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">dadosutter at gmail.com</A>&gt;
+  Date:   2011-04-22 (Fri, 22 Apr 2011)
+
+  Changed paths:
+    M SConstruct
+    A romfs/TWR-K60N512.lua
+    A romfs/bisect.lua
+    A romfs/hangman.lua
+    A romfs/kinsimon.lua
+    A romfs/life.lua
+
+  Log Message:
+  -----------
+  - Adding some examples and demo games for Kinetis.
+- Not all were tested and adapted to Kinetis yet (WIP)
+- SConstruct edited to include them all on romfs
+
+
+  Commit: 1146c63038708a195525b4a3496813fe366c780f
+      <A HREF="https://github.com/elua/elua/commit/1146c63038708a195525b4a3496813fe366c780f">https://github.com/elua/elua/commit/1146c63038708a195525b4a3496813fe366c780f</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-04-29 (Fri, 29 Apr 2011)
+
+  Changed paths:
+    M SConstruct
+    A romfs/TWR-K60N512.lua
+    A romfs/bisect.lua
+    A romfs/hangman.lua
+    A romfs/kinsimon.lua
+    A romfs/life.lua
+    A romfs/simon.lua
+
+  Log Message:
+  -----------
+  Merge branch 'master' of repos.giga.puc-rio.br:eluakinetis
+
+
+  Commit: 0d8cc3c38b7bc9d07ee6e7de285566e99c38c9c6
+      <A HREF="https://github.com/elua/elua/commit/0d8cc3c38b7bc9d07ee6e7de285566e99c38c9c6">https://github.com/elua/elua/commit/0d8cc3c38b7bc9d07ee6e7de285566e99c38c9c6</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-04 (Wed, 04 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/conf.py
+    M src/platform/kinetis/platform.c
+    M src/platform/kinetis/platform_conf.h
+    A src/platform/kinetis/tsi.c
+    A src/platform/kinetis/tsi.h
+    M test/test-rpc.lua
+
+  Log Message:
+  -----------
+  initial attempt at tsi module support.
+
+
+  Commit: e6749a2bdb054e7fdeeec09054694feb8b7f75aa
+      <A HREF="https://github.com/elua/elua/commit/e6749a2bdb054e7fdeeec09054694feb8b7f75aa">https://github.com/elua/elua/commit/e6749a2bdb054e7fdeeec09054694feb8b7f75aa</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-04 (Wed, 04 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform.c
+    M src/platform/kinetis/platform_conf.h
+    M src/platform/kinetis/tsi.c
+
+  Log Message:
+  -----------
+  fix a few platform module compilation issues.. doesn't work yet, values on E1 seem to be out of range
+
+
+  Commit: c3fa552b17ca3d8b1e5ee9c4583d26f85f9344cb
+      <A HREF="https://github.com/elua/elua/commit/c3fa552b17ca3d8b1e5ee9c4583d26f85f9344cb">https://github.com/elua/elua/commit/c3fa552b17ca3d8b1e5ee9c4583d26f85f9344cb</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-04 (Wed, 04 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform.c
+
+  Log Message:
+  -----------
+  simple one-shot reading now working on E2,E3,E4 (ids=7,8,9)... i.e.: =kin.tsi.read(7) or =kin.tsi.read(9). there's no startup calibration included yet, but it looks like it should work pretty well after a little work to filter/debounce
+
+
+  Commit: cd34af768f5900a58c0eca69fa4500e3ac28ad85
+      <A HREF="https://github.com/elua/elua/commit/cd34af768f5900a58c0eca69fa4500e3ac28ad85">https://github.com/elua/elua/commit/cd34af768f5900a58c0eca69fa4500e3ac28ad85</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-05 (Thu, 05 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform.c
+    M src/platform/kinetis/tsi.c
+
+  Log Message:
+  -----------
+  TSI: more modifications.. more sensitive paramters.  E1 still not working
+
+
+  Commit: 1d0cb68d3a5cd196c93bafea441b5f17eb6364d2
+      <A HREF="https://github.com/elua/elua/commit/1d0cb68d3a5cd196c93bafea441b5f17eb6364d2">https://github.com/elua/elua/commit/1d0cb68d3a5cd196c93bafea441b5f17eb6364d2</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-09 (Mon, 09 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/conf.py
+    A src/platform/kinetis/cpu/kinetis_it.c
+    A src/platform/kinetis/cpu/kinetis_it.h
+    M src/platform/kinetis/platform.c
+
+  Log Message:
+  -----------
+  no longer resets when trying to read from E1. this was related to not having system exception handlers available.  another minor fix or two
+
+
+  Commit: d9d21666be6edd048c93f8000a8c1e7b23163c0d
+      <A HREF="https://github.com/elua/elua/commit/d9d21666be6edd048c93f8000a8c1e7b23163c0d">https://github.com/elua/elua/commit/d9d21666be6edd048c93f8000a8c1e7b23163c0d</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-10 (Tue, 10 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/drivers/mcg/mcg.c
+    M src/platform/kinetis/drivers/mcg/mcg.h
+
+  Log Message:
+  -----------
+  mcg: include some errata fixes for startup
+
+
+  Commit: dbcfe9f045162f7f9af72fafc744ccbb410286d8
+      <A HREF="https://github.com/elua/elua/commit/dbcfe9f045162f7f9af72fafc744ccbb410286d8">https://github.com/elua/elua/commit/dbcfe9f045162f7f9af72fafc744ccbb410286d8</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-10 (Tue, 10 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/cpu/sysinit.c
+
+  Log Message:
+  -----------
+  sysinit: disable some unneeded init for debugging/tracing
+
+
+  Commit: 3ae9dc89bcbed347be724d2d466934df1562af24
+      <A HREF="https://github.com/elua/elua/commit/3ae9dc89bcbed347be724d2d466934df1562af24">https://github.com/elua/elua/commit/3ae9dc89bcbed347be724d2d466934df1562af24</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-10 (Tue, 10 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/cpu/headers/MK40X256VMD100.h
+    M src/platform/kinetis/cpu/headers/MK60N512VMD100.h
+
+  Log Message:
+  -----------
+  update headers to latest version available, includes some fixes for tsi, though these didn't resolve E1 troubles
+
+
+  Commit: 4a908426895c59f42600c30105b705c026d62240
+      <A HREF="https://github.com/elua/elua/commit/4a908426895c59f42600c30105b705c026d62240">https://github.com/elua/elua/commit/4a908426895c59f42600c30105b705c026d62240</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-10 (Tue, 10 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/cpu/arm_cm4.c
+    M src/platform/kinetis/cpu/arm_cm4.h
+
+  Log Message:
+  -----------
+  include nvic interrupt toggling functions
+
+
+  Commit: ad5f397674cde049858aa19158755667d3bcdf71
+      <A HREF="https://github.com/elua/elua/commit/ad5f397674cde049858aa19158755667d3bcdf71">https://github.com/elua/elua/commit/ad5f397674cde049858aa19158755667d3bcdf71</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-10 (Tue, 10 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform_conf.h
+
+  Log Message:
+  -----------
+  enable linenoise for more convenient debugging
+
+
+  Commit: 47d96026bc0f93a83816804df6fea05b642ccaa0
+      <A HREF="https://github.com/elua/elua/commit/47d96026bc0f93a83816804df6fea05b642ccaa0">https://github.com/elua/elua/commit/47d96026bc0f93a83816804df6fea05b642ccaa0</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-10 (Tue, 10 May 2011)
+
+  Changed paths:
+    M SConstruct
+    A romfs/kintouch.lua
+    M src/platform/kinetis/common_kinetis.h
+    M src/platform/kinetis/platform.c
+    M src/platform/kinetis/tsi.c
+    M src/platform/kinetis/tsi.h
+
+  Log Message:
+  -----------
+  update tsi support and include a working example for E2, E3, E4 pads
+
+
+  Commit: 29055134e58eccdcaa81bbe70b1cf3848699d43a
+      <A HREF="https://github.com/elua/elua/commit/29055134e58eccdcaa81bbe70b1cf3848699d43a">https://github.com/elua/elua/commit/29055134e58eccdcaa81bbe70b1cf3848699d43a</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-10 (Tue, 10 May 2011)
+
+  Changed paths:
+    M romfs/kintouch.lua
+    M src/platform/kinetis/platform.c
+
+  Log Message:
+  -----------
+  quick fix for E1, enabled in kintouch.lua example now.  more permanent fix later
+
+
+  Commit: a626535b887c1c8d4ab65a55194cbbc4374df524
+      <A HREF="https://github.com/elua/elua/commit/a626535b887c1c8d4ab65a55194cbbc4374df524">https://github.com/elua/elua/commit/a626535b887c1c8d4ab65a55194cbbc4374df524</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-11 (Wed, 11 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform.c
+
+  Log Message:
+  -----------
+  testing setting thresholds
+
+
+  Commit: 42a0a8268cac4ae7d8f476d9e02309631abe6302
+      <A HREF="https://github.com/elua/elua/commit/42a0a8268cac4ae7d8f476d9e02309631abe6302">https://github.com/elua/elua/commit/42a0a8268cac4ae7d8f476d9e02309631abe6302</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-11 (Wed, 11 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform.c
+
+  Log Message:
+  -----------
+  more permanent fix for setting tsi pin mode
+
+
+  Commit: 25b7904be434c9fd0eccd7e908a5b00b48c19da9
+      <A HREF="https://github.com/elua/elua/commit/25b7904be434c9fd0eccd7e908a5b00b48c19da9">https://github.com/elua/elua/commit/25b7904be434c9fd0eccd7e908a5b00b48c19da9</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-11 (Wed, 11 May 2011)
+
+  Changed paths:
+    M src/platform/kinetis/platform.c
+
+  Log Message:
+  -----------
+  decrease prescaler to turn down output count on tsi a little
+
+
+  Commit: 9435df1680e5c3a2f27d38158fbd4ec9f674095a
+      <A HREF="https://github.com/elua/elua/commit/9435df1680e5c3a2f27d38158fbd4ec9f674095a">https://github.com/elua/elua/commit/9435df1680e5c3a2f27d38158fbd4ec9f674095a</A>
+  Author: James Snyder &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>&gt;
+  Date:   2011-05-11 (Wed, 11 May 2011)
+
+  Changed paths:
+    M romfs/kintouch.lua
+
+  Log Message:
+  -----------
+  a little cleanup, and provide an escape to exit for kinetis touch example
+
+
+  Commit: dbb8277a275a97dc847a61af2e2c4b76fa89ac90
+      <A HREF="https://github.com/elua/elua/commit/dbb8277a275a97dc847a61af2e2c4b76fa89ac90">https://github.com/elua/elua/commit/dbb8277a275a97dc847a61af2e2c4b76fa89ac90</A>
+  Author: Dado Sutter &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">dadosutter at gmail.com</A>&gt;
+  Date:   2011-05-11 (Wed, 11 May 2011)
+
+  Changed paths:
+    M .gitignore
+    R romfs/bisect.lua
+    A romfs/bisect.lua
+
+  Log Message:
+  -----------
+  - Adding some entries to .gitignore
+- I don't know why git decided to diff rom/bisect.lua
+  It reported something about an oldmode and newmode but I couldn't understand it yet
+
+
+Compare: <A HREF="https://github.com/elua/elua/compare/c8cf56b^...dbb8277">https://github.com/elua/elua/compare/c8cf56b^...dbb8277</A>
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001229.html">[eLua-svn] [elua/elua] c8b89a: Fix possible Lua stack corruption	issue
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1230">[ date ]</a>
+              <a href="thread.html#1230">[ thread ]</a>
+              <a href="subject.html#1230">[ subject ]</a>
+              <a href="author.html#1230">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

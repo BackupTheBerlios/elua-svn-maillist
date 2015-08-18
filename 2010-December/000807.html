@@ -1,0 +1,258 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r854 - in trunk/doc: eluadoc en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r854%20-%20in%20trunk/doc%3A%20eluadoc%20en&In-Reply-To=%3C20101215063657.D518C480C77%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000806.html">
+   <LINK REL="Next"  HREF="000808.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r854 - in trunk/doc: eluadoc en</H1>
+    <B>dadosutter at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r854%20-%20in%20trunk/doc%3A%20eluadoc%20en&In-Reply-To=%3C20101215063657.D518C480C77%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r854 - in trunk/doc: eluadoc en">dadosutter at mail.berlios.de
+       </A><BR>
+    <I>Wed Dec 15 07:36:57 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000806.html">[Elua-svn] r853 - in trunk: inc src/modules test
+</A></li>
+        <LI>Next message: <A HREF="000808.html">[Elua-svn] r855 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#807">[ date ]</a>
+              <a href="thread.html#807">[ thread ]</a>
+              <a href="subject.html#807">[ subject ]</a>
+              <a href="author.html#807">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: dadosutter
+Date: 2010-12-15 07:36:57 +0100 (Wed, 15 Dec 2010)
+New Revision: 854
+
+Modified:
+   trunk/doc/eluadoc/refman_ps_str9_rtc.lua
+   trunk/doc/en/status.txt
+Log:
+Status, features and roadmap tables being updated for v0.8
+Needs more work and revision
+
+SRT9 RTC Doc fixes
+Introduced the field &quot;ex&quot; for examples on the doc, not yet treated by the doc builder
+Examples added for STR9 RTC
+
+
+
+Modified: trunk/doc/eluadoc/refman_ps_str9_rtc.lua
+===================================================================
+--- trunk/doc/eluadoc/refman_ps_str9_rtc.lua	2010-12-14 01:05:52 UTC (rev 853)
++++ trunk/doc/eluadoc/refman_ps_str9_rtc.lua	2010-12-15 06:36:57 UTC (rev 854)
+@@ -17,37 +17,41 @@
+   -- Functions
+   funcs = 
+   {
+-    { sig = &quot;#str9.pio.settime#( time )&quot;,
++    { sig = &quot;#str9.rtc.settime#( time )&quot;,
+       desc = &quot;Sets the Real Time Clock time to a specific time of the day.&quot;,
+       args = 
+       {
+-        &quot;$time$ - a string in the format 'hh:mm:ss' or a Lua table with 'hour', 'minute' and 'second' string fields.&quot;,
++        &quot;$time$ - a string in the format 'hh:mm:ss' or a Lua table with 'hour', 'min' and 'sec' string fields.&quot;,
+       },
+-      ret = &quot;nothing.&quot;
++      ret = &quot;nothing.&quot;,
++      ex = 'str9.settime(&quot;14:25:00&quot;) - Sets the RTC time to 14 hour 25 minutes, 2:25 PM',
+     },
+-    { sig = &quot;#str9.pio.gettime#( format )&quot;,
++    { sig = &quot;#str9.rtc.gettime#( format )&quot;,
+       desc = &quot;Gets the time kept by the Real Time Clock.&quot;,
+       args =
+       {
+-        &quot;$format$ - the string '*s' to return the time as a string 'hh:mm:ss' or '*t' to return as a Lua table with string fields 'hour', 'minute' and 'second'.&quot;,
++        &quot;$format$ - the string '*s' to return the time as a string 'hh:mm:ss' or '*t' to return as a Lua table with string fields 'hour', 'min' and 'sec'.&quot;,
+       },
+-      ret =  &quot;a string or a Lua table, according to the format argument.&quot;
++      ret =  &quot;a string or a Lua table, according to the format argument.&quot;,
++      ex = 'now = str9.rtc.gettime( &quot;*s&quot; ) - now receives a sting like &quot;14:25:05&quot;, now = str9.rtc.gettime( &quot;*t&quot; ) - now receives the Lua table { hour = 14, min = 25, sec = 05 }',
+     },
+-    { sig = &quot;#str9.pio.setdate#( date )&quot;,
++    { sig = &quot;#str9.rtc.setdate#( date )&quot;,
+       desc = &quot;Sets the Real Time Clock date to a specific date.&quot;,
+       args = 
+       {
+         &quot;$date$ - a string in the format 'dd/mm/yyyy' or a Lua table with 'day', 'month' and 'year' string fields.&quot;,
+       },
+-      ret = &quot;nothing.&quot;
++      ret = &quot;nothing.&quot;,
++      ex = 'str9.rtc.setdate( &quot;31/08/1960&quot; ) - set the RTC date to August 31st 1960',
+     },
+-    { sig = &quot;#str9.pio.getdate#( format )&quot;,
++    { sig = &quot;#str9.rtc.getdate#( format )&quot;,
+       desc = &quot;Gets the date kept by the Real Time Clock.&quot;,
+       args = 
+       {
+         &quot;$format$ - the string '*s' to return the date as a string 'dd/mm/yyyy' or '*t' to return as a Lua table with string fields 'day', 'month' and 'year'.&quot;,
+       },
+-      ret = &quot;a string or a Lua table, according to the format argument.&quot;
++      ret = &quot;a string or a Lua table, according to the format argument.&quot;,
++      ex = 'today = str9.rtc.getdate( &quot;*s&quot; ) - today receives a string like &quot;14/12/2010&quot;, meaning December 14th of 2010, today = str9.rtc.getdate( &quot;*t&quot; ) - today receives the Lua table { day = 14, month = 12, year = 2010 }',
+     },
+ 
+   },
+
+Modified: trunk/doc/en/status.txt
+===================================================================
+--- trunk/doc/en/status.txt	2010-12-14 01:05:52 UTC (rev 853)
++++ trunk/doc/en/status.txt	2010-12-15 06:36:57 UTC (rev 854)
+@@ -27,8 +27,10 @@
+ | _LM3S6918      |  Cortex-M3    o|    LM3S               |  _Eagle-100       | _sok
+ | _LM3S9B92      |  Cortex-M3    o|    LM3S               |  _EK-LM3S9B92     | _sok
+ | _AT32UC3A0512  |  AVR32        o|    AVR32              |  _ATEVK1100       | _sok
++| _AT32UC3B0256  |  AVR32        o|    AVR32              |  _ATEVK1101       | _sok
+ | _AT91SAM7X256  |  ARM7TDMI     o|    AT91SAM7X          |  _SAM7-EX256      | _sok
+ | _AT91SAM7X512  |  ARM7TDMI     o|    AT91SAM7X          |  None             | _snt
++| _LPC1768       |  Cortex-M3    o|    LPC17xx            |  _mbed            | _sok
+ | _LPC2468       |  ARM7TDMI     o|    LPC24xx            |  _PUC-RioDemo     | _sok
+ | _LPC2888       |  ARM7TDMI     o|    LPC288x            |  _LPC-H2888       | _sok
+ | _STR711FR2     |  ARM7TDMI     o|    STR7               |  _MOD711          | _sok
+@@ -38,7 +40,6 @@
+ | _STM32F103RE   |  Cortex-M3    o|    STM32              |  _ET-STM32Stamp   | _sok
+ | _i386          |  x86          o|    i386               |  PCs/emulators    | _sok
+ |=====================================================================================
+-// | _LPC1768       |  Cortex-M3    o|  LPC17xx              |  _mbed            | _sok
+ 
+ [[plat_modules]]
+ eLua modules x MCUs
+@@ -48,21 +49,23 @@
+ [width=&quot;70%&quot;, cols=&quot;&lt;4, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1&quot;, options=&quot;header&quot;]
+ |===================================================================================================================================
+ ^| MCU            15+| Module
+-|               g|  pio g|  spi g|  uart g|  tmr g|  pwm g|  net g|  cpu g|  adc g|   pd g| term g|  bit g| pack g|  can g|  rpc g|mmc
+-| _LM3S8962      | _sok | _snt | _sok | _sok | _sok | _sok | _sok | _sok | _sok | _sok | _sok | _sok | _sni | _snt | _sok 
+-| _LM3S6965      | _sok | _snt | _sok | _sok | _snt | _snt | _sok | _sok | _sok | _sok | _sok | _sok | _sna | _sok | _sok
+-| _LM3S6918      | _sok | _snt | _sok | _sok | _sna | _snt | _sok | _snt | _sok | _sok | _sok | _sok | _sna | _snt | _sni
+-| _LM3S9B92      | _sok | _snt | _sok | _sok | _sok | _sok | _sok | _snt | _sok | _sok | _sok | _sok | _sni | _snt | _sok
+-| _AT32UC3A0512  | _sok | _sni | _sok | _sok | _sni | _sni | _sok | _sni | _sok | _sok | _sok | _sok | _sna | _sni | _sni
+-| _AT91SAM7X256  | _sok | _sni | _sok | _sok | _sok | _sni | _sok | _sni | _sok | _sok | _sok | _sok | _sni | _sni | _sni
+-| _AT91SAM7X512  | _snt | _sni | _snt | _snt | _snt | _sni | _sok | _sni | _sok | _sok | _sok | _sok | _sni | _sni | _sni
+-| _LPC2468       | _sok | _sni | _sok | _sok | _sni | _sni | _sok | _sni | _sok | _sok | _sok | _sok | _sni | _sni | _sni
+-| _LPC2888       | _sok | _sni | _sok | _sok | _sna | _sni | _sok | _sni | _sok | _sok | _sok | _sok | _sna | _sni | _sni
+-| _STR711FR2     | _sok | _sni | _sok | _sok | _snt | _sna | _sok | _sni | _sok | _sok | _sok | _sok | _sna | _sni | _sni
+-| _STR912FAW44   | _sok | _sni | _sok | _sok | _sok | _sni | _sok | _sni | _sok | _sok | _sok | _sok | _sni | _sni | _sni
+-| _STM32F103ZE   | _sok | _sni | _sok | _sok | _sni | _sni | _sok | _sni | _sok | _sok | _sok | _sok | _sni | _sni | _sni 
+-| _STM32F103RE   | _sok | _sni | _sok | _sok | _sni | _sni | _sok | _sni | _sok | _sok | _sok | _sok | _snt | _sni | _sni
+-| _i386          | _sna | _sna | _sni | _sni | _sna | _sni | _sni | _sna | _sok | _sni | _sni | _sni | _sna | _sni | _sni
++|               g|  pio g|  spi g|  uart g|  tmr g|  pwm g|  net g|  cpu g|  adc g|   pd g| term g|  bit g| pack g|  can g|  rpc g| mmc
++| _LM3S8962      | _sok  | _snt  | _sok   | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sni  | _snt  | _snt 
++| _LM3S6965      | _sok  | _snt  | _sok   | _sok  | _snt  | _snt  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sna  | _sok  | _sok
++| _LM3S6918      | _sok  | _snt  | _sok   | _sok  | _sna  | _snt  | _sok  | _snt  | _sok  | _sok  | _sok  | _sok  | _sna  | _snt  | _sni
++| _LM3S9B92      | _sok  | _snt  | _sok   | _sok  | _sok  | _sok  | _sok  | _snt  | _sok  | _sok  | _sok  | _sok  | _sni  | _snt  | _sok
++| _AT32UC3A0512  | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni
++| _AT32UC3B0256  | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni
++| _AT91SAM7X256  | _sok  | _sni  | _sok   | _sok  | _sok  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni
++| _AT91SAM7X512  | _snt  | _sni  | _snt   | _snt  | _snt  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni
++| _LPC1768       | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni
++| _LPC2468       | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni
++| _LPC2888       | _sok  | _sni  | _sok   | _sok  | _sna  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni
++| _STR711FR2     | _sok  | _sni  | _sok   | _sok  | _snt  | _sna  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni
++| _STR912FAW44   | _sok  | _sni  | _sok   | _sok  | _sok  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni
++| _STM32F103ZE   | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni 
++| _STM32F103RE   | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _snt  | _sni  | _sni
++| _i386          | _sna  | _sna  | _sni   | _sni  | _sna  | _sni  | _sni  | _sna  | _sok  | _sni  | _sni  | _sni  | _sna  | _sni  | _sni
+ |===================================================================================================================================
+ 
+ [[gen_modules]]
+@@ -74,15 +77,15 @@
+ |=========================================================================
+ |Name     ^|Description                                           | Status 
+ o|pio      | programmable input/output                            | _sok
+-o|tmr      | periodic timer / counters                            | _sok
+-o|pwm 	   | pulse width modulation 	                            | _sok
+-o|uart 	   | universal asynchronous receiver transmitter 	        | _sok
++o|tmr      | periodic timer                                       | _sok
++o|pwm 	   | pulse width modulation                               | _sok
++o|uart 	   | universal asynchronous receiver transmitter          | _sok
+ o|spi 	   | serial peripheral interface                          | _sok
+ o|net  	   | TCP/IP networking                                    | _sok
+ o|adc 	   | analog to digital converter                          | _sok 
+ o|dac 	   | digital to analog converter                          | _sni
+ o|cpu 	   | low level system access                              | _sok
+-o|pd 	     | platform data                                        | _sok
++o|pd 	   | platform data                                        | _sok
+ o|term 	   | ANSI terminal access                                 | _sok
+ o|bit 	   | bitwise operations                                   | _sok
+ o|pack 	   | pack/unpack binary data                              | _sok
+@@ -94,7 +97,6 @@
+ o|i2s 	   | inter-IC sound                                       | _sni
+ o|mmc 	   | SD/MMC card FAT file system                          | _sok
+ o|disp 	   | LCD, OLED and other displays support                 | _sok
+-o|int 	   | interrupt service routines                           | _sni
+ |=========================================================================
+ 
+ For some platforms, a number of platform dependent modules are implemented (or in the works) and are listed below. To understand the difference between generic 
+@@ -104,7 +106,9 @@
+ |=======================================================================================
+ ^|    Name   ^| Description                   ^|      Boards                   ^| Status
+ o| disp       | OLED display support           | _EK-LM3S8962 _br _EK-LM3S6965  | _sok
+-o| pio        | Platform specific PIO support  | _STR-E912 _br _STR9-comStick   | _sok
++o| str9.pio   | Extended PIO configuration     | _STR-E912 _br _STR9-comStick   | _sok
++o| str9.rtc   | Real time clock                | _STR-E912                      | _sok
++o| str9.rtc   | Real time clock                |  _STR9-comStick                | _snt
+ |=======================================================================================
+ 
+ [[roadmap]]
+@@ -126,15 +130,17 @@
+ | link:using.html#rpc[LuaRPC - Remote Procedure Calls]                | _snt
+ | link:using.html#uart[Terminal / Console over UART or Ethernet]      | _sok
+ | link:using.html#shell[eLua command shell]                           | _sok
+-| eLua complete interrupt support                                     | _sni
++| Lua interrupt handlers                                              | _snt
++| C interrupt handlers                                                | _snt
+ | link:arch_ltr.html[eLua LTR (Lua Tiny RAM) patch]                   | _sok
+ | link:elua_egc.html[eLua EGC (Emergency Garbage Collection) patch]   | _sok
++| Loadable binary modules                                             | _sni
+ | Embedded text editor                                                | _sni
+ | Embedded help/doc subsystem                                         | _sni
+ | Lua debugging (remote/on target)                                    | _sni
+-| Host (PC) File Sharing                                              | _sni
++| Remote (PC) File Sharing                                            | _snt
+ | GUI/IDE interface for eLua                                          | _sni
+-| eLua web build service                                              | _snt
++| eLua web build service                                              | _sok
+ |=============================================================================
+ 
+ // $$FOOTER$$                                                    
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000806.html">[Elua-svn] r853 - in trunk: inc src/modules test
+</A></li>
+	<LI>Next message: <A HREF="000808.html">[Elua-svn] r855 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#807">[ date ]</a>
+              <a href="thread.html#807">[ thread ]</a>
+              <a href="subject.html#807">[ subject ]</a>
+              <a href="author.html#807">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

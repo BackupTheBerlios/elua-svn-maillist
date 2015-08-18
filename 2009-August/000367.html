@@ -1,0 +1,238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r411 - in trunk: inc src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r411%20-%20in%20trunk%3A%20inc%20src/modules&In-Reply-To=%3C200908270113.n7R1DeDr011813%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000366.html">
+   <LINK REL="Next"  HREF="000368.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r411 - in trunk: inc src/modules</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r411%20-%20in%20trunk%3A%20inc%20src/modules&In-Reply-To=%3C200908270113.n7R1DeDr011813%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r411 - in trunk: inc src/modules">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Aug 27 03:13:40 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000366.html">[Elua-svn] r410 - in tags/pre0.6/doc: . eluadoc en
+</A></li>
+        <LI>Next message: <A HREF="000368.html">[Elua-svn] r412 - trunk/src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#367">[ date ]</a>
+              <a href="thread.html#367">[ thread ]</a>
+              <a href="subject.html#367">[ subject ]</a>
+              <a href="author.html#367">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-08-27 03:13:37 +0200 (Thu, 27 Aug 2009)
+New Revision: 411
+
+Modified:
+   trunk/inc/luarpc_rpc.h
+   trunk/src/modules/luarpc.c
+Log:
+Shorten some error messages, slightly tighter memory usage.
+
+Modified: trunk/inc/luarpc_rpc.h
+===================================================================
+--- trunk/inc/luarpc_rpc.h	2009-08-25 20:09:46 UTC (rev 410)
++++ trunk/inc/luarpc_rpc.h	2009-08-27 01:13:37 UTC (rev 411)
+@@ -80,8 +80,6 @@
+   ERR_CLOSED   = MAXINT - 101,  /* attempted operation on closed transport */
+   ERR_PROTOCOL = MAXINT - 102,  /* some error in the received protocol */
+ 	ERR_NODATA	 = MAXINT - 103,
+-	ERR_BADFNAME = MAXINT - 104,
+-	ERR_DATALINK = MAXINT - 105,
+ 	ERR_COMMAND  = MAXINT - 106,
+ 	ERR_HEADER   = MAXINT - 107
+ };
+
+Modified: trunk/src/modules/luarpc.c
+===================================================================
+--- trunk/src/modules/luarpc.c	2009-08-25 20:09:46 UTC (rev 410)
++++ trunk/src/modules/luarpc.c	2009-08-27 01:13:37 UTC (rev 411)
+@@ -5,6 +5,14 @@
+ * see the file LICENSE that comes with this distribution.                    *
+ *****************************************************************************/
+ 
++// Modifications by James Snyder - <A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">jbsnyder at fanplastic.org</A>
++//  - more generic backend interface to accomodate different link types
++//  - integration with eLua (including support for rotables)
++//  - extensions of remote global table as local table metaphor
++//    - methods to allow remote assignment, getting remote values
++//    - accessing and calling types nested multiple levels deep on tables now works
++//  - port from Lua 4.x to 5.x
++
+ #include &lt;stdlib.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;string.h&gt;
+@@ -18,7 +26,10 @@
+ #include &quot;platform.h&quot;
+ #include &quot;platform_conf.h&quot;
+ #endif
++
++#ifdef LUA_OPTIMIZE_MEMORY
+ #include &quot;lrotable.h&quot;
++#endif
+ 
+ #include &quot;luarpc_rpc.h&quot;
+ 
+@@ -102,16 +113,14 @@
+ static const char * errorString (int n)
+ {
+   switch (n) {
+-  case ERR_EOF: return &quot;connection closed unexpectedly (\&quot;end of file\&quot;)&quot;;
+-  case ERR_CLOSED: return &quot;operation requested on a closed transport&quot;;
+-  case ERR_PROTOCOL: return &quot;error in the received LuaRPC protocol&quot;;
+-  case ERR_COMMAND: return &quot;undefined RPC command&quot;;
+-  case ERR_DATALINK: return &quot;transmission error at data link level&quot;;
+-  case ERR_NODATA: return &quot;no data received when attempting to read&quot;;
+-  case ERR_BADFNAME: return &quot;function name is too long&quot;;
+-  case RPC_UNSUPPORTED_CMD: return &quot;an unsupported action was requested&quot;;
+-  case ERR_HEADER: return &quot;header exchanged failed&quot;;
+-  default: return transport_strerror (n);
++    case ERR_EOF: return &quot;connection closed unexpectedly&quot;;
++    case ERR_CLOSED: return &quot;operation requested on closed transport&quot;;
++    case ERR_PROTOCOL: return &quot;error in the received protocol&quot;;
++    case ERR_COMMAND: return &quot;undefined command&quot;;
++    case ERR_NODATA: return &quot;no data received when attempting to read&quot;;
++    case RPC_UNSUPPORTED_CMD: return &quot;unsupported protocol command&quot;;
++    case ERR_HEADER: return &quot;header exchanged failed&quot;;
++    default: return transport_strerror( n );
+   }
+ }
+ 
+@@ -303,8 +312,8 @@
+   int n = lua_gettop( L );   /* number of arguments on stack */
+   if ( n != desired_n )
+   {
+-    char s[ 100 ]; /* @@@ can we cut this down? */
+-    sprintf( s, &quot;must have %d argument%c&quot;, desired_n,
++    char *s = ( char * )alloca( 30 );
++    snprintf( s, 30, &quot;must have %d argument%c&quot;, desired_n,
+        ( desired_n == 1 ) ? '\0' : 's' );
+     my_lua_error( L, s );
+   }
+@@ -439,15 +448,15 @@
+       break;
+ 
+     case LUA_TUSERDATA:
+-      my_lua_error( L, &quot;can't pass user data to a remote function&quot; );
++      my_lua_error( L, &quot;userdata transmission unsupported&quot; );
+       break;
+ 
+     case LUA_TTHREAD:
+-      my_lua_error( L, &quot;can't pass threads to a remote function&quot; );
++      my_lua_error( L, &quot;thread transmission unsupported&quot; );
+       break;
+ 
+     case LUA_TLIGHTUSERDATA:
+-      my_lua_error( L, &quot;can't pass light user data to a remote function&quot; );
++      my_lua_error( L, &quot;light userdata transmission unsupported&quot; );
+       break;
+   }
+   MYASSERT( lua_gettop( L ) == stack_at_start );
+@@ -808,7 +817,7 @@
+     {
+       case fatal:
+         if ( e.errnum == ERR_CLOSED )
+-          my_lua_error( L, &quot;can't refer to a remote function after the handle has been closed&quot; );
++          my_lua_error( L, &quot;handle is closed&quot; );
+         deal_with_error( L, helper-&gt;handle, errorString( e.errnum ) );
+         transport_close( tpt );
+         break;
+@@ -935,7 +944,7 @@
+       {
+         case fatal:
+           if ( e.errnum == ERR_CLOSED )
+-            my_lua_error( L, &quot;can't refer to a remote function after the handle has been closed&quot; );
++            my_lua_error( L, &quot;handle is closed&quot; );
+           deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
+           transport_close( tpt );
+           break;
+@@ -1001,7 +1010,7 @@
+     {
+       case fatal:
+         if ( e.errnum == ERR_CLOSED )
+-          my_lua_error( L, &quot;can't refer to a remote function after the handle has been closed&quot; );
++          my_lua_error( L, &quot;handle is closed&quot; );
+         deal_with_error( L, h-&gt;handle, errorString( e.errnum ) );
+         transport_close( tpt );
+         break;
+@@ -1042,10 +1051,10 @@
+   MYASSERT( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.helper&quot; ) );
+ 
+   if( lua_type( L, 2 ) != LUA_TSTRING )
+-    my_lua_error( L, &quot;can't index a handle with a non-string&quot; );
++    my_lua_error( L, &quot;can't index handle with non-string&quot; );
+   s = lua_tostring( L, 2 );
+   if ( strlen( s ) &gt; NUM_FUNCNAME_CHARS - 1 )
+-    my_lua_error( L, &quot;function name is too long&quot; );
++    my_lua_error( L, &quot;function name too long&quot; );
+   
+   h = helper_append( L, ( Helper * )lua_touserdata( L, 1 ), s );
+ 
+@@ -1152,7 +1161,7 @@
+   check_num_args( L, 2 );
+ 
+   if ( !lua_isuserdata( L, 1 ) || !ismetatable_type( L, 1, &quot;rpc.handle&quot; ) )
+-    my_lua_error( L, &quot;first argument must be an RPC client handle&quot; );
++    my_lua_error( L, &quot;first argument must be client handle&quot; );
+ 
+   handle = ( Handle * )lua_touserdata( L, 1 );
+ 
+@@ -1380,7 +1389,7 @@
+ 
+   check_num_args( L, 1 );
+   if ( !( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.server_handle&quot; ) ) )
+-    my_lua_error( L, &quot;argument must be an RPC server handle&quot; );
++    my_lua_error( L, &quot;argument must be server handle&quot; );
+ 
+   handle = ( ServerHandle * )lua_touserdata( L, 1 );
+ 
+@@ -1519,7 +1528,7 @@
+   check_num_args( L, 1 );
+ 
+   if ( ! ( lua_isuserdata( L, 1 ) &amp;&amp; ismetatable_type( L, 1, &quot;rpc.server_handle&quot; ) ) )
+-    my_lua_error( L, &quot;argument must be an RPC server handle&quot; );
++    my_lua_error( L, &quot;argument must be server handle&quot; );
+ 
+   handle = ( ServerHandle * )lua_touserdata( L, 1 );
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000366.html">[Elua-svn] r410 - in tags/pre0.6/doc: . eluadoc en
+</A></li>
+	<LI>Next message: <A HREF="000368.html">[Elua-svn] r412 - trunk/src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#367">[ date ]</a>
+              <a href="thread.html#367">[ thread ]</a>
+              <a href="subject.html#367">[ subject ]</a>
+              <a href="author.html#367">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

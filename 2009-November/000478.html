@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r522 - trunk/src/lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r522%20-%20trunk/src/lua&In-Reply-To=%3C200911052111.nA5LBCd9013217%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000477.html">
+   <LINK REL="Next"  HREF="000479.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r522 - trunk/src/lua</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r522%20-%20trunk/src/lua&In-Reply-To=%3C200911052111.nA5LBCd9013217%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r522 - trunk/src/lua">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Nov  5 22:11:12 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000477.html">[Elua-svn] r521 - branches tags
+</A></li>
+        <LI>Next message: <A HREF="000479.html">[Elua-svn] r523 - branches
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#478">[ date ]</a>
+              <a href="thread.html#478">[ thread ]</a>
+              <a href="subject.html#478">[ subject ]</a>
+              <a href="author.html#478">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-11-05 22:11:12 +0100 (Thu, 05 Nov 2009)
+New Revision: 522
+
+Modified:
+   trunk/src/lua/ldo.c
+   trunk/src/lua/lgc.c
+   trunk/src/lua/lgc.h
+   trunk/src/lua/lobject.h
+   trunk/src/lua/lvm.c
+   trunk/src/lua/lzio.h
+Log:
+integrated Robert's EGC fix for eLua
+
+Modified: trunk/src/lua/ldo.c
+===================================================================
+--- trunk/src/lua/ldo.c	2009-11-04 22:52:40 UTC (rev 521)
++++ trunk/src/lua/ldo.c	2009-11-05 21:11:12 UTC (rev 522)
+@@ -92,6 +92,8 @@
+ 
+ 
+ void luaD_throw (lua_State *L, int errcode) {
++  unfixedstack(L); /* make sure the fixedstack &amp; block_gc flags get reset. */
++  unset_block_gc(L);
+   if (L-&gt;errorJmp) {
+     L-&gt;errorJmp-&gt;status = errcode;
+     LUAI_THROW(L, L-&gt;errorJmp);
+
+Modified: trunk/src/lua/lgc.c
+===================================================================
+--- trunk/src/lua/lgc.c	2009-11-04 22:52:40 UTC (rev 521)
++++ trunk/src/lua/lgc.c	2009-11-05 21:11:12 UTC (rev 522)
+@@ -269,7 +269,8 @@
+     markvalue(g, o);
+   for (; o &lt;= lim; o++)
+     setnilvalue(o);
+-  checkstacksizes(l, lim);
++  if (!isfixedstack(l)) /* if stack size is fixed, can't resize it. */
++    checkstacksizes(l, lim);
+ }
+ 
+ 
+@@ -435,13 +436,12 @@
+   if (g-&gt;strt.nuse &lt; cast(lu_int32, g-&gt;strt.size/4) &amp;&amp;
+       g-&gt;strt.size &gt; MINSTRTABSIZE*2)
+     luaS_resize(L, g-&gt;strt.size/2);  /* table is too big */
++  /* it is not safe to re-size the buffer if it is in use. */
++  if (luaZ_bufflen(&amp;g-&gt;buff) &gt; 0) return;
+   /* check size of buffer */
+   if (luaZ_sizebuffer(&amp;g-&gt;buff) &gt; LUA_MINBUFFER*2) {  /* buffer too big? */
+     size_t newsize = luaZ_sizebuffer(&amp;g-&gt;buff) / 2;
+-    /* make sure newsize is larger then the buffer's in use size. */
+-    newsize = (luaZ_bufflen(&amp;g-&gt;buff) &gt; newsize) ? luaZ_bufflen(&amp;g-&gt;buff) : newsize;
+-    if(newsize &lt; luaZ_sizebuffer(&amp;g-&gt;buff))
+-      luaZ_resizebuffer(L, &amp;g-&gt;buff, newsize);
++    luaZ_resizebuffer(L, &amp;g-&gt;buff, newsize);
+   }
+ }
+ 
+
+Modified: trunk/src/lua/lgc.h
+===================================================================
+--- trunk/src/lua/lgc.h	2009-11-04 22:52:40 UTC (rev 521)
++++ trunk/src/lua/lgc.h	2009-11-05 21:11:12 UTC (rev 522)
+@@ -41,6 +41,7 @@
+ ** Possible Garbage Collector flags.
+ ** Layout for bit use in 'gsflags' field in global_State structure.
+ ** bit 0 - Protect GC from recursive calls.
++** bit 1 - Don't try to shrink string table if EGC was called during a string table resize.
+ */
+ #define GCFlagsNone          0
+ #define GCBlockGCBit         0
+@@ -59,6 +60,7 @@
+ ** bit 0 - object is white (type 0)
+ ** bit 1 - object is white (type 1)
+ ** bit 2 - object is black
++** bit 3 - for thread: Don't resize thread's stack
+ ** bit 3 - for userdata: has been finalized
+ ** bit 3 - for tables: has weak keys
+ ** bit 4 - for tables: has weak values
+@@ -70,6 +72,7 @@
+ #define WHITE0BIT	0
+ #define WHITE1BIT	1
+ #define BLACKBIT	2
++#define FIXEDSTACKBIT	3
+ #define FINALIZEDBIT	3
+ #define KEYWEAKBIT	3
+ #define VALUEWEAKBIT	4
+@@ -92,6 +95,9 @@
+ 
+ #define luaC_white(g)	cast(lu_byte, (g)-&gt;currentwhite &amp; WHITEBITS)
+ 
++#define isfixedstack(x)	testbit((x)-&gt;marked, FIXEDSTACKBIT)
++#define fixedstack(x)	l_setbit((x)-&gt;marked, FIXEDSTACKBIT)
++#define unfixedstack(x)	resetbit((x)-&gt;marked, FIXEDSTACKBIT)
+ 
+ #define luaC_checkGC(L) { \
+   condhardstacktests(luaD_reallocstack(L, L-&gt;stacksize - EXTRA_STACK - 1)); \
+
+Modified: trunk/src/lua/lobject.h
+===================================================================
+--- trunk/src/lua/lobject.h	2009-11-04 22:52:40 UTC (rev 521)
++++ trunk/src/lua/lobject.h	2009-11-05 21:11:12 UTC (rev 522)
+@@ -120,48 +120,54 @@
+ #define setnilvalue(obj) ((obj)-&gt;tt=LUA_TNIL)
+ 
+ #define setnvalue(obj,x) \
+-  { TValue *i_o=(obj); i_o-&gt;value.n=(x); i_o-&gt;tt=LUA_TNUMBER; }
++  { lua_Number i_x = (x); TValue *i_o=(obj); i_o-&gt;value.n=i_x; i_o-&gt;tt=LUA_TNUMBER; }
+ 
+ #define setpvalue(obj,x) \
+-  { TValue *i_o=(obj); i_o-&gt;value.p=(x); i_o-&gt;tt=LUA_TLIGHTUSERDATA; }
++  { void *i_x = (x); TValue *i_o=(obj); i_o-&gt;value.p=i_x; i_o-&gt;tt=LUA_TLIGHTUSERDATA; }
+   
+ #define setrvalue(obj,x) \
+-  { TValue *i_o=(obj); i_o-&gt;value.p=(x); i_o-&gt;tt=LUA_TROTABLE; }
++  { void *i_x = (x); TValue *i_o=(obj); i_o-&gt;value.p=i_x; i_o-&gt;tt=LUA_TROTABLE; }
+   
+ #define setfvalue(obj,x) \
+-  { TValue *i_o=(obj); i_o-&gt;value.p=(x); i_o-&gt;tt=LUA_TLIGHTFUNCTION; }
++  { void *i_x = (x); TValue *i_o=(obj); i_o-&gt;value.p=i_x; i_o-&gt;tt=LUA_TLIGHTFUNCTION; }
+ 
+ #define setbvalue(obj,x) \
+-  { TValue *i_o=(obj); i_o-&gt;value.b=(x); i_o-&gt;tt=LUA_TBOOLEAN; }
++  { int i_x = (x); TValue *i_o=(obj); i_o-&gt;value.b=i_x; i_o-&gt;tt=LUA_TBOOLEAN; }
+ 
+ #define setsvalue(L,obj,x) \
+-  { TValue *i_o=(obj); \
+-    i_o-&gt;value.gc=cast(GCObject *, (x)); i_o-&gt;tt=LUA_TSTRING; \
++  { GCObject *i_x = cast(GCObject *, (x)); \
++    TValue *i_o=(obj); \
++    i_o-&gt;value.gc=i_x; i_o-&gt;tt=LUA_TSTRING; \
+     checkliveness(G(L),i_o); }
+ 
+ #define setuvalue(L,obj,x) \
+-  { TValue *i_o=(obj); \
+-    i_o-&gt;value.gc=cast(GCObject *, (x)); i_o-&gt;tt=LUA_TUSERDATA; \
++  { GCObject *i_x = cast(GCObject *, (x)); \
++    TValue *i_o=(obj); \
++    i_o-&gt;value.gc=i_x; i_o-&gt;tt=LUA_TUSERDATA; \
+     checkliveness(G(L),i_o); }
+ 
+ #define setthvalue(L,obj,x) \
+-  { TValue *i_o=(obj); \
+-    i_o-&gt;value.gc=cast(GCObject *, (x)); i_o-&gt;tt=LUA_TTHREAD; \
++  { GCObject *i_x = cast(GCObject *, (x)); \
++    TValue *i_o=(obj); \
++    i_o-&gt;value.gc=i_x; i_o-&gt;tt=LUA_TTHREAD; \
+     checkliveness(G(L),i_o); }
+ 
+ #define setclvalue(L,obj,x) \
+-  { TValue *i_o=(obj); \
+-    i_o-&gt;value.gc=cast(GCObject *, (x)); i_o-&gt;tt=LUA_TFUNCTION; \
++  { GCObject *i_x = cast(GCObject *, (x)); \
++    TValue *i_o=(obj); \
++    i_o-&gt;value.gc=i_x; i_o-&gt;tt=LUA_TFUNCTION; \
+     checkliveness(G(L),i_o); }
+ 
+ #define sethvalue(L,obj,x) \
+-  { TValue *i_o=(obj); \
+-    i_o-&gt;value.gc=cast(GCObject *, (x)); i_o-&gt;tt=LUA_TTABLE; \
++  { GCObject *i_x = cast(GCObject *, (x)); \
++    TValue *i_o=(obj); \
++    i_o-&gt;value.gc=i_x; i_o-&gt;tt=LUA_TTABLE; \
+     checkliveness(G(L),i_o); }
+ 
+ #define setptvalue(L,obj,x) \
+-  { TValue *i_o=(obj); \
+-    i_o-&gt;value.gc=cast(GCObject *, (x)); i_o-&gt;tt=LUA_TPROTO; \
++  { GCObject *i_x = cast(GCObject *, (x)); \
++    TValue *i_o=(obj); \
++    i_o-&gt;value.gc=i_x; i_o-&gt;tt=LUA_TPROTO; \
+     checkliveness(G(L),i_o); }
+ 
+ 
+
+Modified: trunk/src/lua/lvm.c
+===================================================================
+--- trunk/src/lua/lvm.c	2009-11-04 22:52:40 UTC (rev 521)
++++ trunk/src/lua/lvm.c	2009-11-05 21:11:12 UTC (rev 522)
+@@ -152,6 +152,10 @@
+ 
+ void luaV_settable (lua_State *L, const TValue *t, TValue *key, StkId val) {
+   int loop;
++  TValue temp;
++  setnilvalue(L-&gt;top);
++  L-&gt;top++;
++  fixedstack(L);
+   for (loop = 0; loop &lt; MAXTAGLOOP; loop++) {
+     const TValue *tm;
+     if (ttistable(t) || ttisrotable(t)) {  /* `t' is a table? */
+@@ -160,6 +164,8 @@
+       if ((oldval &amp;&amp; !ttisnil(oldval)) ||  /* result is no nil? */
+           (tm = fasttm(L, ttistable(t) ? ((Table*)h)-&gt;metatable : (Table*)luaR_getmeta(h), TM_NEWINDEX)) == NULL) { /* or no TM? */
+         if(oldval) {
++          L-&gt;top--;
++          unfixedstack(L);
+           setobj2t(L, oldval, val);
+           luaC_barriert(L, (Table*)h, val);
+         }
+@@ -170,10 +176,15 @@
+     else if (ttisnil(tm = luaT_gettmbyobj(L, t, TM_NEWINDEX)))
+       luaG_typeerror(L, t, &quot;index&quot;);
+     if (ttisfunction(tm) || ttislightfunction(tm)) {
++      L-&gt;top--;
++      unfixedstack(L);
+       callTM(L, tm, t, key, val);
+       return;
+     }
+-    t = tm;  /* else repeat with `tm' */ 
++    /* else repeat with `tm' */
++    setobj(L, &amp;temp, tm);  /* avoid pointing inside table (may rehash) */
++    t = &temp;
++    setobj2s(L, L-&gt;top-1, t);  /* need to protect value from EGC. */
+   }
+   luaG_runerror(L, &quot;loop in settable&quot;);
+ }
+@@ -300,6 +311,8 @@
+ 
+ 
+ void luaV_concat (lua_State *L, int total, int last) {
++  lu_mem max_sizet = MAX_SIZET;
++  if (G(L)-&gt;memlimit &lt; max_sizet) max_sizet = G(L)-&gt;memlimit;
+   do {
+     StkId top = L-&gt;base + last + 1;
+     int n = 2;  /* number of elements handled in this pass (at least 2) */
+@@ -313,10 +326,11 @@
+       size_t tl = tsvalue(top-1)-&gt;len;
+       char *buffer;
+       int i;
++      fixedstack(L);
+       /* collect total length */
+       for (n = 1; n &lt; total &amp;&amp; tostring(L, top-n-1); n++) {
+         size_t l = tsvalue(top-n-1)-&gt;len;
+-        if (l &gt;= MAX_SIZET - tl) luaG_runerror(L, &quot;string length overflow&quot;);
++        if (l &gt;= max_sizet - tl) luaG_runerror(L, &quot;string length overflow&quot;);
+         tl += l;
+       }
+       G(L)-&gt;buff.n = tl;
+@@ -329,6 +343,7 @@
+       }
+       setsvalue2s(L, top-n, luaS_newlstr(L, buffer, tl));
+       luaZ_resetbuffer(&amp;G(L)-&gt;buff);
++      unfixedstack(L);
+     }
+     total -= n-1;  /* got `n' strings to create 1 new */
+     last -= n-1;
+
+Modified: trunk/src/lua/lzio.h
+===================================================================
+--- trunk/src/lua/lzio.h	2009-11-04 22:52:40 UTC (rev 521)
++++ trunk/src/lua/lzio.h	2009-11-05 21:11:12 UTC (rev 522)
+@@ -27,7 +27,7 @@
+   size_t buffsize;
+ } Mbuffer;
+ 
+-#define luaZ_initbuffer(L, buff) ((buff)-&gt;buffer = NULL, (buff)-&gt;buffsize = 0)
++#define luaZ_initbuffer(L, buff) ((buff)-&gt;buffer = NULL, (buff)-&gt;n = 0, (buff)-&gt;buffsize = 0)
+ 
+ #define luaZ_buffer(buff)	((buff)-&gt;buffer)
+ #define luaZ_sizebuffer(buff)	((buff)-&gt;buffsize)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000477.html">[Elua-svn] r521 - branches tags
+</A></li>
+	<LI>Next message: <A HREF="000479.html">[Elua-svn] r523 - branches
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#478">[ date ]</a>
+              <a href="thread.html#478">[ thread ]</a>
+              <a href="subject.html#478">[ subject ]</a>
+              <a href="author.html#478">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

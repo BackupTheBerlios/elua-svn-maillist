@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r508 - in trunk: . romfs src/platform
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r508%20-%20in%20trunk%3A%20.%20romfs%20src/platform&In-Reply-To=%3C200910311141.n9VBfbBn018823%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000463.html">
+   <LINK REL="Next"  HREF="000465.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r508 - in trunk: . romfs src/platform</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r508%20-%20in%20trunk%3A%20.%20romfs%20src/platform&In-Reply-To=%3C200910311141.n9VBfbBn018823%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r508 - in trunk: . romfs src/platform">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Oct 31 12:41:37 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000463.html">[Elua-svn] r507 - branches/eagle_mmc/src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000465.html">[Elua-svn] r509 - branches
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#464">[ date ]</a>
+              <a href="thread.html#464">[ thread ]</a>
+              <a href="subject.html#464">[ subject ]</a>
+              <a href="author.html#464">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-10-31 12:41:34 +0100 (Sat, 31 Oct 2009)
+New Revision: 508
+
+Added:
+   trunk/src/platform/lpc24xx/
+Modified:
+   trunk/SConstruct
+   trunk/romfs/led.lua
+Log:
+merged branch lpc24xx (r492:507) to trunk
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-10-30 23:23:20 UTC (rev 507)
++++ trunk/SConstruct	2009-10-31 11:41:34 UTC (rev 508)
+@@ -56,7 +56,6 @@
+ # Toolchain Aliases
+ toolchain_list['devkitarm'] = toolchain_list['arm-eabi-gcc']
+ 
+-
+ # List of platform/CPU/toolchains combinations
+ # The first toolchain in the toolchains list is the default one
+ # (the one that will be used if none is specified)
+@@ -69,7 +68,8 @@
+   'lpc288x' : { 'cpus' : [ 'LPC2888' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'str7' : { 'cpus' : [ 'STR711FR2' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'stm32' : { 'cpus' : [ 'STM32F103ZE', 'STM32F103RE' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+-  'avr32' : { 'cpus' : [ 'AT32UC3A0512' ], 'toolchains' : [ 'avr32-gcc' ] }
++  'avr32' : { 'cpus' : [ 'AT32UC3A0512' ], 'toolchains' : [ 'avr32-gcc' ] },
++  'lpc24xx' : { 'cpus' : [ 'LPC2468' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] }
+ }
+ 
+ # List of board/CPU combinations
+@@ -86,7 +86,8 @@
+                'STM3210E-EVAL' : [ 'STM32F103ZE' ],
+                'ATEVK1100' : [ 'AT32UC3A0512' ],
+                'ET-STM32' : [ 'STM32F103RE' ],
+-               'EAGLE-100' : [ 'LM3S6918' ]
++               'EAGLE-100' : [ 'LM3S6918' ],
++               'ELUA-PUC' : ['LPC2468' ]
+             }
+ 
+ # ROMFS file list &quot;groups&quot;
+@@ -127,7 +128,8 @@
+               'STM3210E-EVAL' : [ 'bisect', 'hello', 'info' ],
+               'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect','adcscope','adcpoll', 'dualpwm', 'pwmled' ],
+-              'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ]              
++              'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ],
++              'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ]
+             }
+ 
+ # Variants: board = &lt;boardname&gt;
+
+Modified: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2009-10-30 23:23:20 UTC (rev 507)
++++ trunk/romfs/led.lua	2009-10-31 11:41:34 UTC (rev 508)
+@@ -19,6 +19,8 @@
+   invert = true
+ elseif pd.board() == &quot;STR-E912&quot; then
+   ledpin = pio.P6_4
++elseif pd.board() == &quot;ELUA-PUC&quot; then
++  ledpin = pio.P1_20
+ else
+   print( &quot;\nError: Unknown board &quot; .. pd.board() .. &quot; !&quot; )
+   return
+
+Copied: trunk/src/platform/lpc24xx (from rev 507, branches/lpc24xx/src/platform/lpc24xx)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000463.html">[Elua-svn] r507 - branches/eagle_mmc/src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000465.html">[Elua-svn] r509 - branches
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#464">[ date ]</a>
+              <a href="thread.html#464">[ thread ]</a>
+              <a href="subject.html#464">[ subject ]</a>
+              <a href="author.html#464">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

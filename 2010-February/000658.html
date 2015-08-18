@@ -1,0 +1,1725 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r705 - in branches/mux: . inc mux rfs_server src	src/platform/stm32 src/remotefs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r705%20-%20in%20branches/mux%3A%20.%20inc%20mux%20rfs_server%20src%0A%09src/platform/stm32%20src/remotefs&In-Reply-To=%3C201002081247.o18ClLEC021670%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000657.html">
+   <LINK REL="Next"  HREF="000659.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r705 - in branches/mux: . inc mux rfs_server src	src/platform/stm32 src/remotefs</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r705%20-%20in%20branches/mux%3A%20.%20inc%20mux%20rfs_server%20src%0A%09src/platform/stm32%20src/remotefs&In-Reply-To=%3C201002081247.o18ClLEC021670%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r705 - in branches/mux: . inc mux rfs_server src	src/platform/stm32 src/remotefs">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Feb  8 13:47:21 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000657.html">[Elua-svn] r704 - branches
+</A></li>
+        <LI>Next message: <A HREF="000659.html">[Elua-svn] r706 - trunk/rfs_server
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#658">[ date ]</a>
+              <a href="thread.html#658">[ thread ]</a>
+              <a href="subject.html#658">[ subject ]</a>
+              <a href="author.html#658">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-02-08 13:47:18 +0100 (Mon, 08 Feb 2010)
+New Revision: 705
+
+Added:
+   branches/mux/inc/sermux.h
+   branches/mux/mux.py
+   branches/mux/mux/
+   branches/mux/mux/config.h
+   branches/mux/mux/main.c
+   branches/mux/mux/main.c.allthreads
+   branches/mux/mux/main.c.withselect
+Modified:
+   branches/mux/inc/buf.h
+   branches/mux/inc/common.h
+   branches/mux/inc/platform.h
+   branches/mux/rfs_server/main.c
+   branches/mux/rfs_server/serial.h
+   branches/mux/rfs_server/serial_posix.c
+   branches/mux/src/buf.c
+   branches/mux/src/common.c
+   branches/mux/src/platform/stm32/platform.c
+   branches/mux/src/platform/stm32/platform_conf.h
+   branches/mux/src/remotefs/elua_rfs.c
+Log:
+working only on STM32 (and Linux) so far
+
+Modified: branches/mux/inc/buf.h
+===================================================================
+--- branches/mux/inc/buf.h	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/inc/buf.h	2010-02-08 12:47:18 UTC (rev 705)
+@@ -55,8 +55,6 @@
+   BUF_DSIZE_U32
+ };
+ 
+-
+-
+ // Buffer API
+ int buf_set(unsigned resid, unsigned resnum, u8 logsize, u8 logdsize);
+ int buf_is_enabled( unsigned resid, unsigned resnum );
+
+Modified: branches/mux/inc/common.h
+===================================================================
+--- branches/mux/inc/common.h	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/inc/common.h	2010-02-08 12:47:18 UTC (rev 705)
+@@ -11,6 +11,7 @@
+ // Functions exported by the common platform layer
+ void cmn_platform_init();
+ void cmn_virtual_timer_cb();
++void cmn_rx_handler( int usart_id, u8 data );
+ 
+ unsigned int intlog2( unsigned int v );
+ 
+
+Modified: branches/mux/inc/platform.h
+===================================================================
+--- branches/mux/inc/platform.h	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/inc/platform.h	2010-02-08 12:47:18 UTC (rev 705)
+@@ -138,6 +138,7 @@
+ int platform_uart_exists( unsigned id );
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits );
+ void platform_uart_send( unsigned id, u8 data );
++void platform_s_uart_send( unsigned id, u8 data );
+ int platform_uart_recv( unsigned id, unsigned timer_id, s32 timeout );
+ int platform_s_uart_recv( unsigned id, s32 timeout );
+ 
+
+Added: branches/mux/inc/sermux.h
+===================================================================
+--- branches/mux/inc/sermux.h	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/inc/sermux.h	2010-02-08 12:47:18 UTC (rev 705)
+@@ -0,0 +1,14 @@
++// Serial multiplexer definitions 
++
++#ifndef __SERMUX_H__
++#define __SERMUX_H__
++
++#define SERVICE_ID_FIRST  0xD0
++#define SERVICE_ID_LAST   0xD3
++#define SERVICE_MAX ( SERVICE_ID_LAST - SERVICE_ID_FIRST + 1 )
++
++#define ESCAPE_CHAR       0xC0
++#define ESCAPE_XOR_MASK   0x20
++
++#endif
++
+
+Added: branches/mux/mux/config.h
+===================================================================
+--- branches/mux/mux/config.h	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/mux/config.h	2010-02-08 12:47:18 UTC (rev 705)
+@@ -0,0 +1,11 @@
++// Service multiplexer configurator
++
++#ifndef __CONFIG_H__
++#define __CONFIG_H__
++
++#include &quot;sermux.h&quot;
++
++#define SER_BUFSIZE       ( 64 * 1024 )
++
++#endif
++
+
+Added: branches/mux/mux/main.c
+===================================================================
+--- branches/mux/mux/main.c	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/mux/main.c	2010-02-08 12:47:18 UTC (rev 705)
+@@ -0,0 +1,349 @@
++// Service multiplexer 
++
++#include &lt;stdio.h&gt;
++#include &lt;pthread.h&gt;
++#include &lt;semaphore.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;string.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;limits.h&gt;
++#include &quot;config.h&quot;
++#include &quot;log.h&quot;
++#include &quot;type.h&quot;
++#include &quot;serial.h&quot;
++
++// ****************************************************************************
++// Data structures and local variables
++
++#define TRANSPORT_TYPE_ERROR        0
++#define TRANSPORT_TYPE_SER          1
++
++// Service ID of the transport thread
++#define TRANSPORT_SERVICE_ID        -1
++
++// Send/receive/init function pointers
++typedef u32 ( *p_recv_func )( u8 *p, u32 size );
++typedef u32 ( *p_send_func )( const u8 *p, u32 size );
++typedef int ( *p_init_func )( void );
++
++// Serial thread buffer structure
++typedef struct 
++{
++  pthread_t tid;
++  const char *pname;
++  ser_handler fd;
++  int service_id;
++} THREAD_DATA;
++
++// Serial transport data structure
++typedef struct 
++{
++  ser_handler fd;
++  const char *pname;
++  long speed;
++} TRANSPORT_SER;
++
++// Service/transport data
++typedef struct 
++{
++  int id;
++  u8 data;
++} DATA;
++
++static THREAD_DATA *threads;
++static unsigned vport_num;
++
++static void *transport_data;
++static int transport_type;
++static p_recv_func transport_recv;
++static p_send_func transport_send;
++static p_init_func transport_init;
++
++static long service_baud;
++static sem_t mux_w_sem, mux_r_sem;
++static DATA mux_data;
++static int service_id_in = -1, service_id_out = -1;
++
++// ***************************************************************************
++// Serial transport implementation
++
++static u32 transport_ser_recv( u8 *p, u32 size ) 
++{
++  TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
++
++  return ser_read( pser-&gt;fd, p, size, SER_INF_TIMEOUT );
++}
++
++static u32 transport_ser_send( const u8 *p, u32 size )
++{
++  TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
++
++  return ser_write( pser-&gt;fd, p, size );
++}
++
++static int transport_ser_init()
++{
++  TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
++
++  if( ( pser-&gt;fd = ser_open( pser-&gt;pname ) ) == ( ser_handler )-1 )
++  {
++    fprintf( stderr, &quot;Unable to open %s\n&quot;, pser-&gt;pname );
++    return 0;
++  }
++  if( ser_setup( pser-&gt;fd, pser-&gt;speed, 8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++  {
++    fprintf( stderr, &quot;Unable to setup serial port %s\n&quot;, pser-&gt;pname );
++    return 0;
++  }
++  while( ser_read_byte( pser-&gt;fd, SER_NO_TIMEOUT ) != -1 );
++  printf( &quot;Running serial transport on port %s at %u baud (8N1)\n&quot;, pser-&gt;pname, ( unsigned )pser-&gt;speed );
++  return 1;
++}
++
++// ****************************************************************************
++// Utility functions and helpers
++
++static void transport_send_byte( u8 data )
++{
++  transport_send( &amp;data, 1 );
++}
++
++static int transport_read_byte() 
++{
++  u8 c;
++
++  return transport_recv( &amp;c, 1 ) == 1 ? c : -1;
++}
++
++// Secure atoi
++static int secure_atoi( const char *str, long *pres )
++{
++  char *end_ptr;
++  long s1;
++  
++  errno = 0;
++  s1 = strtol( str, &amp;end_ptr, 10 );
++  if( ( s1 == LONG_MIN || s1 == LONG_MAX ) &amp;&amp; errno != 0 )
++    return 0;
++  else if( end_ptr == str )
++    return 0;
++  else if( s1 &gt; INT_MAX || s1 &lt; INT_MIN )
++    return 0;
++  else if( '\0' != *end_ptr )
++    return 0;
++  *pres = s1;
++  return 1;  
++}
++
++// Transport parser
++static int parse_transport( const char* s )
++{
++  const char *c;
++  static TRANSPORT_SER tser; 
++
++  if( strstr( s, &quot;ser:&quot; ) == s )
++  {
++    s += strlen( &quot;ser:&quot; );
++    if( ( c = strchr( s, ',' ) ) == NULL )
++    {
++      fprintf( stderr, &quot;Invalid serial transport syntax\n&quot; );
++      return 0;
++    }
++    if( secure_atoi( c + 1, &amp;tser.speed ) == 0 )
++    {
++      fprintf( stderr, &quot;Invalid port speed\n&quot; );
++      return 0;
++    }
++    tser.pname = strndup( s, c - s );
++    transport_data = &tser;
++    transport_send = transport_ser_send;
++    transport_recv = transport_ser_recv;
++    transport_init = transport_ser_init;
++    transport_type = TRANSPORT_TYPE_SER;
++    return 1;
++  }
++  fprintf( stderr, &quot;Error: unsupported transport\n&quot; );
++  return 0;
++}
++
++// ***************************************************************************
++// Service thread
++
++static void* service_thread( void* data )
++{
++  THREAD_DATA *pdata = ( THREAD_DATA*) data;
++  int sdata;
++
++  log_msg( &quot;Starting service thread for port %s\n&quot;, pdata-&gt;pname );
++  while( 1 ) 
++  {
++    if( ( sdata = ser_read_byte( pdata-&gt;fd, SER_INF_TIMEOUT ) ) == -1 )
++      continue;
++    sem_wait( &amp;mux_w_sem );
++    mux_data.data = sdata;
++    mux_data.id = pdata-&gt;service_id;
++    sem_post( &amp;mux_r_sem );
++  }
++  return NULL;
++}
++
++// ****************************************************************************
++// Transport thread
++
++static void* transport_thread( void* data )
++{
++  int sdata;
++
++  log_msg( &quot;Starting transport thread\n&quot; );
++  while( 1 ) 
++  {
++    if( ( sdata = transport_read_byte() ) == -1 )
++      continue;
++    sem_wait( &amp;mux_w_sem );
++    mux_data.data = sdata;
++    mux_data.id = TRANSPORT_SERVICE_ID;
++    sem_post( &amp;mux_r_sem );
++  }
++  return NULL;
++}
++
++// ****************************************************************************
++// Program entry point
++
++#define MAIN_TRANSPORT_IDX    1
++#define SERVICE_BAUD_IDX      2
++#define FIRST_SERVICE_IDX     3
++
++int main( int argc, char **argv )
++{
++  unsigned i;
++  THREAD_DATA *tdata;
++  int c;
++  int temp, sdata;
++  int got_esc = 0;
++  DATA data;
++
++  // Interpret arguments
++  if( argc &lt; 4 )
++  {
++    fprintf( stderr, &quot;Usage: %s &lt;transport&gt; &lt;baud&gt; &lt;vcom1&gt; [&lt;vcom2&gt;] ... [&lt;vcomn&gt;] [-v]\n&quot;, argv[ 0 ] );
++    return 1;
++  }
++  i = argc - 1;
++  if( !strcasecmp( argv[ i ], &quot;-v&quot; ) )
++  {
++    i --;
++    log_init( LOG_ALL );
++  }
++  else
++    log_init( LOG_NONE ); 
++  if( ( vport_num = i - 2 ) &gt; SERVICE_MAX )
++  {
++    fprintf( stderr, &quot;Too many service ports, maximum is %d\n&quot;, SERVICE_MAX );
++    return 1;
++  }
++  if( parse_transport( argv[ MAIN_TRANSPORT_IDX ] ) == 0 )
++    return 1;
++  if( secure_atoi( argv[ SERVICE_BAUD_IDX ], &amp;service_baud ) == 0 )
++  {
++    fprintf( stderr, &quot;Invalid service baud\n&quot; );
++    return 1;
++  }
++  if( transport_init() == 0 )
++    return 1;
++
++  // Create global sync objects
++  sem_init( &amp;mux_w_sem, 0, 1 );
++  sem_init( &amp;mux_r_sem, 0, 0 );
++
++  // Open all the service ports and create their corresponding threads
++  if( ( threads = ( THREAD_DATA* )malloc( sizeof( THREAD_DATA ) * ( vport_num + 1 ) ) ) == NULL )
++  {
++    fprintf( stderr, &quot;Not enough memory\n&quot; );
++    return 1;
++  }
++  for( i = 0; i &lt;= vport_num; i ++ ) 
++  {
++    tdata = threads + i;
++    if( i &lt; vport_num )
++    {
++      if( ( tdata-&gt;fd = ser_open( argv[ i + FIRST_SERVICE_IDX ] ) ) == ( ser_handler )-1 )
++      {
++        fprintf( stderr, &quot;Unable to open port %s\n&quot;, argv[ i + FIRST_SERVICE_IDX ] );
++        return 1;
++      }
++      if( ser_setup( tdata-&gt;fd, service_baud, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++      {
++        fprintf( stderr, &quot;Unable to setup serial port %s\n&quot;, argv[ i + FIRST_SERVICE_IDX ] );
++        return 1;
++      }
++      tdata-&gt;pname = argv[ i + FIRST_SERVICE_IDX ];
++      tdata-&gt;service_id = i + SERVICE_ID_FIRST;
++    }
++    if( pthread_create( &amp;tdata-&gt;tid, NULL, i == vport_num ? transport_thread : service_thread, ( void* )tdata ) )
++    {
++      fprintf( stderr, &quot;Unable to create thread\n&quot; );
++      return 1;
++    }
++  }
++
++  printf( &quot;Starting service multiplexer on %u port(s)\n&quot;, vport_num );
++  // Main service thread
++  while( 1 )
++  {
++    sem_wait( &amp;mux_r_sem );
++    data = mux_data;
++    sem_post( &amp;mux_w_sem );
++    if( data.id == TRANSPORT_SERVICE_ID )
++    {
++      // Read one byte, interpret it
++      c = data.data;
++      if( c != ESCAPE_CHAR )
++      {
++        if( c &gt;= SERVICE_ID_FIRST &amp;&amp; c &lt;= SERVICE_ID_LAST )
++          service_id_in = c;
++        else
++        {
++          if( got_esc )
++          {
++            // Got an escape last time, check the char now (with the 5th bit flipped)
++            c ^= ESCAPE_XOR_MASK;
++            if( c != ESCAPE_CHAR &amp;&amp; c &lt; SERVICE_ID_FIRST &amp;&amp; c &gt; SERVICE_ID_LAST )
++            {
++               fprintf( stderr, &quot;Protocol error: invalid escape sequence\n&quot; );
++               return 1;
++            }
++            got_esc = 0;
++          }  
++          if( service_id_in == -1 )
++          {
++            fprintf( stderr, &quot;Protocol error: service ID not specified\n&quot; );
++            return 1;
++          }
++          ser_write_byte( threads[ service_id_in - SERVICE_ID_FIRST ].fd, c );
++        }
++      }
++      else
++        got_esc = 1;
++    }
++    else
++    {
++      temp = data.id;
++      sdata = data.data;
++      if( temp != service_id_out )
++        transport_send_byte( temp );
++      // Then send the actual data byte, escaping it if needed
++      if( sdata == ESCAPE_CHAR || ( sdata &gt;= SERVICE_ID_FIRST &amp;&amp; sdata &lt;= SERVICE_ID_LAST ) )
++      {
++        transport_send_byte( ESCAPE_CHAR );
++        transport_send_byte( ( u8 )sdata ^ ESCAPE_XOR_MASK );
++      }
++      else
++        transport_send_byte( sdata );
++      service_id_out = temp;
++    }
++  }
++
++  return 0;
++}
++
+
+Added: branches/mux/mux/main.c.allthreads
+===================================================================
+--- branches/mux/mux/main.c.allthreads	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/mux/main.c.allthreads	2010-02-08 12:47:18 UTC (rev 705)
+@@ -0,0 +1,349 @@
++// Service multiplexer 
++
++#include &lt;stdio.h&gt;
++#include &lt;pthread.h&gt;
++#include &lt;semaphore.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;string.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;limits.h&gt;
++#include &quot;config.h&quot;
++#include &quot;log.h&quot;
++#include &quot;type.h&quot;
++#include &quot;serial.h&quot;
++
++// ****************************************************************************
++// Data structures and local variables
++
++#define TRANSPORT_TYPE_ERROR        0
++#define TRANSPORT_TYPE_SER          1
++
++// Service ID of the transport thread
++#define TRANSPORT_SERVICE_ID        -1
++
++// Send/receive/init function pointers
++typedef u32 ( *p_recv_func )( u8 *p, u32 size );
++typedef u32 ( *p_send_func )( const u8 *p, u32 size );
++typedef int ( *p_init_func )( void );
++
++// Serial thread buffer structure
++typedef struct 
++{
++  pthread_t tid;
++  const char *pname;
++  ser_handler fd;
++  int service_id;
++} THREAD_DATA;
++
++// Serial transport data structure
++typedef struct 
++{
++  ser_handler fd;
++  const char *pname;
++  long speed;
++} TRANSPORT_SER;
++
++// Service/transport data
++typedef struct 
++{
++  int id;
++  u8 data;
++} DATA;
++
++static THREAD_DATA *threads;
++static unsigned vport_num;
++
++static void *transport_data;
++static int transport_type;
++static p_recv_func transport_recv;
++static p_send_func transport_send;
++static p_init_func transport_init;
++
++static long service_baud;
++static sem_t mux_w_sem, mux_r_sem;
++static DATA mux_data;
++static int service_id_in = -1, service_id_out = -1;
++
++// ***************************************************************************
++// Serial transport implementation
++
++static u32 transport_ser_recv( u8 *p, u32 size ) 
++{
++  TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
++
++  return ser_read( pser-&gt;fd, p, size, SER_INF_TIMEOUT );
++}
++
++static u32 transport_ser_send( const u8 *p, u32 size )
++{
++  TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
++
++  return ser_write( pser-&gt;fd, p, size );
++}
++
++static int transport_ser_init()
++{
++  TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
++
++  if( ( pser-&gt;fd = ser_open( pser-&gt;pname ) ) == ( ser_handler )-1 )
++  {
++    fprintf( stderr, &quot;Unable to open %s\n&quot;, pser-&gt;pname );
++    return 0;
++  }
++  if( ser_setup( pser-&gt;fd, pser-&gt;speed, 8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++  {
++    fprintf( stderr, &quot;Unable to setup serial port %s\n&quot;, pser-&gt;pname );
++    return 0;
++  }
++  while( ser_read_byte( pser-&gt;fd, SER_NO_TIMEOUT ) != -1 );
++  printf( &quot;Running serial transport on port %s at %u baud (8N1)\n&quot;, pser-&gt;pname, ( unsigned )pser-&gt;speed );
++  return 1;
++}
++
++// ****************************************************************************
++// Utility functions and helpers
++
++static void transport_send_byte( u8 data )
++{
++  transport_send( &amp;data, 1 );
++}
++
++static int transport_read_byte() 
++{
++  u8 c;
++
++  return transport_recv( &amp;c, 1 ) == 1 ? c : -1;
++}
++
++// Secure atoi
++static int secure_atoi( const char *str, long *pres )
++{
++  char *end_ptr;
++  long s1;
++  
++  errno = 0;
++  s1 = strtol( str, &amp;end_ptr, 10 );
++  if( ( s1 == LONG_MIN || s1 == LONG_MAX ) &amp;&amp; errno != 0 )
++    return 0;
++  else if( end_ptr == str )
++    return 0;
++  else if( s1 &gt; INT_MAX || s1 &lt; INT_MIN )
++    return 0;
++  else if( '\0' != *end_ptr )
++    return 0;
++  *pres = s1;
++  return 1;  
++}
++
++// Transport parser
++static int parse_transport( const char* s )
++{
++  const char *c;
++  static TRANSPORT_SER tser; 
++
++  if( strstr( s, &quot;ser:&quot; ) == s )
++  {
++    s += strlen( &quot;ser:&quot; );
++    if( ( c = strchr( s, ',' ) ) == NULL )
++    {
++      fprintf( stderr, &quot;Invalid serial transport syntax\n&quot; );
++      return 0;
++    }
++    if( secure_atoi( c + 1, &amp;tser.speed ) == 0 )
++    {
++      fprintf( stderr, &quot;Invalid port speed\n&quot; );
++      return 0;
++    }
++    tser.pname = strndup( s, c - s );
++    transport_data = &tser;
++    transport_send = transport_ser_send;
++    transport_recv = transport_ser_recv;
++    transport_init = transport_ser_init;
++    transport_type = TRANSPORT_TYPE_SER;
++    return 1;
++  }
++  fprintf( stderr, &quot;Error: unsupported transport\n&quot; );
++  return 0;
++}
++
++// ***************************************************************************
++// Service thread
++
++static void* service_thread( void* data )
++{
++  THREAD_DATA *pdata = ( THREAD_DATA*) data;
++  int sdata;
++
++  log_msg( &quot;Starting service thread for port %s\n&quot;, pdata-&gt;pname );
++  while( 1 ) 
++  {
++    if( ( sdata = ser_read_byte( pdata-&gt;fd, SER_INF_TIMEOUT ) ) == -1 )
++      continue;
++    sem_wait( &amp;mux_w_sem );
++    mux_data.data = sdata;
++    mux_data.id = pdata-&gt;service_id;
++    sem_post( &amp;mux_r_sem );
++  }
++  return NULL;
++}
++
++// ****************************************************************************
++// Transport thread
++
++static void* transport_thread( void* data )
++{
++  int sdata;
++
++  log_msg( &quot;Starting transport thread\n&quot; );
++  while( 1 ) 
++  {
++    if( ( sdata = transport_read_byte() ) == -1 )
++      continue;
++    sem_wait( &amp;mux_w_sem );
++    mux_data.data = sdata;
++    mux_data.id = TRANSPORT_SERVICE_ID;
++    sem_post( &amp;mux_r_sem );
++  }
++  return NULL;
++}
++
++// ****************************************************************************
++// Program entry point
++
++#define MAIN_TRANSPORT_IDX    1
++#define SERVICE_BAUD_IDX      2
++#define FIRST_SERVICE_IDX     3
++
++int main( int argc, char **argv )
++{
++  unsigned i;
++  THREAD_DATA *tdata;
++  int c;
++  int temp, sdata;
++  int got_esc = 0;
++  DATA data;
++
++  // Interpret arguments
++  if( argc &lt; 4 )
++  {
++    fprintf( stderr, &quot;Usage: %s &lt;transport&gt; &lt;baud&gt; &lt;vcom1&gt; [&lt;vcom2&gt;] ... [&lt;vcomn&gt;] [-v]\n&quot;, argv[ 0 ] );
++    return 1;
++  }
++  i = argc - 1;
++  if( !strcasecmp( argv[ i ], &quot;-v&quot; ) )
++  {
++    i --;
++    log_init( LOG_ALL );
++  }
++  else
++    log_init( LOG_NONE ); 
++  if( ( vport_num = i - 2 ) &gt; SERVICE_MAX )
++  {
++    fprintf( stderr, &quot;Too many service ports, maximum is %d\n&quot;, SERVICE_MAX );
++    return 1;
++  }
++  if( parse_transport( argv[ MAIN_TRANSPORT_IDX ] ) == 0 )
++    return 1;
++  if( secure_atoi( argv[ SERVICE_BAUD_IDX ], &amp;service_baud ) == 0 )
++  {
++    fprintf( stderr, &quot;Invalid service baud\n&quot; );
++    return 1;
++  }
++  if( transport_init() == 0 )
++    return 1;
++
++  // Create global sync objects
++  sem_init( &amp;mux_w_sem, 0, 1 );
++  sem_init( &amp;mux_r_sem, 0, 0 );
++
++  // Open all the service ports and create their corresponding threads
++  if( ( threads = ( THREAD_DATA* )malloc( sizeof( THREAD_DATA ) * ( vport_num + 1 ) ) ) == NULL )
++  {
++    fprintf( stderr, &quot;Not enough memory\n&quot; );
++    return 1;
++  }
++  for( i = 0; i &lt;= vport_num; i ++ ) 
++  {
++    tdata = threads + i;
++    if( i &lt; vport_num )
++    {
++      if( ( tdata-&gt;fd = ser_open( argv[ i + FIRST_SERVICE_IDX ] ) ) == ( ser_handler )-1 )
++      {
++        fprintf( stderr, &quot;Unable to open port %s\n&quot;, argv[ i + FIRST_SERVICE_IDX ] );
++        return 1;
++      }
++      if( ser_setup( tdata-&gt;fd, service_baud, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++      {
++        fprintf( stderr, &quot;Unable to setup serial port %s\n&quot;, argv[ i + FIRST_SERVICE_IDX ] );
++        return 1;
++      }
++      tdata-&gt;pname = argv[ i + FIRST_SERVICE_IDX ];
++      tdata-&gt;service_id = i + SERVICE_ID_FIRST;
++    }
++    if( pthread_create( &amp;tdata-&gt;tid, NULL, i == vport_num ? transport_thread : service_thread, ( void* )tdata ) )
++    {
++      fprintf( stderr, &quot;Unable to create thread\n&quot; );
++      return 1;
++    }
++  }
++
++  printf( &quot;Starting service multiplexer on %u port(s)\n&quot;, vport_num );
++  // Main service thread
++  while( 1 )
++  {
++    sem_wait( &amp;mux_r_sem );
++    data = mux_data;
++    sem_post( &amp;mux_w_sem );
++    if( data.id == TRANSPORT_SERVICE_ID )
++    {
++      // Read one byte, interpret it
++      c = data.data;
++      if( c != ESCAPE_CHAR )
++      {
++        if( c &gt;= SERVICE_ID_FIRST &amp;&amp; c &lt;= SERVICE_ID_LAST )
++          service_id_in = c;
++        else
++        {
++          if( got_esc )
++          {
++            // Got an escape last time, check the char now (with the 5th bit flipped)
++            c ^= ESCAPE_XOR_MASK;
++            if( c != ESCAPE_CHAR &amp;&amp; c &lt; SERVICE_ID_FIRST &amp;&amp; c &gt; SERVICE_ID_LAST )
++            {
++               fprintf( stderr, &quot;Protocol error: invalid escape sequence\n&quot; );
++               return 1;
++            }
++            got_esc = 0;
++          }  
++          if( service_id_in == -1 )
++          {
++            fprintf( stderr, &quot;Protocol error: service ID not specified\n&quot; );
++            return 1;
++          }
++          ser_write_byte( threads[ service_id_in - SERVICE_ID_FIRST ].fd, c );
++        }
++      }
++      else
++        got_esc = 1;
++    }
++    else
++    {
++      temp = data.id;
++      sdata = data.data;
++      if( temp != service_id_out )
++        transport_send_byte( temp );
++      // Then send the actual data byte, escaping it if needed
++      if( sdata == ESCAPE_CHAR || ( sdata &gt;= SERVICE_ID_FIRST &amp;&amp; sdata &lt;= SERVICE_ID_LAST ) )
++      {
++        transport_send_byte( ESCAPE_CHAR );
++        transport_send_byte( ( u8 )sdata ^ ESCAPE_XOR_MASK );
++      }
++      else
++        transport_send_byte( sdata );
++      service_id_out = temp;
++    }
++  }
++
++  return 0;
++}
++
+
+Added: branches/mux/mux/main.c.withselect
+===================================================================
+--- branches/mux/mux/main.c.withselect	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/mux/main.c.withselect	2010-02-08 12:47:18 UTC (rev 705)
+@@ -0,0 +1,308 @@
++// Service multiplexer 
++
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;string.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;limits.h&gt;
++#include &lt;sys/select.h&gt;
++#include &quot;config.h&quot;
++#include &quot;log.h&quot;
++#include &quot;type.h&quot;
++#include &quot;serial.h&quot;
++
++// ****************************************************************************
++// Data structures and local variables
++
++#define TRANSPORT_TYPE_ERROR        0
++#define TRANSPORT_TYPE_SER          1
++
++// Send/receive/init function pointers
++typedef u32 ( *p_recv_func )( u8 *p, u32 size );
++typedef u32 ( *p_send_func )( const u8 *p, u32 size );
++typedef int ( *p_init_func )( void );
++
++// Serial thread buffer structure
++typedef struct {
++  const char *pname;
++  ser_handler fd;
++} PORT_DATA;
++
++// Serial transport data structure
++typedef struct {
++  ser_handler fd;
++  const char *pname;
++  long speed;
++} TRANSPORT_SER;
++
++static PORT_DATA *ports;
++static unsigned vport_num;
++
++static void *transport_data;
++static int transport_type;
++static p_recv_func transport_recv;
++static p_send_func transport_send;
++static p_init_func transport_init;
++
++static long service_baud;
++static int service_id_in = -1, service_id_out = -1;
++
++static int maxfd = -1; 
++static int transport_fd = -1;
++
++// ***************************************************************************
++// Serial transport implementation
++
++static u32 transport_ser_recv( u8 *p, u32 size ) 
++{
++  TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
++
++  return ser_read( pser-&gt;fd, p, size, SER_NO_TIMEOUT );
++}
++
++static u32 transport_ser_send( const u8 *p, u32 size )
++{
++  TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
++
++  return ser_write( pser-&gt;fd, p, size );
++}
++
++static int transport_ser_init()
++{
++  TRANSPORT_SER *pser = ( TRANSPORT_SER* )transport_data;
++
++  if( ( pser-&gt;fd = ser_open( pser-&gt;pname ) ) == ( ser_handler )-1 )
++  {
++    fprintf( stderr, &quot;Unable to open %s\n&quot;, pser-&gt;pname );
++    return 0;
++  }
++  if( ser_setup( pser-&gt;fd, pser-&gt;speed, 8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++  {
++    fprintf( stderr, &quot;Unable to setup serial port %s\n&quot;, pser-&gt;pname );
++    return 0;
++  }
++  if( pser-&gt;fd &gt; maxfd )
++    maxfd = pser-&gt;fd;
++  transport_fd = pser-&gt;fd;
++  while( ser_read_byte( pser-&gt;fd, SER_NO_TIMEOUT ) != -1 );
++  printf( &quot;Running serial transport on port %s at %u baud (8N1)\n&quot;, pser-&gt;pname, ( unsigned )pser-&gt;speed );
++  return 1;
++}
++
++// ****************************************************************************
++// Utility functions and helpers
++
++static void transport_send_byte( u8 data )
++{
++  transport_send( &amp;data, 1 );
++}
++
++static int transport_read_byte() 
++{
++  u8 c;
++
++  return transport_recv( &amp;c, 1 ) == 1 ? c : -1;
++}
++
++// Secure atoi
++static int secure_atoi( const char *str, long *pres )
++{
++  char *end_ptr;
++  long s1;
++  
++  errno = 0;
++  s1 = strtol( str, &amp;end_ptr, 10 );
++  if( ( s1 == LONG_MIN || s1 == LONG_MAX ) &amp;&amp; errno != 0 )
++    return 0;
++  else if( end_ptr == str )
++    return 0;
++  else if( s1 &gt; INT_MAX || s1 &lt; INT_MIN )
++    return 0;
++  else if( '\0' != *end_ptr )
++    return 0;
++  *pres = s1;
++  return 1;  
++}
++
++// Transport parser
++static int parse_transport( const char* s )
++{
++  const char *c;
++  static TRANSPORT_SER tser; 
++
++  if( strstr( s, &quot;ser:&quot; ) == s )
++  {
++    s += strlen( &quot;ser:&quot; );
++    if( ( c = strchr( s, ',' ) ) == NULL )
++    {
++      fprintf( stderr, &quot;Invalid serial transport syntax\n&quot; );
++      return 0;
++    }
++    if( secure_atoi( c + 1, &amp;tser.speed ) == 0 )
++    {
++      fprintf( stderr, &quot;Invalid port speed\n&quot; );
++      return 0;
++    }
++    tser.pname = strndup( s, c - s );
++    transport_data = &tser;
++    transport_send = transport_ser_send;
++    transport_recv = transport_ser_recv;
++    transport_init = transport_ser_init;
++    transport_type = TRANSPORT_TYPE_SER;
++    return 1;
++  }
++  fprintf( stderr, &quot;Error: unsupported transport\n&quot; );
++  return 0;
++}
++
++// ****************************************************************************
++// Program entry point
++
++#define MAIN_TRANSPORT_IDX    1
++#define SERVICE_BAUD_IDX      2
++#define FIRST_SERVICE_IDX     3
++
++int main( int argc, char **argv )
++{
++  unsigned i;
++  PORT_DATA *tdata;
++  int c;
++  int temp, sdata;
++  int got_esc = 0;
++  fd_set fds;
++
++  // Interpret arguments
++  if( argc &lt; 4 )
++  {
++    fprintf( stderr, &quot;Usage: %s &lt;transport&gt; &lt;baud&gt; &lt;vcom1&gt; [&lt;vcom2&gt;] ... [&lt;vcomn&gt;] [-v]\n&quot;, argv[ 0 ] );
++    return 1;
++  }
++  i = argc - 1;
++  if( !strcasecmp( argv[ i ], &quot;-v&quot; ) )
++  {
++    i --;
++    log_init( LOG_ALL );
++  }
++  else
++    log_init( LOG_NONE ); 
++  if( ( vport_num = i - 2 ) &gt; SERVICE_MAX )
++  {
++    fprintf( stderr, &quot;Too many service ports, maximum is %d\n&quot;, SERVICE_MAX );
++    return 1;
++  }
++  if( parse_transport( argv[ MAIN_TRANSPORT_IDX ] ) == 0 )
++    return 1;
++  if( secure_atoi( argv[ SERVICE_BAUD_IDX ], &amp;service_baud ) == 0 )
++  {
++    fprintf( stderr, &quot;Invalid service baud\n&quot; );
++    return 1;
++  }
++  if( transport_init() == 0 )
++    return 1;
++
++  // Open all the service ports
++  if( ( ports = ( PORT_DATA* )malloc( sizeof( PORT_DATA ) * vport_num ) ) == NULL )
++  {
++    fprintf( stderr, &quot;Not enough memory\n&quot; );
++    return 1;
++  }
++  for( i = 0; i &lt; vport_num; i ++ ) 
++  {
++    tdata = ports + i;
++    if( ( tdata-&gt;fd = ser_open( argv[ i + FIRST_SERVICE_IDX ] ) ) == ( ser_handler )-1 )
++    {
++      fprintf( stderr, &quot;Unable to open port %s\n&quot;, argv[ i + FIRST_SERVICE_IDX ] );
++      return 1;
++    }
++    if( ser_setup( tdata-&gt;fd, service_baud, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++    {
++      fprintf( stderr, &quot;Unable to setup serial port %s\n&quot;, argv[ i + FIRST_SERVICE_IDX ] );
++      return 1;
++    }
++    if( tdata-&gt;fd &gt; maxfd )
++      maxfd = tdata-&gt;fd;
++    tdata-&gt;pname = argv[ i + FIRST_SERVICE_IDX ];
++  }
++
++  printf( &quot;Starting service multiplexer on %u port(s)\n&quot;, vport_num );
++  // Main service thread
++  while( 1 )
++  {
++    FD_ZERO( &amp;fds );
++    FD_SET( transport_fd, &amp;fds );
++    for( i = 0; i &lt; vport_num; i ++ )
++      FD_SET( ports[ i ].fd, &amp;fds );
++    if( select( maxfd + 1, &amp;fds, NULL, NULL, NULL ) &lt;= 0 )
++      continue;
++    if( FD_ISSET( transport_fd, &amp;fds ) )
++    {
++      c = transport_read_byte();
++      // Read one byte, interpret it
++      if( c != ESCAPE_CHAR )
++      {
++        if( c &gt;= SERVICE_ID_FIRST &amp;&amp; c &lt;= SERVICE_ID_LAST )
++          service_id_in = c;
++        else
++        {
++          if( got_esc )
++          {
++            // Got an escape last time, check the char now (with the 5th bit flipped)
++            c ^= ESCAPE_XOR_MASK;
++            if( c != ESCAPE_CHAR &amp;&amp; c &lt; SERVICE_ID_FIRST &amp;&amp; c &gt; SERVICE_ID_LAST )
++            {
++               fprintf( stderr, &quot;Protocol error: invalid escape sequence\n&quot; );
++               return 1;
++            }
++            got_esc = 0;
++          }  
++          if( service_id_in == -1 )
++          {
++            fprintf( stderr, &quot;Protocol error: service ID not specified\n&quot; );
++            return 1;
++          }
++          ser_write_byte( ports[ service_id_in - SERVICE_ID_FIRST ].fd, c );
++        }
++      }
++      else
++        got_esc = 1;
++    }
++    else
++    {
++      // No byte to read, check if there's something to send
++      // Favour the service that sent data previously (if any)
++      temp = service_id_out != -1 ? service_id_out : SERVICE_ID_FIRST;
++      if( FD_ISSET( ports[ temp - SERVICE_ID_FIRST ].fd, &amp;fds ) )
++        sdata = ser_read_byte( ports[ temp - SERVICE_ID_FIRST ].fd, SER_NO_TIMEOUT );
++      else
++      {
++        temp = -1;
++        for( i = SERVICE_ID_FIRST; i &lt; SERVICE_ID_FIRST + vport_num; i ++ )
++          if( FD_ISSET( ports[ i - SERVICE_ID_FIRST ].fd, &amp;fds ) )
++          {
++            temp = ( int )i;
++            sdata = ser_read_byte( ports[ i - SERVICE_ID_FIRST ].fd, SER_NO_TIMEOUT );
++            break;
++          }
++      }
++      if( temp != -1 )
++      {
++        // We have something to send
++        // Send the service ID first if needed
++        if( temp != service_id_out )
++          transport_send_byte( temp );
++        // Then send the actual data byte, escaping it if needed
++        if( sdata == ESCAPE_CHAR || ( sdata &gt;= SERVICE_ID_FIRST &amp;&amp; sdata &lt;= SERVICE_ID_LAST ) )
++        {
++          transport_send_byte( ESCAPE_CHAR );
++          transport_send_byte( ( u8 )sdata ^ ESCAPE_XOR_MASK );
++        }
++        else
++          transport_send_byte( sdata );
++        service_id_out = temp;
++      }
++    }
++  }
++
++  return 0;
++}
++
+
+Added: branches/mux/mux.py
+===================================================================
+--- branches/mux/mux.py	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/mux.py	2010-02-08 12:47:18 UTC (rev 705)
+@@ -0,0 +1,31 @@
++import os, sys, platform
++
++flist = &quot;main.c&quot;
++cdefs = &quot;&quot;
++if platform.system() == &quot;Windows&quot;:
++  cdefs = &quot;-DWIN32_BUILD&quot;
++  exeprefix = &quot;exe&quot;
++else:
++  exeprefix = &quot;elf&quot;
++
++output = &quot;mux.%s&quot; % exeprefix
++
++full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;mux/%s&quot; % name for name in flist.split() ] )
++if platform.system() == &quot;Windows&quot;:
++  full_files = full_files + &quot; rfs_server/serial_win32.c&quot;
++else:
++  full_files = full_files + &quot; rfs_server/serial_posix.c&quot;
++full_files = full_files + &quot; rfs_server/log.c&quot;
++local_include = &quot;-Imux -Irfs_server -Iinc&quot;
++
++# Compiler/linker options
++cccom = &quot;gcc -m32 -O0 -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++linkcom = &quot;gcc -m32 -pthread -o $TARGET $SOURCES&quot;
++
++# Env for building the program
++comp = Environment( CCCOM = cccom,
++                    LINKCOM = linkcom,
++                    ENV = os.environ )
++Decider( 'MD5' )                  
++Default( comp.Program( output, Split( full_files ) ) )
++
+
+Modified: branches/mux/rfs_server/main.c
+===================================================================
+--- branches/mux/rfs_server/main.c	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/rfs_server/main.c	2010-02-08 12:47:18 UTC (rev 705)
+@@ -26,9 +26,7 @@
+ static void flush_serial()
+ {
+   // Flush all data in serial port
+-  ser_set_timeout_ms( ser, SER_NO_TIMEOUT );
+-  while( ser_read_byte( ser ) != -1 );
+-  ser_set_timeout_ms( ser, SER_INF_TIMEOUT );
++  while( ser_read_byte( ser, SER_NO_TIMEOUT ) != -1 );
+ }
+ 
+ // Read a packet from the serial port
+@@ -40,7 +38,7 @@
+   while( 1 )
+   {
+     // First read the length
+-    if( ( readbytes = ser_read( ser, rfs_buffer, RFS_START_OFFSET ) ) != RFS_START_OFFSET )
++    if( ( readbytes = ser_read( ser, rfs_buffer, RFS_START_OFFSET, SER_INF_TIMEOUT ) ) != RFS_START_OFFSET )
+     {
+       log_msg( &quot;read_request_packet: ERROR reading packet length. Requested %d bytes, got %d bytes\n&quot;, RFS_START_OFFSET, readbytes );
+       flush_serial();
+@@ -55,7 +53,7 @@
+     }
+ 
+     // Then the rest of the data
+-    if( ( readbytes = ser_read( ser, rfs_buffer + RFS_START_OFFSET, temp16 - RFS_START_OFFSET ) ) != temp16 - RFS_START_OFFSET )
++    if( ( readbytes = ser_read( ser, rfs_buffer + RFS_START_OFFSET, temp16 - RFS_START_OFFSET, SER_INF_TIMEOUT ) ) != temp16 - RFS_START_OFFSET )
+     {
+       log_msg( &quot;read_request_packet: ERROR reading full packet, got %u bytes, expected %u bytes\n&quot;, ( unsigned )readbytes, ( unsigned )temp16 - RFS_START_OFFSET );
+       flush_serial();
+
+Modified: branches/mux/rfs_server/serial.h
+===================================================================
+--- branches/mux/rfs_server/serial.h	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/rfs_server/serial.h	2010-02-08 12:47:18 UTC (rev 705)
+@@ -32,8 +32,8 @@
+ ser_handler ser_open( const char *sername );
+ void ser_close( ser_handler id );
+ int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits );
+-u32 ser_read( ser_handler id, u8* dest, u32 maxsize );
+-int ser_read_byte( ser_handler id );
++u32 ser_read( ser_handler id, u8* dest, u32 maxsize, u32 timeout );
++int ser_read_byte( ser_handler id, u32 timeout );
+ u32 ser_write( ser_handler id, const u8 *src, u32 size );
+ u32 ser_write_byte( ser_handler id, u8 data );
+ void ser_set_timeout_ms( ser_handler id, u32 timeout );
+
+Modified: branches/mux/rfs_server/serial_posix.c
+===================================================================
+--- branches/mux/rfs_server/serial_posix.c	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/rfs_server/serial_posix.c	2010-02-08 12:47:18 UTC (rev 705)
+@@ -11,8 +11,6 @@
+ #include &lt;sys/time.h&gt;
+ #include &lt;sys/types.h&gt;
+ 
+-static u32 ser_timeout = SER_INF_TIMEOUT;
+-
+ // Open the serial port
+ ser_handler ser_open( const char* sername )
+ {
+@@ -132,12 +130,12 @@
+ }
+ 
+ // Read up to the specified number of bytes, return bytes actually read
+-u32 ser_read( ser_handler id, u8* dest, u32 maxsize )
++u32 ser_read( ser_handler id, u8* dest, u32 maxsize, u32 timeout )
+ {
+   struct termios termdata;
+ 
+   tcgetattr( id, &amp;termdata );
+-  if( ser_timeout == SER_INF_TIMEOUT )
++  if( timeout == SER_INF_TIMEOUT )
+   {
+     termdata.c_cc[ VMIN ] = maxsize;
+     termdata.c_cc[ VTIME ] = 0;
+@@ -155,8 +153,8 @@
+     tcsetattr( id, TCSANOW, &amp;termdata );
+     FD_ZERO( &amp;readfs );
+     FD_SET( ( int )id, &amp;readfs );
+-    tv.tv_sec = ser_timeout / 1000000;
+-    tv.tv_usec = ( ser_timeout % 1000000 ) * 1000;
++    tv.tv_sec = timeout / 1000000;
++    tv.tv_usec = ( timeout % 1000000 ) * 1000;
+     retval = select( ( int )id + 1, &amp;readfs, NULL, NULL, &amp;tv );
+     if( retval == -1 || retval == 0 )
+       return 0;
+@@ -166,10 +164,10 @@
+ }
+ 
+ // Read a single byte and return it (or -1 for error)
+-int ser_read_byte( ser_handler id )
++int ser_read_byte( ser_handler id, u32 timeout )
+ {
+   u8 data;
+-  int res = ser_read( id, &amp;data, 1 );
++  int res = ser_read( id, &amp;data, 1, timeout );
+ 
+   return res == 1 ? data : -1;
+ }
+@@ -189,9 +187,3 @@
+   return ( u32 )write( id, &amp;data, 1 );
+ }
+ 
+-// Set communication timeout
+-void ser_set_timeout_ms( ser_handler id, u32 timeout )
+-{
+-  ser_timeout = timeout;
+-}
+-
+
+Modified: branches/mux/src/buf.c
+===================================================================
+--- branches/mux/src/buf.c	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/src/buf.c	2010-02-08 12:47:18 UTC (rev 705)
+@@ -6,18 +6,25 @@
+ #define BUF_ENABLE
+ #endif
+ 
++#ifdef BUILD_SERMUX
++#define NUM_TOTAL_UART  ( NUM_UART + SERMUX_NUM_VUART )
++#else
++#define NUM_TOTAL_UART  ( NUM_UART )
++#endif
++
+ #ifdef BUF_ENABLE
+ 
+ #include &quot;buf.h&quot;
+ #include &quot;type.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;utils.h&quot;
++#include &quot;sermux.h&quot;
+ #include &lt;stdlib.h&gt;
+ #include &lt;string.h&gt;
+ 
+ // [TODO]? Following code might need a C99 compiler (for 0-sized arrays)
+ #ifdef BUF_ENABLE_UART
+-  static buf_desc buf_desc_uart[ NUM_UART ];
++  static buf_desc buf_desc_uart[ NUM_TOTAL_UART ];
+ #else
+   static buf_desc buf_desc_uart[ 0 ];
+ #endif
+@@ -48,6 +55,21 @@
+ #define READ16( p )     p
+ #define WRITE16( p, x ) p = x
+ 
++// Helper: check 'resnum' (for virtual UARTs)
++// UART resource ID translation to buffer ID translation (for serial multiplexer support)
++#ifdef BUILD_SERMUX
++static unsigned bufh_check_resnum( unsigned resid, unsigned resnum )
++{
++  if( resid == BUF_ID_UART &amp;&amp; resnum &gt;= SERVICE_ID_FIRST )
++    return resnum - SERVICE_ID_FIRST + NUM_UART;
++  else
++    return resnum;
++}
++#define BUF_CHECK_RESNUM( resid, resnum ) resnum = bufh_check_resnum( resid, resnum )    
++#else
++#define BUF_CHECK_RESNUM( resid, resnum )
++#endif
++
+ // Initialize the buffer of the specified resource
+ // resid - resource ID (BUF_ID_UART ...)
+ // resnum - resource number (0, 1, 2...)
+@@ -57,6 +79,7 @@
+ // Returns 1 on success, 0 on failure
+ int buf_set( unsigned resid, unsigned resnum, u8 logsize, u8 logdsize )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+   
+   pbuf-&gt;logdsize = logdsize;
+@@ -76,6 +99,7 @@
+ // Marks buffer as empty
+ void buf_flush( unsigned resid, unsigned resnum )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+   
+   pbuf-&gt;rptr = pbuf-&gt;wptr = pbuf-&gt;count = 0;
+@@ -89,6 +113,7 @@
+ // [TODO] maybe add a buffer overflow flag
+ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+   const char* s = ( const char* )data;
+   char* d = ( char* )( pbuf-&gt;buf + pbuf-&gt;wptr );
+@@ -110,6 +135,7 @@
+ // resnum - resource number (0, 1, 2...)
+ int buf_is_enabled( unsigned resid, unsigned resnum )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+     
+   return pbuf-&gt;logsize != BUF_SIZE_NONE;
+@@ -118,6 +144,7 @@
+ // Return the size of the buffer in number
+ unsigned buf_get_size( unsigned resid, unsigned resnum )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+     
+   return BUF_REALSIZE( pbuf );
+@@ -126,6 +153,7 @@
+ // Return the size of the data in the buffer
+ unsigned buf_get_count( unsigned resid, unsigned resnum )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+   
+   return READ16( pbuf-&gt;count );  
+@@ -140,6 +168,7 @@
+ //   PLATFORM_UNDERFLOW on buffer empty
+ int buf_read( unsigned resid, unsigned resnum, t_buf_data *data )
+ {
++  BUF_CHECK_RESNUM( resid, resnum );
+   BUF_GETPTR( resid, resnum );
+   
+   if( READ16( pbuf-&gt;count ) == 0 )
+
+Modified: branches/mux/src/common.c
+===================================================================
+--- branches/mux/src/common.c	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/src/common.c	2010-02-08 12:47:18 UTC (rev 705)
+@@ -13,6 +13,7 @@
+ #include &quot;elua_adc.h&quot;
+ #include &quot;term.h&quot;
+ #include &quot;xmodem.h&quot;
++#include &quot;sermux.h&quot;
+ 
+ // ****************************************************************************
+ // XMODEM support code
+@@ -137,6 +138,15 @@
+   // Initialize terminal
+   term_init( TERM_LINES, TERM_COLS, term_out, term_in, term_translate );
+ #endif
++
++#ifdef BUILD_SERMUX
++  // Set buffers for all virtual UARTs
++  unsigned i;
++  unsigned bufsizes [] = SERMUX_BUFFER_SIZES;
++
++  for( i = 0; i &lt; SERMUX_NUM_VUART; i ++ )
++    buf_set( BUF_ID_UART, i + SERVICE_ID_FIRST, bufsizes[ i ], BUF_DSIZE_U8 );
++#endif
+ }
+ 
+ // ****************************************************************************
+@@ -170,12 +180,69 @@
+ // ****************************************************************************
+ // UART functions
+ 
++#ifdef BUILD_SERMUX
++int uart_service_id_in = -1;
++int uart_service_id_out = -1;
++u8 uart_got_esc = 0;
++#endif
++
+ // The platform UART functions
+ int platform_uart_exists( unsigned id )
+ {
++#ifdef BUILD_SERMUX
++  return id &lt; NUM_UART || ( id &gt;= SERVICE_ID_FIRST &amp;&amp; id &lt; SERVICE_ID_FIRST + SERMUX_NUM_VUART );
++#else
+   return id &lt; NUM_UART;
++#endif
+ }
+ 
++// Send: version with and without mux
++void platform_uart_send( unsigned id, u8 data ) 
++{
++#ifdef BUILD_SERMUX
++  if( id != uart_service_id_out )
++    platform_s_uart_send( SERMUX_PHYS_ID, id );
++  if( data == ESCAPE_CHAR || ( data &gt;= SERVICE_ID_FIRST &amp;&amp; data &lt;= SERVICE_ID_LAST ) )
++  {
++    platform_s_uart_send( SERMUX_PHYS_ID, ESCAPE_CHAR );
++    platform_s_uart_send( SERMUX_PHYS_ID, data ^ ESCAPE_XOR_MASK );
++  }
++  else
++    platform_s_uart_send( SERMUX_PHYS_ID, data );
++  uart_service_id_out = id;
++#else
++  platform_s_uart_send( id, data );
++#endif
++}
++
++void cmn_rx_handler( int usart_id, u8 data )
++{
++#ifdef BUILD_SERMUX
++  if( usart_id == SERMUX_PHYS_ID )
++  {
++    if( data != ESCAPE_CHAR )
++    {
++      if( data &gt;= SERVICE_ID_FIRST &amp;&amp; data &lt; SERVICE_ID_LAST + SERMUX_NUM_VUART )
++        uart_service_id_in = data;
++      else
++      {
++        // Check for an escaped char
++        if( uart_got_esc )
++        {
++          data ^= ESCAPE_XOR_MASK;
++          uart_got_esc = 0;
++        }
++        buf_write( BUF_ID_UART, uart_service_id_in, ( t_buf_data* )&amp;data );
++      }
++    }
++    else
++      uart_got_esc = 1;
++  }
++  else
++#endif
++  buf_write( BUF_ID_UART, usart_id, ( t_buf_data* )&amp;data );
++}
++
+ // Helper function for buffers
+ static int cmn_recv_helper( unsigned id, s32 timeout )
+ {
+
+Modified: branches/mux/src/platform/stm32/platform.c
+===================================================================
+--- branches/mux/src/platform/stm32/platform.c	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/src/platform/stm32/platform.c	2010-02-08 12:47:18 UTC (rev 705)
+@@ -34,6 +34,7 @@
+ // Max SysTick preload value is 16777215, for STM32F103RET6 @ 72 MHz, lowest acceptable rate would be about 5 Hz
+ #define SYSTICKHZ               10  
+ #define SYSTICKMS               (1000 / SYSTICKHZ)
++
+ // ****************************************************************************
+ // Platform initialization
+ 
+@@ -150,13 +151,13 @@
+   NVIC_Init(&amp;nvic_init_structure_adc);
+ #endif
+ 
+-#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
++#if defined( BUF_ENABLE_UART ) &amp;&amp; ( defined( CON_BUF_SIZE ) || defined( BUILD_SERMUX ) )
+   /* Enable the USART1 Interrupt */
+   // [TODO]: this is hardcoded, and it shouldn't be
+-  nvic_init_structure.NVIC_IRQChannel = USART3_IRQn;
++/*  nvic_init_structure.NVIC_IRQChannel = USART3_IRQn;
+   nvic_init_structure.NVIC_IRQChannelSubPriority = 0;
+   nvic_init_structure.NVIC_IRQChannelCmd = ENABLE;
+-  NVIC_Init(&amp;nvic_init_structure);
++  NVIC_Init(&amp;nvic_init_structure);*/
+   nvic_init_structure.NVIC_IRQChannel = USART1_IRQn;
+   nvic_init_structure.NVIC_IRQChannelSubPriority = 0;
+   nvic_init_structure.NVIC_IRQChannelCmd = ENABLE;
+@@ -550,7 +551,7 @@
+   {
+     /* Read one byte from the receive data register */
+     c = USART_ReceiveData( usart[ usart_id ] );
+-    buf_write( BUF_ID_UART, usart_id, ( t_buf_data* )&amp;c );
++    cmn_rx_handler( usart_id, c );
+   }
+ }
+ 
+@@ -591,7 +592,7 @@
+   /* Configure USART */
+   USART_Init(usart[id], initVals);
+   
+-#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
++#if defined( BUF_ENABLE_UART ) &amp;&amp; ( defined( CON_BUF_SIZE ) || defined( BUILD_SERMUX ) )
+   /* Enable USART1 Receive and Transmit interrupts */
+   USART_ITConfig(usart[id], USART_IT_RXNE, ENABLE);
+   //USART_ITConfig(usart[id], USART_IT_TXE, ENABLE);
+@@ -612,6 +613,7 @@
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4, ENABLE);
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART5, ENABLE);
+ 
++#ifndef BUILD_SERMUX
+   // Configure the U(S)ART
+   USART_InitStructure.USART_BaudRate = CON_UART_SPEED;
+   USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+@@ -622,10 +624,22 @@
+ 
+ #if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+   buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, BUF_DSIZE_U8 );
+-#endif
++#endif // #if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+ 
+   usart_init(CON_UART_ID, &amp;USART_InitStructure);
+ 
++#else // #ifndef BUILD_SERMUX
++
++  // Configure the U(S)ART
++  USART_InitStructure.USART_BaudRate = SERMUX_PHYS_SPEED;
++  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
++  USART_InitStructure.USART_StopBits = USART_StopBits_1;
++  USART_InitStructure.USART_Parity = USART_Parity_No;
++  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
++  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
++  usart_init( SERMUX_PHYS_ID, &amp;USART_InitStructure );
++#endif // #ifndef BUILD_SERMUX
++
+ }
+ 
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+@@ -684,7 +698,7 @@
+   return TRUE;
+ }
+ 
+-void platform_uart_send( unsigned id, u8 data )
++void platform_s_uart_send( unsigned id, u8 data )
+ {
+   while(USART_GetFlagStatus(usart[id], USART_FLAG_TXE) == RESET)
+   {
+
+Modified: branches/mux/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/mux/src/platform/stm32/platform_conf.h	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/src/platform/stm32/platform_conf.h	2010-02-08 12:47:18 UTC (rev 705)
+@@ -7,6 +7,7 @@
+ #include &quot;type.h&quot;
+ #include &quot;stacks.h&quot;
+ #include &quot;stm32f10x.h&quot;
++#include &quot;sermux.h&quot;
+ 
+ // *****************************************************************************
+ // Define here what components you want for this platform
+@@ -23,13 +24,14 @@
+ #define BUILD_ADC
+ #define BUILD_RPC
+ #define BUILD_RFS
++#define BUILD_SERMUX
+ //#define BUILD_CON_TCP
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+ 
+-#define CON_UART_ID           2
+-#define CON_UART_SPEED        19200
++#define CON_UART_ID           SERVICE_ID_FIRST
++#define CON_BUF_SIZE          BUF_SIZE_128
+ #define CON_TIMER_ID          0
+ #define TERM_LINES            25
+ #define TERM_COLS             80
+@@ -133,16 +135,13 @@
+ #define RPC_TIMER_ID          CON_TIMER_ID
+ #define RPC_UART_SPEED        CON_UART_SPEED
+ 
+-
+-
+-
+ // MMCFS Support (FatFs on SD/MMC)
+ // For STM32F103RET6 - PA5 = CLK, PA6 = MISO, PA7 = MOSI, PA8 = CS
+-#define MMCFS_TICK_HZ                10
+-#define MMCFS_TICK_MS                ( 1000 / MMCFS_TICK_HZ )
+-#define MMCFS_CS_PORT                0
+-#define MMCFS_CS_PIN                 8
+-#define MMCFS_SPI_NUM                0
++#define MMCFS_TICK_HZ        10
++#define MMCFS_TICK_MS        ( 1000 / MMCFS_TICK_HZ )
++#define MMCFS_CS_PORT        0
++#define MMCFS_CS_PIN         8
++#define MMCFS_SPI_NUM        0 
+ 
+ // CPU frequency (needed by the CPU module, 0 if not used)
+ u32 platform_s_cpu_get_frequency();
+@@ -158,11 +157,17 @@
+ 
+ // Remote file system data
+ #define RFS_BUFFER_SIZE       BUF_SIZE_512
+-#define RFS_UART_ID           0
++#define RFS_UART_ID           ( SERVICE_ID_FIRST + 1 )
+ #define RFS_TIMER_ID          0
+ #define RFS_TIMEOUT           100000
+ #define RFS_UART_SPEED        115200
+ 
++// Serial multiplexer
++#define SERMUX_PHYS_ID        0
++#define SERMUX_PHYS_SPEED     115200
++#define SERMUX_NUM_VUART      2
++#define SERMUX_BUFFER_SIZES   { CON_BUF_SIZE, RFS_BUFFER_SIZE }
++
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+ #define SRAM_SIZE             ( 64 * 1024 )
+
+Modified: branches/mux/src/remotefs/elua_rfs.c
+===================================================================
+--- branches/mux/src/remotefs/elua_rfs.c	2010-02-08 11:27:36 UTC (rev 704)
++++ branches/mux/src/remotefs/elua_rfs.c	2010-02-08 12:47:18 UTC (rev 705)
+@@ -175,9 +175,9 @@
+ {
+ #if defined( RFS_UART_ID ) &amp;&amp; defined( RFS_UART_SPEED )
+   // Initialize RFS UART
+-  platform_uart_setup( RFS_UART_ID, RFS_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
++//  platform_uart_setup( RFS_UART_ID, RFS_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+   // [TODO] this isn't exactly right
+-  buf_set( BUF_ID_UART, RFS_UART_ID, RFS_BUFFER_SIZE, BUF_DSIZE_U8 ); 
++//  buf_set( BUF_ID_UART, RFS_UART_ID, RFS_BUFFER_SIZE, BUF_DSIZE_U8 ); 
+ #endif
+ #ifdef ELUA_CPU_LINUX 
+   // Open our read/write pipes
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000657.html">[Elua-svn] r704 - branches
+</A></li>
+	<LI>Next message: <A HREF="000659.html">[Elua-svn] r706 - trunk/rfs_server
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#658">[ date ]</a>
+              <a href="thread.html#658">[ thread ]</a>
+              <a href="subject.html#658">[ subject ]</a>
+              <a href="author.html#658">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

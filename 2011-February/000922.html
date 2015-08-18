@@ -1,0 +1,486 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r969 - in trunk: . src/platform/at91sam7x	src/platform/i386 src/platform/lm3s src/platform/lpc17xx	src/platform/sim utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r969%20-%20in%20trunk%3A%20.%20src/platform/at91sam7x%0A%09src/platform/i386%20src/platform/lm3s%20src/platform/lpc17xx%0A%09src/platform/sim%20utils&In-Reply-To=%3C20110221232954.88D2648126D%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000921.html">
+   <LINK REL="Next"  HREF="000923.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r969 - in trunk: . src/platform/at91sam7x	src/platform/i386 src/platform/lm3s src/platform/lpc17xx	src/platform/sim utils</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r969%20-%20in%20trunk%3A%20.%20src/platform/at91sam7x%0A%09src/platform/i386%20src/platform/lm3s%20src/platform/lpc17xx%0A%09src/platform/sim%20utils&In-Reply-To=%3C20110221232954.88D2648126D%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r969 - in trunk: . src/platform/at91sam7x	src/platform/i386 src/platform/lm3s src/platform/lpc17xx	src/platform/sim utils">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Feb 22 00:29:54 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000921.html">[Elua-svn] r968 - in trunk: . src/platform/avr32 src/platform/stm32	utils
+</A></li>
+        <LI>Next message: <A HREF="000923.html">[Elua-svn] r970 - in trunk: . rfs_server_src src/platform/lpc24xx	src/platform/lpc288x src/platform/str7 src/platform/str9 utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#922">[ date ]</a>
+              <a href="thread.html#922">[ thread ]</a>
+              <a href="subject.html#922">[ subject ]</a>
+              <a href="author.html#922">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-22 00:29:54 +0100 (Tue, 22 Feb 2011)
+New Revision: 969
+
+Added:
+   trunk/src/platform/at91sam7x/conf.lua
+   trunk/src/platform/i386/conf.lua
+   trunk/src/platform/lm3s/conf.lua
+   trunk/src/platform/lpc17xx/conf.lua
+   trunk/src/platform/sim/conf.lua
+Modified:
+   trunk/build_elua.lua
+   trunk/utils/build.lua
+Log:
+added more platforms to the new build script; fixed issue that prevented compilation under Windows
+
+Modified: trunk/build_elua.lua
+===================================================================
+--- trunk/build_elua.lua	2011-02-21 16:08:55 UTC (rev 968)
++++ trunk/build_elua.lua	2011-02-21 23:29:54 UTC (rev 969)
+@@ -31,6 +31,15 @@
+   table.insert( cflags, data )
+ end
+ 
++-- Delete a compiler flag
++function delcf( data )
++  cflags = utils.linearize_array( cflags )
++  for _, v in pairs( data ) do
++    local i = utils.array_element_index( cflags, v )
++    if i then table.remove( cflags, i ) end
++  end
++end
++
+ -- Add a linker flag
+ function addlf( data )
+   table.insert( lflags, data )
+@@ -264,6 +273,7 @@
+ builder:add_option( 'optram', 'enables Lua Tiny RAM enhancements', true )
+ builder:add_option( 'boot', 'boot mode, standard will boot to shell, luarpc boots to an rpc server', 'standard', { 'standard' , 'luarpc' } )
+ builder:add_option( 'romfs', 'ROMFS compilation mode', 'verbatim', { 'verbatim' , 'compress', 'compile' } )
++builder:add_option( 'cpumode', 'ARM CPU compilation mode (only affects certain ARM targets)', nil, { 'arm', 'thumb' } )
+ builder:init( args )
+ builder:set_build_mode( builder.BUILD_DIR_LINEARIZED )
+ 
+@@ -356,7 +366,7 @@
+ end    
+ 
+ -- Build the compilation command now
+-local compcmd = ''
++local fscompcmd = ''
+ if comp.romfs == 'compile' then
+   local suffix = ''
+   if utils.is_windows() then
+@@ -369,10 +379,9 @@
+     os.exit( -1 )
+   end
+   local cmdpath = { lfs.currentdir(), sf( 'luac.cross%s -ccn %s -cce %s -o %%s -s %%s', suffix, toolset[ &quot;cross_&quot; .. comp.target:lower() ], toolset.cross_cpumode:lower() ) }
+-  compcmd = table.concat( cmdpath, utils.dir_sep )
+-  print( compcmd )
++  fscompcmd = table.concat( cmdpath, utils.dir_sep )
+ elseif comp.romfs == 'compress' then
+-  compcmd = 'lua luasrcdiet.lua --quiet --maximum --opt-comments --opt-whitespace --opt-emptylines --opt-eols --opt-strings --opt-numbers --opt-locals -o %s %s'
++  fscompcmd = 'lua luasrcdiet.lua --quiet --maximum --opt-comments --opt-whitespace --opt-emptylines --opt-eols --opt-strings --opt-numbers --opt-locals -o %s %s'
+ end
+ 
+ -- Output file
+@@ -484,7 +493,7 @@
+     table.insert( flist, romfs[ sample ] )
+   end
+   flist = utils.linearize_array( flist )  
+-  if not mkfs.mkfs( romdir, &quot;romfiles&quot;, flist, comp.romfs, compcmd ) then return -1 end
++  if not mkfs.mkfs( romdir, &quot;romfiles&quot;, flist, comp.romfs, fscompcmd ) then return -1 end
+   if utils.is_file( &quot;inc/romfiles.h&quot; ) then
+     -- Read both the old and the new file
+     local oldfile = io.open( &quot;inc/romfiles.h&quot;, &quot;rb&quot; )
+@@ -507,9 +516,9 @@
+ end
+ 
+ -- Command lines for the tools (compiler, linker, assembler)
+-compcmd = builder:compile_cmd{ flags = cflags, defines = cdefs, includes = includes, compiler = toolset.compile }
+-linkcmd = builder:link_cmd{ flags = lflags, libraries = libs, linker = toolset.compile }
+-ascmd = builder:asm_cmd{ flags = asflags, defines = cdefs, includes = includes, assembler = toolset.asm }
++compcmd = compcmd or builder:compile_cmd{ flags = cflags, defines = cdefs, includes = includes, compiler = toolset.compile }
++linkcmd = linkcmd or builder:link_cmd{ flags = lflags, libraries = libs, linker = toolset.compile }
++ascmd = ascmd or builder:asm_cmd{ flags = asflags, defines = cdefs, includes = includes, assembler = toolset.asm }
+ builder:set_compile_cmd( compcmd )
+ builder:set_link_cmd( linkcmd )
+ builder:set_asm_cmd( ascmd )
+
+Added: trunk/src/platform/at91sam7x/conf.lua
+===================================================================
+--- trunk/src/platform/at91sam7x/conf.lua	                        (rev 0)
++++ trunk/src/platform/at91sam7x/conf.lua	2011-02-21 23:29:54 UTC (rev 969)
+@@ -0,0 +1,60 @@
++-- Configuration file for the AT91SAM7X(256/512) backend
++
++local cpumode = ( builder:get_option( 'cpumode' ) or 'thumb' ):lower()
++
++specific_files = &quot;board_cstartup.s board_lowlevel.c board_memories.c usart.c pmc.c pio.c platform.c tc.c pwmc.c aic.c platform_int.c&quot;
++local ldscript
++if comp.cpu:upper() == 'AT91SAM7X256' then
++  ldscript = &quot;flash256.lds&quot;
++  addm( 'at91sam7x256' )
++elseif comp.cpu:upper() == 'AT91SAM7X512' then
++  ldscript = &quot;flash512.lds&quot;
++  addm( 'at91sam7x512' )
++else
++  print( sf( &quot;Invalid AT91SAM7X CPU %s&quot;, comp.cpu ) )
++  os.exit( -1 )
++end
++
++addm( { 'NOASSERT','NOTRACE' } )
++  
++-- Prepend with path
++specific_files = utils.prepend_path( specific_files, sf( &quot;src/platform/%s&quot;, platform ) )
++specific_files = specific_files .. &quot; src/platform/arm_utils.s src/platform/arm_cortex_interrupts.c&quot;
++ldscript = sf( &quot;src/platform/%s/%s&quot;, platform, ldscript )
++
++addcf( { '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' } )
++addlf( { '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' } )
++addaf( { '-x', 'assembler-with-cpp', '-Wall' } )
++addlib( { 'c','gcc','m' } )
++
++local target_flags = '-mcpu=arm7tdmi'
++if cpumode == 'thumb' then
++  target_flags = target_flags .. ' -mthumb'
++  addm( 'CPUMODE_THUMB' )
++else
++  addm( 'CPUMODE_ARM' )
++end
++
++-- Configure general flags for target
++addcf( target_flags )
++addlf( { target_flags, '-Wl,-e,entry' } )
++addaf( { target_flags, '-D__ASSEMBLY__' } )
++
++-- Toolset data
++tools.at91sam7x = {}
++
++-- Programming function for AT91SAM7X
++tools.at91sam7x.progfunc = function( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  print &quot;Generating binary image...&quot;
++  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
++  return 0
++end
++ 
++-- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
++tools.at91sam7x.prog_flist = { output .. &quot;.bin&quot; }
++
++-- We use 'gcc' as the assembler
++toolset.asm = toolset.compile
++
+
+Added: trunk/src/platform/i386/conf.lua
+===================================================================
+--- trunk/src/platform/i386/conf.lua	                        (rev 0)
++++ trunk/src/platform/i386/conf.lua	2011-02-21 23:29:54 UTC (rev 969)
+@@ -0,0 +1,36 @@
++-- Configuration file for the i386 backend
++
++specific_files = &quot;boot.s common.c descriptor_tables.c gdt.s interrupt.s isr.c kb.c  monitor.c timer.c platform.c&quot;
++local ldscript = &quot;i386.ld&quot;
++  
++-- Prepend with path
++specific_files = utils.prepend_path( specific_files, sf( &quot;src/platform/%s&quot;, platform ) )
++ldscript = sf( &quot;src/platform/%s/%s&quot;, platform, ldscript )
++
++-- Standard GCC Flags
++addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
++addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
++addlib{ 'c','gcc','m' }
++
++local target_flags = { '-march=i386','-mfpmath=387', '-m32' }
++
++addcf{ target_flags, '-fno-builtin', '-fno-stack-protector' }
++addlf{ target_flags, '-Wl,-e,start' }
++addaf{ '-felf' }
++
++-- Need to force the assembler command as we're using nasm
++ascmd = &quot;nasm -felf -o $(TARGET) $(FIRST)&quot;
++-- Also tell the builder that we don't need dependency checks for assembler files
++builder:set_asm_dep_cmd( false )
++
++-- Toolset data
++tools.i386 = {}
++
++-- Programming function for i386 (not needed, empty function)
++tools.i386.progfunc = function( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  print &quot;Visit <A HREF="http://www.eluaproject.net">http://www.eluaproject.net</A> for instructions on how to use your eLua ELF file&quot;
++  return 0
++end
++
+
+Added: trunk/src/platform/lm3s/conf.lua
+===================================================================
+--- trunk/src/platform/lm3s/conf.lua	                        (rev 0)
++++ trunk/src/platform/lm3s/conf.lua	2011-02-21 23:29:54 UTC (rev 969)
+@@ -0,0 +1,56 @@
++-- Configuration file for the LM3S microcontroller
++
++specific_files = &quot;startup_gcc.c platform.c uart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c can.c platform_int.c&quot;
++
++local board = comp.board:upper()
++if board == 'EK-LM3S1968' or board == 'EK-LM3S6965' or board == 'EK-LM3S8962' then
++  specific_files = specific_files .. &quot; rit128x96x4.c disp.c&quot;
++  addm 'ENABLE_DISP' 
++end
++
++-- The default for the Eagle 100 board is to start the image at 0x2000,
++-- so that the built in Ethernet boot loader can be used to upload it
++if board == 'EAGLE-100' then
++  addlf '-Wl,-Ttext,0x2000'
++end
++
++local ldscript = board == 'EK-LM3S9B92' and &quot;lm3s-9b92.ld&quot; or &quot;lm3s.ld&quot;
++
++-- Prepend with path
++specific_files = utils.prepend_path( specific_files, sf( &quot;src/platform/%s&quot;, platform) )
++specific_files = specific_files .. &quot; src/platform/cortex_utils.s src/platform/arm_cortex_interrupts.c&quot;
++ldscript = sf( &quot;src/platform/%s/%s&quot;, platform, ldscript )
++
++addm{ &quot;FOR&quot; .. comp.cpu:upper(), 'gcc', 'CORTEX_M3' }
++
++-- Standard GCC flags
++addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
++addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
++addaf{ '-x', 'assembler-with-cpp', '-Wall' }
++addlib{ 'c','gcc','m' }
++
++local target_flags =  {'-mcpu=cortex-m3','-mthumb' }
++
++-- Configure general flags for target
++addcf{ target_flags, '-mlittle-endian' }
++addlf{ target_flags, '-Wl,-e,ResetISR', '-Wl,-static' }
++addaf( target_flags )
++
++-- Toolset data
++tools.lm3s = {}
++
++-- Programming function
++tools.lm3s.progfunc = function( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  print &quot;Generating binary image...&quot;
++  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
++  return 0
++end
++
++-- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
++tools.lm3s.prog_flist = { output .. &quot;.bin&quot; }
++
++-- We use 'gcc' as the assembler
++toolset.asm = toolset.compile
++
+
+Added: trunk/src/platform/lpc17xx/conf.lua
+===================================================================
+--- trunk/src/platform/lpc17xx/conf.lua	                        (rev 0)
++++ trunk/src/platform/lpc17xx/conf.lua	2011-02-21 23:29:54 UTC (rev 969)
+@@ -0,0 +1,47 @@
++-- Configuration file for the LPC17xx backend
++
++addi( sf( 'src/platform/%s/drivers/inc', platform ) )
++
++local fwlib_files = utils.get_files( sf( &quot;src/platform/%s/drivers/src&quot;, platform ), &quot;.*%.c$&quot; )
++specific_files = &quot;startup_LPC17xx.c system_LPC17xx.c core_cm3.c platform.c mbed_pio.c&quot;
++
++local ldscript = &quot;LPC17xx.ld&quot;
++ 
++-- Prepend with path
++specific_files = fwlib_files .. &quot; &quot; .. utils.prepend_path( specific_files, sf( &quot;src/platform/%s&quot;, platform ) )
++specific_files = specific_files .. &quot; src/platform/cortex_utils.s src/platform/arm_cortex_interrupts.c&quot;
++ldscript = sf( &quot;src/platform/%s/%s&quot;, platform, ldscript )
++
++addm{ &quot;FOR&quot; .. comp.cpu:upper(), 'gcc', 'CORTEX_M3' }
++
++-- Standard GCC flags
++addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
++addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
++addaf{ '-x', 'assembler-with-cpp', '-Wall' }
++addlib{ 'c','gcc','m' }
++
++local target_flags = { '-mcpu=cortex-m3','-mthumb' }
++
++-- Configure general flags for target
++addcf{ target_flags, '-mlittle-endian' }
++addlf{ target_flags, '-Wl,-e,Reset_Handler', '-Wl,-static' }
++addaf{ target_flags }
++
++-- Toolset data
++tools.lpc17xx = {}
++
++-- Programming function
++tools.lpc17xx.progfunc = function( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  print &quot;Generating binary image...&quot;
++  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
++  return 0
++end
++
++-- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
++tools.lpc17xx.prog_flist = { output .. &quot;.bin&quot; }
++
++-- We use 'gcc' as the assembler
++toolset.asm = toolset.compile
++
+
+Added: trunk/src/platform/sim/conf.lua
+===================================================================
+--- trunk/src/platform/sim/conf.lua	                        (rev 0)
++++ trunk/src/platform/sim/conf.lua	2011-02-21 23:29:54 UTC (rev 969)
+@@ -0,0 +1,38 @@
++-- Configuration file for the linux (sim) backend
++
++specific_files = sf( &quot;boot.s utils.s hostif_%s.c platform.c host.c&quot;, comp.cpu:lower() )
++local ldscript = &quot;i386.ld&quot;
++  
++-- Override default optimize settings
++delcf{ &quot;-Os&quot;, &quot;-fomit-frame-pointer&quot; }
++addcf{ &quot;-O0&quot;, &quot;-g&quot; }
++
++-- Prepend with path
++specific_files = utils.prepend_path( specific_files, sf( &quot;src/platform/%s&quot;, platform ) )
++local ldscript = sf( &quot;src/platform/%s/%s&quot;, platform, ldscript ) 
++
++-- Standard GCC flags
++addcf{ '-ffunction-sections', '-fdata-sections', '-fno-strict-aliasing', '-Wall' }
++addlf{ '-nostartfiles', '-nostdlib', '-T', ldscript, '-Wl,--gc-sections', '-Wl,--allow-multiple-definition' }
++addlib{ 'c','gcc','m' }
++
++local target_flags = { '-march=i386','-mfpmath=387','-m32' }
++
++addcf{ target_flags, '-fno-builtin', '-fno-stack-protector' }
++addlf{ target_flags, '-Wl,-e,start', '-Wl,-static' }
++addaf{ '-felf' }
++
++-- Need to force the assembler command as we're using nasm
++ascmd = &quot;nasm -felf -o $(TARGET) $(FIRST)&quot;
++-- Also tell the builder that we don't need dependency checks for assembler files
++builder:set_asm_dep_cmd( false )
++
++-- Toolset data
++tools.sim = {}
++
++-- Programming function for i386 (not needed, empty function)
++tools.sim.progfunc = function( target, deps )
++  print &quot;Run the simulator (./run_elua_sim.sh) and enjoy :) Linux only.&quot;
++  return 0
++end
++
+
+Modified: trunk/utils/build.lua
+===================================================================
+--- trunk/utils/build.lua	2011-02-21 16:08:55 UTC (rev 968)
++++ trunk/utils/build.lua	2011-02-21 23:29:54 UTC (rev 969)
+@@ -36,8 +36,7 @@
+ 
+ -- 'Liniarize' a file name by replacing its path separators indicators with '_'
+ local function linearize_fname( s )
+-  local fmt = &quot;%&quot; .. dir_sep
+-  return ( s:gsub( fmt, &quot;__&quot; ) )
++  return ( s:gsub( &quot;[\\/]&quot;, &quot;__&quot; ) )
+ end
+ 
+ -- Helper: transform a table into a string if needed
+@@ -517,7 +516,7 @@
+     if values then
+       print( sf( &quot;    Possible values: %s&quot;, values ) )
+     end
+-    print( sf( &quot;    Default value: %s&quot;, default ) )
++    print( sf( &quot;    Default value: %s&quot;, default or &quot;none (changes at runtime)&quot; ) )
+   end
+ end
+ 
+@@ -574,6 +573,12 @@
+   return self.targetargs
+ end
+ 
++-- Set a specific dependency generation command for the assembler
++-- Pass 'false' to skip dependency generation for assembler files
++builder.set_asm_dep_cmd = function( self, asm_dep_cmd ) 
++  self.asm_dep_cmd = asm_dep_cmd
++end
++
+ ---------------------------------------
+ -- Command line builders
+ 
+@@ -701,9 +706,14 @@
+   deptargets = deptargets or {}
+   for i = 1, #ftable do
+     local isasm = ftable[ i ]:find( &quot;%.c$&quot; ) == nil
+-    local cmd = isasm and self.asm_cmd or self.comp_cmd
+-    local target = self:dep_target( ftable[ i ], initdep[ ftable[ i ] ], cmd:gsub( &quot;-c &quot;, &quot;-E -MM &quot; ) )
+-    table.insert( deptargets, target )
++    -- Skip assembler targets if 'asm_dep_cmd' is set to 'false'
++    if not isasm or self.asm_dep_cmd ~= false then
++      local cmd = isasm and self.asm_cmd or self.comp_cmd
++      local depcmd = cmd:gsub( &quot;-c &quot;, &quot;-E -MM &quot; )
++      if isasm and self.asm_dep_cmd then depcmd = self.asm_dep_cmd end
++      local target = self:dep_target( ftable[ i ], initdep[ ftable[ i ] ], depcmd )
++      table.insert( deptargets, target )
++    end
+   end
+   local t = self:target( &quot;#phony:deps&quot;, deptargets )
+   t:build()
+@@ -728,10 +738,11 @@
+   -- Build dependencies for all targets
+   for i = 1, #ftable do
+     local target 
++    local deps = self.dtable and self.dtable[ ftable[ i ] ]
+     if ftable[ i ]:find( &quot;%.c$&quot; ) then
+-      target = self:c_target( self:obj_name( ftable[ i ] ), self.dtable and self.dtable[ ftable[ i ] ] )
++      target = self:c_target( self:obj_name( ftable[ i ] ), deps )
+     else
+-      target = self:asm_target( self:obj_name( ftable[ i ] ), self.dtable and self.dtable[ ftable[ i ] ] )
++      target = self:asm_target( self:obj_name( ftable[ i ] ), deps )
+     end
+     table.insert( res, target )
+   end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000921.html">[Elua-svn] r968 - in trunk: . src/platform/avr32 src/platform/stm32	utils
+</A></li>
+	<LI>Next message: <A HREF="000923.html">[Elua-svn] r970 - in trunk: . rfs_server_src src/platform/lpc24xx	src/platform/lpc288x src/platform/str7 src/platform/str9 utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#922">[ date ]</a>
+              <a href="thread.html#922">[ thread ]</a>
+              <a href="subject.html#922">[ subject ]</a>
+              <a href="author.html#922">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r644 - in branches/pre0.7: . src/serial
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r644%20-%20in%20branches/pre0.7%3A%20.%20src/serial&In-Reply-To=%3C201001141938.o0EJcJno013135%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000599.html">
+   <LINK REL="Next"  HREF="000601.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r644 - in branches/pre0.7: . src/serial</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r644%20-%20in%20branches/pre0.7%3A%20.%20src/serial&In-Reply-To=%3C201001141938.o0EJcJno013135%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r644 - in branches/pre0.7: . src/serial">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Jan 14 20:38:19 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000599.html">[Elua-svn] r643 - in branches/pre0.7: . inc inc/serial src	src/serial
+</A></li>
+        <LI>Next message: <A HREF="000601.html">[Elua-svn] r645 - branches/pre0.7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#600">[ date ]</a>
+              <a href="thread.html#600">[ thread ]</a>
+              <a href="subject.html#600">[ subject ]</a>
+              <a href="author.html#600">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-01-14 20:38:19 +0100 (Thu, 14 Jan 2010)
+New Revision: 644
+
+Modified:
+   branches/pre0.7/rpc-lua.py
+   branches/pre0.7/src/serial/serial_posix.c
+   branches/pre0.7/src/serial/serial_win32.c
+Log:
+Adjustments for LuaRPC Win32 support.
+
+Modified: branches/pre0.7/rpc-lua.py
+===================================================================
+--- branches/pre0.7/rpc-lua.py	2010-01-14 19:37:10 UTC (rev 643)
++++ branches/pre0.7/rpc-lua.py	2010-01-14 19:38:19 UTC (rev 644)
+@@ -9,7 +9,13 @@
+    ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c print.c lrotable.c&quot;&quot;&quot;
+ lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
+ lua_full_files += &quot; src/modules/luarpc.c src/luarpc_posix_serial.c &quot;
+-lua_full_files += &quot; src/serial/serial_posix.c&quot;
++
++if platform.system() == &quot;Windows&quot;:
++  lua_full_files += &quot; src/serial/serial_win32.c&quot;
++  cdefs = &quot; -DWIN32_BUILD &quot;
++else:
++  lua_full_files += &quot; src/serial/serial_posix.c&quot;
++
+ local_include = &quot;-Isrc/lua -Iinc -Isrc/modules -Iinc/serial&quot;
+ 
+ # Compiler/linker options
+
+Modified: branches/pre0.7/src/serial/serial_posix.c
+===================================================================
+--- branches/pre0.7/src/serial/serial_posix.c	2010-01-14 19:37:10 UTC (rev 643)
++++ branches/pre0.7/src/serial/serial_posix.c	2010-01-14 19:38:19 UTC (rev 644)
+@@ -123,6 +123,8 @@
+ 
+   // And set blocking mode by default
+   fcntl( id, F_SETFL, 0 );
++  
++  return SER_OK;
+ }
+ 
+ // Read up to the specified number of bytes, return bytes actually read
+
+Modified: branches/pre0.7/src/serial/serial_win32.c
+===================================================================
+--- branches/pre0.7/src/serial/serial_win32.c	2010-01-14 19:37:10 UTC (rev 643)
++++ branches/pre0.7/src/serial/serial_win32.c	2010-01-14 19:38:19 UTC (rev 644)
+@@ -147,3 +147,13 @@
+     ser_win32_set_timeouts( id, 0, 0, timeout, 0, 0 );
+ }
+ 
++int ser_readable( ser_handler id )
++{
++  COMSTAT comStat;
++  DWORD   dwErrors;
++  HANDLE hComm = ( HANDLE )id;
++  
++  ClearCommError(hComm, &amp;dwErrors, &amp;comStat)
++  
++  return ( comState.cbInQue &gt; 0 );
++}
+\ No newline at end of file
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000599.html">[Elua-svn] r643 - in branches/pre0.7: . inc inc/serial src	src/serial
+</A></li>
+	<LI>Next message: <A HREF="000601.html">[Elua-svn] r645 - branches/pre0.7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#600">[ date ]</a>
+              <a href="thread.html#600">[ thread ]</a>
+              <a href="subject.html#600">[ subject ]</a>
+              <a href="author.html#600">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

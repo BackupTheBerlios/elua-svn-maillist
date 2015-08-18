@@ -1,0 +1,1468 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r626 - in branches/remotefs: . rfs_server src/remotefs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r626%20-%20in%20branches/remotefs%3A%20.%20rfs_server%20src/remotefs&In-Reply-To=%3C201001110017.o0B0HNBT014380%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000581.html">
+   <LINK REL="Next"  HREF="000583.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r626 - in branches/remotefs: . rfs_server src/remotefs</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r626%20-%20in%20branches/remotefs%3A%20.%20rfs_server%20src/remotefs&In-Reply-To=%3C201001110017.o0B0HNBT014380%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r626 - in branches/remotefs: . rfs_server src/remotefs">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Jan 11 01:17:23 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000581.html">[Elua-svn] r625 - trunk/src/platform/lpc17xx
+</A></li>
+        <LI>Next message: <A HREF="000583.html">[Elua-svn] r627 - in branches/pre0.7/doc: . en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#582">[ date ]</a>
+              <a href="thread.html#582">[ thread ]</a>
+              <a href="subject.html#582">[ subject ]</a>
+              <a href="author.html#582">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-01-11 01:17:17 +0100 (Mon, 11 Jan 2010)
+New Revision: 626
+
+Added:
+   branches/remotefs/rfs_server.py
+   branches/remotefs/rfs_server/
+   branches/remotefs/rfs_server/client.c
+   branches/remotefs/rfs_server/client.h
+   branches/remotefs/rfs_server/log.c
+   branches/remotefs/rfs_server/log.h
+   branches/remotefs/rfs_server/main.c
+   branches/remotefs/rfs_server/os_io.h
+   branches/remotefs/rfs_server/os_io_posix.c
+   branches/remotefs/rfs_server/os_io_win32.c
+   branches/remotefs/rfs_server/rtype.h
+   branches/remotefs/rfs_server/serial.h
+   branches/remotefs/rfs_server/serial_posix.c
+   branches/remotefs/rfs_server/serial_win32.c
+   branches/remotefs/rfs_server/server.c
+   branches/remotefs/rfs_server/server.h
+   branches/remotefs/rfs_server/type.h
+Modified:
+   branches/remotefs/src/remotefs/client.c
+   branches/remotefs/src/remotefs/elua_rfs.c
+Log:
+more work into the RFS, added the server part to SVN (tested under Linux and Windows, the POSIX implementation of serial port handling still has some issues)
+
+Added: branches/remotefs/rfs_server/client.c
+===================================================================
+--- branches/remotefs/rfs_server/client.c	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/client.c	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,139 @@
++// Remote filesystem client
++
++#include &lt;string.h&gt;
++#include &quot;remotefs.h&quot;
++#include &quot;client.h&quot;
++#include &quot;os_io.h&quot;
++
++// ****************************************************************************
++// Client local data
++
++static u8 *rfsc_buffer;
++static p_rfsc_send rfsc_send;
++static p_rfsc_recv rfsc_recv;
++static u32 rfsc_timeout;
++
++// ****************************************************************************
++// Client helpers
++
++static int rfsch_send_request_read_response()
++{
++  u16 temp16;
++
++  // Send request
++  if( remotefs_get_packet_size( rfsc_buffer, &amp;temp16 ) == REMOTEFS_ERR )
++    return CLIENT_ERR;
++  if( rfsc_send( rfsc_buffer, temp16 ) != temp16 )
++    return CLIENT_ERR;
++  
++  // Get response
++  // First the length, then the rest of the data
++  if( rfsc_recv( rfsc_buffer, RFS_START_OFFSET, rfsc_timeout ) != RFS_START_OFFSET )
++    return CLIENT_ERR;
++  if( remotefs_get_packet_size( rfsc_buffer, &amp;temp16 ) == REMOTEFS_ERR )
++    return CLIENT_ERR;
++  if( rfsc_recv( rfsc_buffer + RFS_START_OFFSET, temp16 - RFS_START_OFFSET, rfsc_timeout ) != temp16 - RFS_START_OFFSET )
++    return CLIENT_ERR;
++  return CLIENT_OK;
++}
++
++// ****************************************************************************
++// Client public interface
++
++void rfsc_setup( u8 *pbuf, p_rfsc_send rfsc_send_func, p_rfsc_recv rfsc_recv_func, u32 timeout )
++{
++  rfsc_buffer = pbuf;
++  rfsc_send = rfsc_send_func;
++  rfsc_recv = rfsc_recv_func;
++  rfsc_timeout = timeout;
++}
++
++void rfsc_set_timeout( u32 timeout )
++{
++  rfsc_timeout = timeout;
++}
++
++int rfsc_open( const char* pathname, int flags, int mode )
++{
++  int fd;
++
++  // Make the request
++  remotefs_open_write_request( rfsc_buffer, pathname, os_open_sys_flags_to_rfs_flags( flags ), mode );
++
++  // Send the request / get the respone
++  if( rfsch_send_request_read_response() == CLIENT_ERR )
++    return -1;
++
++  // Interpret the response
++  if( remotefs_open_read_response( rfsc_buffer, &amp;fd ) == REMOTEFS_ERR )
++    return -1;
++  return fd;
++}
++
++s32 rfsc_write( int fd, const void *buf, u32 count )
++{
++  // Make the request
++  remotefs_write_write_request( rfsc_buffer, fd, buf, count );
++
++  // Send the request / get the response
++  if( rfsch_send_request_read_response() == CLIENT_ERR )
++    return -1;
++  
++  // Interpret the response
++  if( remotefs_write_read_response( rfsc_buffer, &amp;count ) == REMOTEFS_ERR )
++    return -1;
++  return ( s32 )count;
++}
++
++s32 rfsc_read( int fd, void *buf, u32 count )
++{
++  const u8 *resbuf;
++
++  // Make the request
++  remotefs_read_write_request( rfsc_buffer, fd, count );
++
++  // Send the request / get the response
++  if( rfsch_send_request_read_response() == CLIENT_ERR )
++    return -1;
++
++  // Interpret the response
++  if( remotefs_read_read_response( rfsc_buffer, &amp;resbuf, &amp;count ) == REMOTEFS_ERR )
++    return -1;
++  memcpy( buf, resbuf, count );
++  return ( s32 )count;
++}
++
++s32 rfsc_lseek( int fd, s32 offset, int whence )
++{
++  s32 res;
++
++  // Make the request
++  remotefs_lseek_write_request( rfsc_buffer, fd, offset, os_lseek_sys_whence_to_rfs_whence( whence ) );
++
++  // Send the request / get the response
++  if( rfsch_send_request_read_response() == CLIENT_ERR )
++    return -1;
++
++  // Interpret the response
++  if( remotefs_lseek_read_response( rfsc_buffer, &amp;res ) == REMOTEFS_ERR )
++    return -1;
++  return res;
++}
++
++int rfsc_close( int fd )
++{
++  int res;
++
++  // Make the request
++  remotefs_close_write_request( rfsc_buffer, fd );
++
++  // Send the request / get the response
++  if( rfsch_send_request_read_response() == CLIENT_ERR )
++    return -1;
++
++  // Interpret the response
++  if( remotefs_close_read_response( rfsc_buffer, &amp;res ) == REMOTEFS_ERR )
++    return -1;
++  return res;
++}
++
+
+Added: branches/remotefs/rfs_server/client.h
+===================================================================
+--- branches/remotefs/rfs_server/client.h	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/client.h	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,26 @@
++// Remote filesystem client
++
++#ifndef __CLIENT_H__
++#define __CLIENT_H__
++
++#include &quot;type.h&quot;
++
++// Error codes
++#define CLIENT_OK   0
++#define CLIENT_ERR  1
++
++// RFS client send/receive functions
++typedef u32 ( *p_rfsc_send )( const u8 *p, u32 size );
++typedef u32 ( *p_rfsc_recv )( u8 *p, u32 size, u32 timeout );
++
++// Public interface
++void rfsc_setup( u8 *pbuf, p_rfsc_send rfsc_send_func, p_rfsc_recv rfsc_recv_func, u32 timeout );
++void rfsc_set_timeout( u32 timeout );
++int rfsc_open( const char* pathname, int flags, int mode );
++s32 rfsc_write( int fd, const void *buf, u32 count );
++s32 rfsc_read( int fd, void *buf, u32 count );
++s32 rfsc_lseek( int fd, s32 offset, int whence );
++int rfsc_close( int fd );
++
++#endif
++
+
+Added: branches/remotefs/rfs_server/log.c
+===================================================================
+--- branches/remotefs/rfs_server/log.c	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/log.c	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,24 @@
++// Simple logging functions for the RFS server
++
++#include &quot;log.h&quot;
++#include &lt;stdio.h&gt;
++#include &lt;stdarg.h&gt;
++
++static int log_level;
++
++void log_init( int level )
++{
++  log_level = level;
++}
++
++void log_msg( const char *msg, ... )
++{
++  va_list va;
++  
++  if( log_level == LOG_ALL )
++  {
++    va_start( va, msg );
++    vprintf( msg, va );
++    va_end( va );  
++  }
++}
+
+Added: branches/remotefs/rfs_server/log.h
+===================================================================
+--- branches/remotefs/rfs_server/log.h	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/log.h	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,13 @@
++// Simple logging functions for the RFS server
++
++#ifndef __LOG_H__
++#define __LOG_H__
++
++// Logging levels
++#define LOG_NONE        0
++#define LOG_ALL         1
++
++void log_init( int level );
++void log_msg( const char *msg, ... );
++
++#endif
+
+Added: branches/remotefs/rfs_server/main.c
+===================================================================
+--- branches/remotefs/rfs_server/main.c	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/main.c	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,161 @@
++// Remote FS server
++
++#include &quot;remotefs.h&quot;
++#include &quot;serial.h&quot;
++#include &quot;server.h&quot;
++#include &quot;type.h&quot;
++#include &quot;log.h&quot;
++#include &quot;os_io.h&quot;
++#include &lt;stdio.h&gt;
++#include &lt;limits.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;stdlib.h&gt;
++#include &lt;string.h&gt;
++
++// ****************************************************************************
++// Local variables
++
++#define   MAX_PACKET_SIZE     4096
++
++static u8 rfs_buffer[ MAX_PACKET_SIZE + RFS_WRITE_REQUEST_EXTRA ]; 
++static ser_handler ser;
++
++// ****************************************************************************
++// Helpers
++
++static void flush_serial()
++{
++  // Flush all data in serial port
++  ser_set_timeout_ms( ser, SER_NO_TIMEOUT );
++  while( ser_read_byte( ser ) != -1 );
++  ser_set_timeout_ms( ser, SER_INF_TIMEOUT );
++}
++
++// Read a packet from the serial port
++static void read_request_packet()
++{
++  u16 temp16;
++  u32 readbytes;
++
++  while( 1 )
++  {
++    // First read the length
++    if( ser_read( ser, rfs_buffer, RFS_START_OFFSET ) != RFS_START_OFFSET )
++    {
++      log_msg(  &quot;read_request_packet: ERROR reading packet length\n&quot; );
++      flush_serial();
++      continue;
++    }
++    if( remotefs_get_packet_size( rfs_buffer, &amp;temp16 ) == REMOTEFS_ERR )
++    {
++      log_msg(  &quot;read_request_packet: ERROR getting packet size\n&quot; );
++      flush_serial();
++      continue;
++    }
++
++    // Then the rest of the data
++    if( ( readbytes = ser_read( ser, rfs_buffer + RFS_START_OFFSET, temp16 - RFS_START_OFFSET ) ) != temp16 - RFS_START_OFFSET )
++    {
++      log_msg( &quot;read_request_packet: ERROR reading full packet, got %u bytes, expected %u bytes\n&quot;, ( unsigned )readbytes, ( unsigned )temp16 - RFS_START_OFFSET );
++      flush_serial();
++      continue;
++    }
++    else
++      break;
++  }
++}
++
++// Send a packet to the serial port
++static void send_response_packet()
++{
++  u16 temp16;
++
++  // Send request
++  if( remotefs_get_packet_size( rfs_buffer, &amp;temp16 ) != REMOTEFS_ERR )
++    ser_write( ser, rfs_buffer, temp16 );
++}
++
++// Secure atoi
++static int secure_atoi( const char *str, long *pres )
++{
++  char *end_ptr;
++  long s1;
++  
++  errno = 0;
++  s1 = strtol( str, &amp;end_ptr, 10 );
++  if( ( s1 == LONG_MIN || s1 == LONG_MAX ) &amp;&amp; errno != 0 )
++    return 0;
++  else if( end_ptr == str )
++    return 0;
++  else if( s1 &gt; INT_MAX || s1 &lt; INT_MIN )
++    return 0;
++  else if( '\0' != *end_ptr )
++    return 0;
++  *pres = s1;
++  return 1;  
++}
++
++// ****************************************************************************
++// Entry point
++
++#define PORT_ARG_IDX          1
++#define SPEED_ARG_IDX         2
++#define DIRNAME_ARG_IDX       3
++#define VERBOSE_ARG_IDX       4
++
++int main( int argc, const char **argv )
++{
++  long serspeed;
++  
++  if( argc &lt; 4 )
++  {
++    fprintf( stderr, &quot;Usage: rfs_server &lt;port&gt; &lt;speed&gt; &lt;dirname&gt; [-v]\n&quot; );
++    fprintf( stderr, &quot;(use -v for verbose output).\n&quot;);
++    return 1;
++  }
++  if( secure_atoi( argv[ SPEED_ARG_IDX ], &amp;serspeed ) == 0 )
++  {
++    fprintf( stderr, &quot;Invalid speed\n&quot; );
++    return 1;
++  } 
++  if( !os_isdir( argv[ DIRNAME_ARG_IDX ] ) )
++  {
++    fprintf( stderr, &quot;Invalid directory %s\n&quot;, argv[ DIRNAME_ARG_IDX ] );
++    return 1;
++  }
++  if( ( argc &gt;= 5 ) &amp;&amp; !strcmp( argv[ VERBOSE_ARG_IDX ], &quot;-v&quot; ) )
++    log_init( LOG_ALL );
++  else
++    log_init( LOG_NONE );
++  
++  // Setup RFS server
++  server_setup( argv[ DIRNAME_ARG_IDX ] );
++  
++  // Setup serial port
++  if( ( ser = ser_open( argv[ PORT_ARG_IDX ] ) ) == ( ser_handler )-1 )
++  {
++    fprintf( stderr, &quot;Cannot open port %s\n&quot;, argv[ PORT_ARG_IDX ] );
++    return 1;
++  }
++  if( ser_setup( ser, ( u32 )serspeed, SER_DATABITS_8, SER_PARITY_NONE, SER_STOPBITS_1 ) != SER_OK )
++  {
++    fprintf( stderr, &quot;Unable to initialize serial port\n&quot; );
++    return 1;
++  }
++  flush_serial();
++  
++  // User report
++  printf( &quot;Running RFS server on port %s (%u baud) in directory %s\n&quot;, argv[ PORT_ARG_IDX ], ( unsigned )serspeed, argv[ DIRNAME_ARG_IDX ] );  
++
++  // Enter the server endless loop
++  while( 1 )
++  {
++    read_request_packet();
++    server_execute_request( rfs_buffer );
++    send_response_packet();
++  }
++
++  ser_close( ser );
++  return 0;
++}
++
+
+Added: branches/remotefs/rfs_server/os_io.h
+===================================================================
+--- branches/remotefs/rfs_server/os_io.h	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/os_io.h	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,26 @@
++// OS interface for file I/O manipulation
++
++#ifndef __OS_IO_H__
++#define __OS_IO_H__
++
++#include &quot;type.h&quot;
++
++#ifdef WIN32_BUILD
++#define PLATFORM_PATH_SEPARATOR     '\\'
++#define PLATFORM_MAX_FNAME_LEN      2048
++#else
++#define PLATFORM_PATH_SEPARATOR     '/'
++#define PLATFORM_MAX_FNAME_LEN      2048
++#endif
++
++int os_open( const char *pathname, int flags, int mode );
++u32 os_open_sys_flags_to_rfs_flags( int sysflags );
++s32 os_write( int fd, const void *buf, u32 count );
++s32 os_read( int fd, void *buf, u32 count );
++int os_close( int fd );
++s32 os_lseek( int fd, s32 offset, int whence );
++u32 os_lseek_sys_whence_to_rfs_whence( int syswhence );
++int os_isdir( const char* name );
++
++#endif
++
+
+Added: branches/remotefs/rfs_server/os_io_posix.c
+===================================================================
+--- branches/remotefs/rfs_server/os_io_posix.c	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/os_io_posix.c	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,108 @@
++// A POSIX implementatoin of the os_io.h interface
++
++#include &lt;sys/types.h&gt;
++#include &lt;sys/stat.h&gt;
++#include &lt;fcntl.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;stdio.h&gt;
++#include &quot;os_io.h&quot;
++#include &quot;remotefs.h&quot;
++
++int os_open( const char *pathname, int flags, int mode )
++{
++  int realflags = 0;
++
++  // Translate RFS flags to POSIX flags
++  realflags = remotefs_replace_flag( flags, RFS_OPEN_FLAG_APPEND, O_APPEND );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_CREAT, O_CREAT );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_EXCL, O_EXCL );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_TRUNC, O_TRUNC );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_SYNC, O_SYNC );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_RDONLY, O_RDONLY );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_WRONLY, O_WRONLY );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_RDWR, O_RDWR );
++  return open( pathname, realflags, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ); 
++}
++
++u32 os_open_sys_flags_to_rfs_flags( int sysflags )
++{
++  int rfsflags = 0;
++
++  // Translate RFS flags to POSIX flags
++  rfsflags = remotefs_replace_flag( sysflags, O_APPEND, RFS_OPEN_FLAG_APPEND );
++  rfsflags |= remotefs_replace_flag( sysflags, O_CREAT, RFS_OPEN_FLAG_CREAT );
++  rfsflags |= remotefs_replace_flag( sysflags, O_EXCL, RFS_OPEN_FLAG_EXCL );
++  rfsflags |= remotefs_replace_flag( sysflags, O_TRUNC, RFS_OPEN_FLAG_TRUNC );
++  rfsflags |= remotefs_replace_flag( sysflags, O_SYNC, RFS_OPEN_FLAG_SYNC );
++  rfsflags |= remotefs_replace_flag( sysflags, O_RDONLY, RFS_OPEN_FLAG_RDONLY );
++  rfsflags |= remotefs_replace_flag( sysflags, O_WRONLY, RFS_OPEN_FLAG_WRONLY );
++  rfsflags |= remotefs_replace_flag( sysflags, O_RDWR, RFS_OPEN_FLAG_RDWR );
++  return rfsflags;
++}
++
++s32 os_write( int fd, const void *buf, u32 count )
++{
++  return ( s32 )write( fd, buf, ( size_t )count );
++}
++
++s32 os_read( int fd, void *buf, u32 count )
++{
++  return ( s32 )read( fd, buf, ( size_t )count );
++}
++
++int os_close( int fd )
++{
++  return close( fd );
++}
++
++s32 os_lseek( int fd, s32 offset, int whence )
++{
++  int realwhence = 0;
++
++  // Translate RFS whence to POSIX whence
++  switch( whence )
++  {
++    case RFS_LSEEK_SET:
++      realwhence = SEEK_SET;
++      break;
++
++   case RFS_LSEEK_CUR:
++     realwhence = SEEK_CUR;
++     break;
++
++   case RFS_LSEEK_END:
++     realwhence = SEEK_END;
++     break;
++
++   default:
++     return -1;
++  }
++  return ( s32 )lseek( fd, ( off_t )offset, realwhence );
++}
++
++u32 os_lseek_sys_whence_to_rfs_whence( int syswhence )
++{
++  switch( syswhence )
++  {
++    case SEEK_SET:
++      return RFS_LSEEK_SET;
++
++    case SEEK_CUR:
++      return RFS_LSEEK_CUR;
++
++    case SEEK_END:
++      return RFS_LSEEK_END;
++  }
++  return 0;
++}
++
++int os_isdir( const char* name )
++{
++  struct stat res;
++
++  if( stat( name, &amp;res ) == -1 )
++    return 0;
++  else
++    return S_ISDIR( res.st_mode );
++}
++
+
+Added: branches/remotefs/rfs_server/os_io_win32.c
+===================================================================
+--- branches/remotefs/rfs_server/os_io_win32.c	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/os_io_win32.c	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,106 @@
++// A Win32 implementation of the os_io.h interface
++
++#include &lt;io.h&gt;
++#include &lt;fcntl.h&gt;
++#include &lt;sys/types.h&gt;
++#include &lt;sys/stat.h&gt;
++#include &lt;share.h&gt;
++#include &lt;windows.h&gt;
++#include &quot;os_io.h&quot;
++#include &quot;remotefs.h&quot;
++
++int os_open( const char *pathname, int flags, int mode )
++{
++  int realflags = 0;
++
++  // Translate RFS flags to POSIX flags                                                                                                     
++  realflags = remotefs_replace_flag( flags, RFS_OPEN_FLAG_APPEND, _O_APPEND );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_CREAT, _O_CREAT );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_EXCL, _O_EXCL );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_TRUNC, _O_TRUNC );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_RDONLY, _O_RDONLY );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_WRONLY, _O_WRONLY );
++  realflags |= remotefs_replace_flag( flags, RFS_OPEN_FLAG_RDWR, _O_RDWR );
++  return _sopen( pathname, realflags, _SH_DENYNO, _S_IREAD | _S_IWRITE ); 
++}
++
++u32 os_open_sys_flags_to_rfs_flags( int sysflags )
++{
++  int rfsflags = 0;
++
++  // Translate RFS flags to POSIX flags
++  rfsflags = remotefs_replace_flag( sysflags, _O_APPEND, RFS_OPEN_FLAG_APPEND );
++  rfsflags |= remotefs_replace_flag( sysflags, _O_CREAT, RFS_OPEN_FLAG_CREAT );
++  rfsflags |= remotefs_replace_flag( sysflags, _O_EXCL, RFS_OPEN_FLAG_EXCL );
++  rfsflags |= remotefs_replace_flag( sysflags, _O_TRUNC, RFS_OPEN_FLAG_TRUNC );
++  rfsflags |= remotefs_replace_flag( sysflags, _O_RDONLY, RFS_OPEN_FLAG_RDONLY );
++  rfsflags |= remotefs_replace_flag( sysflags, _O_WRONLY, RFS_OPEN_FLAG_WRONLY );
++  rfsflags |= remotefs_replace_flag( sysflags, _O_RDWR, RFS_OPEN_FLAG_RDWR );
++  return rfsflags;
++}
++
++s32 os_write( int fd, const void *buf, u32 count )
++{
++  return ( s32 )_write( fd, buf, ( unsigned int )count );
++}
++
++s32 os_read( int fd, void *buf, u32 count )
++{
++  return ( s32 )_read( fd, buf, ( unsigned int )count );
++}
++
++int os_close( int fd )
++{
++  return _close( fd );
++}
++
++s32 os_lseek( int fd, s32 offset, int whence )
++{
++  int realwhence = 0;
++
++  // Translate RFS whence to POSIX whence
++  switch( whence )
++  {
++    case RFS_LSEEK_SET:
++      realwhence = SEEK_SET;
++      break;
++
++   case RFS_LSEEK_CUR:
++     realwhence = SEEK_CUR;
++     break;
++
++   case RFS_LSEEK_END:
++     realwhence = SEEK_END;
++     break;
++
++   default:
++     return -1;
++  }
++  return ( s32 )_lseek( fd, ( long )offset, realwhence );
++}
++
++u32 os_lseek_sys_whence_to_rfs_whence( int syswhence )
++{
++  switch( syswhence )
++  {
++    case SEEK_SET:
++      return RFS_LSEEK_SET;
++
++    case SEEK_CUR:
++      return RFS_LSEEK_CUR;
++
++    case SEEK_END:
++      return RFS_LSEEK_END;
++  }
++  return 0;
++}
++
++int os_isdir( const char* name )
++{
++  DWORD attrs = GetFileAttributes( ( LPCTSTR )name );
++  
++  if( attrs == INVALID_FILE_ATTRIBUTES )
++    return 0;
++  else 
++    return attrs &amp; FILE_ATTRIBUTE_DIRECTORY;
++}
+
+Added: branches/remotefs/rfs_server/rtype.h
+===================================================================
+--- branches/remotefs/rfs_server/rtype.h	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/rtype.h	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,17 @@
++// Type definitions for the remote file system
++
++#ifndef __RTYPE_H__
++#define __RTYPE_H__
++
++// Type codes
++#define   TYPE_INT_8      0x01
++#define   TYPE_INT_16     0x02
++#define   TYPE_INT_32     0x03
++#define   TYPE_PTR        0x04
++#define   TYPE_START      0x05
++#define   TYPE_END        0x06
++#define   TYPE_OP_ID      0x07
++#define   TYPE_PKT_SIZE   0xA5
++                                    
++#endif
++
+
+Added: branches/remotefs/rfs_server/serial.h
+===================================================================
+--- branches/remotefs/rfs_server/serial.h	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/serial.h	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,41 @@
++// STM32 loader serial interface
++
++#ifndef __SERIAL_H__
++#define __SERIAL_H__
++
++#include &quot;type.h&quot;
++
++#define SER_INF_TIMEOUT         0xFFFFFFFF
++#define SER_NO_TIMEOUT          0
++#define SER_OK                  0
++#define SER_ERR                 1
++
++// Serial interface modes (blocking or non blocking)
++#define SER_MODE_BLOCKING       0
++#define SER_MODE_NONBLOCKING    1
++
++// Setup constants
++#define SER_PARITY_NONE         0
++#define SER_PARITY_EVEN         1
++#define SER_PARITY_ODD          2
++
++#define SER_STOPBITS_1          0
++#define SER_STOPBITS_1_5        1
++#define SER_STOPBITS_2          2
++
++#define SER_DATABITS_5          5
++#define SER_DATABITS_6          6
++#define SER_DATABITS_7          7
++#define SER_DATABITS_8          8
++
++// Serial access functions (to be implemented by each platform)
++ser_handler ser_open( const char *sername );
++void ser_close( ser_handler id );
++int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits );
++u32 ser_read( ser_handler id, u8* dest, u32 maxsize );
++int ser_read_byte( ser_handler id );
++u32 ser_write( ser_handler id, const u8 *src, u32 size );
++u32 ser_write_byte( ser_handler id, u8 data );
++void ser_set_timeout_ms( ser_handler id, u32 timeout );
++
++#endif
+
+Added: branches/remotefs/rfs_server/serial_posix.c
+===================================================================
+--- branches/remotefs/rfs_server/serial_posix.c	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/serial_posix.c	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,197 @@
++// Serial inteface implementation for POSIX-compliant systems
++
++#include &quot;serial.h&quot;
++#include &lt;stdio.h&gt;
++#include &lt;string.h&gt;
++#include &lt;unistd.h&gt;
++#include &lt;fcntl.h&gt;
++#include &lt;errno.h&gt;
++#include &lt;termios.h&gt;
++#include &lt;sys/select.h&gt;
++#include &lt;sys/time.h&gt;
++#include &lt;sys/types.h&gt;
++
++static u32 ser_timeout = SER_INF_TIMEOUT;
++
++// Open the serial port
++ser_handler ser_open( const char* sername )
++{
++  int fd;
++
++  if( ( fd = open( sername, O_RDWR | O_NOCTTY | O_NDELAY ) ) == -1 )
++    perror( &quot;ser_open: unable to open port&quot; );
++  else
++    fcntl( fd, F_SETFL, 0 );
++  return ( ser_handler )fd;
++}
++
++// Close the serial port
++void ser_close( ser_handler id )
++{
++  close( ( int )id );
++}
++
++// Helper function: get baud ID from actual baud rate
++#define BAUDCASE(x)  case x: return B##x
++static u32 ser_baud_to_id( u32 baud )
++{
++  switch( baud )
++  {
++    BAUDCASE( 1200 );
++    BAUDCASE( 1800 );
++    BAUDCASE( 2400 );
++    BAUDCASE( 4800 );
++    BAUDCASE( 9600 );
++    BAUDCASE( 19200 );
++    BAUDCASE( 38400 );
++    BAUDCASE( 57600 );
++    BAUDCASE( 115200 );
++    BAUDCASE( 230400 );
++  }
++  return 0;
++}
++
++// Helper function: get number of bits ID from actual number of bits
++#define NBCASE(x) case x: return CS##x
++static int ser_number_of_bits_to_id( int nb )
++{
++  switch( nb )
++  {
++    NBCASE( 5 );
++    NBCASE( 6 );
++    NBCASE( 7 );
++    NBCASE( 8 );
++  }
++  return 0;
++}
++
++int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits )
++{
++  struct termios termdata;
++  int hnd = ( int )id;
++
++  usleep( 200000 );
++  tcgetattr( hnd, &amp;termdata );
++
++  // Baud rate
++  cfsetispeed( &amp;termdata, ser_baud_to_id( baud ) );
++  cfsetospeed( &amp;termdata, ser_baud_to_id( baud ) );
++
++  // Parity / stop bits
++  termdata.c_cflag &amp;= ~CSTOPB;
++  if( parity == SER_PARITY_NONE ) // no parity
++  {
++    termdata.c_cflag &amp;= ~PARENB;
++  }
++  else if( parity == SER_PARITY_EVEN ) // even parity
++  {
++    termdata.c_cflag |= PARENB;
++    termdata.c_cflag &amp;= ~PARODD;
++  }
++  else if( parity == SER_PARITY_ODD ) // odd parity
++  {
++    termdata.c_cflag |= PARENB;
++    termdata.c_cflag |= PARODD;
++  }
++
++   // Data bits
++  termdata.c_cflag |= ( CLOCAL | CREAD );
++  termdata.c_cflag &amp;= ~CSIZE;
++  termdata.c_cflag |= ser_number_of_bits_to_id( databits );
++
++  // Disable HW and SW flow control
++  termdata.c_cflag &amp;= ~CRTSCTS;
++  termdata.c_iflag &amp;= ~( IXON | IXOFF | IXANY );
++
++  // Raw input
++  termdata.c_lflag &amp;= ~( ICANON | ECHO | ECHOE | ISIG );
++
++  // Raw output
++  termdata.c_oflag &amp;= ~OPOST;
++
++  // Check and strip parity bit
++  if( parity == SER_PARITY_NONE )
++    termdata.c_iflag &amp;= ~( INPCK | ISTRIP );
++  else
++    termdata.c_iflag |= ( INPCK | ISTRIP );
++
++  termdata.c_cc[ VMIN ] = 1;
++  termdata.c_cc[ VTIME ] = 0;
++
++  // Set the attibutes now
++  tcsetattr( hnd, TCSANOW, &amp;termdata );
++
++  // Flush everything
++  tcflush( hnd, TCIOFLUSH );
++
++  // And set blocking mode by default
++  fcntl( id, F_SETFL, 0 );
++
++  // All done
++  return SER_OK;
++}
++
++// Read up to the specified number of bytes, return bytes actually read
++u32 ser_read( ser_handler id, u8* dest, u32 maxsize )
++{
++  struct termios termdata;
++
++  tcgetattr( id, &amp;termdata );
++  if( ser_timeout == SER_INF_TIMEOUT )
++  {
++    termdata.c_cc[ VMIN ] = maxsize;
++    termdata.c_cc[ VTIME ] = 0;
++    tcsetattr( id, TCSANOW, &amp;termdata );
++    return ( u32 )read( ( int )id, dest, maxsize );
++  }
++  else
++  {
++    fd_set readfs;
++    struct timeval tv;
++    int retval;
++
++    termdata.c_cc[ VMIN ] = 1;
++    termdata.c_cc[ VTIME ] = 0;
++    tcsetattr( id, TCSANOW, &amp;termdata );
++    FD_ZERO( &amp;readfs );
++    FD_SET( ( int )id, &amp;readfs );
++    tv.tv_sec = ser_timeout / 1000000;
++    tv.tv_usec = ( ser_timeout % 1000000 ) * 1000;
++    retval = select( ( int )id + 1, &amp;readfs, NULL, NULL, &amp;tv );
++    if( retval == -1 || retval == 0 )
++      return 0;
++    else 
++      return ( u32 )read( ( int )id, dest, maxsize );
++  }
++}
++
++// Read a single byte and return it (or -1 for error)
++int ser_read_byte( ser_handler id )
++{
++  u8 data;
++  int res = ser_read( id, &amp;data, 1 );
++
++  return res == 1 ? data : -1;
++}
++
++// Write up to the specified number of bytes, return bytes actually written
++u32 ser_write( ser_handler id, const u8 *src, u32 size )
++{
++  u32 res;
++  
++  res = ( u32 )write( ( int )id, src, size );
++  return res;
++}
++
++// Write a byte to the serial port
++u32 ser_write_byte( ser_handler id, u8 data )
++{
++  return ( u32 )write( id, &amp;data, 1 );
++}
++
++// Set communication timeout
++void ser_set_timeout_ms( ser_handler id, u32 timeout )
++{
++  ser_timeout = timeout;
++}
++
+
+Added: branches/remotefs/rfs_server/serial_win32.c
+===================================================================
+--- branches/remotefs/rfs_server/serial_win32.c	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/serial_win32.c	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,150 @@
++// Serial inteface implementation for POSIX-compliant systems
++
++#include &lt;windows.h&gt;
++#include &lt;string.h&gt;
++#include &lt;stdio.h&gt;
++#include &quot;type.h&quot;
++#include &quot;serial.h&quot;
++
++#define WIN_ERROR     ( HANDLE )-1
++#define WIN_MAX_PORT_NAME   1024
++
++// Helper: set timeout
++static int ser_win32_set_timeouts( HANDLE hComm, DWORD ri, DWORD rtm, DWORD rtc, DWORD wtm, DWORD wtc )
++{   
++  COMMTIMEOUTS timeouts;
++  
++  if( GetCommTimeouts( hComm, &amp;timeouts ) == FALSE )
++  {
++    CloseHandle( hComm );
++    return SER_ERR;
++  }
++  timeouts.ReadIntervalTimeout = ri;
++  timeouts.ReadTotalTimeoutConstant = rtm;
++  timeouts.ReadTotalTimeoutMultiplier = rtc;
++  timeouts.WriteTotalTimeoutConstant = wtm;
++  timeouts.WriteTotalTimeoutMultiplier = wtc;
++	if( SetCommTimeouts( hComm, &amp;timeouts ) == FALSE )
++	{
++	  CloseHandle( hComm );
++	  return SER_ERR;
++  }               
++  
++  return SER_OK;
++}
++
++// Open the serial port
++ser_handler ser_open( const char* sername )
++{
++  char portname[ WIN_MAX_PORT_NAME + 1 ];
++  HANDLE hComm;
++  
++  portname[ 0 ] = portname[ WIN_MAX_PORT_NAME ] = '\0';
++  _snprintf( portname, WIN_MAX_PORT_NAME, &quot;\\\\.\\%s&quot;, sername );
++  hComm = CreateFile( portname, GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0 );
++  if( hComm == INVALID_HANDLE_VALUE )
++    return WIN_ERROR;
++  if( !SetupComm( hComm, 2048, 2048 ) )
++    return WIN_ERROR;
++  return hComm;
++}
++
++// Close the serial port
++void ser_close( ser_handler id )
++{
++  CloseHandle( id );
++}
++
++int ser_setup( ser_handler id, u32 baud, int databits, int parity, int stopbits )
++{
++  HANDLE hComm = ( HANDLE )id;
++  DCB dcb;
++  
++	if( GetCommState( hComm, &amp;dcb ) == FALSE )
++	{
++		CloseHandle( hComm );
++		return SER_ERR;
++	}
++  dcb.BaudRate = baud;
++  dcb.ByteSize = databits;
++  dcb.Parity = parity == SER_PARITY_NONE ? NOPARITY : ( parity == SER_PARITY_EVEN ? EVENPARITY : ODDPARITY );
++  dcb.StopBits = stopbits == SER_STOPBITS_1 ? ONESTOPBIT : ( stopbits == SER_STOPBITS_1_5 ? ONE5STOPBITS : TWOSTOPBITS );
++  dcb.fBinary = TRUE;
++  dcb.fDsrSensitivity = FALSE;
++  dcb.fParity = parity != SER_PARITY_NONE ? TRUE : FALSE;
++  dcb.fOutX = FALSE;
++  dcb.fInX = FALSE;
++  dcb.fNull = FALSE;
++  /**/ dcb.fAbortOnError = FALSE;
++  dcb.fOutxCtsFlow = FALSE;
++  dcb.fOutxDsrFlow = FALSE;
++  dcb.fDtrControl = DTR_CONTROL_DISABLE;
++  dcb.fDsrSensitivity = FALSE;
++  dcb.fRtsControl = RTS_CONTROL_DISABLE;
++  dcb.fOutxCtsFlow = FALSE;
++  if( SetCommState( hComm, &amp;dcb ) == 0 )
++  {
++    CloseHandle( hComm );
++    return SER_ERR;
++  }
++  
++  if( ser_win32_set_timeouts( hComm, 0, 0, 0, 0, 0 ) == SER_ERR )
++  {
++    CloseHandle( hComm );
++    return SER_ERR;
++  }
++  
++  FlushFileBuffers( hComm );
++
++  return SER_OK;
++}
++
++// Read up to the specified number of bytes, return bytes actually read
++u32 ser_read( ser_handler id, u8* dest, u32 maxsize )
++{
++  HANDLE hComm = ( HANDLE )id;
++  DWORD readbytes;
++  
++  if( ReadFile( hComm, dest, maxsize, &amp;readbytes, NULL ) == FALSE )
++    return 0;
++  return readbytes;
++}
++
++// Read a single byte and return it (or -1 for error)
++int ser_read_byte( ser_handler id )
++{
++  u8 data;
++  int res = ser_read( id, &amp;data, 1 );
++
++  //printf( &quot;READ %02X, res is %d\n&quot;, data, res );
++  return res == 1 ? data : -1;
++}
++
++// Write up to the specified number of bytes, return bytes actually written
++u32 ser_write( ser_handler id, const u8 *src, u32 size )
++{
++  HANDLE hComm = ( HANDLE )id;
++	DWORD written;
++	
++  if( WriteFile( hComm, src, size, &amp;written, NULL ) == FALSE )
++    return 0;
++  return written;
++}
++
++// Write a byte to the serial port
++u32 ser_write_byte( ser_handler id, u8 data )
++{
++  return ser_write( id, &amp;data, 1 );
++}
++
++// Set communication timeout
++void ser_set_timeout_ms( ser_handler id, u32 timeout )
++{
++  if( timeout == SER_NO_TIMEOUT )
++    ser_win32_set_timeouts( id, MAXDWORD, 0, 0, 0, 0 );
++  else if( timeout == SER_INF_TIMEOUT )
++    ser_win32_set_timeouts( id, 0, 0, 0, 0, 0 );
++  else
++    ser_win32_set_timeouts( id, 0, 0, timeout, 0, 0 );
++}
++
+
+Added: branches/remotefs/rfs_server/server.c
+===================================================================
+--- branches/remotefs/rfs_server/server.c	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/server.c	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,156 @@
++// Remote filesystem server implementation
++
++#include &lt;string.h&gt;
++#include &quot;server.h&quot;
++#include &quot;remotefs.h&quot;
++#include &quot;type.h&quot;
++#include &quot;os_io.h&quot;
++#include &quot;log.h&quot;
++
++static char* server_basedir;
++static char server_fullname[ PLATFORM_MAX_FNAME_LEN + 1 ];
++
++#ifdef DEBUG
++#include &lt;stdio.h&gt;
++#define LOG0(str) printf( str&quot;\n&quot; )
++#define LOG1(str, arg1) printf( str&quot;\n&quot;, arg1 )
++#define LOG2(str, arg1, arg2) printf( str&quot;\n&quot;, arg1, arg2 )
++#define LOG3(str, arg1, arg2, arg3) printf( str&quot;\n&quot;, arg1, arg2, arg3 )
++#else
++#define LOG0(str)
++#define LOG1(str, arg1)
++#define LOG2(str, arg1, arg2)
++#define LOG3(str, arg1, arg2, arg3)
++#endif
++
++typedef int ( *p_server_handler )( u8 *p );
++
++// *****************************************************************************
++// Internal helpers: execute the given request, build the response
++
++static int server_open( u8 *p )
++{
++  const char *filename;
++  int mode, flags, fd;
++  char separator[ 2 ] = { PLATFORM_PATH_SEPARATOR, 0 };
++  
++  // Validate request
++  log_msg( &quot;server_open: request handler starting\n&quot; );
++  if( remotefs_open_read_request( p, &amp;filename, &amp;flags, &amp;mode ) == REMOTEFS_ERR )
++  {
++    log_msg( &quot;server_open: unable to read request\n&quot; );
++    return SERVER_ERR;
++  }
++  // Change all the flags to their regular counterpart
++  server_fullname[ 0 ] = server_fullname[ PLATFORM_MAX_FNAME_LEN ] = 0;
++  strncpy( server_fullname, server_basedir, PLATFORM_MAX_FNAME_LEN );
++  if( server_fullname[ strlen( server_fullname ) - 1 ] != PLATFORM_PATH_SEPARATOR )
++    strncat( server_fullname, separator, PLATFORM_MAX_FNAME_LEN );
++  strncat( server_fullname, filename, PLATFORM_MAX_FNAME_LEN );
++  log_msg( &quot;server_open: full file path is %s\n&quot;, server_fullname ); 
++  fd = os_open( server_fullname, flags, mode );
++  log_msg( &quot;server_open: OS file handler is %d\n&quot;, fd );
++  remotefs_open_write_response( p, fd );
++  return SERVER_OK;
++}
++
++static int server_write( u8 *p )
++{
++  int fd;
++  const void *buf;
++  u32 count;
++  
++  log_msg( &quot;server_write: request handler starting\n&quot; );
++  if( remotefs_write_read_request( p, &amp;fd, &amp;buf, &amp;count ) == REMOTEFS_ERR )
++  {
++    log_msg( &quot;server_write: unable to read request\n&quot; );
++    return SERVER_ERR;
++  }
++  log_msg( &quot;server_write: fd = %d, buf = %p, count = %u\n&quot;, fd, buf, ( unsigned )count );
++  count = ( u32 )os_write( fd, buf, count );
++  log_msg( &quot;server_write: OS response is %u\n&quot;, ( unsigned )count );
++  remotefs_write_write_response( p, count );
++  return SERVER_OK;
++}
++
++static int server_read( u8 *p )
++{
++  int fd;
++  u32 count;
++  
++  log_msg( &quot;server_read: request handler starting\n&quot; );
++  if( remotefs_read_read_request( p, &amp;fd, &amp;count ) == REMOTEFS_ERR )
++  {
++    log_msg( &quot;server_read: unable to read request\n&quot; );
++    return SERVER_ERR;
++  }
++  log_msg( &quot;server_read: fd = %d, count = %u\n&quot;, fd, ( unsigned )count );
++  count = ( u32 )os_read( fd, p + RFS_READ_BUF_OFFSET, count );
++  log_msg( &quot;server_read: OS response is %u\n&quot;, ( unsigned )count );
++  remotefs_read_write_response( p, count );
++  return SERVER_OK;
++}
++
++static int server_close( u8 *p )
++{
++  int fd;
++  
++  log_msg( &quot;server_close: request handler starting\n&quot; );
++  if( remotefs_close_read_request( p, &amp;fd ) == REMOTEFS_ERR )
++  {
++    log_msg( &quot;server_close: unable to read request\n&quot; );
++    return SERVER_ERR;
++  }
++  log_msg( &quot;server_close: fd = %d\n&quot;, fd );
++  fd = os_close( fd );
++  log_msg( &quot;server_close: OS response is %d\n&quot;, fd );
++  remotefs_close_write_response( p, fd );
++  return SERVER_OK;
++}
++
++static int server_lseek( u8 *p )
++{
++  int fd, whence;
++  s32 offset;
++
++  log_msg( &quot;server_lseek: request handler starting&quot; );
++  if( remotefs_lseek_read_request( p, &amp;fd, &amp;offset, &amp;whence ) == REMOTEFS_ERR )
++  {
++    log_msg( &quot;server_lseek: unable to read request&quot; );
++    return SERVER_ERR;
++  }
++  log_msg( &quot;server_lseek: fd = %d, offset = %d, whence = %d\n&quot;, fd, ( int )offset, whence );
++  offset = os_lseek( fd, offset, whence );
++  log_msg( &quot;server_lseek: OS response is %d\n&quot;, ( int )offset );
++  remotefs_lseek_write_response( p, offset );
++  return SERVER_OK;
++}
++
++// *****************************************************************************
++// Server public interface
++
++static const p_server_handler server_handlers[] = 
++{ 
++  server_open, server_write, server_read, server_close, server_lseek
++};
++
++void server_setup( const char* basedir )
++{
++  server_basedir = strdup( basedir );
++}
++
++int server_execute_request( u8 *pdata )
++{
++  u8 req;
++  
++  // Decode request
++  if( remotefs_get_request_id( pdata, &amp;req ) == REMOTEFS_ERR )
++    return SERVER_ERR;
++  log_msg( &quot;server_execute_request: got request with ID %d\n&quot;, req );
++  if( req &gt;= RFS_OP_FIRST &amp;&amp; req &lt;= RFS_OP_LAST ) 
++    return server_handlers[ req - RFS_OP_FIRST ]( pdata );
++  else
++    return SERVER_ERR;
++
++}
++
+
+Added: branches/remotefs/rfs_server/server.h
+===================================================================
+--- branches/remotefs/rfs_server/server.h	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/server.h	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,16 @@
++// Remote filesystem server implementation
++
++#ifndef __SERVER_H__
++#define __SERVER_H__
++
++#include &quot;type.h&quot;
++
++// Error codes
++#define SERVER_OK     0
++#define SERVER_ERR    1
++
++// Server function                     
++void server_setup( const char *basedir );
++int server_execute_request( u8 *pdata );
++
++#endif
+
+Added: branches/remotefs/rfs_server/type.h
+===================================================================
+--- branches/remotefs/rfs_server/type.h	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server/type.h	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,24 @@
++// Type definitions for the remote file system
++
++#ifndef __TYPE_H__
++#define __TYPE_H__
++
++typedef char s8;
++typedef unsigned char u8;
++typedef short s16;
++typedef unsigned short u16;
++typedef long s32;
++typedef unsigned long u32;
++typedef long long s64;
++typedef unsigned long long u64;
++
++// Define serial port &quot;handle&quot; type for each platform
++// [TODO] for now, only UNIX is supported
++#ifdef WIN32_BUILD
++#include &lt;windows.h&gt;
++typedef HANDLE ser_handler;
++#else // assume POSIX here
++typedef int ser_handler;
++#endif
++                                    
++#endif
+
+Added: branches/remotefs/rfs_server.py
+===================================================================
+--- branches/remotefs/rfs_server.py	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/rfs_server.py	2010-01-11 00:17:17 UTC (rev 626)
+@@ -0,0 +1,29 @@
++import os, sys, platform
++
++flist = &quot;&quot;
++cdefs = &quot;&quot;
++if platform.system() == &quot;Windows&quot;:
++  flist = &quot;main.c server.c client.c os_io_win32.c serial_win32.c log.c&quot;
++  cdefs = &quot;-DWIN32_BUILD&quot;
++  exeprefix = &quot;exe&quot;
++else:
++  flist = &quot;main.c server.c client.c os_io_posix.c serial_posix.c log.c&quot;
++  exeprefix = &quot;elf&quot;
++
++output = 'rfs_server.%s' % exeprefix
++
++full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;rfs_server/%s&quot; % name for name in flist.split() ] )
++full_files = full_files + &quot; src/remotefs/remotefs.c&quot;
++local_include = &quot;-Irfs_server -Iinc/remotefs&quot;
++
++# Compiler/linker options
++cccom = &quot;gcc -O0 -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++linkcom = &quot;gcc -o $TARGET $SOURCES&quot;
++
++# Env for building the program
++comp = Environment( CCCOM = cccom,
++                    LINKCOM = linkcom,
++                    ENV = os.environ )
++Decider( 'MD5' )                  
++Default( comp.Program( output, Split( full_files ) ) )
++
+
+Modified: branches/remotefs/src/remotefs/client.c
+===================================================================
+--- branches/remotefs/src/remotefs/client.c	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/src/remotefs/client.c	2010-01-11 00:17:17 UTC (rev 626)
+@@ -20,6 +20,9 @@
+ {
+   u16 temp16;
+ 
++  // Empty receive buffer
++  while( rfsc_recv( rfsc_buffer, 1, 0 ) == 1 );
++
+   // Send request
+   if( remotefs_get_packet_size( rfsc_buffer, &amp;temp16 ) == REMOTEFS_ERR )
+     return CLIENT_ERR;
+
+Modified: branches/remotefs/src/remotefs/elua_rfs.c
+===================================================================
+--- branches/remotefs/src/remotefs/elua_rfs.c	2010-01-06 06:27:27 UTC (rev 625)
++++ branches/remotefs/src/remotefs/elua_rfs.c	2010-01-11 00:17:17 UTC (rev 626)
+@@ -35,12 +35,14 @@
+   const u8 *p = ( const u8* )ptr;
+ 
+   // Write in RFS_REAL_BUFFER_SIZE increments
++//  printf( &quot;Got WRITE request for %d bytes\n&quot;, len );
+   while( len )
+   {
+     towrite = len &gt; RFS_REAL_BUFFER_SIZE ? RFS_REAL_BUFFER_SIZE : len;
+     if( ( res = rfsc_write( fd, p, towrite ) ) == -1 )
+       break;
+     total += res;
++//    printf( &quot;Wrote %d bytes\n&quot;, res );
+     if( res &lt; towrite )
+       break;
+     len -= towrite;
+@@ -56,12 +58,14 @@
+   u8 *p = ( u8* )ptr;
+ 
+   // Read in RFS_REAL_BUFFER_SIZE increments
++//  printf( &quot;Got READ request for %d bytes\n&quot;, len );
+   while( len )
+   {
+     toread = len &gt; RFS_REAL_BUFFER_SIZE ? RFS_REAL_BUFFER_SIZE : len;
+     if( ( res = rfsc_read( fd, p, toread ) ) == -1 )
+       break;
+     total += res; 
++//    printf( &quot;Read %d bytes\n&quot;, res );
+     if( res &lt; toread )
+       break;
+     len -= toread;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000581.html">[Elua-svn] r625 - trunk/src/platform/lpc17xx
+</A></li>
+	<LI>Next message: <A HREF="000583.html">[Elua-svn] r627 - in branches/pre0.7/doc: . en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#582">[ date ]</a>
+              <a href="thread.html#582">[ thread ]</a>
+              <a href="subject.html#582">[ subject ]</a>
+              <a href="author.html#582">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

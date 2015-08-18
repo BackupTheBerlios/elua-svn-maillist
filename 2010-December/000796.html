@@ -1,0 +1,288 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r843 - trunk/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r843%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C20101202020733.47361480AC9%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000795.html">
+   <LINK REL="Next"  HREF="000797.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r843 - trunk/src/platform/lm3s</H1>
+    <B>jbsnyder at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r843%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C20101202020733.47361480AC9%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r843 - trunk/src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Dec  2 03:07:33 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000795.html">[Elua-svn] r842 - trunk/src/platform/avr32
+</A></li>
+        <LI>Next message: <A HREF="000797.html">[Elua-svn] r844 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#796">[ date ]</a>
+              <a href="thread.html#796">[ thread ]</a>
+              <a href="subject.html#796">[ subject ]</a>
+              <a href="author.html#796">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-12-02 03:07:32 +0100 (Thu, 02 Dec 2010)
+New Revision: 843
+
+Modified:
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/platform_conf.h
+   trunk/src/platform/lm3s/startup_gcc.c
+Log:
+Initial CAN support for LM3S.
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2010-12-01 20:07:27 UTC (rev 842)
++++ trunk/src/platform/lm3s/conf.py	2010-12-02 02:07:32 UTC (rev 843)
+@@ -1,5 +1,5 @@
+ # Configuration file for the LM3S microcontroller
+-specific_files = &quot;startup_gcc.c platform.c uart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c&quot;
++specific_files = &quot;startup_gcc.c platform.c uart.c sysctl.c gpio.c ssi.c timer.c pwm.c ethernet.c systick.c flash.c interrupt.c cpu.c adc.c can.c&quot;
+ 
+ if comp[ 'board' ] == 'EK-LM3S1968' or comp[ 'board' ] == 'EK-LM3S6965' or comp[ 'board' ] == 'EK-LM3S8962':
+   specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2010-12-01 20:07:27 UTC (rev 842)
++++ trunk/src/platform/lm3s/platform.c	2010-12-02 02:07:32 UTC (rev 843)
+@@ -28,9 +28,11 @@
+ #include &quot;hw_types.h&quot;
+ #include &quot;hw_pwm.h&quot;
+ #include &quot;hw_nvic.h&quot;
++#include &quot;hw_can.h&quot;
+ #include &quot;hw_ethernet.h&quot;
+ #include &quot;debug.h&quot;
+ #include &quot;gpio.h&quot;
++#include &quot;can.h&quot;
+ #include &quot;interrupt.h&quot;
+ #include &quot;sysctl.h&quot;
+ #include &quot;uart.h&quot;
+@@ -82,6 +84,7 @@
+ static void pwms_init();
+ static void eth_init();
+ static void adcs_init();
++static void cans_init();
+ 
+ int platform_init()
+ {
+@@ -112,6 +115,11 @@
+   adcs_init();
+ #endif
+ 
++#ifdef BUILD_CAN
++  // Setup CANs
++  cans_init();
++#endif
++
+   // Setup ethernet (TCP/IP)
+   eth_init();
+ 
+@@ -214,7 +222,98 @@
+   return retval;
+ }
+ 
++
+ // ****************************************************************************
++// CAN
++
++volatile u32 can_rx_flag = 0;
++volatile u32 can_err_flag = 0;
++char can_tx_buf[8];
++tCANMsgObject can_msg_rx;
++
++void CANIntHandler(void)
++{
++  u32 status = CANIntStatus(CAN0_BASE, CAN_INT_STS_CAUSE);
++
++  if(status == CAN_INT_INTID_STATUS)
++  {
++    status = CANStatusGet(CAN0_BASE, CAN_STS_CONTROL);
++    can_err_flag = 1;
++  }
++
++  else if( status == 1 )
++  {
++    CANIntClear(CAN0_BASE, 1);
++    can_rx_flag = 1;
++    can_err_flag = 0;
++  }
++}
++
++
++void cans_init( void )
++{
++  GPIOPinConfigure(GPIO_PD0_CAN0RX);
++  GPIOPinConfigure(GPIO_PD1_CAN0TX);
++  MAP_GPIOPinTypeCAN(GPIO_PORTD_BASE, GPIO_PIN_0 | GPIO_PIN_1);
++
++  MAP_SysCtlPeripheralEnable( SYSCTL_PERIPH_CAN0 ); 
++  MAP_CANInit( CAN0_BASE );
++  CANBitRateSet(CAN0_BASE, SysCtlClockGet(), 500000);
++  MAP_CANIntEnable( CAN0_BASE, CAN_INT_MASTER | CAN_INT_ERROR | CAN_INT_STATUS );
++  MAP_IntEnable(INT_CAN0);
++  MAP_CANEnable(CAN0_BASE);
++
++  // Configure default catch-all message object
++  can_msg_rx.ulMsgID = 0;
++  can_msg_rx.ulMsgIDMask = 0;
++  can_msg_rx.ulFlags = MSG_OBJ_RX_INT_ENABLE | MSG_OBJ_USE_ID_FILTER;
++  can_msg_rx.ulMsgLen = 8;
++  MAP_CANMessageSet(CAN0_BASE, 1, &amp;can_msg_rx, MSG_OBJ_TYPE_RX);
++}
++
++
++u32 platform_can_setup( unsigned id, u32 clock )
++{  
++  MAP_CANDisable(CAN0_BASE);
++  CANBitRateSet(CAN0_BASE, SysCtlClockGet(), clock );
++  MAP_CANEnable(CAN0_BASE);
++}
++
++void platform_can_send( unsigned id, u32 canid, u8 idtype, u8 len, const u8 *data )
++{
++  tCANMsgObject msg_tx;
++  const char *s = ( char * )data;
++  char *d;
++  
++  if( idtype )
++    msg_tx.ulFlags |= MSG_OBJ_EXTENDED_ID;
++  
++  msg_tx.ulMsgIDMask = 0;
++  msg_tx.ulMsgID = canid;
++  msg_tx.ulMsgLen = len;
++  msg_tx.pucMsgData = d;
++
++  d = can_tx_buf;
++  DUFF_DEVICE_8( len,  *d++ = *s++ );
++  
++  CANMessageSet(CAN0_BASE, 2, &amp;msg_tx, MSG_OBJ_TYPE_TX);
++}
++
++void platform_can_recv( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
++{
++  // wait for a message
++  while( can_rx_flag == 0 );
++
++  can_msg_rx.pucMsgData = data;
++  CANMessageGet(CAN0_BASE, 1, &amp;can_msg_rx, 0);
++  can_rx_flag = 0;
++
++  *canid = ( u32 )can_msg_rx.ulMsgID;
++  *idtype = (can_msg_rx.ulFlags &amp; MSG_OBJ_EXTENDED_ID)? 1 : 0;
++  *len = can_msg_rx.ulMsgLen;
++}
++
++// ****************************************************************************
+ // SPI
+ // Same configuration on LM3S8962, LM3S6965, LM3S6918 and LM3S9B92 (2 SPI ports)
+ 
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2010-12-01 20:07:27 UTC (rev 842)
++++ trunk/src/platform/lm3s/platform_conf.h	2010-12-02 02:07:32 UTC (rev 843)
+@@ -45,6 +45,13 @@
+ #define PS_LIB_TABLE_NAME   &quot;lm3s&quot;
+ #endif
+ 
++#if defined( FORLM3S8962 ) || defined( FORLM3S9B92 )
++#define CANLINE  _ROM( AUXLIB_CAN, luaopen_can, can_map )
++#define BUILD_CAN
++#else
++#define CANLINE
++#endif
++
+ #ifdef FORLM3S6918
+ #define PWMLINE
+ #else
+@@ -78,6 +85,8 @@
+ #define PLATLINE
+ #endif
+ 
++
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
+@@ -93,6 +102,7 @@
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
+   ADCLINE\
++  CANLINE\
+   RPCLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
+   PLATLINE
+@@ -151,7 +161,7 @@
+   #define NUM_PWM             0
+ #endif  
+ #define NUM_ADC               4
+-#define NUM_CAN               0
++#define NUM_CAN               1
+ 
+ // Enable RX buffering on UART
+ //#define BUF_ENABLE_UART
+
+Modified: trunk/src/platform/lm3s/startup_gcc.c
+===================================================================
+--- trunk/src/platform/lm3s/startup_gcc.c	2010-12-01 20:07:27 UTC (rev 842)
++++ trunk/src/platform/lm3s/startup_gcc.c	2010-12-02 02:07:32 UTC (rev 843)
+@@ -41,6 +41,7 @@
+ extern void SysTickIntHandler();
+ extern void ADCIntHandler();
+ extern void UARTIntHandler();
++extern void CANIntHandler();
+ 
+ #include &quot;hw_memmap.h&quot;
+ #include &quot;platform_conf.h&quot;
+@@ -128,7 +129,7 @@
+     IntDefaultHandler,                      // Timer 3 subtimer B
+     IntDefaultHandler,                      // I2C1 Master and Slave
+     IntDefaultHandler,                      // Quadrature Encoder 1
+-    IntDefaultHandler,                      // CAN0
++    CANIntHandler,                          // CAN0
+     IntDefaultHandler,                      // CAN1
+     IntDefaultHandler,                      // CAN2
+     EthernetIntHandler,                     // Ethernet
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000795.html">[Elua-svn] r842 - trunk/src/platform/avr32
+</A></li>
+	<LI>Next message: <A HREF="000797.html">[Elua-svn] r844 - trunk/src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#796">[ date ]</a>
+              <a href="thread.html#796">[ thread ]</a>
+              <a href="subject.html#796">[ subject ]</a>
+              <a href="author.html#796">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r481 - trunk/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r481%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200910132251.n9DMpcg5022498%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000435.html">
+   <LINK REL="Next"  HREF="000438.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r481 - trunk/src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r481%20-%20trunk/src/platform/lm3s&In-Reply-To=%3C200910132251.n9DMpcg5022498%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r481 - trunk/src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Oct 14 00:51:38 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000435.html">[Elua-svn] r480 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000438.html">[Elua-svn] r482 - trunk/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#437">[ date ]</a>
+              <a href="thread.html#437">[ thread ]</a>
+              <a href="subject.html#437">[ subject ]</a>
+              <a href="author.html#437">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-10-14 00:51:36 +0200 (Wed, 14 Oct 2009)
+New Revision: 481
+
+Modified:
+   trunk/src/platform/lm3s/platform_conf.h
+   trunk/src/platform/lm3s/startup_gcc.c
+Log:
+Handle variable memory quantities on LM3S better.
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2009-10-13 02:14:47 UTC (rev 480)
++++ trunk/src/platform/lm3s/platform_conf.h	2009-10-13 22:51:36 UTC (rev 481)
+@@ -162,15 +162,17 @@
+ #endif
+ //                                A, B, C, D, E, F, G, H, J
+ 
+-// Allocator data: define your free memory zones here in two arrays
+-// (start address and end address)
+-#define MEM_START_ADDRESS     { ( void* )end }
+ #ifdef FORLM3S9B92
+-  #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + 0x18000 - STACK_SIZE_TOTAL - 1 ) }
++  #define MEM_TOTAL ( 0x18000 )
+ #else
+-  #define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + 0x10000 - STACK_SIZE_TOTAL - 1 ) }
++  #define MEM_TOTAL ( 0x10000 )
+ #endif
+ 
++// Allocator data: define your free memory zones here in two arrays
++// (start address and end address)
++#define MEM_START_ADDRESS     { ( void* )end }
++#define MEM_END_ADDRESS       { ( void* )( SRAM_BASE + MEM_TOTAL - STACK_SIZE_TOTAL - 1 ) }
++
+ // *****************************************************************************
+ // CPU constants that should be exposed to the eLua &quot;cpu&quot; module
+ 
+
+Modified: trunk/src/platform/lm3s/startup_gcc.c
+===================================================================
+--- trunk/src/platform/lm3s/startup_gcc.c	2009-10-13 02:14:47 UTC (rev 480)
++++ trunk/src/platform/lm3s/startup_gcc.c	2009-10-13 22:51:36 UTC (rev 481)
+@@ -61,8 +61,7 @@
+ __attribute__ ((section(&quot;.isr_vector&quot;)))
+ void (* const g_pfnVectors[])(void) =
+ {
+-    //(void (*)(void))((unsigned long)pulStack + sizeof(pulStack)),
+-    (void (*) (void))(SRAM_BASE + 64*1024),
++    (void (*) (void))( SRAM_BASE + MEM_TOTAL - STACK_SIZE_TOTAL ),
+                                             // The initial stack pointer
+     ResetISR,                               // The reset handler
+     NmiSR,                                  // The NMI handler
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000435.html">[Elua-svn] r480 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000438.html">[Elua-svn] r482 - trunk/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#437">[ date ]</a>
+              <a href="thread.html#437">[ thread ]</a>
+              <a href="subject.html#437">[ subject ]</a>
+              <a href="author.html#437">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

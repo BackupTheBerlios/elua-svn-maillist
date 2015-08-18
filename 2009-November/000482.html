@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r527 - in branches/eagle_mmc: . romfs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r527%20-%20in%20branches/eagle_mmc%3A%20.%20romfs&In-Reply-To=%3C200911060209.nA629r0W030134%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000486.html">
+   <LINK REL="Next"  HREF="000483.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r527 - in branches/eagle_mmc: . romfs</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r527%20-%20in%20branches/eagle_mmc%3A%20.%20romfs&In-Reply-To=%3C200911060209.nA629r0W030134%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r527 - in branches/eagle_mmc: . romfs">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Fri Nov  6 03:09:53 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000486.html">[Elua-svn] r526 - in branches/eagle_mmc: . doc doc/ddlevelsfiles	doc/eluadoc doc/en doc/images doc/pt doc/wb doc/wb_img inc	romfs src src/lua src/modules src/platform src/platform/lm3s	src/platform/lpc24xx src/platform/str9 test
+</A></li>
+        <LI>Next message: <A HREF="000483.html">[Elua-svn] r528 - in branches/eagle_mmc/src: . platform/lm3s	platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#482">[ date ]</a>
+              <a href="thread.html#482">[ thread ]</a>
+              <a href="subject.html#482">[ subject ]</a>
+              <a href="author.html#482">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-11-06 03:09:52 +0100 (Fri, 06 Nov 2009)
+New Revision: 527
+
+Modified:
+   branches/eagle_mmc/SConstruct
+   branches/eagle_mmc/romfs/morse.lua
+Log:
+Fixes.
+
+Modified: branches/eagle_mmc/SConstruct
+===================================================================
+--- branches/eagle_mmc/SConstruct	2009-11-06 02:08:32 UTC (rev 526)
++++ branches/eagle_mmc/SConstruct	2009-11-06 02:09:52 UTC (rev 527)
+@@ -113,34 +113,10 @@
+           'tetrives' : [ 'tetrives.lua' ]
+         }
+ 
+-# List of platform/CPU combinations
+-cpu_list = { 'at91sam7x' : [ 'AT91SAM7X256', 'AT91SAM7X512' ],
+-              'lm3s' : [ 'LM3S8962', 'LM3S6965', 'LM3S6918' ],
+-              'str9' : [ 'STR912FW44' ],
+-              'i386' : [ 'I386' ],
+-              'lpc288x' : [ 'LPC2888' ],
+-              'str7' : [ 'STR711FR2' ],
+-              'stm32' : [ 'STM32F103ZE' ],
+-              'avr32' : [ 'AT32UC3A0512' ]
+-            }
+-
+-# List of board/CPU combinations
+-board_list = { 'SAM7-EX256' : [ 'AT91SAM7X256', 'AT91SAM7X512' ],
+-               'EK-LM3S8962' : [ 'LM3S8962' ],
+-               'EK-LM3S6965' : [ 'LM3S6965' ],
+-               'EAGLE-100' : [ 'LM3S6918' ],
+-               'STR9-COMSTICK' : [ 'STR912FW44' ],
+-               'PC' : [ 'I386' ],
+-               'LPC-H2888' : [ 'LPC2888' ],
+-               'MOD711' : [ 'STR711FR2' ],
+-               'STM3210E-EVAL' : [ 'STM32F103ZE' ],
+-               'ATEVK1100' : [ 'AT32UC3A0512' ]
+-            }
+-
+ # List of board/romfs data combinations
+ file_list = { 'SAM7-EX256' : [ 'bisect', 'hangman' , 'led', 'piano', 'hello', 'info', 'morse' ],
+               'EK-LM3S8962' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo', 'spaceship', 'tetrives' ],
+-              'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo', 'spaceship', 'tetrives' ],
++              'EK-LM3S6965' : [ 'bisect', 'hangman', 'lhttpd', 'pong', 'led', 'piano', 'pwmled', 'tvbgone', 'hello', 'info', 'morse', 'adcscope', 'adcpoll', 'logo', 'spaceship' ],
+               'EK-LM3S9B92' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'pwmled', 'hello', 'info', 'adcscope','adcpoll', 'life' ],
+               'STR9-COMSTICK' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'STR-E912' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'piano' ],
+
+Modified: branches/eagle_mmc/romfs/morse.lua
+===================================================================
+--- branches/eagle_mmc/romfs/morse.lua	2009-11-06 02:08:32 UTC (rev 526)
++++ branches/eagle_mmc/romfs/morse.lua	2009-11-06 02:09:52 UTC (rev 527)
+@@ -6,7 +6,7 @@
+ 
+ local pwmid, tmrid, ledpin
+ if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+-  wmid, tmrid, ledpin = 1, 1, pio.PF_0
++  pwmid, tmrid, ledpin = 1, 1, pio.PF_0
+ elseif pd.board() == &quot;EAGLE-100&quot; then
+   wmid, tmrid, ledpin = 1, 1, pio.PE_1
+ elseif pd.board() == &quot;SAM7-EX256&quot; then
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000486.html">[Elua-svn] r526 - in branches/eagle_mmc: . doc doc/ddlevelsfiles	doc/eluadoc doc/en doc/images doc/pt doc/wb doc/wb_img inc	romfs src src/lua src/modules src/platform src/platform/lm3s	src/platform/lpc24xx src/platform/str9 test
+</A></li>
+	<LI>Next message: <A HREF="000483.html">[Elua-svn] r528 - in branches/eagle_mmc/src: . platform/lm3s	platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#482">[ date ]</a>
+              <a href="thread.html#482">[ thread ]</a>
+              <a href="subject.html#482">[ subject ]</a>
+              <a href="author.html#482">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,1396 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r768 - in trunk: . romfs src/platform/avr32	src/platform/avr32/EVK1100 src/platform/avr32/EVK1101
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r768%20-%20in%20trunk%3A%20.%20romfs%20src/platform/avr32%0A%09src/platform/avr32/EVK1100%20src/platform/avr32/EVK1101&In-Reply-To=%3C20100804131839.7D96E480E75%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000722.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r768 - in trunk: . romfs src/platform/avr32	src/platform/avr32/EVK1100 src/platform/avr32/EVK1101</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r768%20-%20in%20trunk%3A%20.%20romfs%20src/platform/avr32%0A%09src/platform/avr32/EVK1100%20src/platform/avr32/EVK1101&In-Reply-To=%3C20100804131839.7D96E480E75%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r768 - in trunk: . romfs src/platform/avr32	src/platform/avr32/EVK1100 src/platform/avr32/EVK1101">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Aug  4 15:18:39 CEST 2010</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000722.html">[Elua-svn] r769 - in trunk/doc: . en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#721">[ date ]</a>
+              <a href="thread.html#721">[ thread ]</a>
+              <a href="subject.html#721">[ subject ]</a>
+              <a href="author.html#721">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-08-04 15:18:39 +0200 (Wed, 04 Aug 2010)
+New Revision: 768
+
+Added:
+   trunk/romfs/dataflash.lua
+   trunk/src/platform/avr32/EVK1100/evk1100_conf.h
+   trunk/src/platform/avr32/EVK1101/
+   trunk/src/platform/avr32/EVK1101/evk1101.h
+   trunk/src/platform/avr32/EVK1101/evk1101_conf.h
+   trunk/src/platform/avr32/at32uc3b0256.ld
+   trunk/src/platform/avr32/spi.c
+   trunk/src/platform/avr32/spi.h
+Modified:
+   trunk/SConstruct
+   trunk/romfs/led.lua
+   trunk/src/platform/avr32/at32uc3a0512.ld
+   trunk/src/platform/avr32/conf.py
+   trunk/src/platform/avr32/platform.c
+   trunk/src/platform/avr32/platform_conf.h
+Log:
+added EVK1100 and SPI support for AVR32
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2010-07-29 03:34:21 UTC (rev 767)
++++ trunk/SConstruct	2010-08-04 13:18:39 UTC (rev 768)
+@@ -75,7 +75,7 @@
+   'lpc288x' : { 'cpus' : [ 'LPC2888' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'str7' : { 'cpus' : [ 'STR711FR2' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'stm32' : { 'cpus' : [ 'STM32F103ZE', 'STM32F103RE' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+-  'avr32' : { 'cpus' : [ 'AT32UC3A0512' ], 'toolchains' : [ 'avr32-gcc' ] },
++  'avr32' : { 'cpus' : [ 'AT32UC3A0512', 'AT32UC3B0256' ], 'toolchains' : [ 'avr32-gcc' ] },
+   'lpc24xx' : { 'cpus' : [ 'LPC2468' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] },
+   'lpc17xx' : { 'cpus' : [ 'LPC1768' ], 'toolchains' : [ 'arm-gcc', 'codesourcery', 'devkitarm', 'arm-eabi-gcc' ] }
+ }
+@@ -93,6 +93,7 @@
+                'MOD711' : [ 'STR711FR2' ],
+                'STM3210E-EVAL' : [ 'STM32F103ZE' ],
+                'ATEVK1100' : [ 'AT32UC3A0512' ],
++               'ATEVK1101' : [ 'AT32UC3B0256' ],
+                'ET-STM32' : [ 'STM32F103RE' ],
+                'EAGLE-100' : [ 'LM3S6918' ],
+                'ELUA-PUC' : ['LPC2468' ],
+@@ -125,6 +126,7 @@
+           'spaceship' : [ 'spaceship.lua' ],
+           'tetrives' : [ 'tetrives.lua' ],
+           'snake' : [ 'snake.lua' ],
++          'dataflash' : [ 'dataflash.lua' ],
+           'pachube' : [ 'pachube_demo.lua' ]
+         }
+ 
+@@ -140,7 +142,8 @@
+               'LPC-H2888' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+               'MOD711' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'dualpwm' ],
+               'STM3210E-EVAL' : [ 'bisect', 'hello', 'info' ],
+-              'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
++              'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'dataflash' ],
++              'ATEVK1101' : [ 'bisect', 'led', 'hello', 'info', 'dataflash' ],
+               'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect','adcscope','adcpoll', 'dualpwm', 'pwmled' ],
+               'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ],
+               'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'pwmled' ],
+
+Added: trunk/romfs/dataflash.lua
+===================================================================
+--- trunk/romfs/dataflash.lua	                        (rev 0)
++++ trunk/romfs/dataflash.lua	2010-08-04 13:18:39 UTC (rev 768)
+@@ -0,0 +1,34 @@
++-- eLua test 
++
++local cspin, id
++
++if pd.board() == &quot;ATEVK1101&quot; then
++  cspin = pio.PA_16
++  id = 0
++elseif pd.board() == &quot;ATEVK1100&quot; then
++  cspin = pio.PA_14
++  id = 4
++else
++  print( &quot;\nError: Unknown board &quot; .. pd.board() .. &quot; !&quot; )
++  return
++end
++
++function select()
++    pio.pin.setlow( cspin ) 
++end
++
++function unselect()    
++    pio.pin.sethigh( cspin ) 
++end
++
++
++pio.pin.setdir( pio.OUTPUT, cspin )
++spi.setup( id, spi.MASTER, 1000000, 0, 0, 8 )
++
++print( &quot;&quot; )
++
++select()
++spi.write( id, 0x9F )
++print( &quot;JEDEC Manufacturer ID : &quot;, spi.readwrite( id, 0 )[1] )
++unselect()
++
+
+Modified: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2010-07-29 03:34:21 UTC (rev 767)
++++ trunk/romfs/led.lua	2010-08-04 13:18:39 UTC (rev 768)
+@@ -17,6 +17,10 @@
+ elseif pd.board() == &quot;ATEVK1100&quot; then
+   ledpin = pio.PB_27
+   invert = true
++elseif pd.board() == &quot;ATEVK1101&quot; then
++  ledpin = pio.PA_8
++  invert = true  
++  uartid = 1
+ elseif pd.board() == &quot;STR-E912&quot; then
+   ledpin = pio.P6_4
+ elseif pd.board() == &quot;ELUA-PUC&quot; then
+
+Added: trunk/src/platform/avr32/EVK1100/evk1100_conf.h
+===================================================================
+--- trunk/src/platform/avr32/EVK1100/evk1100_conf.h	                        (rev 0)
++++ trunk/src/platform/avr32/EVK1100/evk1100_conf.h	2010-08-04 13:18:39 UTC (rev 768)
+@@ -0,0 +1,120 @@
++// eLua platform configuration
++
++#ifndef __EVK1100_CONF_H__
++#define __EVK1100_CONF_H__
++
++#include &quot;sdramc.h&quot;
++
++// *****************************************************************************
++// Define here what components you want for this platform
++
++#define BUILD_XMODEM
++#define BUILD_SHELL
++#define BUILD_ROMFS
++#define BUILD_TERM
++#define BUILD_CON_GENERIC
++//#define BUILD_RPC
++
++// *****************************************************************************
++// UART/Timer IDs configuration data (used in main.c)
++
++#define CON_UART_ID         0
++#define CON_UART_SPEED      115200
++#define CON_TIMER_ID        0
++#define TERM_LINES          25
++#define TERM_COLS           80
++
++// *****************************************************************************
++// SPI pins configuration data
++
++#define BOARD_SPI0_SCK_PIN                  AVR32_PIN_PA13
++#define BOARD_SPI0_SCK_PIN_FUNCTION         0
++#define BOARD_SPI0_MISO_PIN                 AVR32_PIN_PA11
++#define BOARD_SPI0_MISO_PIN_FUNCTION        0
++#define BOARD_SPI0_MOSI_PIN                 AVR32_PIN_PA12
++#define BOARD_SPI0_MOSI_PIN_FUNCTION        0
++
++#define BOARD_SPI1_SCK_PIN                  AVR32_PIN_PA15
++#define BOARD_SPI1_SCK_PIN_FUNCTION         1
++#define BOARD_SPI1_MISO_PIN                 AVR32_PIN_PA17
++#define BOARD_SPI1_MISO_PIN_FUNCTION        1
++#define BOARD_SPI1_MOSI_PIN                 AVR32_PIN_PA16
++#define BOARD_SPI1_MOSI_PIN_FUNCTION        1
++
++// *****************************************************************************
++// Auxiliary libraries that will be compiled for this platform
++
++#if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
++#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#else
++#define RPCLINE
++#if !defined( BUILD_RPC )
++#define BUILD_RPC
++#endif
++#endif
++
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
++  RPCLINE\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
++
++// *****************************************************************************
++// Configuration data
++
++// Virtual timers (0 if not used)
++#define VTMR_NUM_TIMERS       4
++#define VTMR_FREQ_HZ          4
++
++// Number of resources (0 if not available/not implemented)
++#define NUM_PIO               5
++#define NUM_SPI               8
++#define NUM_UART              4
++#if VTMR_NUM_TIMERS &gt; 0
++#define NUM_TIMER             2
++#else
++#define NUM_TIMER             3
++#endif
++#define NUM_PWM               0
++#define NUM_ADC               0
++#define NUM_CAN               0
++
++// RPC boot options
++#define RPC_UART_ID           CON_UART_ID
++#define RPC_TIMER_ID          CON_TIMER_ID
++#define RPC_UART_SPEED        CON_UART_SPEED
++
++// Enable RX buffering on UART
++#define BUF_ENABLE_UART
++#define CON_BUF_SIZE          BUF_SIZE_128
++// REMEMBER to change next line if buffering is enabled and CON_UART_ID is not 0!
++#define CON_UART_IRQ          AVR32_USART0_IRQ
++
++// CPU frequency (needed by the CPU module, 0 if not used)
++#define CPU_FREQUENCY         REQ_CPU_FREQ
++
++// PIO prefix ('0' for P0, P1, ... or 'A' for PA, PB, ...)
++#define PIO_PREFIX            'A'
++// Pins per port configuration:
++// #define PIO_PINS_PER_PORT (n) if each port has the same number of pins, or
++// #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array
++// Use #define PIO_PINS_PER_PORT 0 if this isn't needed
++#define PIO_PIN_ARRAY         { 31, 32, 6, 32, 8 }
++
++// Allocator data: define your free memory zones here in two arrays
++// (start address and end address)
++#define MEM_START_ADDRESS     { ( void* )end, ( void* )SDRAM }
++#define MEM_END_ADDRESS       { ( void* )( 0x10000 - STACK_SIZE_TOTAL - 1 ), ( void* )( SDRAM + SDRAM_SIZE - 1 ) }
++
++// *****************************************************************************
++// CPU constants that should be exposed to the eLua &quot;cpu&quot; module
++
++#endif // #ifndef __EVK1100_CONF_H__
+
+Added: trunk/src/platform/avr32/EVK1101/evk1101.h
+===================================================================
+--- trunk/src/platform/avr32/EVK1101/evk1101.h	                        (rev 0)
++++ trunk/src/platform/avr32/EVK1101/evk1101.h	2010-08-04 13:18:39 UTC (rev 768)
+@@ -0,0 +1,278 @@
++/* This header file is part of the ATMEL AVR32-SoftwareFramework-AT32UC3B-1.4.0 Release */
++
++/*This file is prepared for Doxygen automatic documentation generation.*/
++/*! \file *********************************************************************
++ *
++ * \brief AT32UC3B EVK1101 board header file.
++ *
++ * This file contains definitions and services related to the features of the
++ * EVK1101 board rev. A and B.
++ *
++ * To use this board, define BOARD=EVK1101.
++ *
++ * - Compiler:           IAR EWAVR32 and GNU GCC for AVR32
++ * - Supported devices:  All AVR32 AT32UC3B devices can be used.
++ * - AppNote:
++ *
++ * \author               Atmel Corporation: <A HREF="http://www.atmel.com">http://www.atmel.com</A> \n
++ *                       Support and FAQ: <A HREF="http://support.atmel.no/">http://support.atmel.no/</A>
++ *
++ ******************************************************************************/
++
++/* Copyright (C) 2006-2008, Atmel Corporation All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * 1. Redistributions of source code must retain the above copyright notice,
++ * this list of conditions and the following disclaimer.
++ *
++ * 2. Redistributions in binary form must reproduce the above copyright notice,
++ * this list of conditions and the following disclaimer in the documentation
++ * and/or other materials provided with the distribution.
++ *
++ * 3. The name of ATMEL may not be used to endorse or promote products derived
++ * from this software without specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY ATMEL ``AS IS'' AND ANY EXPRESS OR IMPLIED
++ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE EXPRESSLY AND
++ * SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR ANY DIRECT,
++ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
++ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
++ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++
++#ifndef _EVK1101_H_
++#define _EVK1101_H_
++
++#include &quot;compiler.h&quot;
++
++//#ifdef __AVR32_ABI_COMPILER__ // Automatically defined when compiling for AVR32, not when assembling.
++//#  include &quot;led.h&quot;
++//#endif  // __AVR32_ABI_COMPILER__
++
++
++/*! \name Oscillator Definitions
++ */
++//! @{
++
++// RCOsc has no custom calibration by default. Set the following definition to
++// the appropriate value if a custom RCOsc calibration has been applied to your
++// part.
++//#define FRCOSC          AVR32_PM_RCOSC_FREQUENCY              //!&lt; RCOsc frequency: Hz.
++
++#define FOSC32          32768                                 //!&lt; Osc32 frequency: Hz.
++#define OSC32_STARTUP   AVR32_PM_OSCCTRL32_STARTUP_8192_RCOSC //!&lt; Osc32 startup time: RCOsc periods.
++
++#define FOSC0           12000000                              //!&lt; Osc0 frequency: Hz.
++#define OSC0_STARTUP    AVR32_PM_OSCCTRL0_STARTUP_2048_RCOSC  //!&lt; Osc0 startup time: RCOsc periods.
++
++// Osc1 crystal is not mounted by default. Set the following definitions to the
++// appropriate values if a custom Osc1 crystal is mounted on your board.
++//#define FOSC1           12000000                              //!&lt; Osc1 frequency: Hz.
++//#define OSC1_STARTUP    AVR32_PM_OSCCTRL1_STARTUP_2048_RCOSC  //!&lt; Osc1 startup time: RCOsc periods.
++
++//! @}
++
++
++/*! \name USB Definitions
++ */
++//! @{
++
++//! Multiplexed pin used for USB_ID: AVR32_USBB_USB_ID_x_x.
++//! To be selected according to the AVR32_USBB_USB_ID_x_x_PIN and
++//! AVR32_USBB_USB_ID_x_x_FUNCTION definitions from &lt;avr32/uc3bxxxx.h&gt;.
++#define USB_ID                      AVR32_USBB_USB_ID_0_0
++
++//! Multiplexed pin used for USB_VBOF: AVR32_USBB_USB_VBOF_x_x.
++//! To be selected according to the AVR32_USBB_USB_VBOF_x_x_PIN and
++//! AVR32_USBB_USB_VBOF_x_x_FUNCTION definitions from &lt;avr32/uc3bxxxx.h&gt;.
++#define USB_VBOF                    AVR32_USBB_USB_VBOF_0_0
++
++//! Active level of the USB_VBOF output pin.
++#define USB_VBOF_ACTIVE_LEVEL       LOW
++
++//! USB overcurrent detection pin.
++#define USB_OVERCURRENT_DETECT_PIN  AVR32_PIN_PA20
++
++//! @}
++
++
++//! Number of LEDs.
++#define LED_COUNT   4
++
++/*! \name GPIO Connections of LEDs
++ */
++//! @{
++#define LED0_GPIO   AVR32_PIN_PA07
++#define LED1_GPIO   AVR32_PIN_PA08
++#define LED2_GPIO   AVR32_PIN_PA21
++#define LED3_GPIO   AVR32_PIN_PA22
++//! @}
++
++/*! \name PWM Channels of LEDs
++ */
++//! @{
++#define LED0_PWM    0
++#define LED1_PWM    1
++#define LED2_PWM    2
++#define LED3_PWM    6
++//! @}
++
++/*! \name PWM Functions of LEDs
++ */
++//! @{
++#define LED0_PWM_FUNCTION   AVR32_PWM_0_0_FUNCTION
++#define LED1_PWM_FUNCTION   AVR32_PWM_1_0_FUNCTION
++#define LED2_PWM_FUNCTION   AVR32_PWM_2_0_FUNCTION
++#define LED3_PWM_FUNCTION   AVR32_PWM_6_0_FUNCTION
++//! @}
++
++/*! \name Color Identifiers of LEDs to Use with LED Functions
++ */
++//! @{
++#define LED_MONO0_GREEN   LED0
++#define LED_MONO1_GREEN   LED1
++#define LED_MONO2_GREEN   LED2
++#define LED_MONO3_GREEN   LED3
++//! @}
++
++
++/*! \name GPIO Connections of Push Buttons
++ */
++//! @{
++#define GPIO_PUSH_BUTTON_0            AVR32_PIN_PB02
++#define GPIO_PUSH_BUTTON_0_PRESSED    0
++#define GPIO_PUSH_BUTTON_1            AVR32_PIN_PB03
++#define GPIO_PUSH_BUTTON_1_PRESSED    0
++//! @}
++
++
++/*! \name GPIO Connections of the Joystick
++ */
++//! @{
++#define GPIO_JOYSTICK_PUSH            AVR32_PIN_PA13
++#define GPIO_JOYSTICK_PUSH_PRESSED    0
++#define GPIO_JOYSTICK_LEFT            AVR32_PIN_PB06
++#define GPIO_JOYSTICK_LEFT_PRESSED    0
++#define GPIO_JOYSTICK_RIGHT           AVR32_PIN_PB09
++#define GPIO_JOYSTICK_RIGHT_PRESSED   0
++#define GPIO_JOYSTICK_UP              AVR32_PIN_PB07
++#define GPIO_JOYSTICK_UP_PRESSED      0
++#define GPIO_JOYSTICK_DOWN            AVR32_PIN_PB08
++#define GPIO_JOYSTICK_DOWN_PRESSED    0
++//! @}
++
++
++/*! \name ADC Connection of the Temperature Sensor
++ */
++//! @{
++#define ADC_TEMPERATURE_CHANNEL     7
++#define ADC_TEMPERATURE_PIN         AVR32_ADC_AD_7_PIN
++#define ADC_TEMPERATURE_FUNCTION    AVR32_ADC_AD_7_FUNCTION
++//! @}
++
++
++/*! \name ADC Connection of the Light Sensor
++ */
++//! @{
++#define ADC_LIGHT_CHANNEL           6
++#define ADC_LIGHT_PIN               AVR32_ADC_AD_6_PIN
++#define ADC_LIGHT_FUNCTION          AVR32_ADC_AD_6_FUNCTION
++//! @}
++
++
++/*! \name ADC Connections of the Accelerometer
++ */
++//! @{
++#define ADC_ACC_X_CHANNEL           1
++#define ADC_ACC_X_PIN               AVR32_ADC_AD_1_PIN
++#define ADC_ACC_X_FUNCTION          AVR32_ADC_AD_1_FUNCTION
++#define ADC_ACC_Y_CHANNEL           2
++#define ADC_ACC_Y_PIN               AVR32_ADC_AD_2_PIN
++#define ADC_ACC_Y_FUNCTION          AVR32_ADC_AD_2_FUNCTION
++#define ADC_ACC_Z_CHANNEL           3
++#define ADC_ACC_Z_PIN               AVR32_ADC_AD_3_PIN
++#define ADC_ACC_Z_FUNCTION          AVR32_ADC_AD_3_FUNCTION
++//! @}
++
++
++/*! \name PWM Connections of Audio
++ */
++//! @{
++#define AUDIO_LOW_PWM_CHANNEL       5
++#define AUDIO_LOW_PWM_PIN           AVR32_PWM_5_0_PIN
++#define AUDIO_LOW_PWM_FUNCTION      AVR32_PWM_5_0_FUNCTION
++#define AUDIO_HIGH_PWM_CHANNEL      6
++#define AUDIO_HIGH_PWM_PIN          AVR32_PWM_6_1_PIN
++#define AUDIO_HIGH_PWM_FUNCTION     AVR32_PWM_6_1_FUNCTION
++//! @}
++
++
++/*! \name SPI Connections of the AT45DBX Data Flash Memory
++ */
++//! @{
++#define AT45DBX_SPI                 (&amp;AVR32_SPI)
++#define AT45DBX_SPI_NPCS            0
++#define AT45DBX_SPI_SCK_PIN         AVR32_SPI_SCK_0_0_PIN
++#define AT45DBX_SPI_SCK_FUNCTION    AVR32_SPI_SCK_0_0_FUNCTION
++#define AT45DBX_SPI_MISO_PIN        AVR32_SPI_MISO_0_0_PIN
++#define AT45DBX_SPI_MISO_FUNCTION   AVR32_SPI_MISO_0_0_FUNCTION
++#define AT45DBX_SPI_MOSI_PIN        AVR32_SPI_MOSI_0_0_PIN
++#define AT45DBX_SPI_MOSI_FUNCTION   AVR32_SPI_MOSI_0_0_FUNCTION
++#define AT45DBX_SPI_NPCS0_PIN       AVR32_SPI_NPCS_0_0_PIN
++#define AT45DBX_SPI_NPCS0_FUNCTION  AVR32_SPI_NPCS_0_0_FUNCTION
++//! @}
++
++
++/*! \name GPIO and SPI Connections of the SD/MMC Connector
++ */
++//! @{
++#define SD_MMC_CARD_DETECT_PIN      AVR32_PIN_PB00
++#define SD_MMC_WRITE_PROTECT_PIN    AVR32_PIN_PB01
++#define SD_MMC_SPI                  (&amp;AVR32_SPI)
++#define SD_MMC_SPI_NPCS             1
++#define SD_MMC_SPI_SCK_PIN          AVR32_SPI_SCK_0_0_PIN
++#define SD_MMC_SPI_SCK_FUNCTION     AVR32_SPI_SCK_0_0_FUNCTION
++#define SD_MMC_SPI_MISO_PIN         AVR32_SPI_MISO_0_0_PIN
++#define SD_MMC_SPI_MISO_FUNCTION    AVR32_SPI_MISO_0_0_FUNCTION
++#define SD_MMC_SPI_MOSI_PIN         AVR32_SPI_MOSI_0_0_PIN
++#define SD_MMC_SPI_MOSI_FUNCTION    AVR32_SPI_MOSI_0_0_FUNCTION
++#define SD_MMC_SPI_NPCS_PIN         AVR32_SPI_NPCS_1_0_PIN
++#define SD_MMC_SPI_NPCS_FUNCTION    AVR32_SPI_NPCS_1_0_FUNCTION
++//! @}
++
++
++/*! \name TWI Connections of the Spare TWI Connector
++ */
++//! @{
++#define SPARE_TWI                   (&amp;AVR32_TWI)
++#define SPARE_TWI_SCL_PIN           AVR32_TWI_SCL_0_0_PIN
++#define SPARE_TWI_SCL_FUNCTION      AVR32_TWI_SCL_0_0_FUNCTION
++#define SPARE_TWI_SDA_PIN           AVR32_TWI_SDA_0_0_PIN
++#define SPARE_TWI_SDA_FUNCTION      AVR32_TWI_SDA_0_0_FUNCTION
++//! @}
++
++
++/*! \name SPI Connections of the Spare SPI Connector
++ */
++//! @{
++#define SPARE_SPI                   (&amp;AVR32_SPI)
++#define SPARE_SPI_NPCS              2
++#define SPARE_SPI_SCK_PIN           AVR32_SPI_SCK_0_0_PIN
++#define SPARE_SPI_SCK_FUNCTION      AVR32_SPI_SCK_0_0_FUNCTION
++#define SPARE_SPI_MISO_PIN          AVR32_SPI_MISO_0_0_PIN
++#define SPARE_SPI_MISO_FUNCTION     AVR32_SPI_MISO_0_0_FUNCTION
++#define SPARE_SPI_MOSI_PIN          AVR32_SPI_MOSI_0_0_PIN
++#define SPARE_SPI_MOSI_FUNCTION     AVR32_SPI_MOSI_0_0_FUNCTION
++#define SPARE_SPI_NPCS_PIN          AVR32_SPI_NPCS_2_0_PIN
++#define SPARE_SPI_NPCS_FUNCTION     AVR32_SPI_NPCS_2_0_FUNCTION
++//! @}
++
++
++#endif  // _EVK1101_H_
+
+Added: trunk/src/platform/avr32/EVK1101/evk1101_conf.h
+===================================================================
+--- trunk/src/platform/avr32/EVK1101/evk1101_conf.h	                        (rev 0)
++++ trunk/src/platform/avr32/EVK1101/evk1101_conf.h	2010-08-04 13:18:39 UTC (rev 768)
+@@ -0,0 +1,108 @@
++// eLua EVK1101 configuration
++
++#ifndef __EVK1101_CONF_H__
++#define __EVK1101_CONF_H__
++
++// *****************************************************************************
++// Define here what components you want for this platform
++
++#define BUILD_XMODEM
++#define BUILD_SHELL
++#define BUILD_ROMFS
++#define BUILD_TERM
++#define BUILD_CON_GENERIC
++//#define BUILD_RPC
++
++// *****************************************************************************
++// UART/Timer IDs configuration data (used in main.c)
++
++#define CON_UART_ID         1
++#define CON_UART_SPEED      115200
++#define CON_TIMER_ID        0
++#define TERM_LINES          25
++#define TERM_COLS           80
++
++// *****************************************************************************
++// SPI pins configuration data
++
++#define BOARD_SPI0_SCK_PIN                  AVR32_PIN_PA15
++#define BOARD_SPI0_SCK_PIN_FUNCTION         0
++#define BOARD_SPI0_MISO_PIN                 AVR32_PIN_PA25
++#define BOARD_SPI0_MISO_PIN_FUNCTION        0
++#define BOARD_SPI0_MOSI_PIN                 AVR32_PIN_PA14
++#define BOARD_SPI0_MOSI_PIN_FUNCTION        0
++
++// *****************************************************************************
++// Auxiliary libraries that will be compiled for this platform
++
++#ifdef BUILD_RPC
++#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#else
++#define RPCLINE
++#endif
++
++#define LUA_PLATFORM_LIBS_ROM\
++  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
++  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
++  _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
++  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
++  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
++  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
++  RPCLINE\
++  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
++  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
++
++// *****************************************************************************
++// Configuration data
++
++// Virtual timers (0 if not used)
++#define VTMR_NUM_TIMERS       4
++#define VTMR_FREQ_HZ          4
++
++// Number of resources (0 if not available/not implemented)
++#define NUM_PIO               2
++#define NUM_SPI               4
++#define NUM_UART              2
++#if VTMR_NUM_TIMERS &gt; 0
++#define NUM_TIMER             2
++#else
++#define NUM_TIMER             3
++#endif
++#define NUM_PWM               0
++#define NUM_ADC               0
++#define NUM_CAN               0
++
++// RPC boot options
++#define RPC_UART_ID           CON_UART_ID
++#define RPC_TIMER_ID          CON_TIMER_ID
++#define RPC_UART_SPEED        CON_UART_SPEED
++
++// Enable RX buffering on UART
++#define BUF_ENABLE_UART
++#define CON_BUF_SIZE          BUF_SIZE_128
++// REMEMBER to change next line if buffering is enabled and CON_UART_ID is not 0!
++#define CON_UART_IRQ          AVR32_USART1_IRQ
++
++// CPU frequency (needed by the CPU module, 0 if not used)
++#define CPU_FREQUENCY         REQ_CPU_FREQ
++
++// PIO prefix ('0' for P0, P1, ... or 'A' for PA, PB, ...)
++#define PIO_PREFIX            'A'
++// Pins per port configuration:
++// #define PIO_PINS_PER_PORT (n) if each port has the same number of pins, or
++// #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array
++// Use #define PIO_PINS_PER_PORT 0 if this isn't needed
++#define PIO_PIN_ARRAY         { 31, 11 }
++
++// Allocator data: define your free memory zones here in two arrays
++// (start address and end address)
++#define MEM_START_ADDRESS     { ( void* )end }
++#define MEM_END_ADDRESS       { ( void* )( AVR32_SRAM_SIZE - STACK_SIZE_TOTAL - 1 ) }    
++
++
++// *****************************************************************************
++// CPU constants that should be exposed to the eLua &quot;cpu&quot; module
++
++#endif // #ifndef __EVK1101_CONF_H__
+
+Modified: trunk/src/platform/avr32/at32uc3a0512.ld
+===================================================================
+--- trunk/src/platform/avr32/at32uc3a0512.ld	2010-07-29 03:34:21 UTC (rev 767)
++++ trunk/src/platform/avr32/at32uc3a0512.ld	2010-08-04 13:18:39 UTC (rev 768)
+@@ -1,7 +1,7 @@
+ MEMORY
+ {
+     sram (W!RX) : ORIGIN = 0x00000004, LENGTH = 0x0000FFFC
+-    flash (RX) : ORIGIN = 0x80002000, LENGTH = 0x00080000
++    flash (RX) : ORIGIN = 0x80002000, LENGTH = 0x00080000 - 0x2000
+ }
+ 
+ SECTIONS
+
+Added: trunk/src/platform/avr32/at32uc3b0256.ld
+===================================================================
+--- trunk/src/platform/avr32/at32uc3b0256.ld	                        (rev 0)
++++ trunk/src/platform/avr32/at32uc3b0256.ld	2010-08-04 13:18:39 UTC (rev 768)
+@@ -0,0 +1,50 @@
++MEMORY
++{
++    sram (W!RX) : ORIGIN = 0x00000004, LENGTH = 0x00007FFC
++    flash (RX) : ORIGIN = 0x80002000, LENGTH = 0x00040000 - 0x2000
++}
++
++SECTIONS
++{
++    .text :
++    {
++        . = ALIGN(4);
++        _stext = .;
++        PROVIDE(stext = .);
++        KEEP(*(.start))
++        *(.text .text.*)
++        *(.rodata .rodata.*)
++        *(.gnu.linkonce.t.*)
++        *(.glue_7)
++        *(.glue_7t)
++        *(.gcc_except_table)
++        *(.gnu.linkonce.r.*)
++        *(.exception .exception.*)
++        . = ALIGN(4);
++        _etext = .;
++        PROVIDE(etext = .);
++    } &gt;flash
++
++    .data : AT (_etext)
++    {
++        . = ALIGN(4);
++        _data = .;
++        *(.ramfunc .ramfunc.* .fastrun .fastrun.*)
++        *(.data .data.*)
++        *(.gnu.linkonce.d.*)
++        . = ALIGN(4);
++        _edata = .;
++    } &gt;sram
++
++    .bss (NOLOAD) : {
++        _bss = .;
++        *(.bss .bss.*)
++        *(.gnu.linkonce.b.*)
++        *(COMMON)
++        . = ALIGN(4);
++        _ebss = .;
++    } &gt;sram
++
++    end = .;
++    _sstack = 0x0008000;
++}
+
+Modified: trunk/src/platform/avr32/conf.py
+===================================================================
+--- trunk/src/platform/avr32/conf.py	2010-07-29 03:34:21 UTC (rev 767)
++++ trunk/src/platform/avr32/conf.py	2010-08-04 13:18:39 UTC (rev 768)
+@@ -1,14 +1,21 @@
+-# Configuration file for the AVR32 microcontroller
++# Configuration file for the AVR32 microcontrollers
+ 
+-specific_files = &quot;crt0.s trampoline.s platform.c exception.s intc.c pm.c flashc.c pm_conf_clocks.c usart.c gpio.c tc.c sdramc.c&quot;
+-ldscript = &quot;at32uc3a0512.ld&quot;
+-# [TODO] the appends assume that the board is an ATEVK1100 (see src/platform/avr32/board.h)
++specific_files = &quot;crt0.s trampoline.s platform.c exception.s intc.c pm.c flashc.c pm_conf_clocks.c usart.c gpio.c tc.c spi.c&quot;
+ comp.Append(CPPDEFINES = 'FORAVR32')
+-comp.Append(CPPDEFINES = {'BOARD' : 1})
+ 
++# See board.h for possible BOARD values.
++if comp[ 'board' ]  == &quot;ATEVK1100&quot;:
++    specific_files += &quot; sdramc.c&quot;
++    comp.Append(CPPDEFINES = {'BOARD' : 1})
++elif comp[ 'board' ]  == &quot;ATEVK1101&quot;:
++    comp.Append(CPPDEFINES = {'BOARD' : 2})
++else:
++    print &quot;Invalid board for %s platform (%s)&quot; %( platform, comp[ 'board' ] )
++    sys.exit( -1 )
++
+ # Prepend with path
+ specific_files = &quot; &quot;.join( [ &quot;src/platform/%s/%s&quot; % ( platform, f ) for f in specific_files.split() ] )
+-ldscript = &quot;src/platform/%s/%s&quot; % ( platform, ldscript )
++ldscript = &quot;src/platform/%s/%s.ld&quot; % ( platform, comp[ 'cpu' ].lower() )
+ 
+ # Standard GCC Flags
+ comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
+@@ -17,8 +24,8 @@
+ comp.Append(LIBS = ['c','gcc','m'])
+ 
+ # Target-specific Flags
+-comp.Prepend(CCFLAGS = ['-mpart=uc3a0512'])
+-comp.Prepend(ASFLAGS = ['-mpart=uc3a0512'])
++comp.Prepend(CCFLAGS = ['-mpart=%s' % (comp[ 'cpu' ][4:].lower())])
++comp.Prepend(ASFLAGS = ['-mpart=%s' % (comp[ 'cpu' ][4:].lower())])
+ comp.Append(LINKFLAGS = ['-Wl,-e,crt0'])
+ 
+ # Toolset data
+@@ -31,7 +38,7 @@
+   print &quot;Generating binary image...&quot;
+   os.system( &quot;%s -O ihex %s %s.hex&quot; % ( toolset[ 'bin' ], outname, output ) )
+ 
+-#  print &quot;Programming...&quot;
+-#  os.system( &quot;batchisp3.sh -hardware usb -device at32uc3a0512 -operation erase f memory flash blankcheck loadbuffer %s program verify start reset 0&quot; % ( output + &quot;.hex&quot; ) )
++  print &quot;Programming...&quot;
++  os.system( &quot;batchisp -hardware usb -device %s -operation erase f memory flash blankcheck loadbuffer %s program verify start reset 0&quot; % ( comp[ 'cpu' ].lower(), output + &quot;.hex&quot; ) )
+ 
+ tools[ 'avr32' ][ 'progfunc' ] = progfunc_avr32
+
+Modified: trunk/src/platform/avr32/platform.c
+===================================================================
+--- trunk/src/platform/avr32/platform.c	2010-07-29 03:34:21 UTC (rev 767)
++++ trunk/src/platform/avr32/platform.c	2010-08-04 13:18:39 UTC (rev 768)
+@@ -14,6 +14,7 @@
+ #include &quot;platform_conf.h&quot;
+ #include &quot;common.h&quot;
+ #include &quot;buf.h&quot;
++#include &quot;spi.h&quot;
+ 
+ // Platform-specific includes
+ #include &lt;avr32/io.h&gt;
+@@ -25,7 +26,6 @@
+ #include &quot;gpio.h&quot;
+ #include &quot;tc.h&quot;
+ #include &quot;intc.h&quot;
+-#include &quot;sdramc.h&quot;
+ 
+ // ****************************************************************************
+ // Platform initialization
+@@ -45,7 +45,14 @@
+ }                                
+ #endif
+ 
+-static const u32 uart_base_addr[ NUM_UART ] = { AVR32_USART0_ADDRESS, AVR32_USART1_ADDRESS, AVR32_USART2_ADDRESS, AVR32_USART3_ADDRESS };
++static const u32 uart_base_addr[ ] = { 
++    AVR32_USART0_ADDRESS, 
++    AVR32_USART1_ADDRESS, 
++    AVR32_USART2_ADDRESS, 
++#ifdef AVR32_USART3_ADDRESS
++    AVR32_USART3_ADDRESS,
++#endif    
++};
+ 
+ // Buffered UART support
+ #ifdef BUF_ENABLE_UART
+@@ -111,8 +118,10 @@
+   // Enable the 32-kHz clock
+   pm_enable_clk32_no_wait( &amp;AVR32_PM, AVR32_PM_OSCCTRL32_STARTUP_0_RCOSC );    
+   
+-  // Initialize external memory
++  // Initialize external memory if any.
++#ifdef AVR32_SDRAMC
+   sdramc_init( REQ_CPU_FREQ );
++#endif 
+   
+   // Setup UART for eLua
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );  
+@@ -156,6 +165,20 @@
+   tc_start( tc, VTMR_CH );  
+ #endif
+ 
++    // Setup spi controller(s) : up to 4 slave by controller.
++#if NUM_SPI &gt; 0
++    spi_master_options_t spiopt;
++    spiopt.modfdis = TRUE;
++    spiopt.pcs_decode = FALSE;
++    spiopt.delay = 0;
++    spi_initMaster(&amp;AVR32_SPI0, &amp;spiopt, REQ_PBA_FREQ);
++    
++#if NUM_SPI &gt; 4
++    spi_initMaster(&amp;AVR32_SPI1, &amp;spiopt, REQ_PBA_FREQ);
++#endif    
++
++#endif
++
+   cmn_platform_init();
+     
+   // All done  
+@@ -351,15 +374,20 @@
+   // UART 0
+   { AVR32_USART0_RXD_0_0_PIN, AVR32_USART0_RXD_0_0_FUNCTION },
+   { AVR32_USART0_TXD_0_0_PIN, AVR32_USART0_TXD_0_0_FUNCTION },
++  
+   // UART 1
+   { AVR32_USART1_RXD_0_0_PIN, AVR32_USART1_RXD_0_0_FUNCTION },
+   { AVR32_USART1_TXD_0_0_PIN, AVR32_USART1_TXD_0_0_FUNCTION },
++  
+   // UART 2
+   { AVR32_USART2_RXD_0_0_PIN, AVR32_USART2_RXD_0_0_FUNCTION },
+   { AVR32_USART2_TXD_0_0_PIN, AVR32_USART2_TXD_0_0_FUNCTION },
++  
++#ifdef AVR32_USART3_ADDRESS  
+   // UART 3
+   { AVR32_USART3_RXD_0_0_PIN, AVR32_USART3_RXD_0_0_FUNCTION },
+-  { AVR32_USART3_TXD_0_0_PIN, AVR32_USART3_TXD_0_0_FUNCTION }
++  { AVR32_USART3_TXD_0_0_PIN, AVR32_USART3_TXD_0_0_FUNCTION },
++#endif  
+ };
+ 
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+@@ -502,6 +530,75 @@
+ }
+ 
+ // ****************************************************************************
++// SPI functions
++
++/* Note about AVR32 SPI
++ *
++ * Each controller can handle up to 4 different settings.
++ * Here, for convenience, we don't use the builtin chip select lines, 
++ * it's up to the user to drive the corresponding GPIO lines.
++ *
++*/
++static const gpio_map_t spi_pins = 
++{
++  // SPI0
++  { BOARD_SPI0_SCK_PIN, BOARD_SPI0_SCK_PIN_FUNCTION },
++  { BOARD_SPI0_MISO_PIN, BOARD_SPI0_MISO_PIN_FUNCTION },
++  { BOARD_SPI0_MOSI_PIN, BOARD_SPI0_MOSI_PIN_FUNCTION },
++  
++  // SPI1
++#if NUM_SPI &gt; 4  
++  { BOARD_SPI1_SCK_PIN, BOARD_SPI1_SCK_PIN_FUNCTION },
++  { BOARD_SPI1_MISO_PIN, BOARD_SPI1_MISO_PIN_FUNCTION },
++  { BOARD_SPI1_MOSI_PIN, BOARD_SPI1_MOSI_PIN_FUNCTION },
++#endif  
++};
++
++static const
++u32 spireg[] = 
++{ 
++    AVR32_SPI0_ADDRESS, 
++#ifdef AVR32_SPI1_ADDRESS    
++    AVR32_SPI1_ADDRESS,
++#endif
++};
++
++u32 platform_spi_setup( unsigned id, int mode, u32 clock, unsigned cpol, unsigned cpha, unsigned databits )
++{
++    spi_options_t opt;
++    
++    opt.baudrate = clock;
++    opt.bits = min(databits, 16);
++    opt.spck_delay = 0;
++    opt.trans_delay = 0;
++    opt.mode = ((cpol &amp; 1) &lt;&lt; 1) | (cpha &amp; 1);
++
++    // Set actual interface
++    gpio_enable_module(spi_pins + (id &gt;&gt; 2) * 3, 3);
++    spi_setupChipReg((volatile avr32_spi_t *) spireg[id &gt;&gt; 2], id % 4, &amp;opt, REQ_PBA_FREQ);
++    
++    // TODO: return the actual baudrate.
++    return clock;
++}
++
++spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
++{
++    volatile avr32_spi_t * spi = (volatile avr32_spi_t *) spireg[id &gt;&gt; 2];
++    
++    /* Since none of the builtin chip select lines are externally wired,
++     * spi_selectChip() just ensure that the correct spi settings are 
++     * used for the transfer.
++     */
++    spi_selectChip(spi, id % 4);
++    return spi_single_transfer(spi, (u16) data);
++}
++
++void platform_spi_select( unsigned id, int is_select )
++{
++    // Unsupported.
++}
++
++// ****************************************************************************
+ // CPU functions
+ 
+ void platform_cpu_enable_interrupts()
+
+Modified: trunk/src/platform/avr32/platform_conf.h
+===================================================================
+--- trunk/src/platform/avr32/platform_conf.h	2010-07-29 03:34:21 UTC (rev 767)
++++ trunk/src/platform/avr32/platform_conf.h	2010-08-04 13:18:39 UTC (rev 768)
+@@ -6,100 +6,13 @@
+ #include &quot;auxmods.h&quot;
+ #include &quot;board.h&quot;
+ #include &quot;stacks.h&quot;
+-#include &quot;sdramc.h&quot;
+ 
+-// *****************************************************************************
+-// Define here what components you want for this platform
+-
+-#define BUILD_XMODEM
+-#define BUILD_SHELL
+-#define BUILD_ROMFS
+-#define BUILD_TERM
+-#define BUILD_CON_GENERIC
+-//#define BUILD_RPC
+-
+-// *****************************************************************************
+-// UART/Timer IDs configuration data (used in main.c)
+-
+-#define CON_UART_ID         0
+-#define CON_UART_SPEED      115200
+-#define CON_TIMER_ID        0
+-#define TERM_LINES          25
+-#define TERM_COLS           80
+-
+-// *****************************************************************************
+-// Auxiliary libraries that will be compiled for this platform
+-
+-#if defined( BUILD_RPC ) || defined( ELUA_BOOT_RPC )
+-#define RPCLINE _ROM( AUXLIB_RPC, luaopen_rpc, rpc_map )
++#if BOARD == EVK1100
++    #include &quot;EVK1100/evk1100_conf.h&quot;
++#elif BOARD == EVK1101
++    #include &quot;EVK1101/evk1101_conf.h&quot;
+ #else
+-#define RPCLINE
+-#if !defined( BUILD_RPC )
+-#define BUILD_RPC
++    #error No known AVR32 board defined    
+ #endif
+-#endif
+ 
+-#define LUA_PLATFORM_LIBS_ROM\
+-  _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+-  _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
+-  _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+-  _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+-  _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+-  _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+-  _ROM( AUXLIB_ELUA, luaopen_elua, elua_map )\
+-  RPCLINE\
+-  _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+-  _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+-  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+-
+-// *****************************************************************************
+-// Configuration data
+-
+-// Virtual timers (0 if not used)
+-#define VTMR_NUM_TIMERS       4
+-#define VTMR_FREQ_HZ          4
+-
+-// Number of resources (0 if not available/not implemented)
+-#define NUM_PIO               5
+-#define NUM_SPI               0
+-#define NUM_UART              4
+-#if VTMR_NUM_TIMERS &gt; 0
+-#define NUM_TIMER             2
+-#else
+-#define NUM_TIMER             3
+-#endif
+-#define NUM_PWM               0
+-#define NUM_ADC               0
+-#define NUM_CAN               0
+-
+-// RPC boot options
+-#define RPC_UART_ID           CON_UART_ID
+-#define RPC_TIMER_ID          CON_TIMER_ID
+-#define RPC_UART_SPEED        CON_UART_SPEED
+-
+-// Enable RX buffering on UART
+-#define BUF_ENABLE_UART
+-#define CON_BUF_SIZE          BUF_SIZE_128
+-// REMEMBER to change next line if buffering is enabled and CON_UART_ID is not 0!
+-#define CON_UART_IRQ          AVR32_USART0_IRQ
+-
+-// CPU frequency (needed by the CPU module, 0 if not used)
+-#define CPU_FREQUENCY         REQ_CPU_FREQ
+-
+-// PIO prefix ('0' for P0, P1, ... or 'A' for PA, PB, ...)
+-#define PIO_PREFIX            'A'
+-// Pins per port configuration:
+-// #define PIO_PINS_PER_PORT (n) if each port has the same number of pins, or
+-// #define PIO_PIN_ARRAY { n1, n2, ... } to define pins per port in an array
+-// Use #define PIO_PINS_PER_PORT 0 if this isn't needed
+-#define PIO_PIN_ARRAY         { 31, 32, 6, 32, 8 }
+-
+-// Allocator data: define your free memory zones here in two arrays
+-// (start address and end address)
+-#define MEM_START_ADDRESS     { ( void* )end, ( void* )SDRAM }
+-#define MEM_END_ADDRESS       { ( void* )( 0x10000 - STACK_SIZE_TOTAL - 1 ), ( void* )( SDRAM + SDRAM_SIZE - 1 ) }
+-
+-// *****************************************************************************
+-// CPU constants that should be exposed to the eLua &quot;cpu&quot; module
+-
+ #endif // #ifndef __PLATFORM_CONF_H__
+
+Added: trunk/src/platform/avr32/spi.c
+===================================================================
+--- trunk/src/platform/avr32/spi.c	                        (rev 0)
++++ trunk/src/platform/avr32/spi.c	2010-08-04 13:18:39 UTC (rev 768)
+@@ -0,0 +1,220 @@
++#include &quot;compiler.h&quot;
++#include &quot;spi.h&quot;
++
++/* Copyright (c) 2009 Atmel Corporation. All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions are met:
++ *
++ * 1. Redistributions of source code must retain the above copyright notice, this
++ * list of conditions and the following disclaimer.
++ *
++ * 2. Redistributions in binary form must reproduce the above copyright notice,
++ * this list of conditions and the following disclaimer in the documentation
++ * and/or other materials provided with the distribution.
++ *
++ * 3. The name of Atmel may not be used to endorse or promote products derived
++ * from this software without specific prior written permission.
++ *
++ * 4. This software may only be redistributed and used in connection with an Atmel
++ * AVR product.
++ *
++ * THIS SOFTWARE IS PROVIDED BY ATMEL &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED
++ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
++ * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
++ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
++ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE
++ *
++ */
++
++
++/*! \name SPI Writable Bit-Field Registers
++ */
++//! @{
++typedef union
++{
++  unsigned long                 cr;
++  avr32_spi_cr_t                CR;
++} u_avr32_spi_cr_t;
++
++typedef union
++{
++  unsigned long                 mr;
++  avr32_spi_mr_t                MR;
++} u_avr32_spi_mr_t;
++
++typedef union
++{
++  unsigned long                 tdr;
++  avr32_spi_tdr_t               TDR;
++} u_avr32_spi_tdr_t;
++
++typedef union
++{
++  unsigned long                 ier;
++  avr32_spi_ier_t               IER;
++} u_avr32_spi_ier_t;
++
++typedef union
++{
++  unsigned long                 idr;
++  avr32_spi_idr_t               IDR;
++} u_avr32_spi_idr_t;
++
++typedef union
++{
++  unsigned long                 csr;
++  avr32_spi_csr0_t              CSR;
++} u_avr32_spi_csr_t;
++//! @}
++
++/*-----------------------------------------------------------*/
++static int getBaudDiv(const spi_options_t *options, U32 pba_hz)
++{
++  int baudDiv = (pba_hz + options-&gt;baudrate / 2) / options-&gt;baudrate;
++
++  if (baudDiv &lt;= 0 || baudDiv &gt; 255) {
++    return -1;
++  }
++
++  return baudDiv;
++}
++/*-----------------------------------------------------------*/
++void spi_reset(volatile avr32_spi_t *spi)
++{
++  spi-&gt;cr = AVR32_SPI_CR_SWRST_MASK;
++}
++/*-----------------------------------------------------------*/
++int spi_initMaster(volatile avr32_spi_t *spi, const spi_master_options_t *opt, U32 pba_hz)
++{
++  u_avr32_spi_mr_t u_avr32_spi_mr;
++
++  // Reset.
++  spi-&gt;cr = AVR32_SPI_CR_SWRST_MASK;
++
++  // Master Mode.
++  u_avr32_spi_mr.mr = spi-&gt;mr;
++  u_avr32_spi_mr.MR.dlybcs = opt-&gt;delay*(pba_hz/1000000UL);
++  u_avr32_spi_mr.MR.pcs = (1 &lt;&lt; AVR32_SPI_MR_PCS_SIZE) - 1;
++  u_avr32_spi_mr.MR.llb = 0;
++  u_avr32_spi_mr.MR.modfdis = opt-&gt;modfdis;
++  //u_avr32_spi_mr.MR.fdiv = 0;
++  u_avr32_spi_mr.MR.pcsdec = opt-&gt;pcs_decode;
++  u_avr32_spi_mr.MR.ps = 0;
++  u_avr32_spi_mr.MR.mstr = 1;
++  spi-&gt;mr = u_avr32_spi_mr.mr;
++
++  // SPI enable
++  spi-&gt;cr = AVR32_SPI_CR_SPIEN_MASK;
++
++
++  return 0;
++}
++/*-----------------------------------------------------------*/
++int spi_setupChipReg(volatile avr32_spi_t *spi,
++		unsigned char reg, const spi_options_t *options, U32 pba_hz)
++{
++  u_avr32_spi_csr_t u_avr32_spi_csr;
++
++  if (options-&gt;mode &gt; 3 ||
++      options-&gt;bits &lt; 8 || options-&gt;bits &gt; 16) {
++    return -1;
++  }
++
++  int baudDiv = getBaudDiv(options, pba_hz);
++
++  if (baudDiv &lt; 0)
++    return -1;
++
++  // Will use CSR0 offsets; these are the same for CSR0 to CSR3.
++  u_avr32_spi_csr.csr = 0;
++  u_avr32_spi_csr.CSR.cpol = options-&gt;mode &gt;&gt; 1;
++  u_avr32_spi_csr.CSR.ncpha = (options-&gt;mode &amp; 0x1) ^ 0x1;
++  u_avr32_spi_csr.CSR.csaat = 1;
++  u_avr32_spi_csr.CSR.bits = options-&gt;bits - 8;
++  u_avr32_spi_csr.CSR.scbr = baudDiv;
++  u_avr32_spi_csr.CSR.dlybs = min(options-&gt;spck_delay*(pba_hz/1000000UL), 255);
++  u_avr32_spi_csr.CSR.dlybct = min((options-&gt;trans_delay*(pba_hz/1000000UL) + 31)/32, 255);
++
++  switch(reg) {
++    case 0:
++      spi-&gt;csr0 = u_avr32_spi_csr.csr;
++      break;
++    case 1:
++      spi-&gt;csr1 = u_avr32_spi_csr.csr;
++      break;
++    case 2:
++      spi-&gt;csr2 = u_avr32_spi_csr.csr;
++      break;
++    case 3:
++      spi-&gt;csr3 = u_avr32_spi_csr.csr;
++      break;
++    default:
++      return -1;
++  }
++
++  return 0;
++}
++/*-----------------------------------------------------------*/
++int spi_selectChip(volatile avr32_spi_t *spi, unsigned char chip)
++{
++  // Assert all lines; no peripheral is selected.
++  spi-&gt;mr |= AVR32_SPI_MR_PCS_MASK;
++
++  if (spi-&gt;mr &amp; AVR32_SPI_MR_PCSDEC_MASK) {
++	// The signal is decoded; allow up to 15 chips.
++    if (chip &gt; 14) goto err;
++    spi-&gt;mr &amp;= ~AVR32_SPI_MR_PCS_MASK | (chip &lt;&lt; AVR32_SPI_MR_PCS_OFFSET);
++  }else {
++	  if (chip &gt; 3) goto err;
++    spi-&gt;mr &amp;= ~(1 &lt;&lt; (AVR32_SPI_MR_PCS_OFFSET + chip));
++  }
++
++  return 0;
++err:
++  return -1;
++}
++/*-----------------------------------------------------------*/
++int spi_unselectChip(volatile avr32_spi_t *spi, unsigned char chip)
++{
++  while (!(spi-&gt;sr &amp; AVR32_SPI_SR_TXEMPTY_MASK))
++	  continue;
++
++  // Assert all lines; no peripheral is selected.
++  spi-&gt;mr |= AVR32_SPI_MR_PCS_MASK;
++
++  // Last transfer, so deassert the current NPCS if CSAAT is set.
++  spi-&gt;cr = AVR32_SPI_CR_LASTXFER_MASK;
++
++  return 0;
++}
++/*-----------------------------------------------------------*/
++U16 spi_single_transfer(volatile avr32_spi_t *spi, U16 txdata)
++{
++  U16 ret;
++
++  /* Wait for any pending TX */
++  while (!(spi-&gt;sr &amp; AVR32_SPI_SR_TDRE_MASK))
++	  continue;
++
++  // Discard data in buffer if any
++  ret = (spi-&gt;rdr &gt;&gt; AVR32_SPI_RDR_RD_OFFSET);
++
++  spi-&gt;tdr = txdata &lt;&lt; AVR32_SPI_TDR_TD_OFFSET;
++
++  while ((spi-&gt;sr &amp; (AVR32_SPI_SR_RDRF_MASK | AVR32_SPI_SR_TXEMPTY_MASK)) !=
++           (AVR32_SPI_SR_RDRF_MASK | AVR32_SPI_SR_TXEMPTY_MASK))
++	  continue;
++
++  ret = (spi-&gt;rdr &gt;&gt; AVR32_SPI_RDR_RD_OFFSET);
++
++  return ret;
++}
++/*-----------------------------------------------------------*/
++
++
+
+Added: trunk/src/platform/avr32/spi.h
+===================================================================
+--- trunk/src/platform/avr32/spi.h	                        (rev 0)
++++ trunk/src/platform/avr32/spi.h	2010-08-04 13:18:39 UTC (rev 768)
+@@ -0,0 +1,59 @@
++#ifndef _SPI_H_
++#define _SPI_H_
++
++#include &lt;avr32/io.h&gt;
++
++#ifndef AVR32_SPI0
++    #define AVR32_SPI0          AVR32_SPI      
++    #define AVR32_SPI0_ADDRESS  AVR32_SPI_ADDRESS      
++#endif
++    
++typedef enum {
++	SPI_MODE_0 = 0,
++	SPI_MODE_1,
++	SPI_MODE_2,
++	SPI_MODE_3
++} spi_mode_t;
++
++//! Option structure for SPI channels.
++typedef struct
++{
++  //! Preferred baudrate for the SPI.
++  unsigned int baudrate;
++
++  //! Number of bits in each character (8 to 16).
++  unsigned char bits;
++
++  //! Delay before first clock pulse after selecting slave (in microseconds).
++  unsigned int spck_delay;
++
++  //! Delay between each transfer/character (in microseconds).
++  unsigned int trans_delay;
++
++  //! Which SPI mode to use when transmitting.
++  spi_mode_t mode;
++
++} spi_options_t;
++
++typedef struct
++{
++	//! Mode fault detection disable
++	Bool modfdis;
++	//! Chip select decoding
++	Bool pcs_decode;
++	//! delay before chip select (in microseconds)
++	unsigned int delay;
++} spi_master_options_t;
++
++
++extern void spi_reset(volatile avr32_spi_t *spi);
++
++extern int spi_initMaster(volatile avr32_spi_t *spi, const spi_master_options_t *, U32 pba_hz);
++extern int spi_setupChipReg(volatile avr32_spi_t *spi, unsigned char chip, const spi_options_t *, U32 pba_hz);
++
++extern int spi_selectChip(volatile avr32_spi_t *spi, unsigned char chip);
++extern int spi_unselectChip(volatile avr32_spi_t *spi, unsigned char chip);
++
++extern U16 spi_single_transfer(volatile avr32_spi_t *spi, U16 txdata);
++
++#endif  // _SPI_H_
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000722.html">[Elua-svn] r769 - in trunk/doc: . en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#721">[ date ]</a>
+              <a href="thread.html#721">[ thread ]</a>
+              <a href="subject.html#721">[ subject ]</a>
+              <a href="author.html#721">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

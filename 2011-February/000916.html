@@ -1,0 +1,205 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r963 - trunk/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r963%20-%20trunk/doc/en&In-Reply-To=%3C20110213130300.2415048139B%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000915.html">
+   <LINK REL="Next"  HREF="000917.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r963 - trunk/doc/en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r963%20-%20trunk/doc/en&In-Reply-To=%3C20110213130300.2415048139B%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r963 - trunk/doc/en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Feb 13 14:02:59 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000915.html">[Elua-svn] r962 - trunk/inc
+</A></li>
+        <LI>Next message: <A HREF="000917.html">[Elua-svn] r964 - in trunk: . utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#916">[ date ]</a>
+              <a href="thread.html#916">[ thread ]</a>
+              <a href="subject.html#916">[ subject ]</a>
+              <a href="author.html#916">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-13 14:02:59 +0100 (Sun, 13 Feb 2011)
+New Revision: 963
+
+Modified:
+   trunk/doc/en/arch_rfs.txt
+   trunk/doc/en/building.txt
+   trunk/doc/en/building_win.html
+Log:
+added Mike's doc patches from 2011-02-11
+
+Modified: trunk/doc/en/arch_rfs.txt
+===================================================================
+--- trunk/doc/en/arch_rfs.txt	2011-02-07 22:45:16 UTC (rev 962)
++++ trunk/doc/en/arch_rfs.txt	2011-02-13 13:02:59 UTC (rev 963)
+@@ -92,7 +92,7 @@
+   3. make sure that the serial cable connecting the PC and the eLua board also supports flow control. Some simple serial connection cables have only the RX, TX and GND wires. 
+      RTS/CTS flow control requires at least RX, TX, RTS, CTS and GND wires arranged in a null-modem configuration.
+   4. start *rfs_server* specifying _rtscts_ as part of the _&lt;transport&gt;_ parameter (see above).
+-- eLua has a global filename size limit of 30 characters, so don't put files with longer names in the shared directory, it might lead to unexpec ted
++- eLua has a global filename size limit of 30 characters, so don't put files with longer names in the shared directory, it might lead to unexpected
+   behaviour. 
+ - the file sharing &quot;protocol&quot; is an extremely simple one, it doesn't make provisions for error correction and has only very basic error detection. 
+   So, if there are serial communication problems on the connection used by RFS, you might encounter RFS errors (timeouts, invalid operations and so on). 
+
+Modified: trunk/doc/en/building.txt
+===================================================================
+--- trunk/doc/en/building.txt	2011-02-07 22:45:16 UTC (rev 962)
++++ trunk/doc/en/building.txt	2011-02-13 13:02:59 UTC (rev 963)
+@@ -1,7 +1,7 @@
+ // $$HEADER$$
+ Building eLua
+ -------------
+-If you decide to build your own binary image (instead of link:downloads.html&quot;[downloading one] you need to download the source code 
++If you decide to build your own binary image instead of link:downloads.html&quot;[downloading one], then you will need to download the source code 
+ (see link:downloads.html#source[here] for details) and follow the platform specific eLua build instructions (provided for link:building_unix.html[Linux]
+ and link:building_win.html[Windows]) to setup your build environment.
+  
+@@ -12,7 +12,7 @@
+ ---------------------------
+ eLua has a very flexible build system that can be used to select the components that are going to be part of the eLua
+ binary image and also to set the compile time (static) configuration. To use it, you need to edit a single configuration file 
+-(_platform_conf.h_) located in the platform specific directory (_src/platform/&lt;platform_name&gt;/platform_conf.h)_. The configuration 
++(_platform_conf.h_) located in the platform specific directory (_src/platform/&lt;platform_name&gt;/platform_conf.h_). The configuration 
+ parameters are described in detail in the next paragraphs.
+ 
+ [[components]]
+@@ -38,7 +38,7 @@
+ #define BUILD_RPC
+ --------------------------------------------------------------------------------
+ 
+-The components that can be configured in &lt;b&gt;eLua&lt;/b&gt; are:
++The components that can be configured in eLua are:
+ 
+ [width=&quot;100%&quot;, cols=&quot;&lt;2,&lt;9&quot;, options=&quot;header&quot;, style=&quot;asciidoc&quot;]
+ |===================================================================
+@@ -86,7 +86,7 @@
+ 
+ link:#static[Static configuration data dependencies]: *CON_UART_ID, CON_UART_SPEED, CON_TIMER_ID, CON_FLOW_TYPE, TERM_LINES, TERM_COLS*
+ 
+-o|BUILD_UIP         |&lt;Enable TCP/IP networking support. You need to enable this if you want to use the link:refman_gen_net.html[net module]. 
++o|BUILD_UIP         |Enable TCP/IP networking support. You need to enable this if you want to use the link:refman_gen_net.html[net module]. 
+ Also, your platform must implement the uIP support functions (see the link:arch_platform.html[platform interface documentation] for details).
+ To enable:
+ 
+@@ -311,7 +311,7 @@
+ -------------------------
+ Once you have everything in place, all you have to do is to invoke the build system (scons) with the right arguments. This is a fairly easy step, although it might look intimidating 
+ because of the multitude of options than can be given to scons. They are used to fine tune the final image to your specific needs, but unless your needs are very special you won't need 
+-to modify them, so don't worry about the aparent complexity. The examples at the end of this section will show how easy it is to use the build system in practice.
++to modify them, so don't worry about the apparent complexity. The examples at the end of this section will show how easy it is to use the build system in practice.
+ 
+ ------------------------------------
+ $ scons
+@@ -333,7 +333,7 @@
+ * **board=name**: build for the specified board. The CPU name will be inferred by the build system automatically.
+ * **cpu=name board=name**: build for the specified board and CPU. The build script won't allow invalid CPU/board combinations.
+ 
+-For board/CPU assignment look at the beginning of the SConstruct file (the _platform_list&lt;/i&gt; _), it's self-explanatory. +
++For board/CPU assignment, look at the beginning of the SConstruct file (the _platform_list_), it's self-explanatory. +
+ The other options are as follows:
+ 
+ * **target=lua | lualong**: specify if you want to build &quot;regular&quot; Lua (with floating point support) or integer only Lua (lualong). The default is &quot;lua&quot;. &quot;lualong&quot; runs faster on
+@@ -383,8 +383,8 @@
+ -----------------------------------------
+ $ scons board=sam7-ex256 cpu=at91sam7x512
+ -----------------------------------------
+-Build eLua for the SAM7-EX256 board, but &quot;overwrite&quot; the default CPU. This is useful when you'd like to see how the specified board would behave (in terms of resources) with a different 
+-CPU (in thecase of the SAM7-EX256 board it's possible to switch the on-board AT91SAM7X256 CPU for an AT91SAM7X512 which has the same pinout but comes with more Flash/RAM memory).
++Build eLua for the SAM7-EX256 board but &quot;overwrite&quot; the default CPU. This is useful when you'd like to see how the specified board would behave (in terms of resources) with a different 
++CPU. In the case of the SAM7-EX256 board, it's possible to switch the on-board AT91SAM7X256 CPU for an AT91SAM7X512 which has the same pinout but comes with more Flash/RAM memory.
+ 
+ ------------------------
+ $ scons cpu=lpc2888 prog
+
+Modified: trunk/doc/en/building_win.html
+===================================================================
+--- trunk/doc/en/building_win.html	2011-02-07 22:45:16 UTC (rev 962)
++++ trunk/doc/en/building_win.html	2011-02-13 13:02:59 UTC (rev 963)
+@@ -1,9 +1,9 @@
+ $$HEADER$$
+ &lt;h3&gt;Building eLua in Windows&lt;/h3&gt;
+-&lt;p&gt;Starting with version 0.7, building &lt;b&gt;eLua&lt;/b&gt; in Windows is officialy supported. The following instructions were tested in Windows 7 Professional, but they
++&lt;p&gt;Starting with version 0.7, building &lt;b&gt;eLua&lt;/b&gt; in Windows is officially supported. The following instructions were tested in Windows 7 Professional, but they
+ should work with little or no modification in any version of Windows 7, Vista or XP. You need to download and install a few things first:&lt;/p&gt; 
+ &lt;ul&gt;
+-&lt;li&gt;&lt;b&gt;a toolchain&lt;/b&gt;: building a GCC-based toolchain under Windows is possible, but not easy. We found that the easiest thing to do is to download a pre-built toolchain 
++&lt;li&gt;&lt;b&gt;a toolchain&lt;/b&gt;: building a GCC-based toolchain under Windows is possible but not easy. We found that the easiest thing to do is to download a pre-built toolchain 
+ and install it. Currently, all the targets supported by &lt;b&gt;eLua&lt;/b&gt; (except i386) have at least one toolchain that runs under Windows:
+ &lt;ul&gt; 
+   &lt;li&gt;For ARM7, ARM9 and Cortex-M3 targets, you can download and install the CodeSourcery Lite Edition (supported by &lt;b&gt;eLua&lt;/b&gt; out of the box) from 
+@@ -13,23 +13,23 @@
+   &lt;li&gt;AVR32 has its own Windows based GNU toolchain that can be downloaded from Atmel &lt;a href=&quot;<A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=4118">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=4118</A>&quot;&gt;here&lt;/a&gt;.&lt;/li&gt;
+ &lt;/ul&gt;&lt;/li&gt;   
+ &lt;li&gt;&lt;b&gt;Python&lt;/b&gt;: my favourite Windows distribution of Python is &lt;a href=&quot;<A HREF="http://www.activestate.com/activepython/">http://www.activestate.com/activepython/</A>&quot;&gt;ActivePython&lt;/a&gt;. Simply download it and install it. ActivePython
+-2.6.4.8 will be used in this tutorial. Other Python distribution might work equally well.&lt;/li&gt;
++2.6.4.8 will be used in this tutorial. Other Python distribution might work equally as well.&lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;scons&lt;/b&gt;: download the Windows installer package from &lt;a href=&quot;<A HREF="http://www.scons.org/download.php">http://www.scons.org/download.php</A>&quot;&gt;here&lt;/a&gt;. For this tutorial, scons 1.2.0 will be used. Remember to install
+ scons &lt;b&gt;after&lt;/b&gt; you install Python. &lt;/li&gt;
+ &lt;li&gt;&lt;b&gt;lua&lt;/b&gt;: a very good and versatile Lua distribution for Windows is &quot;Lua for Windows&quot;, it can be downloaded from &lt;a href=&quot;<A HREF="http://luaforwindows.luaforge.net/">http://luaforwindows.luaforge.net/</A>&quot;&gt;here&lt;/a&gt;. Besides
+ Lua itself, it includes a lot of very useful Lua modules, so I highly recommend it. Version 5.1.4.30 of Lua for Windows will be used in this tutorial.&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;svn&lt;/b&gt;: if you need to checkout the &lt;b&gt;eLua&lt;/b&gt; source code from the SVN repository, you need to install SVN for windows. There are a few precompiled SVN packages for
+-Windows available, I'm using the Tigris binaries that can be downloaded from &lt;a href=&quot;<A HREF="http://subversion.tigris.org/servlets/ProjectDocumentList?folderID=8100">http://subversion.tigris.org/servlets/ProjectDocumentList?folderID=8100</A>&quot;&gt;here&lt;/a&gt;. In this
++&lt;li&gt;&lt;b&gt;svn&lt;/b&gt;: if you need to checkout the &lt;b&gt;eLua&lt;/b&gt; source code from the SVN repository, then you will need to install SVN for Windows. There are a few pre-compiled SVN packages for
++Windows. I'm using the Tigris binaries that can be downloaded from &lt;a href=&quot;<A HREF="http://subversion.tigris.org/servlets/ProjectDocumentList?folderID=8100">http://subversion.tigris.org/servlets/ProjectDocumentList?folderID=8100</A>&quot;&gt;here&lt;/a&gt;. In this
+ tutorial I'll use version 1.6.6. If you require developer access (svn+ssh), additional steps are needed to make &quot;svn+ssh&quot; work in Windows. A lot of tutorials
+-that cover this topic are available, check for example &lt;a href=&quot;<A HREF="http://agateau.wordpress.com/2007/07/03/windows-svnssh-and-the-subversion-command-line-client/">http://agateau.wordpress.com/2007/07/03/windows-svnssh-and-the-subversion-command-line-client/</A>&quot;&gt;this one&lt;/a&gt;.&lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;gcc&lt;/b&gt;: if you want to use the ROMFS precompile feature (see &lt;a href=&quot;arch_romfs.html#mode&quot;&gt;here&lt;/a&gt; for details) you need to build an image of the &lt;b&gt;eLua&lt;/b&gt; cross compiler, and you need an i386
+-toolchain for this. I'm using MinGW for this task, it can be downloaded from &lt;a href=&quot;<A HREF="http://www.mingw.org/">http://www.mingw.org/</A>&quot;&gt;here&lt;/a&gt;. This tutorial uses MinGW version 5.1.6. Note that you
+-don't need to install MSYS, MinGW should be enough. Cygwin should work equally well, or even Microsoft's Visual Studio (not tested). To build the cross compiler, run
++that cover this topic are available, for example &lt;a href=&quot;<A HREF="http://agateau.wordpress.com/2007/07/03/windows-svnssh-and-the-subversion-command-line-client/">http://agateau.wordpress.com/2007/07/03/windows-svnssh-and-the-subversion-command-line-client/</A>&quot;&gt;this one&lt;/a&gt;.&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;gcc&lt;/b&gt;: if you want to use the ROMFS pre-compiled feature (see &lt;a href=&quot;arch_romfs.html#mode&quot;&gt;here&lt;/a&gt; for details), then you will need to build an image for the &lt;b&gt;eLua&lt;/b&gt; cross compiler, and you will need an i386
++toolchain for this. I'm using MinGW for this task. It can be downloaded from &lt;a href=&quot;<A HREF="http://www.mingw.org/">http://www.mingw.org/</A>&quot;&gt;here&lt;/a&gt;. This tutorial uses MinGW version 5.1.6. Note that you
++don't need to install MSYS; MinGW should be enough. Cygwin should work equally as well, or even Microsoft's Visual Studio (not tested). To build the cross compiler, run
+ this command from the command line:
+   &lt;pre&gt;&lt;code&gt;scons -f cross-lua.py&lt;/code&gt;&lt;/pre&gt;
+ &lt;/li&gt;
+ &lt;/ul&gt;
+ &lt;p&gt;Make sure that all the programs listed above are added to %PATH%. Most of them do this automatically, or have an option to do this automatically, but some
+-(for example MinGW) do not and you need to add them to %PATH% manually.&lt;/p&gt; 
++(for example MinGW and SCons) do not and you will need to add them to %PATH% manually.&lt;/p&gt; 
+ &lt;p&gt;After you setup your build environment as described above, follow &lt;a href=&quot;building.html#configuring&quot;&gt;this tutorial&lt;/a&gt; to build your &lt;b&gt;eLua&lt;/b&gt; image.&lt;/p&gt;
+ $$FOOTER$$
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000915.html">[Elua-svn] r962 - trunk/inc
+</A></li>
+	<LI>Next message: <A HREF="000917.html">[Elua-svn] r964 - in trunk: . utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#916">[ date ]</a>
+              <a href="thread.html#916">[ thread ]</a>
+              <a href="subject.html#916">[ subject ]</a>
+              <a href="author.html#916">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

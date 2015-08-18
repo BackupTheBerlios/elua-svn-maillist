@@ -1,0 +1,268 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r375 - trunk/src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r375%20-%20trunk/src/modules&In-Reply-To=%3C200907301945.n6UJjQ4j017535%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000330.html">
+   <LINK REL="Next"  HREF="000332.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r375 - trunk/src/modules</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r375%20-%20trunk/src/modules&In-Reply-To=%3C200907301945.n6UJjQ4j017535%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r375 - trunk/src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Jul 30 21:45:26 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000330.html">[Elua-svn] r374 - in tags/pre0.6: doc doc/luadoc src/modules
+</A></li>
+        <LI>Next message: <A HREF="000332.html">[Elua-svn] r376 - in tags/pre0.6: doc doc/luadoc romfs src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#331">[ date ]</a>
+              <a href="thread.html#331">[ thread ]</a>
+              <a href="subject.html#331">[ subject ]</a>
+              <a href="author.html#331">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-07-30 21:45:25 +0200 (Thu, 30 Jul 2009)
+New Revision: 375
+
+Modified:
+   trunk/src/modules/spi.c
+   trunk/src/modules/uart.c
+Log:
+syntax revision on spi module, also added the possibility to send numbers instead of strings in the uart module(merged to trunk)
+
+Modified: trunk/src/modules/spi.c
+===================================================================
+--- trunk/src/modules/spi.c	2009-07-30 19:40:01 UTC (rev 374)
++++ trunk/src/modules/spi.c	2009-07-30 19:45:25 UTC (rev 375)
+@@ -7,8 +7,8 @@
+ #include &quot;auxmods.h&quot;
+ #include &quot;lrotable.h&quot;
+ 
+-// Lua: select( id )
+-static int spi_select( lua_State* L )
++// Lua: sson( id )
++static int spi_sson( lua_State* L )
+ {
+   unsigned id;
+   
+@@ -18,8 +18,8 @@
+   return 0;
+ }
+ 
+-// Lua: unselect( id )
+-static int spi_unselect( lua_State* L )
++// Lua: ssoff( id )
++static int spi_ssoff( lua_State* L )
+ {
+   unsigned id;
+     
+@@ -29,7 +29,7 @@
+   return 0;
+ }
+ 
+-// Lua: setup( id, MASTER/SLAVE, clock, cpol, cpha, databits )
++// Lua: clock = setup( id, MASTER/SLAVE, clock, cpol, cpha, databits )
+ static int spi_setup( lua_State* L )
+ {
+   unsigned id, cpol, cpha, is_master, databits;
+@@ -37,59 +37,84 @@
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( spi, id );
+-  is_master = luaL_checkinteger( L, 2 );
++  is_master = luaL_checkinteger( L, 2 ) == PLATFORM_SPI_MASTER;
++  if( !is_master )
++    return luaL_error( L, &quot;invalid type (only spi.MASTER is supported)&quot; );
+   clock = luaL_checkinteger( L, 3 );
+   cpol = luaL_checkinteger( L, 4 );
++  if( ( cpol != 0 ) &amp;&amp; ( cpol != 1 ) )
++    return luaL_error( L, &quot;invalid clock polarity.&quot; );
+   cpha = luaL_checkinteger( L, 5 );
++  if( ( cpha != 0 ) &amp;&amp; ( cpha != 1 ) )
++    return luaL_error( L, &quot;invalid clock phase.&quot; );
+   databits = luaL_checkinteger( L, 6 );
+   res = platform_spi_setup( id, is_master, clock, cpol, cpha, databits );
+   lua_pushinteger( L, res );
+   return 1;
+ }
+ 
+-// Lua: send( id, out1, out2, ... )
+-static int spi_send( lua_State* L )
++// Helper function: generic write/readwrite
++static int spi_rw_helper( lua_State *L, int withread )
+ {
+   spi_data_type value;
++  const char *sval; 
+   int total = lua_gettop( L ), i, id;
++  size_t len, residx = 1;
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( spi, id );
++  if( withread )
++    lua_newtable( L );
+   for( i = 2; i &lt;= total; i ++ )
+   {
+-    value = luaL_checkinteger( L, i );  
+-    platform_spi_send_recv( id, value );
++    if( lua_isnumber( L, i ) )
++    {
++      value = platform_spi_send_recv( id, lua_tointeger( L, i ) );
++      if( withread )
++      {
++        lua_pushnumber( L, value );
++        lua_rawseti( L, -2, residx ++ );
++      }
++    }
++    else if( lua_isstring( L, i ) )
++    {
++      sval = lua_tolstring( L, i, &amp;len );
++      for( i = 0; i &lt; len; i ++ )
++      {
++        value = platform_spi_send_recv( id, sval[ i ] );
++        if( withread )
++        {
++          lua_pushnumber( L, value );
++          lua_rawseti( L, -2, residx ++ );
++        }
++      }
++    }
+   }
+-  return 0;
++  return withread ? 1 : 0;
+ }
+ 
+-// Lua: in1, in2, ... = send_recv( id, out1, out2, ... )
+-static int spi_send_recv( lua_State* L )
++// Lua: write( id, out1, out2, ... )
++static int spi_write( lua_State* L )
+ {
+-  spi_data_type value;
+-  int total = lua_gettop( L ), i, id;
+-  
+-  id = luaL_checkinteger( L, 1 );
+-  MOD_CHECK_ID( spi, id );
+-  for( i = 2; i &lt;= total; i ++ )
+-  {
+-    value = luaL_checkinteger( L, i );  
+-    value = platform_spi_send_recv( id, value );
+-    lua_pushinteger( L, value );
+-  }
+-  return total - 1;  
++  return spi_rw_helper( L, 0 );
+ }
+ 
++// Lua: restable = readwrite( id, out1, out2, ... )
++static int spi_readwrite( lua_State* L )
++{
++  return spi_rw_helper( L, 1 );
++}
++
+ // Module function map
+ #define MIN_OPT_LEVEL 2
+ #include &quot;lrodefs.h&quot;
+ const LUA_REG_TYPE spi_map[] = 
+ {
+   { LSTRKEY( &quot;setup&quot; ),  LFUNCVAL( spi_setup ) },
+-  { LSTRKEY( &quot;select&quot; ),  LFUNCVAL( spi_select ) },
+-  { LSTRKEY( &quot;unselect&quot; ),  LFUNCVAL( spi_unselect ) },
+-  { LSTRKEY( &quot;send&quot; ),  LFUNCVAL( spi_send ) },  
+-  { LSTRKEY( &quot;send_recv&quot; ),  LFUNCVAL( spi_send_recv ) },    
++  { LSTRKEY( &quot;sson&quot; ),  LFUNCVAL( spi_sson ) },
++  { LSTRKEY( &quot;ssoff&quot; ),  LFUNCVAL( spi_ssoff ) },
++  { LSTRKEY( &quot;write&quot; ),  LFUNCVAL( spi_write ) },  
++  { LSTRKEY( &quot;readwrite&quot; ),  LFUNCVAL( spi_readwrite ) },    
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+   { LSTRKEY( &quot;MASTER&quot; ), LNUMVAL( PLATFORM_SPI_MASTER ) } ,
+   { LSTRKEY( &quot;SLAVE&quot; ), LNUMVAL( PLATFORM_SPI_SLAVE ) },
+@@ -105,10 +130,8 @@
+   luaL_register( L, AUXLIB_SPI, spi_map );
+   
+   // Add the MASTER and SLAVE constants (for spi.setup)
+-  lua_pushnumber( L, PLATFORM_SPI_MASTER );
+-  lua_setfield( L, -2, &quot;MASTER&quot; );
+-  lua_pushnumber( L, PLATFORM_SPI_SLAVE );
+-  lua_setfield( L, -2, &quot;SLAVE&quot; );
++  MOD_REG_NUMBER( L, &quot;MASTER&quot;, PLATFORM_SPI_MASTER );
++  MOD_REG_NUMBER( L, &quot;SLAVE&quot;, PLATFORM_SPI_SLAVE );  
+   
+   return 1;
+ #endif // #if LUA_OPTIMIZE_MEMORY &gt; 0  
+
+Modified: trunk/src/modules/uart.c
+===================================================================
+--- trunk/src/modules/uart.c	2009-07-30 19:40:01 UTC (rev 374)
++++ trunk/src/modules/uart.c	2009-07-30 19:45:25 UTC (rev 375)
+@@ -35,7 +35,7 @@
+   return 1;
+ }
+ 
+-// Lua: write( id, string1, string2, ... )
++// Lua: write( id, string1, [string2], ..., [stringn] )
+ static int uart_write( lua_State* L )
+ {
+   int id;
+@@ -47,10 +47,20 @@
+   MOD_CHECK_ID( uart, id );
+   for( s = 2; s &lt;= total; s ++ )
+   {
+-    luaL_checktype( L, s, LUA_TSTRING );
+-    buf = lua_tolstring( L, s, &amp;len );
+-    for( i = 0; i &lt; len; i ++ )
+-      platform_uart_send( id, buf[ i ] );
++    if( lua_isnumber( L, s ) )
++    {
++      len = lua_tointeger( L, s );
++      if( ( len &lt; 0 ) || ( len &gt; 255 ) )
++        return luaL_error( L, &quot;invalid number&quot; );
++      platform_uart_send( id, ( u8 )len );
++    }
++    else
++    {
++      luaL_checktype( L, s, LUA_TSTRING );
++      buf = lua_tolstring( L, s, &amp;len );
++      for( i = 0; i &lt; len; i ++ )
++        platform_uart_send( id, buf[ i ] );
++    }
+   }
+   return 0;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000330.html">[Elua-svn] r374 - in tags/pre0.6: doc doc/luadoc src/modules
+</A></li>
+	<LI>Next message: <A HREF="000332.html">[Elua-svn] r376 - in tags/pre0.6: doc doc/luadoc romfs src/modules
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#331">[ date ]</a>
+              <a href="thread.html#331">[ thread ]</a>
+              <a href="subject.html#331">[ subject ]</a>
+              <a href="author.html#331">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

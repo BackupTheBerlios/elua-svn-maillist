@@ -1,0 +1,300 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r918 - in branches/pre0.8: . doc doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r918%20-%20in%20branches/pre0.8%3A%20.%20doc%20doc/en&In-Reply-To=%3C20110131143810.7F67148102F%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000870.html">
+   <LINK REL="Next"  HREF="000872.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r918 - in branches/pre0.8: . doc doc/en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r918%20-%20in%20branches/pre0.8%3A%20.%20doc%20doc/en&In-Reply-To=%3C20110131143810.7F67148102F%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r918 - in branches/pre0.8: . doc doc/en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Jan 31 15:38:10 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000870.html">[Elua-svn] r917 - branches/pre0.8/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000872.html">[Elua-svn] r919 - in branches/pre0.8: . doc doc/eluadoc doc/en	src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#871">[ date ]</a>
+              <a href="thread.html#871">[ thread ]</a>
+              <a href="subject.html#871">[ subject ]</a>
+              <a href="author.html#871">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-01-31 15:38:10 +0100 (Mon, 31 Jan 2011)
+New Revision: 918
+
+Modified:
+   branches/pre0.8/CHANGELOG
+   branches/pre0.8/doc/README.TXT
+   branches/pre0.8/doc/buildall.lua
+   branches/pre0.8/doc/docdata.lua
+   branches/pre0.8/doc/en/news.txt
+   branches/pre0.8/doc/en/status.txt
+Log:
+more documentation updates; wiki, builder and tracker links added to the navigation menu as first level entries
+
+Modified: branches/pre0.8/CHANGELOG
+===================================================================
+--- branches/pre0.8/CHANGELOG	2011-01-31 12:04:55 UTC (rev 917)
++++ branches/pre0.8/CHANGELOG	2011-01-31 14:38:10 UTC (rev 918)
+@@ -21,6 +21,7 @@
+   * Added support for AsciiDoc in the doc builder
+   * Tutorials and new projects added to the eLua User Labs wiki
+   * Demo files were moved out of the distro to <A HREF="http://wiki.eluaproject.net/Projects">http://wiki.eluaproject.net/Projects</A>
++  * Added a 'media' page with eLua related media on the project site
+   * ????? ##TODO
+ 
+ 15.01.2010  Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdanm at eluaproject.net</A>&gt;
+
+Modified: branches/pre0.8/doc/README.TXT
+===================================================================
+--- branches/pre0.8/doc/README.TXT	2011-01-31 12:04:55 UTC (rev 917)
++++ branches/pre0.8/doc/README.TXT	2011-01-31 14:38:10 UTC (rev 918)
+@@ -3,9 +3,18 @@
+ 
+ To generate the doc:
+ - make sure you have Lua installed in your machine (www.lua.org)
++- make sure you have 'lfs' (Lua file system) and 'md5' modules installed on your machine. To install them:
++  - in Windows: the simplest way is to install Lua for Windows (<A HREF="http://code.google.com/p/luaforwindows/">http://code.google.com/p/luaforwindows/</A>) which comes with these modules installed
++  - in Ubuntu:
++    1. install luarocks
++      $ sudo apt-get install luarocks
++    2. install both modules using luarocks
++      $ sudo luarocks install lfs md5
++- make sure you have asciidoc (<A HREF="http://www.methods.co.nz/asciidoc/INSTALL.html">http://www.methods.co.nz/asciidoc/INSTALL.html</A>) installed.       
+ - go to the /doc directory of this distro (you're probably here already :)
+ - run the script with
+   $ lua buildall.lua
+-- the doc/site structure is generated in a new sub-folder called dist, where you can go and open any .html document. The left-side menu is actually part of the global layout and is included in every page of the doc/site.
++- the doc/site structure is generated in a new sub-folder called dist, where you can go and open any .html document. The left-side menu is actually 
++  part of the global layout and is included in every page of the doc/site.
+ - enjoy eLua !
+ 
+
+Modified: branches/pre0.8/doc/buildall.lua
+===================================================================
+--- branches/pre0.8/doc/buildall.lua	2011-01-31 12:04:55 UTC (rev 917)
++++ branches/pre0.8/doc/buildall.lua	2011-01-31 14:38:10 UTC (rev 918)
+@@ -279,8 +279,16 @@
+ 
+ -- Helper function: format a link starting from language and link
+ -- Links marked as &quot;#&quot; (&quot;null&quot; links) are left alone
++-- Links that begin with &quot;http(s)://&quot; are unchanged
++
+ local function get_link( lang, link )
+-  return link == &quot;#&quot; and &quot;#&quot; or string.format( &quot;%s_%s&quot;, lang, link )
++  if link == &quot;#&quot; then
++    return &quot;#&quot;
++  elseif link:find( &quot;https?://&quot; ) == 1 then
++    return link
++  else
++    return string.format( &quot;%s_%s&quot;, lang, link )
++  end
+ end
+ 
+ -- Helper for gen_html_nav: generate the submenu(s) for a given top level menu item
+@@ -666,33 +674,35 @@
+ flist = get_file_list()
+ for _, lang in ipairs( languages ) do
+   for fname, entry in pairs( flist ) do
+-    io.write( string.format( &quot;Processing %s %s...&quot;, fname, entry.item[ name_idx ] and &quot;&quot; or &quot;(hidden entry)&quot; ) )
+-    local res, err = gen_html_page( fname, lang )
+-    if err == &quot;#cached#&quot; then
+-      -- This file is already in the cache
+-      print( &quot; (cached)&quot; )         
+-    elseif not res then
+-      print( &quot;***&quot; .. err ) 
+-    else
+-      local g = io.open( string.format( &quot;cache/%s_%s&quot;, lang, fname ), &quot;wb&quot; )
+-      if not g then
+-        print( string.format( &quot;Unable to open %s for writing&quot;, fname ) )
++    if fname:find( &quot;https?://&quot; ) ~= 1 then -- not a filename but a direct link
++      io.write( string.format( &quot;Processing %s %s...&quot;, fname, entry.item[ name_idx ] and &quot;&quot; or &quot;(hidden entry)&quot; ) )
++      local res, err = gen_html_page( fname, lang )
++      if err == &quot;#cached#&quot; then
++        -- This file is already in the cache
++        print( &quot; (cached)&quot; )         
++      elseif not res then
++        print( &quot;***&quot; .. err ) 
+       else
+-        g:write( res )
+-        g:close()
++        local g = io.open( string.format( &quot;cache/%s_%s&quot;, lang, fname ), &quot;wb&quot; )
++        if not g then
++          print( string.format( &quot;Unable to open %s for writing&quot;, fname ) )
++        else
++          g:write( res )
++          g:close()
++        end
+       end
++      -- Copy file from cache to destination directory
++      local srcf = io.open( string.format( &quot;cache/%s_%s&quot;, lang, fname ), &quot;rb&quot; )
++      local destf = io.open( string.format( &quot;%s/%s_%s&quot;, destdir, lang, fname ), &quot;wb&quot; )
++      if not srcf or not destf then
++        print &quot;Unable to copy file from cache to dist&quot;
++        return
++      end
++      local content = srcf:read( &quot;*a&quot; )
++      destf:write( content )
++      srcf:close()
++      destf:close()    
+     end
+-    -- Copy file from cache to destination directory
+-    local srcf = io.open( string.format( &quot;cache/%s_%s&quot;, lang, fname ), &quot;rb&quot; )
+-    local destf = io.open( string.format( &quot;%s/%s_%s&quot;, destdir, lang, fname ), &quot;wb&quot; )
+-    if not srcf or not destf then
+-      print &quot;Unable to copy file from cache to dist&quot;
+-      return
+-    end
+-    local content = srcf:read( &quot;*a&quot; )
+-    destf:write( content )
+-    srcf:close()
+-    destf:close()    
+   end
+ end
+ regular_print()
+@@ -723,3 +733,4 @@
+ print &quot;done&quot;
+ 
+ print( string.format( &quot;\nEnjoy your documentation in %s :)&quot;, destdir ) )
++
+
+Modified: branches/pre0.8/doc/docdata.lua
+===================================================================
+--- branches/pre0.8/doc/docdata.lua	2011-01-31 12:04:55 UTC (rev 917)
++++ branches/pre0.8/doc/docdata.lua	2011-01-31 14:38:10 UTC (rev 918)
+@@ -58,6 +58,15 @@
+   -- Media
+   { &quot;Media&quot;, &quot;media.html&quot; },  
+ 
++  -- Wiki
++  { &quot;Wiki&quot;, &quot;<A HREF="http://wiki.eluaproject.net">http://wiki.eluaproject.net</A>&quot; },
++
++  -- Web builder
++  { &quot;eLua Web builder&quot;, &quot;<A HREF="http://builder.eluaproject.net">http://builder.eluaproject.net</A>&quot; },
++
++  -- Tracker
++  { &quot;Bug tracker&quot;, &quot;<A HREF="http://tracker.eluaproject.net">http://tracker.eluaproject.net</A>&quot; },
++
+   -- &quot;Status&quot;
+   { &quot;Status&quot;, &quot;status.html&quot;, 
+     {
+
+Modified: branches/pre0.8/doc/en/news.txt
+===================================================================
+--- branches/pre0.8/doc/en/news.txt	2011-01-31 12:04:55 UTC (rev 917)
++++ branches/pre0.8/doc/en/news.txt	2011-01-31 14:38:10 UTC (rev 918)
+@@ -10,7 +10,7 @@
+ * Added the link:arch_rfs.html[RFS] (Remoe File System), a new file system which allows sharing
+   a directory on the PC with the eLua board.
+ * Added Lua and C interrupt handlers support, see link:inthandlers.html[here] for more details.
+-* Added generic I2C support and docs
++* Added generic link:refman_gen_i2c.html[I2C support and docs]
+ * Added hardware flow control and runtime configurable buffers for link:refman_gen_uart.html[UARTs].
+ * Added support for new boards:  <A HREF="http://mbed.org[mbed">http://mbed.org[mbed</A>], <A HREF="http://www.atmel.com/dyn/products/tools_card.asp?tool_id=4175[EVK-1101">http://www.atmel.com/dyn/products/tools_card.asp?tool_id=4175[EVK-1101</A>],
+       <A HREF="http://code.google.com/p/mizar32[Mizar32">http://code.google.com/p/mizar32[Mizar32</A>], TODO <A HREF="http://www.tinyclr.com/hardware/16/fez-panda[FEZ">http://www.tinyclr.com/hardware/16/fez-panda[FEZ</A> Panda]
+@@ -26,6 +26,7 @@
+ * Added support for <A HREF="http://www.methods.co.nz/asciidoc[AsciiDoc">http://www.methods.co.nz/asciidoc[AsciiDoc</A>] in the doc builder
+ * Tutorials and new projects added to the <A HREF="http://wiki.eluaproject.net[eLua">http://wiki.eluaproject.net[eLua</A> User Labs wiki]
+ * Demo files were moved out of the distro to <A HREF="http://wiki.eluaproject.net/Projects">http://wiki.eluaproject.net/Projects</A>
++* Added a link:media.html[media page] with eLua related media on the project site
+ * TODO
+ 
+ January 13th, 2011
+
+Modified: branches/pre0.8/doc/en/status.txt
+===================================================================
+--- branches/pre0.8/doc/en/status.txt	2011-01-31 12:04:55 UTC (rev 917)
++++ branches/pre0.8/doc/en/status.txt	2011-01-31 14:38:10 UTC (rev 918)
+@@ -47,28 +47,28 @@
+ -------------------
+ The relationship between a module and its implementation on a particular platform is given in the next table.
+ 
+-[width=&quot;70%&quot;, cols=&quot;&lt;4, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1&quot;, options=&quot;header&quot;]
+-|===================================================================================================================================
+-^| MCU            15+| Module
+-|               g|  pio g|  spi g|  uart g|  tmr g|  pwm g|  net g|  cpu g|  adc g|   pd g| term g|  bit g| pack g|  can g|  rpc g| mmc
+-| _LM3S8962      | _sok  | _snt  | _sok   | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sni  | _snt  | _snt 
+-| _LM3S6965      | _sok  | _snt  | _sok   | _sok  | _snt  | _snt  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sna  | _sok  | _sok
+-| _LM3S6918      | _sok  | _snt  | _sok   | _sok  | _sna  | _snt  | _sok  | _snt  | _sok  | _sok  | _sok  | _sok  | _sna  | _snt  | _sni
+-| _LM3S9B92      | _sok  | _snt  | _sok   | _sok  | _sok  | _sok  | _sok  | _snt  | _sok  | _sok  | _sok  | _sok  | _sni  | _snt  | _sok
+-| _AT32UC3A0512  | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni
+-| _AT32IC3A0128  | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni
+-| _AT32UC3B0256  | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni
+-| _AT91SAM7X256  | _sok  | _sni  | _sok   | _sok  | _sok  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni
+-| _AT91SAM7X512  | _snt  | _sni  | _snt   | _snt  | _snt  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni
+-| _LPC1768       | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni
+-| _LPC2468       | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni
+-| _LPC2888       | _sok  | _sni  | _sok   | _sok  | _sna  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni
+-| _STR711FR2     | _sok  | _sni  | _sok   | _sok  | _snt  | _sna  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni
+-| _STR912FAW44   | _sok  | _sni  | _sok   | _sok  | _sok  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni
+-| _STM32F103ZE   | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni 
+-| _STM32F103RE   | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _snt  | _sni  | _sni
+-| _i386          | _sna  | _sna  | _sni   | _sni  | _sna  | _sni  | _sni  | _sna  | _sok  | _sni  | _sni  | _sni  | _sna  | _sni  | _sni
+-|===================================================================================================================================
++[width=&quot;70%&quot;, cols=&quot;&lt;4, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1, ^1&quot;, options=&quot;header&quot;]
++|================================================================================================================================================
++^| MCU            16+| Module
++|               g|  pio g|  spi g|  uart g|  tmr g|  pwm g|  net g|  cpu g|  adc g|   pd g| term g|  bit g| pack g|  can g|  rpc g| mmc  g|  i2c
++| _LM3S8962      | _sok  | _snt  | _sok   | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sni  | _snt  | _snt  | _sni
++| _LM3S6965      | _sok  | _snt  | _sok   | _sok  | _snt  | _snt  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sna  | _sok  | _sok  | _sni
++| _LM3S6918      | _sok  | _snt  | _sok   | _sok  | _sna  | _snt  | _sok  | _snt  | _sok  | _sok  | _sok  | _sok  | _sna  | _snt  | _sni  | _sni
++| _LM3S9B92      | _sok  | _snt  | _sok   | _sok  | _sok  | _sok  | _sok  | _snt  | _sok  | _sok  | _sok  | _sok  | _sni  | _snt  | _sok  | _sni
++| _AT32UC3A0512  | _sok  | _sok  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sok  | _sni
++| _AT32UC3A0128  | _sok  | _sok  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sok  | _sni
++| _AT32UC3B0256  | _sok  | _sok  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sok  | _sni
++| _AT91SAM7X256  | _sok  | _sni  | _sok   | _sok  | _sok  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni  | _sni
++| _AT91SAM7X512  | _snt  | _sni  | _snt   | _snt  | _snt  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni  | _sni
++| _LPC1768       | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni  | _sni
++| _LPC2468       | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni  | _sni
++| _LPC2888       | _sok  | _sni  | _sok   | _sok  | _sna  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni  | _sni
++| _STR711FR2     | _sok  | _sni  | _sok   | _sok  | _snt  | _sna  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sni  | _sni
++| _STR912FAW44   | _sok  | _sni  | _sok   | _sok  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni  | _sok
++| _STM32F103ZE   | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _sni  | _sni  | _sni  | _sni
++| _STM32F103RE   | _sok  | _sni  | _sok   | _sok  | _sni  | _sni  | _sok  | _sni  | _sok  | _sok  | _sok  | _sok  | _snt  | _sni  | _sni  | _sni
++| _i386          | _sna  | _sna  | _sni   | _sni  | _sna  | _sni  | _sni  | _sna  | _sok  | _sok  | _sok  | _sok  | _sna  | _sni  | _sna  | _sna
++|================================================================================================================================================
+ 
+ [[gen_modules]]
+ eLua modules
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000870.html">[Elua-svn] r917 - branches/pre0.8/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000872.html">[Elua-svn] r919 - in branches/pre0.8: . doc doc/eluadoc doc/en	src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#871">[ date ]</a>
+              <a href="thread.html#871">[ thread ]</a>
+              <a href="subject.html#871">[ subject ]</a>
+              <a href="author.html#871">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

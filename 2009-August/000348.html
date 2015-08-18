@@ -1,0 +1,111 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r392 - branches/eagle_mmc/src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r392%20-%20branches/eagle_mmc/src/platform/lm3s&In-Reply-To=%3C200908121641.n7CGfUBn030114%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000347.html">
+   <LINK REL="Next"  HREF="000349.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r392 - branches/eagle_mmc/src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r392%20-%20branches/eagle_mmc/src/platform/lm3s&In-Reply-To=%3C200908121641.n7CGfUBn030114%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r392 - branches/eagle_mmc/src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Aug 12 18:41:30 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000347.html">[Elua-svn] r391 - in tags/pre0.6/doc: . en luadoc pt wb
+</A></li>
+        <LI>Next message: <A HREF="000349.html">[Elua-svn] r393 - in tags/pre0.6: . romfs src/lua src/modules	src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#348">[ date ]</a>
+              <a href="thread.html#348">[ thread ]</a>
+              <a href="subject.html#348">[ subject ]</a>
+              <a href="author.html#348">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-08-12 18:41:13 +0200 (Wed, 12 Aug 2009)
+New Revision: 392
+
+Modified:
+   branches/eagle_mmc/src/platform/lm3s/mmc.c
+Log:
+Use FOR* defines rather than token defines to select which pins MMC will be
+accessed at.
+
+Modified: branches/eagle_mmc/src/platform/lm3s/mmc.c
+===================================================================
+--- branches/eagle_mmc/src/platform/lm3s/mmc.c	2009-08-07 12:12:45 UTC (rev 391)
++++ branches/eagle_mmc/src/platform/lm3s/mmc.c	2009-08-12 16:41:13 UTC (rev 392)
+@@ -49,22 +49,30 @@
+ #define SDC_SSI_PINS            (SDC_SSI_TX | SDC_SSI_RX | SDC_SSI_CLK)
+ 
+ // GPIO for card chip select
+-#if ELUA_BOARD == EK-LM3S6965
++// FIXME: these should be tied to evaluation kits rather than particular chips
++
++#ifdef FORLM3S6965
+   // EK-LM3S6965
+   #define SDC_CS_GPIO_PORT_BASE      GPIO_PORTD_BASE
+   #define SDC_CS_GPIO_SYSCTL_PERIPH  SYSCTL_PERIPH_GPIOD
+   #define SDC_CS                     GPIO_PIN_0
+-#elif ELUA_BOARD == EK-LM3S8962
++#endif
++
++#ifdef FORLM3S8962
+   // EK-LM3S8962
+   #define SDC_CS_GPIO_PORT_BASE      GPIO_PORTG_BASE
+   #define SDC_CS_GPIO_SYSCTL_PERIPH  SYSCTL_PERIPH_GPIOG
+   #define SDC_CS                     GPIO_PIN_0
+-#elif ELUA_BOARD == EAGLE-100
++#endif
++
++#ifdef FORLM3S6918
+   // Eagle-100
+   #define SDC_CS_GPIO_PORT_BASE      GPIO_PORTG_BASE
+   #define SDC_CS_GPIO_SYSCTL_PERIPH  SYSCTL_PERIPH_GPIOG
+   #define SDC_CS                     GPIO_PIN_1
+-#else
++#endif
++
++#ifndef SDC_CS
+   #error &quot;MMC not supported on this board&quot;
+ #endif
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000347.html">[Elua-svn] r391 - in tags/pre0.6/doc: . en luadoc pt wb
+</A></li>
+	<LI>Next message: <A HREF="000349.html">[Elua-svn] r393 - in tags/pre0.6: . romfs src/lua src/modules	src/platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#348">[ date ]</a>
+              <a href="thread.html#348">[ thread ]</a>
+              <a href="subject.html#348">[ subject ]</a>
+              <a href="author.html#348">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

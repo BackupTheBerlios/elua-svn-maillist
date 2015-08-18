@@ -1,0 +1,830 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r214 - in trunk: . romfs src/lua src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r214%20-%20in%20trunk%3A%20.%20romfs%20src/lua%20src/platform/lm3s&In-Reply-To=%3C200902231528.n1NFSvDY010627%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000169.html">
+   <LINK REL="Next"  HREF="000171.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r214 - in trunk: . romfs src/lua src/platform/lm3s</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r214%20-%20in%20trunk%3A%20.%20romfs%20src/lua%20src/platform/lm3s&In-Reply-To=%3C200902231528.n1NFSvDY010627%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r214 - in trunk: . romfs src/lua src/platform/lm3s">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Feb 23 16:28:57 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000169.html">[Elua-svn] r213 - in trunk: . src src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/stm32 src/platform/str7	src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000171.html">[Elua-svn] r215 - in trunk/doc: . en wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#170">[ date ]</a>
+              <a href="thread.html#170">[ thread ]</a>
+              <a href="subject.html#170">[ subject ]</a>
+              <a href="author.html#170">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-02-23 16:28:56 +0100 (Mon, 23 Feb 2009)
+New Revision: 214
+
+Modified:
+   trunk/SConstruct
+   trunk/cross-lua.py
+   trunk/romfs/led.lua
+   trunk/romfs/lhttpd.lua
+   trunk/romfs/pong.lua
+   trunk/romfs/test.lua
+   trunk/src/lua/luaconf.h
+   trunk/src/platform/lm3s/conf.py
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/lm3s/platform_conf.h
+Log:
+Integrated support for Micromint Eagle 100 board (LM3S6918 Cortex-M3).
+Fixed the cross compilation script.
+Some DOS to UNIX EOL conversions.
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-02-23 13:56:21 UTC (rev 213)
++++ trunk/SConstruct	2009-02-23 15:28:56 UTC (rev 214)
+@@ -43,7 +43,7 @@
+ # (the one that will be used if none is specified)
+ platform_list = {  
+   'at91sam7x' : { 'cpus' : [ 'AT91SAM7X256', 'AT91SAM7X512' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
+-  'lm3s' : { 'cpus' : [ 'LM3S8962', 'LM3S6965' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
++  'lm3s' : { 'cpus' : [ 'LM3S8962', 'LM3S6965', 'LM3S6918' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
+   'str9' : { 'cpus' : [ 'STR912FW44' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
+   'i386' : { 'cpus' : [ 'I386' ], 'toolchains' : [ 'i686-gcc' ] },
+   'lpc288x' : { 'cpus' : [ 'LPC2888' ], 'toolchains' : [ 'arm-gcc', 'arm-gcc-eabi' ] },
+@@ -62,7 +62,8 @@
+                'MOD711' : [ 'STR711FR2' ],
+                'STM3210E-EVAL' : [ 'STM32F103ZE' ],
+                'ATEVK1100' : [ 'AT32UC3A0512' ],
+-               'ET-STM32' : [ 'STM32F103RE' ]
++               'ET-STM32' : [ 'STM32F103RE' ],
++               'EAGLE-100' : [ 'LM3S6918' ]
+             }
+ 
+ # ROMFS file list &quot;groups&quot;
+@@ -94,7 +95,8 @@
+               'MOD711' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'dualpwm' ],
+               'STM3210E-EVAL' : [ 'bisect', 'hello', 'info' ],
+               'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+-              'ET-STM32' : [ 'hello', 'info', 'bisect' ]
++              'ET-STM32' : [ 'hello', 'info', 'bisect' ],
++              'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ]              
+             }
+ 
+ # Variants: board = &lt;boardname&gt;
+
+Modified: trunk/cross-lua.py
+===================================================================
+--- trunk/cross-lua.py	2009-02-23 13:56:21 UTC (rev 213)
++++ trunk/cross-lua.py	2009-02-23 15:28:56 UTC (rev 214)
+@@ -6,7 +6,7 @@
+ # Lua source files and include path
+ lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
+    lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
+-   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c luac.c print.c&quot;&quot;&quot;
++   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c luac.c print.c lrotable.c&quot;&quot;&quot;
+ lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
+ local_include = &quot;-Isrc/lua&quot;
+ 
+@@ -18,6 +18,5 @@
+ comp = Environment( CCCOM = cccom,
+                     LINKCOM = linkcom,
+                     ENV = os.environ )
+-comp.TargetSignatures( 'content' )
+-comp.SourceSignatures( 'MD5' )
++Decider( 'MD5' )                  
+ Default( comp.Program( output, Split( lua_full_files ) ) )
+
+Modified: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2009-02-23 13:56:21 UTC (rev 213)
++++ trunk/romfs/led.lua	2009-02-23 15:28:56 UTC (rev 214)
+@@ -5,6 +5,8 @@
+   ledpin = &quot;PB_20&quot;
+ elseif pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+   ledpin = &quot;PF_0&quot;
++elseif pd.board() == &quot;EAGLE-100&quot; then
++  ledpin = &quot;PE_1&quot;
+ elseif pd.board() == &quot;STR9-COMSTICK&quot; then
+   ledpin = &quot;P9_0&quot;
+ elseif pd.board() == &quot;LPC-H2888&quot; then
+
+Modified: trunk/romfs/lhttpd.lua
+===================================================================
+--- trunk/romfs/lhttpd.lua	2009-02-23 13:56:21 UTC (rev 213)
++++ trunk/romfs/lhttpd.lua	2009-02-23 15:28:56 UTC (rev 214)
+@@ -1,122 +1,122 @@
+--- Check platform
+-if pd.board() ~= 'EK-LM3S8962' and pd.board() ~= 'EK-LM3S6965' then
++-- Check platform
++if pd.board() ~= 'EK-LM3S8962' and pd.board() ~= 'EK-LM3S6965' and pd.board() ~= 'EAGLE-100' then
+   print( pd.board() .. &quot; not supported by this example&quot; )
+   return
+-end
+-
+--- Mapping between file extension (and request) and HTTP response
+-local extmap = {
+-  txt = &quot;text/plain&quot;,
+-  htm = &quot;text/html&quot;,
+-  pht = &quot;text/html&quot;,
+-  gif = &quot;image/gif&quot;,
+-  jpg = &quot;imge/jpeg&quot;,
+-  png = &quot;image/png&quot;,
+-  lua = &quot;text/html&quot;
+-}
+-
+-local basedir = &quot;/rom/&quot;
+-reqdata = {}
+-
+--- Auxiliary function: execute the given code with a substituted &quot;print&quot;
+--- that prints everything to a string, return the code output
+-local function docode(thecode)
+-  local strbuf = {}
+-  local oldprint, newprint =  print, function(...)
+-    local total, idx = select('#', ...)
+-    for idx = 1, total do
+-      strbuf[#strbuf + 1] = tostring(select(idx, ...)) .. (idx == total and '\n' or '\t')
+-    end
+-  end
+-  print = newprint
+-  local f = loadstring(thecode)
+-  if f then
+-    f()
+-  else
+-    print &quot;&gt;&gt;&gt; Invalid Lua code &lt;&lt;&lt;&quot;
+-  end
+-  print = oldprint
+-  collectgarbage('collect')
+-  return table.concat(strbuf)
+-end
+-
+-function process(header)
+-    -- look for first line
+-	local s, e = header:find(&quot;[^\n]+\n&quot;)
+-	local reqstr = header:sub(s, e)
+-  local respheader, respdata = '', ''
+-  
+-  reqdata = {}
+-	-- check if the request is valid, also keep the actual request
+-	local i, valid, req = 0, false
+-	for w in reqstr:gmatch(&quot;%S+&quot;) do
+-	  valid = ( i == 0 and w == &quot;GET&quot; ) or valid
+-	  req = ( i == 1 and w ) or req
+-	  i = i + 1
+-	end
+-
+-    -- valid is true if the request is valid, req has the request string
+-	if valid then
+-    -- now look for all parameters in this request (if any)
+-    local fname = &quot;&quot;
+-    if req:find(&quot;%?&quot;) then
+-      local rest
+-      _, _, fname, rest = req:find(&quot;(.*)%?(.*)&quot;)
+-      -- small trick: end &quot;rest&quot; with a &quot;&amp;&quot; for easier processing
+-      -- now look for &quot;var=value&quot; pairs in the request (GET encoding)
+-      rest = rest .. &quot;&amp;&quot;
+-      for crtpair in rest:gmatch(&quot;[^&amp;]+&quot;) do
+-        local _, __, k, v = crtpair:find(&quot;(.*)=(.*)&quot;)
+-        -- replace all &quot;%xx&quot; characters with their actual value
+-        v = v:gsub(&quot;(%%%x%x)&quot;, function(s) return string.char(tonumber(s:sub(2, -1), 16)) end)
+-        reqdata[k] = v
+-      end
+-    else
+-      fname = req
+-    end
+-    fname = ( fname == &quot;/&quot; ) and &quot;index.pht&quot; or fname:sub(2, -1)
+-    s, e = fname:find(&quot;%.[%a%d]+$&quot;)
+-    local ftype = fname:sub(s+1, e):lower()
+-    ftype = (#ftype &gt; 0 and ftype) or &quot;txt&quot;
+-    fname = basedir .. fname
+-    
+-    -- now &quot;fname&quot; has the name of the requested file, and &quot;reqdata&quot; the actual request data
+-    -- also &quot;ftype&quot; holds the file type (actually its extension)
+-    local tf = io.open(fname, &quot;r&quot;)
+-    if tf then
+-      respheader = &quot;HTTP/1.1 200 OK\r\nConnection: close\r\nServer: eLua-miniweb\r\nContent-Type: &quot; .. extmap[ftype or &quot;txt&quot;] .. &quot;\r\n\r\n&quot;
+-      -- Preprocess &quot;lua&quot; and &quot;pht&quot; files: run the Lua ones, parse the .htm ones for &quot;&lt;?lua ... ?&gt;&quot; sequences
+-      if ftype == &quot;pht&quot; or ftype == &quot;lua&quot; then
+-        local fdata = tf:read(&quot;*a&quot;)
+-        if ftype == &quot;lua&quot; then
+-          respdata = docode(fdata)
+-        else
+-          -- Look for &lt;?lua ... lua&gt; patterns and execute them accordingly
+-          respdata = fdata:gsub(&quot;&lt;%?lua(.-)%?&gt;&quot;, docode)
+-        end
+-      else
+-        respdata = tf:read(&quot;*a&quot;)
+-      end
+-      tf:close()
+-    else
+-      respheader = &quot;HTTP/1.1 404 Not Found\r\nConnection: close\r\nServer: eLua-miniweb\r\nContent-Type: text/html\r\n\r\nPage not found&quot;
+-    end
+-  end
+-  return respheader .. respdata
+-end
+-
+-while true do
+-  local sock, remoteip, err = net.accept( 80 )
+-  print( &quot;Got connection on socket&quot;, sock )
+-  print( &quot;Remote ip: &quot; .. net.unpackip( remoteip, &quot;*s&quot; ) )
+-  local response, err2 = net.recv( sock, 1024 )
+-  print &quot;Got request&quot;
+-  local httpdata = process( response )
+-  if #httpdata &gt; 0 then
+-    print &quot;Sending response&quot;
+-    net.send( sock, httpdata )
+-  end
+-  net.close( sock )
+-  reqdata = {}
+-  collectgarbage('collect')
+-end
++end
++
++-- Mapping between file extension (and request) and HTTP response
++local extmap = {
++  txt = &quot;text/plain&quot;,
++  htm = &quot;text/html&quot;,
++  pht = &quot;text/html&quot;,
++  gif = &quot;image/gif&quot;,
++  jpg = &quot;imge/jpeg&quot;,
++  png = &quot;image/png&quot;,
++  lua = &quot;text/html&quot;
++}
++
++local basedir = &quot;/rom/&quot;
++reqdata = {}
++
++-- Auxiliary function: execute the given code with a substituted &quot;print&quot;
++-- that prints everything to a string, return the code output
++local function docode(thecode)
++  local strbuf = {}
++  local oldprint, newprint =  print, function(...)
++    local total, idx = select('#', ...)
++    for idx = 1, total do
++      strbuf[#strbuf + 1] = tostring(select(idx, ...)) .. (idx == total and '\n' or '\t')
++    end
++  end
++  print = newprint
++  local f = loadstring(thecode)
++  if f then
++    f()
++  else
++    print &quot;&gt;&gt;&gt; Invalid Lua code &lt;&lt;&lt;&quot;
++  end
++  print = oldprint
++  collectgarbage('collect')
++  return table.concat(strbuf)
++end
++
++function process(header)
++    -- look for first line
++	local s, e = header:find(&quot;[^\n]+\n&quot;)
++	local reqstr = header:sub(s, e)
++  local respheader, respdata = '', ''
++  
++  reqdata = {}
++	-- check if the request is valid, also keep the actual request
++	local i, valid, req = 0, false
++	for w in reqstr:gmatch(&quot;%S+&quot;) do
++	  valid = ( i == 0 and w == &quot;GET&quot; ) or valid
++	  req = ( i == 1 and w ) or req
++	  i = i + 1
++	end
++
++    -- valid is true if the request is valid, req has the request string
++	if valid then
++    -- now look for all parameters in this request (if any)
++    local fname = &quot;&quot;
++    if req:find(&quot;%?&quot;) then
++      local rest
++      _, _, fname, rest = req:find(&quot;(.*)%?(.*)&quot;)
++      -- small trick: end &quot;rest&quot; with a &quot;&amp;&quot; for easier processing
++      -- now look for &quot;var=value&quot; pairs in the request (GET encoding)
++      rest = rest .. &quot;&amp;&quot;
++      for crtpair in rest:gmatch(&quot;[^&amp;]+&quot;) do
++        local _, __, k, v = crtpair:find(&quot;(.*)=(.*)&quot;)
++        -- replace all &quot;%xx&quot; characters with their actual value
++        v = v:gsub(&quot;(%%%x%x)&quot;, function(s) return string.char(tonumber(s:sub(2, -1), 16)) end)
++        reqdata[k] = v
++      end
++    else
++      fname = req
++    end
++    fname = ( fname == &quot;/&quot; ) and &quot;index.pht&quot; or fname:sub(2, -1)
++    s, e = fname:find(&quot;%.[%a%d]+$&quot;)
++    local ftype = fname:sub(s+1, e):lower()
++    ftype = (#ftype &gt; 0 and ftype) or &quot;txt&quot;
++    fname = basedir .. fname
++    
++    -- now &quot;fname&quot; has the name of the requested file, and &quot;reqdata&quot; the actual request data
++    -- also &quot;ftype&quot; holds the file type (actually its extension)
++    local tf = io.open(fname, &quot;r&quot;)
++    if tf then
++      respheader = &quot;HTTP/1.1 200 OK\r\nConnection: close\r\nServer: eLua-miniweb\r\nContent-Type: &quot; .. extmap[ftype or &quot;txt&quot;] .. &quot;\r\n\r\n&quot;
++      -- Preprocess &quot;lua&quot; and &quot;pht&quot; files: run the Lua ones, parse the .htm ones for &quot;&lt;?lua ... ?&gt;&quot; sequences
++      if ftype == &quot;pht&quot; or ftype == &quot;lua&quot; then
++        local fdata = tf:read(&quot;*a&quot;)
++        if ftype == &quot;lua&quot; then
++          respdata = docode(fdata)
++        else
++          -- Look for &lt;?lua ... lua&gt; patterns and execute them accordingly
++          respdata = fdata:gsub(&quot;&lt;%?lua(.-)%?&gt;&quot;, docode)
++        end
++      else
++        respdata = tf:read(&quot;*a&quot;)
++      end
++      tf:close()
++    else
++      respheader = &quot;HTTP/1.1 404 Not Found\r\nConnection: close\r\nServer: eLua-miniweb\r\nContent-Type: text/html\r\n\r\nPage not found&quot;
++    end
++  end
++  return respheader .. respdata
++end
++
++while true do
++  local sock, remoteip, err = net.accept( 80 )
++  print( &quot;Got connection on socket&quot;, sock )
++  print( &quot;Remote ip: &quot; .. net.unpackip( remoteip, &quot;*s&quot; ) )
++  local response, err2 = net.recv( sock, 1024 )
++  print &quot;Got request&quot;
++  local httpdata = process( response )
++  if #httpdata &gt; 0 then
++    print &quot;Sending response&quot;
++    net.send( sock, httpdata )
++  end
++  net.close( sock )
++  reqdata = {}
++  collectgarbage('collect')
++end
+
+Modified: trunk/romfs/pong.lua
+===================================================================
+--- trunk/romfs/pong.lua	2009-02-23 13:56:21 UTC (rev 213)
++++ trunk/romfs/pong.lua	2009-02-23 15:28:56 UTC (rev 214)
+@@ -1,129 +1,129 @@
+---[[ To Do
+-  External Loop to play again, w/ UI msg
+-  Function lm3s_init will become a separate module, require()d here
+---]]
+-
+-require(&quot;LM3S&quot;)
+-
+-function drawPaddle( y, color )
+-  disp.stringdraw(&quot;|&quot;, 0, y,   color)
+-  disp.stringdraw(&quot;|&quot;, 0, y+4, color)
+-  disp.stringdraw(&quot;|&quot;, 0, y+8, color)
+-end
+-
+-function updateBallPos()
+-  if( bx &gt;= 121 or bx &lt;= 4) then
+-    dx = -dx;
+-  end
+-
+-  if(( by &gt;= 89 ) or ( by &lt;= 0 )) then
+-    dy = -dy;
+-  end
+-  disp.stringdraw( ball, bx, by, 0 )
+-  bx, by = ( bx + dx ), ( by + dy );
+-  disp.stringdraw( ball, bx, by, 15 )
+-end
+-
+-function updatePaddlePos()
+-  if LM3S.btnpressed( LM3S.BTN_UP ) then
+-    if ( py &gt; 0 ) then
+-      drawPaddle( py, 0 )
+-      py = py - 1
+-      drawPaddle( py, 11 )
+-    end
+-  elseif LM3S.btnpressed( LM3S.BTN_DOWN ) then
+-    if ( py &lt; 80 ) then
+-      drawPaddle( py, 0 )
+-      py = py + 1
+-      drawPaddle( py, 11 )
+-    end
+-  else
+-    tmr.delay( 0, 400 ) -- Maintain function processing time aprox the same
+-  end
+-end
+-
+------------- MAIN ------------
+-disp.init(1000000)
+-
+-term.clrscr()
+-term.gotoxy( 5, 1 )
+-print( &quot;Welcome to eLua Pong on a RIT display&quot; )
+-disp.stringdraw( &quot;eLua Pong&quot;, 30, 40, 11 )
+-tmr.delay ( 0, 2000000 )
+-
+-highscore = 0
+-
+-while (true) do
+-  play = false
+-
+-  bx, by = 5, 48
+-  dx, dy = 1, 1
+-  py = 48
+-
+-  score = 0
+-  dscore = 1
+-  ball = &quot;*&quot;
+-  time = 10000
+-  
+-  change = 0
+-  
+-  disp.clear()
+-  drawPaddle( py, 11 )
+-
+-  while ( true ) do
+-    for i = 0, 1 do
+-      updatePaddlePos()
+-      tmr.delay ( 0, time )
+-    end
+-    updateBallPos()
+-    if ( bx == 4 ) then
+-      if (( by+8 &lt; py ) or ( by &gt; py+16 )) then
+-        break
+-      else
+-        score = score + dscore
+-      end
+-    end
+-    
+-    if change == 0 then
+-      if LM3S.btnpressed( LM3S.BTN_RIGHT ) and time &gt; 0 then
+-        change = 1
+-      elseif LM3S.btnpressed( LM3S.BTN_LEFT ) and dscore &gt; 1 then
+-        change = -1
+-      end
+-    end
+-    
+-    if ( LM3S.btnpressed( LM3S.BTN_RIGHT ) ) == false and ( LM3S.btnpressed( LM3S.BTN_LEFT ) ) == false then
+-      if change == 1 then
+-        time = time - 2000
+-        dscore = dscore + 1
+-      elseif change == -1 then
+-        time = time + 2000
+-        dscore = dscore - 1
+-      end      
+-        change = 0
+-    end
+-    
+-    disp.stringdraw( tostring( dscore ), 118, 0, 6 )
+-    
+-  end
+-  
+-  if score &gt; highscore then
+-    highscore = score
+-  end
+-
+-  disp.clear()
+-  disp.stringdraw( &quot;Game Over :(&quot;, 30, 20, 11 )
+-  disp.stringdraw( &quot;Your score was &quot; .. tostring( score ), 15, 40, 11 )
+-  disp.stringdraw( &quot;High score: &quot; .. tostring( highscore ), 15, 50, 11 )
+-  disp.stringdraw( &quot;SELECT to restart&quot;, 6, 70, 11 )
+-  for i=0, 500000 do
+-    if LM3S.btnpressed( LM3S.BTN_SELECT ) then
+-      play = true
+-      break
+-    end
+-  end
+-  if play == false then
+-    disp.off()
+-    break
+-  end
++--[[ To Do
++  External Loop to play again, w/ UI msg
++  Function lm3s_init will become a separate module, require()d here
++--]]
++
++require(&quot;LM3S&quot;)
++
++function drawPaddle( y, color )
++  disp.stringdraw(&quot;|&quot;, 0, y,   color)
++  disp.stringdraw(&quot;|&quot;, 0, y+4, color)
++  disp.stringdraw(&quot;|&quot;, 0, y+8, color)
+ end
++
++function updateBallPos()
++  if( bx &gt;= 121 or bx &lt;= 4) then
++    dx = -dx;
++  end
++
++  if(( by &gt;= 89 ) or ( by &lt;= 0 )) then
++    dy = -dy;
++  end
++  disp.stringdraw( ball, bx, by, 0 )
++  bx, by = ( bx + dx ), ( by + dy );
++  disp.stringdraw( ball, bx, by, 15 )
++end
++
++function updatePaddlePos()
++  if LM3S.btnpressed( LM3S.BTN_UP ) then
++    if ( py &gt; 0 ) then
++      drawPaddle( py, 0 )
++      py = py - 1
++      drawPaddle( py, 11 )
++    end
++  elseif LM3S.btnpressed( LM3S.BTN_DOWN ) then
++    if ( py &lt; 80 ) then
++      drawPaddle( py, 0 )
++      py = py + 1
++      drawPaddle( py, 11 )
++    end
++  else
++    tmr.delay( 0, 400 ) -- Maintain function processing time aprox the same
++  end
++end
++
++------------ MAIN ------------
++disp.init(1000000)
++
++term.clrscr()
++term.gotoxy( 5, 1 )
++print( &quot;Welcome to eLua Pong on a RIT display&quot; )
++disp.stringdraw( &quot;eLua Pong&quot;, 30, 40, 11 )
++tmr.delay ( 0, 2000000 )
++
++highscore = 0
++
++while (true) do
++  play = false
++
++  bx, by = 5, 48
++  dx, dy = 1, 1
++  py = 48
++
++  score = 0
++  dscore = 1
++  ball = &quot;*&quot;
++  time = 10000
++  
++  change = 0
++  
++  disp.clear()
++  drawPaddle( py, 11 )
++
++  while ( true ) do
++    for i = 0, 1 do
++      updatePaddlePos()
++      tmr.delay ( 0, time )
++    end
++    updateBallPos()
++    if ( bx == 4 ) then
++      if (( by+8 &lt; py ) or ( by &gt; py+16 )) then
++        break
++      else
++        score = score + dscore
++      end
++    end
++    
++    if change == 0 then
++      if LM3S.btnpressed( LM3S.BTN_RIGHT ) and time &gt; 0 then
++        change = 1
++      elseif LM3S.btnpressed( LM3S.BTN_LEFT ) and dscore &gt; 1 then
++        change = -1
++      end
++    end
++    
++    if ( LM3S.btnpressed( LM3S.BTN_RIGHT ) ) == false and ( LM3S.btnpressed( LM3S.BTN_LEFT ) ) == false then
++      if change == 1 then
++        time = time - 2000
++        dscore = dscore + 1
++      elseif change == -1 then
++        time = time + 2000
++        dscore = dscore - 1
++      end      
++        change = 0
++    end
++    
++    disp.stringdraw( tostring( dscore ), 118, 0, 6 )
++    
++  end
++  
++  if score &gt; highscore then
++    highscore = score
++  end
++
++  disp.clear()
++  disp.stringdraw( &quot;Game Over :(&quot;, 30, 20, 11 )
++  disp.stringdraw( &quot;Your score was &quot; .. tostring( score ), 15, 40, 11 )
++  disp.stringdraw( &quot;High score: &quot; .. tostring( highscore ), 15, 50, 11 )
++  disp.stringdraw( &quot;SELECT to restart&quot;, 6, 70, 11 )
++  for i=0, 500000 do
++    if LM3S.btnpressed( LM3S.BTN_SELECT ) then
++      play = true
++      break
++    end
++  end
++  if play == false then
++    disp.off()
++    break
++  end
++end
+
+Modified: trunk/romfs/test.lua
+===================================================================
+--- trunk/romfs/test.lua	2009-02-23 13:56:21 UTC (rev 213)
++++ trunk/romfs/test.lua	2009-02-23 15:28:56 UTC (rev 214)
+@@ -1,4 +1,5 @@
+-print &quot;&lt;html&gt;&lt;body&gt;&quot;
+-print &quot;Hello from eLua!&lt;br&gt;&quot;
+-print 'Press &lt;a href=&quot;/&quot;&gt;here&lt;/a&gt; to return to the main page.'
+-print &quot;&lt;/body&gt;&lt;/html&gt;&quot;
++print &quot;&lt;html&gt;&lt;body&gt;&quot;
++print &quot;Hello from eLua!&lt;br&gt;&quot;
++print 'Press &lt;a href=&quot;/&quot;&gt;here&lt;/a&gt; to return to the main page.'
++print &quot;&lt;/body&gt;&lt;/html&gt;&quot;
++
+
+Modified: trunk/src/lua/luaconf.h
+===================================================================
+--- trunk/src/lua/luaconf.h	2009-02-23 13:56:21 UTC (rev 213)
++++ trunk/src/lua/luaconf.h	2009-02-23 15:28:56 UTC (rev 214)
+@@ -89,7 +89,7 @@
+ 
+ //## Modified for eLua
+ //## Defaults search modules path to our ROM File System
+-#define LUA_PATH_DEFAULT &quot;\ROM\?.lua&quot;
++#define LUA_PATH_DEFAULT &quot;/rom/?.lua&quot;
+ /*
+ ** ## Original LUA_PATH_DEFAULT
+ #define LUA_PATH_DEFAULT  \
+@@ -831,7 +831,9 @@
+ /* If you define the next macro you'll get the ability to set rotables as
+    metatables for tables/userdata/types (but the VM might run slower)
+ */
+-#define LUA_META_ROTABLES   
++#ifndef LUA_CROSS_COMPILER
++#define LUA_META_ROTABLES 
++#endif
+ 
+ #if LUA_OPTIMIZE_MEMORY == 2 &amp;&amp; LUA_USE_POPEN
+ #error &quot;Pipes not supported in aggresive optimization mode (LUA_OPTIMIZE_MEMORY=2)&quot;
+
+Modified: trunk/src/platform/lm3s/conf.py
+===================================================================
+--- trunk/src/platform/lm3s/conf.py	2009-02-23 13:56:21 UTC (rev 213)
++++ trunk/src/platform/lm3s/conf.py	2009-02-23 15:28:56 UTC (rev 214)
+@@ -4,6 +4,7 @@
+ 
+ if boardname == 'EK-LM3S6965' or boardname == 'EK-LM3S8962':
+   specific_files = specific_files + &quot; rit128x96x4.c disp.c&quot;
++  cdefs = cdefs + &quot; -DENABLE_DISP&quot;
+ 
+ ldscript = &quot;lm3s.ld&quot;
+ 
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-02-23 13:56:21 UTC (rev 213)
++++ trunk/src/platform/lm3s/platform.c	2009-02-23 15:28:56 UTC (rev 214)
+@@ -106,7 +106,7 @@
+ 
+ // ****************************************************************************
+ // PIO
+-// Same configuration on LM3S8962 and LM3S6965
++// Same configuration on LM3S8962, LM3S6965, LM3S6918 (8 ports)
+ 
+ static const u32 pio_base[] = { GPIO_PORTA_BASE, GPIO_PORTB_BASE, GPIO_PORTC_BASE, GPIO_PORTD_BASE,
+                                 GPIO_PORTE_BASE, GPIO_PORTF_BASE, GPIO_PORTG_BASE, GPIO_PORTH_BASE };
+@@ -177,7 +177,7 @@
+ 
+ // ****************************************************************************
+ // SPI
+-// Same configuration on LM3S8962 and LM3S6965
++// Same configuration on LM3S8962, LM3S6965 and LM3S6918 (2 SPI ports)
+ 
+ // All possible LM3S SPIs defs
+ // FIXME this anticipates support for a platform with 2 SPI port
+@@ -235,7 +235,7 @@
+ 
+ // ****************************************************************************
+ // UART
+-// Different configurations for LM3S8962 (2 UARTs) and LM3S6965 (3 UARTs)
++// Different configurations for LM3S8962, LM3S6918 (2 UARTs) and LM3S6965 (3 UARTs)
+ 
+ // All possible LM3S uarts defs
+ static const u32 uart_base[] = { UART0_BASE, UART1_BASE, UART2_BASE };
+@@ -334,7 +334,7 @@
+ 
+ // ****************************************************************************
+ // Timers
+-// Same on LM3S8962 and LM3S6965
++// Same on LM3S8962, LM3S6965 and LM3S6918 (4 timers)
+ 
+ // All possible LM3S timers defs
+ static const u32 timer_base[] = { TIMER0_BASE, TIMER1_BASE, TIMER2_BASE, TIMER3_BASE };
+@@ -399,6 +399,7 @@
+ // ****************************************************************************
+ // PWMs
+ // Similar on LM3S8962 and LM3S6965
++// LM3S6918 has no PWM
+ 
+ // SYSCTL div data and actual div factors
+ const static u32 pwm_div_ctl[] = { SYSCTL_PWMDIV_1, SYSCTL_PWMDIV_2, SYSCTL_PWMDIV_4, SYSCTL_PWMDIV_8, SYSCTL_PWMDIV_16, SYSCTL_PWMDIV_32, SYSCTL_PWMDIV_64 };
+
+Modified: trunk/src/platform/lm3s/platform_conf.h
+===================================================================
+--- trunk/src/platform/lm3s/platform_conf.h	2009-02-23 13:56:21 UTC (rev 213)
++++ trunk/src/platform/lm3s/platform_conf.h	2009-02-23 15:28:56 UTC (rev 214)
+@@ -37,23 +37,34 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++#ifdef ENABLE_DISP
+ #define AUXLIB_DISP   &quot;disp&quot;
+ LUALIB_API int ( luaopen_disp )( lua_State* L );
++#define DISPLINE _ROM( AUXLIB_DISP, luaopen_disp, disp_map )
++#else
++#define DISPLINE
++#endif
+ 
++#ifdef FORLM3S6918
++#define PWMLINE
++#else
++#define PWMLINE  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )
++#endif
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_SPI, luaopen_spi, spi_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+   _ROM( AUXLIB_PD, luaopen_pd, pd_map )\
+   _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
++  PWMLINE\
+   _ROM( AUXLIB_TERM, luaopen_term, term_map )\
+-  _ROM( AUXLIB_PWM, luaopen_pwm, pwm_map )\
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_NET, luaopen_net, net_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
+-  _ROM( AUXLIB_DISP, luaopen_disp, disp_map )\
++  DISPLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+   
+ // *****************************************************************************
+@@ -90,13 +101,17 @@
+ // Number of resources (0 if not available/not implemented)
+ #define NUM_PIO               7
+ #define NUM_SPI               1
+-#ifdef FORLM3S8962
++#ifdef FORLM3S6965
++  #define NUM_UART            3
++#else
+   #define NUM_UART            2
+-#else
+-  #define NUM_UART            3
+ #endif
+ #define NUM_TIMER             4
+-#define NUM_PWM               6
++#ifndef FORLM3S6918
++  #define NUM_PWM             6
++#else
++  #define NUM_PWM             0
++#endif  
+ #define NUM_ADC               4
+ 
+ // Enable RX buffering on UART
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000169.html">[Elua-svn] r213 - in trunk: . src src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/stm32 src/platform/str7	src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000171.html">[Elua-svn] r215 - in trunk/doc: . en wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#170">[ date ]</a>
+              <a href="thread.html#170">[ thread ]</a>
+              <a href="subject.html#170">[ subject ]</a>
+              <a href="author.html#170">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

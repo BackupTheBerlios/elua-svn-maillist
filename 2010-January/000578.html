@@ -1,0 +1,1362 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r622 - in branches/remotefs: . inc inc/newlib	inc/remotefs src src/newlib src/platform/stm32 src/remotefs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r622%20-%20in%20branches/remotefs%3A%20.%20inc%20inc/newlib%0A%09inc/remotefs%20src%20src/newlib%20src/platform/stm32%20src/remotefs&In-Reply-To=%3C201001050133.o051XfV2002928%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000579.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r622 - in branches/remotefs: . inc inc/newlib	inc/remotefs src src/newlib src/platform/stm32 src/remotefs</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r622%20-%20in%20branches/remotefs%3A%20.%20inc%20inc/newlib%0A%09inc/remotefs%20src%20src/newlib%20src/platform/stm32%20src/remotefs&In-Reply-To=%3C201001050133.o051XfV2002928%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r622 - in branches/remotefs: . inc inc/newlib	inc/remotefs src src/newlib src/platform/stm32 src/remotefs">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Tue Jan  5 02:33:41 CET 2010</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000579.html">[Elua-svn] r623 - in trunk: . src/platform src/platform/lpc17xx	src/platform/lpc17xx/drivers src/platform/lpc17xx/drivers/inc	src/platform/lpc17xx/drivers/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#578">[ date ]</a>
+              <a href="thread.html#578">[ thread ]</a>
+              <a href="subject.html#578">[ subject ]</a>
+              <a href="author.html#578">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-01-05 02:33:40 +0100 (Tue, 05 Jan 2010)
+New Revision: 622
+
+Added:
+   branches/remotefs/inc/remotefs/
+   branches/remotefs/inc/remotefs/client.h
+   branches/remotefs/inc/remotefs/os_io.h
+   branches/remotefs/inc/remotefs/remotefs.h
+   branches/remotefs/inc/remotefs/rtype.h
+   branches/remotefs/src/remotefs/
+   branches/remotefs/src/remotefs/client.c
+   branches/remotefs/src/remotefs/elua_os_io.c
+   branches/remotefs/src/remotefs/elua_rfs.c
+   branches/remotefs/src/remotefs/remotefs.c
+Modified:
+   branches/remotefs/SConstruct
+   branches/remotefs/inc/newlib/devman.h
+   branches/remotefs/inc/newlib/genstd.h
+   branches/remotefs/inc/romfs.h
+   branches/remotefs/src/newlib/devman.c
+   branches/remotefs/src/newlib/genstd.c
+   branches/remotefs/src/newlib/stdtcp.c
+   branches/remotefs/src/newlib/stubs.c
+   branches/remotefs/src/platform/stm32/platform_conf.h
+   branches/remotefs/src/romfs.c
+Log:
+working on the remote filesystem implementation
+
+Modified: branches/remotefs/SConstruct
+===================================================================
+--- branches/remotefs/SConstruct	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/SConstruct	2010-01-05 01:33:40 UTC (rev 622)
+@@ -281,7 +281,7 @@
+    ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c lua.c lrotable.c&quot;&quot;&quot;
+ if target == 'lualong' or target == 'lua':
+   lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
+-  local_include = ['inc', 'inc/newlib', 'src/lua']
++  local_include = ['inc', 'inc/newlib', 'inc/remotefs', 'src/lua']
+   if target == 'lualong':
+     cdefs = cdefs + ' -DLUA_NUMBER_INTEGRAL'
+ else:
+@@ -309,6 +309,10 @@
+ module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c can.c luarpc.c bitarray.c&quot;
+ module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+ 
++# Remote file system files
++rfs_names = &quot;remotefs.c client.c elua_os_io.c elua_rfs.c&quot;
++rfs_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/remotefs/%s&quot; % name for name in rfs_names.split() ] )
++
+ # Optimizer flags (speed or size)
+ #opt = &quot;-O3&quot;
+ opt = &quot;-Os -fomit-frame-pointer&quot;
+@@ -322,7 +326,7 @@
+ execfile( &quot;src/platform/%s/conf.py&quot; % platform )
+ 
+ # Complete file list
+-source_files = app_files + specific_files + newlib_files + uip_files + lua_full_files + module_files
++source_files = app_files + specific_files + newlib_files + uip_files + lua_full_files + module_files + rfs_files
+ 
+ # Make ROM File System first
+ if not GetOption( 'clean' ):
+
+Modified: branches/remotefs/inc/newlib/devman.h
+===================================================================
+--- branches/remotefs/inc/newlib/devman.h	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/inc/newlib/devman.h	2010-01-05 01:33:40 UTC (rev 622)
+@@ -5,6 +5,7 @@
+ 
+ #include &quot;type.h&quot;
+ #include &lt;reent.h&gt;
++#include &lt;unistd.h&gt;
+ 
+ // Maximum number of devices in the system
+ #define DM_MAX_DEVICES        16
+@@ -33,6 +34,7 @@
+   int ( *p_close_r )( struct _reent *r, int fd );
+   _ssize_t ( *p_write_r ) ( struct _reent *r, int fd, const void *ptr, size_t len );
+   _ssize_t ( *p_read_r )( struct _reent *r, int fd, void *ptr, size_t len );  
++  off_t ( *p_lseek_r )( struct _reent *r, int fd, off_t off, int whence );
+   int ( *p_ioctl_r )( struct _reent *r, int file, unsigned long request, void *ptr );  
+ } DM_DEVICE;
+ 
+@@ -44,7 +46,7 @@
+ #define DM_OK                       (0)
+ 
+ // Add a device
+-int dm_register( DM_DEVICE *pdev );
++int dm_register( const DM_DEVICE *pdev );
+ // Unregister a device
+ int dm_unregister( const char* name );
+ // Get a device entry
+
+Modified: branches/remotefs/inc/newlib/genstd.h
+===================================================================
+--- branches/remotefs/inc/newlib/genstd.h	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/inc/newlib/genstd.h	2010-01-05 01:33:40 UTC (rev 622)
+@@ -20,7 +20,7 @@
+ // STD functions
+ void std_set_send_func( p_std_send_char pfunc );
+ void std_set_get_func( p_std_get_char pfunc );
+-DM_DEVICE* std_get_desc();
++const DM_DEVICE* std_get_desc();
+ 
+ #endif
+ 
+
+Added: branches/remotefs/inc/remotefs/client.h
+===================================================================
+--- branches/remotefs/inc/remotefs/client.h	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/inc/remotefs/client.h	2010-01-05 01:33:40 UTC (rev 622)
+@@ -0,0 +1,26 @@
++// Remote filesystem client
++
++#ifndef __CLIENT_H__
++#define __CLIENT_H__
++
++#include &quot;type.h&quot;
++
++// Error codes
++#define CLIENT_OK   0
++#define CLIENT_ERR  1
++
++// RFS client send/receive functions
++typedef u32 ( *p_rfsc_send )( const u8 *p, u32 size );
++typedef u32 ( *p_rfsc_recv )( u8 *p, u32 size, u32 timeout );
++
++// Public interface
++void rfsc_setup( u8 *pbuf, p_rfsc_send rfsc_send_func, p_rfsc_recv rfsc_recv_func, u32 timeout );
++void rfsc_set_timeout( u32 timeout );
++int rfsc_open( const char* pathname, int flags, int mode );
++s32 rfsc_write( int fd, const void *buf, u32 count );
++s32 rfsc_read( int fd, void *buf, u32 count );
++s32 rfsc_lseek( int fd, s32 offset, int whence );
++int rfsc_close( int fd );
++
++#endif
++
+
+Added: branches/remotefs/inc/remotefs/os_io.h
+===================================================================
+--- branches/remotefs/inc/remotefs/os_io.h	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/inc/remotefs/os_io.h	2010-01-05 01:33:40 UTC (rev 622)
+@@ -0,0 +1,17 @@
++// OS interface for file I/O manipulation
++
++#ifndef __OS_IO_H__
++#define __OS_IO_H__
++
++#include &quot;type.h&quot;
++
++int os_open( const char *pathname, int flags, int mode );
++u32 os_open_sys_flags_to_rfs_flags( int sysflags );
++s32 os_write( int fd, const void *buf, u32 count );
++s32 os_read( int fd, void *buf, u32 count );
++int os_close( int fd );
++s32 os_lseek( int fd, s32 offset, int whence );
++u32 os_lseek_sys_whence_to_rfs_whence( int syswhence );
++
++#endif
++
+
+Added: branches/remotefs/inc/remotefs/remotefs.h
+===================================================================
+--- branches/remotefs/inc/remotefs/remotefs.h	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/inc/remotefs/remotefs.h	2010-01-05 01:33:40 UTC (rev 622)
+@@ -0,0 +1,91 @@
++// Remote file system implementation
++
++#ifndef __REMOTEFS_H__
++#define __REMOTEFS_H__
++
++#include &quot;type.h&quot;
++
++#define   PACKET_SIG      0x18AFC284UL
++
++// Error codes
++#define   REMOTEFS_OK     0
++#define   REMOTEFS_ERR    1
++
++// Operation IDs
++#define   RFS_OP_OPEN     0x01
++#define   RFS_OP_FIRST    RFS_OP_OPEN
++#define   RFS_OP_WRITE    0x02
++#define   RFS_OP_READ     0x03
++#define   RFS_OP_CLOSE    0x04
++#define   RFS_OP_LSEEK    0x05
++#define   RFS_OP_LAST     RFS_OP_LSEEK
++#define   RFS_OP_RES_MOD  0x80
++
++// Protocol constants
++#define   RFS_START_OFFSET    4
++#define   RFS_START_SIZE      6
++#define   RFS_END_SIZE        6
++#define   RFS_RESPONSE_SIZE   1
++#define   RFS_PTR_HEADER_SIZE 6
++#define   RFS_U32_SIZE        5
++#define   RFS_OP_ID_SIZE      2
++#define   RFS_READ_BUF_OFFSET ( RFS_START_OFFSET + RFS_START_SIZE + RFS_RESPONSE_SIZE + RFS_PTR_HEADER_SIZE )
++#define   RFS_WRITE_REQUEST_EXTRA ( RFS_START_OFFSET + RFS_START_SIZE + RFS_OP_ID_SIZE + RFS_U32_SIZE + RFS_PTR_HEADER_SIZE + RFS_END_SIZE )
++
++// Platform independent constants for &quot;flags&quot; in &quot;open&quot;
++#define   RFS_OPEN_FLAG_APPEND      0x01
++#define   RFS_OPEN_FLAG_CREAT       0x02
++#define   RFS_OPEN_FLAG_EXCL        0x04
++#define   RFS_OPEN_FLAG_TRUNC       0x08
++#define   RFS_OPEN_FLAG_SYNC        0x10
++#define   RFS_OPEN_FLAG_RDONLY      0x20
++#define   RFS_OPEN_FLAG_WRONLY      0x40
++#define   RFS_OPEN_FLAG_RDWR        0x80
++
++// Platform independent seek modes for &quot;seek&quot;
++#define   RFS_LSEEK_SET             0x01
++#define   RFS_LSEEK_CUR             0x02
++#define   RFS_LSEEK_END             0x03
++
++// Public interface
++
++// Get request ID
++int remotefs_get_request_id( const u8 *p, u8 *pid );
++
++// Replace a flag with another flag
++u32 remotefs_replace_flag( u32 val, u32 origflag, u32 newflag );
++
++// Get packet size
++int remotefs_get_packet_size( const u8 *p, u16 *psize );
++
++// Function: int open(const char *pathname,int flags, mode_t mode)
++void remotefs_open_write_response( u8 *p, int result );
++int remotefs_open_read_response( const u8 *p, int *presult );
++void remotefs_open_write_request( u8 *p, const char* pathname, int flags, int mode );
++int remotefs_open_read_request( const u8 *p, const char **ppathname, int *pflags, int *pmode );
++
++// Function: ssize_t write(int fd, const void *buf, size_t count)
++void remotefs_write_write_response( u8 *p, u32 result );
++int remotefs_write_read_response( const u8 *p, u32 *presult );
++void remotefs_write_write_request( u8 *p, int fd, const void *buf, u32 count );
++int remotefs_write_read_request( const u8 *p, int *pfd, const void **pbuf, u32 *pcount );
++
++// Function: ssize_t read(int fd, void *buf, size_t count)
++void remotefs_read_write_response( u8 *p, u32 readbytes );
++int remotefs_read_read_response( const u8 *p, const u8 **ppdata, u32 *preadbytes );
++void remotefs_read_write_request( u8 *p, int fd, u32 count );
++int remotefs_read_read_request( const u8 *p, int *pfd, u32 *pcount );
++                                 
++// Function: int close( int fd )
++void remotefs_close_write_response( u8 *p, int result );
++int remotefs_close_read_response( const u8 *p, int *presult );
++void remotefs_close_write_request( u8 *p, int fd );
++int remotefs_close_read_request( const u8 *p, int *pfd );
++
++// Function: off_t lseek( int fd, off_t offset, int whence )
++void remotefs_lseek_write_response( u8 *p, s32 result );
++int remotefs_lseek_read_response( const u8 *p, s32 *presult );
++void remotefs_lseek_write_request( u8 *p, int fd, s32 offset, int whence );
++int remotefs_lseek_read_request( const u8 *p, int *pfd, s32 *poffset, int *pwhence );
++
++#endif
+
+Added: branches/remotefs/inc/remotefs/rtype.h
+===================================================================
+--- branches/remotefs/inc/remotefs/rtype.h	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/inc/remotefs/rtype.h	2010-01-05 01:33:40 UTC (rev 622)
+@@ -0,0 +1,17 @@
++// Type definitions for the remote file system
++
++#ifndef __RTYPE_H__
++#define __RTYPE_H__
++
++// Type codes
++#define   TYPE_INT_8      0x01
++#define   TYPE_INT_16     0x02
++#define   TYPE_INT_32     0x03
++#define   TYPE_PTR        0x04
++#define   TYPE_START      0x05
++#define   TYPE_END        0x06
++#define   TYPE_OP_ID      0x07
++#define   TYPE_PKT_SIZE   0xA5
++                                    
++#endif
++
+
+Modified: branches/remotefs/inc/romfs.h
+===================================================================
+--- branches/remotefs/inc/romfs.h	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/inc/romfs.h	2010-01-05 01:33:40 UTC (rev 622)
+@@ -38,7 +38,7 @@
+ } FS;
+   
+ // FS functions
+-DM_DEVICE* romfs_init();
++const DM_DEVICE* romfs_init();
+ u32 romfs_get_dir_entry( u32 offset, char *fname, u16 *fsize );
+ 
+ #endif
+
+Modified: branches/remotefs/src/newlib/devman.c
+===================================================================
+--- branches/remotefs/src/newlib/devman.c	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/src/newlib/devman.c	2010-01-05 01:33:40 UTC (rev 622)
+@@ -12,7 +12,7 @@
+ 
+ // Register a device
+ // Returns the index of the device in the device table
+-int dm_register( DM_DEVICE *pdev )
++int dm_register( const DM_DEVICE *pdev )
+ {
+   int i;
+   
+
+Modified: branches/remotefs/src/newlib/genstd.c
+===================================================================
+--- branches/remotefs/src/newlib/genstd.c	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/src/newlib/genstd.c	2010-01-05 01:33:40 UTC (rev 622)
+@@ -129,17 +129,18 @@
+ }
+ 
+ // Our UART device descriptor structure
+-static DM_DEVICE std_device = 
++static const DM_DEVICE std_device = 
+ {
+   STD_DEV_NAME,
+   NULL,                 // we don't have 'open' on std
+   NULL,                 // we don't hace 'close' on std
+   std_write,
+   std_read,
++  NULL,                 // we don't have &quot;lseek&quot; on std
+   NULL                  // we don't have &quot;ioctl&quot; on std
+ };
+ 
+-DM_DEVICE* std_get_desc()
++const DM_DEVICE* std_get_desc()
+ {
+   return &amp;std_device;
+ }
+
+Modified: branches/remotefs/src/newlib/stdtcp.c
+===================================================================
+--- branches/remotefs/src/newlib/stdtcp.c	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/src/newlib/stdtcp.c	2010-01-05 01:33:40 UTC (rev 622)
+@@ -84,17 +84,18 @@
+ }
+ 
+ // Our UART device descriptor structure
+-static DM_DEVICE std_device = 
++static const DM_DEVICE std_device = 
+ {
+   STD_DEV_NAME,
+   NULL,                 // we don't have 'open' on std
+   NULL,                 // we don't have 'close' on std
+   std_write,
+   std_read,
++  NULL,                 // we don't have &quot;lseek&quot; on std
+   NULL                  // we don't have &quot;ioctl&quot; on std
+ };
+ 
+-DM_DEVICE* std_get_desc()
++const DM_DEVICE* std_get_desc()
+ {
+   return &amp;std_device;
+ }
+
+Modified: branches/remotefs/src/newlib/stubs.c
+===================================================================
+--- branches/remotefs/src/newlib/stubs.c	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/src/newlib/stubs.c	2010-01-05 01:33:40 UTC (rev 622)
+@@ -6,6 +6,7 @@
+ #include &lt;sys/stat.h&gt;
+ #include &lt;stdio.h&gt;
+ #include &lt;stdarg.h&gt;
++#include &lt;unistd.h&gt;
+ #include &quot;devman.h&quot;
+ #include &quot;ioctl.h&quot;
+ #include &quot;platform.h&quot;
+@@ -127,6 +128,24 @@
+ }
+ 
+ // *****************************************************************************
++// _lseek_r
++off_t _lseek_r( struct _reent *r, int file, off_t off, int whence )
++{
++  const DM_DEVICE* pdev;
++  
++  // Find device, check close function
++  pdev = dm_get_device_at( DM_GET_DEVID( file ) );
++  if( pdev-&gt;p_lseek_r == NULL )
++  {
++    r-&gt;_errno = ENOSYS;
++    return -1; 
++  }
++  
++  // And call the close function
++  return pdev-&gt;p_lseek_r( r, DM_GET_FD( file ), off, whence );
++}
++
++// *****************************************************************************
+ // ioctl (actually our call, not newlib's)
+ static int _ioctl_r( struct _reent *r, int file, unsigned long request, void *ptr )
+ {
+@@ -185,21 +204,6 @@
+   return pdev-&gt;p_write_r( r, DM_GET_FD( file ), ptr, len );  
+ }
+ 
+-// *****************************************************************************
+-// _lseek_r
+-_off_t _lseek_r( struct _reent *r, int file, _off_t ptr, int dir )
+-{
+-  struct fd_seek seek;
+-    
+-  seek.off = ptr;
+-  seek.dir = dir;
+-  
+-  if( ioctl( file, FDSEEK, &amp;seek ) &lt; 0 ) 
+-    return (_off_t)-1;
+-  else
+-    return seek.off;
+-}
+-
+ // ****************************************************************************
+ // Miscalenous functions
+ 
+
+Modified: branches/remotefs/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/remotefs/src/platform/stm32/platform_conf.h	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/src/platform/stm32/platform_conf.h	2010-01-05 01:33:40 UTC (rev 622)
+@@ -22,6 +22,7 @@
+ #define BUILD_ADC
+ #define BUILD_LUARPC
+ //#define BUILD_CON_TCP
++#define BUILD_RFS
+ 
+ // *****************************************************************************
+ // UART/Timer IDs configuration data (used in main.c)
+@@ -129,6 +130,12 @@
+ // Use #define PIO_PINS_PER_PORT 0 if this isn't needed
+ #define PIO_PINS_PER_PORT     16
+ 
++// Remote file system data
++#define RFS_BUFFER_SIZE       128
++#define RFS_UART_ID           0
++#define RFS_TIMER_ID          0
++#define RFS_TIMEOUT           100000
++
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+ #define SRAM_SIZE             ( 64 * 1024 )
+
+Added: branches/remotefs/src/remotefs/client.c
+===================================================================
+--- branches/remotefs/src/remotefs/client.c	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/src/remotefs/client.c	2010-01-05 01:33:40 UTC (rev 622)
+@@ -0,0 +1,139 @@
++// Remote filesystem client
++
++#include &lt;string.h&gt;
++#include &quot;remotefs.h&quot;
++#include &quot;client.h&quot;
++#include &quot;os_io.h&quot;
++
++// ****************************************************************************
++// Client local data
++
++static u8 *rfsc_buffer;
++static p_rfsc_send rfsc_send;
++static p_rfsc_recv rfsc_recv;
++static u32 rfsc_timeout;
++
++// ****************************************************************************
++// Client helpers
++
++static int rfsch_send_request_read_response()
++{
++  u16 temp16;
++
++  // Send request
++  if( remotefs_get_packet_size( rfsc_buffer, &amp;temp16 ) == REMOTEFS_ERR )
++    return CLIENT_ERR;
++  if( rfsc_send( rfsc_buffer, temp16 ) != temp16 )
++    return CLIENT_ERR;
++  
++  // Get response
++  // First the length, then the rest of the data
++  if( rfsc_recv( rfsc_buffer, RFS_START_OFFSET, rfsc_timeout ) != RFS_START_OFFSET )
++    return CLIENT_ERR;
++  if( remotefs_get_packet_size( rfsc_buffer, &amp;temp16 ) == REMOTEFS_ERR )
++    return CLIENT_ERR;
++  if( rfsc_recv( rfsc_buffer + RFS_START_OFFSET, temp16 - RFS_START_OFFSET, rfsc_timeout ) != temp16 - RFS_START_OFFSET )
++    return CLIENT_ERR;
++  return CLIENT_OK;
++}
++
++// ****************************************************************************
++// Client public interface
++
++void rfsc_setup( u8 *pbuf, p_rfsc_send rfsc_send_func, p_rfsc_recv rfsc_recv_func, u32 timeout )
++{
++  rfsc_buffer = pbuf;
++  rfsc_send = rfsc_send_func;
++  rfsc_recv = rfsc_recv_func;
++  rfsc_timeout = timeout;
++}
++
++void rfsc_set_timeout( u32 timeout )
++{
++  rfsc_timeout = timeout;
++}
++
++int rfsc_open( const char* pathname, int flags, int mode )
++{
++  int fd;
++
++  // Make the request
++  remotefs_open_write_request( rfsc_buffer, pathname, os_open_sys_flags_to_rfs_flags( flags ), mode );
++
++  // Send the request / get the respone
++  if( rfsch_send_request_read_response() == CLIENT_ERR )
++    return -1;
++
++  // Interpret the response
++  if( remotefs_open_read_response( rfsc_buffer, &amp;fd ) == REMOTEFS_ERR )
++    return -1;
++  return fd;
++}
++
++s32 rfsc_write( int fd, const void *buf, u32 count )
++{
++  // Make the request
++  remotefs_write_write_request( rfsc_buffer, fd, buf, count );
++
++  // Send the request / get the response
++  if( rfsch_send_request_read_response() == CLIENT_ERR )
++    return -1;
++  
++  // Interpret the response
++  if( remotefs_write_read_response( rfsc_buffer, &amp;count ) == REMOTEFS_ERR )
++    return -1;
++  return ( s32 )count;
++}
++
++s32 rfsc_read( int fd, void *buf, u32 count )
++{
++  const u8 *resbuf;
++
++  // Make the request
++  remotefs_read_write_request( rfsc_buffer, fd, count );
++
++  // Send the request / get the response
++  if( rfsch_send_request_read_response() == CLIENT_ERR )
++    return -1;
++
++  // Interpret the response
++  if( remotefs_read_read_response( rfsc_buffer, &amp;resbuf, &amp;count ) == REMOTEFS_ERR )
++    return -1;
++  memcpy( buf, resbuf, count );
++  return ( s32 )count;
++}
++
++s32 rfsc_lseek( int fd, s32 offset, int whence )
++{
++  s32 res;
++
++  // Make the request
++  remotefs_lseek_write_request( rfsc_buffer, fd, offset, os_lseek_sys_whence_to_rfs_whence( whence ) );
++
++  // Send the request / get the response
++  if( rfsch_send_request_read_response() == CLIENT_ERR )
++    return -1;
++
++  // Interpret the response
++  if( remotefs_lseek_read_response( rfsc_buffer, &amp;res ) == REMOTEFS_ERR )
++    return -1;
++  return res;
++}
++
++int rfsc_close( int fd )
++{
++  int res;
++
++  // Make the request
++  remotefs_close_write_request( rfsc_buffer, fd );
++
++  // Send the request / get the response
++  if( rfsch_send_request_read_response() == CLIENT_ERR )
++    return -1;
++
++  // Interpret the response
++  if( remotefs_close_read_response( rfsc_buffer, &amp;res ) == REMOTEFS_ERR )
++    return -1;
++  return res;
++}
++
+
+Added: branches/remotefs/src/remotefs/elua_os_io.c
+===================================================================
+--- branches/remotefs/src/remotefs/elua_os_io.c	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/src/remotefs/elua_os_io.c	2010-01-05 01:33:40 UTC (rev 622)
+@@ -0,0 +1,40 @@
++// Remote FS IO adapter for eLua
++
++#include &lt;unistd.h&gt;
++#include &lt;sys/types.h&gt;
++#include &lt;fcntl.h&gt;
++#include &quot;os_io.h&quot;
++#include &quot;remotefs.h&quot;
++
++u32 os_open_sys_flags_to_rfs_flags( int sysflags )
++{
++  int rfsflags = 0;
++
++  // Translate RFS flags to POSIX flags
++  rfsflags = remotefs_replace_flag( sysflags, O_APPEND, RFS_OPEN_FLAG_APPEND );
++  rfsflags |= remotefs_replace_flag( sysflags, O_CREAT, RFS_OPEN_FLAG_CREAT );
++  rfsflags |= remotefs_replace_flag( sysflags, O_EXCL, RFS_OPEN_FLAG_EXCL );
++  rfsflags |= remotefs_replace_flag( sysflags, O_TRUNC, RFS_OPEN_FLAG_TRUNC );
++  rfsflags |= remotefs_replace_flag( sysflags, O_SYNC, RFS_OPEN_FLAG_SYNC );
++  rfsflags |= remotefs_replace_flag( sysflags, O_RDONLY, RFS_OPEN_FLAG_RDONLY );
++  rfsflags |= remotefs_replace_flag( sysflags, O_WRONLY, RFS_OPEN_FLAG_WRONLY );
++  rfsflags |= remotefs_replace_flag( sysflags, O_RDWR, RFS_OPEN_FLAG_RDWR );
++  return rfsflags;
++}
++
++u32 os_lseek_sys_whence_to_rfs_whence( int syswhence )
++{
++  switch( syswhence )
++  {
++    case SEEK_SET:
++      return RFS_LSEEK_SET;
++
++    case SEEK_CUR:
++      return RFS_LSEEK_CUR;
++
++    case SEEK_END:
++      return RFS_LSEEK_END;
++  }
++  return 0;
++}
++
+
+Added: branches/remotefs/src/remotefs/elua_rfs.c
+===================================================================
+--- branches/remotefs/src/remotefs/elua_rfs.c	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/src/remotefs/elua_rfs.c	2010-01-05 01:33:40 UTC (rev 622)
+@@ -0,0 +1,132 @@
++// eLua remote file system support functions
++
++#include &quot;devman.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;type.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;remotefs.h&quot;
++#include &quot;client.h&quot;
++
++#ifdef BUILD_RFS
++
++// Our RFS buffer
++// (computed to be large enough for a WRITE request of RFS_BUFFER_SIZE bytes)
++static u8 rfs_buffer[ RFS_BUFFER_SIZE + RFS_WRITE_REQUEST_EXTRA ];
++
++static int rfs_open_r( struct _reent *r, const char *path, int flags, int mode )
++{
++  return rfsc_open( path, flags, mode );
++}
++
++static int rfs_close_r( struct _reent *r, int fd )
++{
++  return rfsc_close( fd );
++}
++
++static _ssize_t rfs_write_r( struct _reent *r, int fd, const void* ptr, size_t len )
++{ 
++  s32 total = 0, res;
++  u32 towrite;
++  const u8 *p = ( const u8* )ptr;
++
++  // Write in RFS_BUFFER_SIZE increments
++  while( len )
++  {
++    towrite = len &gt; RFS_BUFFER_SIZE ? RFS_BUFFER_SIZE : len;
++    if( ( res = rfsc_write( fd, p, towrite ) ) == -1 )
++      break;
++    if( res &lt; towrite )
++      break;
++    len -= towrite;
++    p += towrite; 
++    total += towrite;
++  }
++  return ( _ssize_t )total;
++}
++
++static _ssize_t rfs_read_r( struct _reent *r, int fd, void* ptr, size_t len )
++{
++  s32 total = 0, res;
++  u32 toread;
++  u8 *p = ( u8* )ptr;
++
++  // Read in RFS_BUFFER_SIZE increments
++  while( len )
++  {
++    toread = len &gt; RFS_BUFFER_SIZE ? RFS_BUFFER_SIZE : len;
++    if( ( res = rfsc_read( fd, p, toread ) ) == -1 )
++      break;
++    if( res &lt; toread )
++      break;
++    len -= toread;
++    p += toread;
++    total += toread;
++  }
++  return ( _ssize_t )total;
++}
++
++// lseek
++static off_t rfs_lseek_r( struct _reent *r, int fd, off_t off, int whence )
++{
++  return ( off_t )rfsc_lseek( fd, ( s32 )off, whence );
++}
++
++// ****************************************************************************
++// Remote FS serial transport functions
++
++static u32 rfs_send( const u8 *p, u32 size )
++{
++  unsigned i;
++
++  for( i = 0; i &lt; size; i ++ )
++    platform_uart_send( RFS_UART_ID, p[ i ] );
++  return size;
++}
++
++static u32 rfs_recv( u8 *p, u32 size, u32 timeout )
++{
++  u32 cnt = 0;
++  int data;
++
++  while( size )
++  {
++    if( ( data = platform_uart_recv( RFS_UART_ID, RFS_TIMER_ID, timeout ) ) == -1 )
++      break;
++    *p ++ = ( u8 )data;
++    cnt ++;
++    size --;
++  }
++  return cnt;
++}
++
++// Our remote file system device descriptor structure
++static const DM_DEVICE rfs_device = 
++{
++  &quot;/rfs&quot;,
++  rfs_open_r,  
++  rfs_close_r, 
++  rfs_write_r,
++  rfs_read_r,
++  rfs_lseek_r,
++  NULL
++};
++
++const DM_DEVICE *remotefs_init()
++{
++#ifdef RFS_UART_SPEED
++  // Initialize RFS UART
++  platform_uart_setup( RFS_UART_ID, RFS_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
++#endif
++  rfsc_setup( rfs_buffer, rfs_send, rfs_recv, RFS_TIMEOUT );
++  return &amp;rfs_device;
++}
++
++#else // #ifdef BUILD_RFS
++
++const DM_DEVICE *remotefs_init()
++{
++  return NULL;
++}
++
++#endif
++
+
+Added: branches/remotefs/src/remotefs/remotefs.c
+===================================================================
+--- branches/remotefs/src/remotefs/remotefs.c	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/src/remotefs/remotefs.c	2010-01-05 01:33:40 UTC (rev 622)
+@@ -0,0 +1,425 @@
++// Remote file system implementation
++
++#include &lt;string.h&gt;
++#include &quot;type.h&quot;
++#include &quot;remotefs.h&quot;
++#include &quot;rtype.h&quot;
++
++static u8 remotefs_err_flag;
++
++// *****************************************************************************
++// Internal functions: data serialization
++
++static u8 *remotefs_write_u8( u8 *p, u8 data )
++{
++  *p ++ = TYPE_INT_8;
++  *p ++ = data;
++  return p;  
++}
++
++static u8* remotefs_write_op_id( u8 *p, u8 data )
++{
++  *p ++ = TYPE_OP_ID;
++  *p ++ = data;
++  return p;    
++}
++
++static u8 *remotefs_write_u16( u8 *p, u16 data )
++{
++  *p ++ = TYPE_INT_16;
++  *p ++ = data &amp; 0xFF;
++  *p ++ = ( data &gt;&gt; 8 ) &amp; 0xFF;
++  return p;    
++}
++
++static u8 *remotefs_write_u32( u8 *p, u32 data )
++{
++  *p ++ = TYPE_INT_32;
++  *p ++ = data &amp; 0xFF;
++  *p ++ = ( data &gt;&gt; 8 ) &amp; 0xFF;
++  *p ++ = ( data &gt;&gt; 16 ) &amp; 0xFF;
++  *p ++ = ( data &gt;&gt; 24 ) &amp; 0xFF;
++  return p;        
++}
++
++static u8 *remotefs_write_ptr( u8 *p, const void* src, u32 srclen )
++{
++  *p ++ = TYPE_PTR;
++  p = remotefs_write_u32( p, srclen );
++  if( src )
++    memcpy( p, src, srclen );
++  return p + srclen;    
++}
++
++// *****************************************************************************
++// Internal functions: data deserialization
++
++static const u8* remotefs_read_expect( const u8 *p, u8 data )
++{
++  if( *p ++ != data )
++    remotefs_err_flag = REMOTEFS_ERR;
++  return p;
++}
++
++static const u8 *remotefs_read_u8( const u8 *p, u8 *pdata )
++{
++  p = remotefs_read_expect( p, TYPE_INT_8 );
++  *pdata = *p ++;
++  return p;  
++}
++
++static const u8 *remotefs_read_op_id( const u8 *p, u8 *pdata )
++{
++  p = remotefs_read_expect( p, TYPE_OP_ID );
++  *pdata = *p ++;
++  return p;  
++}
++
++static const u8* remotefs_expect_op_id( const u8 *p, u8 id )
++{
++  u8 temp;
++  
++  p = remotefs_read_expect( p, TYPE_OP_ID );
++  temp = *p ++;
++  if( temp != id )
++    remotefs_err_flag = REMOTEFS_ERR;
++  return p;
++}
++
++static const u8 *remotefs_read_u16( const u8 *p, u16 *pdata )
++{
++  p = remotefs_read_expect( p, TYPE_INT_16 );
++  *pdata = *p ++;
++  *pdata |= ( *p ++ ) &lt;&lt; 8;  
++  return p;    
++}
++
++static const u8 *remotefs_read_u32( const u8 *p, u32 *pdata )
++{
++  p = remotefs_read_expect( p, TYPE_INT_32 );
++  *pdata = *p ++;                         
++  *pdata |= ( *p ++ ) &lt;&lt; 8;
++  *pdata |= ( *p ++ ) &lt;&lt; 16;
++  *pdata |= ( *p ++ ) &lt;&lt; 24;      
++  return p;        
++}
++
++static const u8 *remotefs_read_ptr( const u8 *p, void* src, u32 *psrclen )
++{                                         
++  p = remotefs_read_expect( p, TYPE_PTR );
++  p = remotefs_read_u32( p, psrclen );
++  if( src )
++    memcpy( src, p, *psrclen );
++  return p + *psrclen;    
++}
++
++// *****************************************************************************
++// Internal functions: packet handling (read and write)
++
++static u8* remotefs_packet_ptr;
++
++static u8* remotefs_start_packet( u8 *p )
++{
++  remotefs_packet_ptr = p;
++  p += RFS_START_OFFSET;
++  *p ++ = TYPE_START;
++  p = remotefs_write_u32( p, PACKET_SIG );
++  return p;
++}
++
++static u8* remotefs_end_packet( u8 *p )
++{
++  u16 len;
++  
++  *p ++ = TYPE_END;
++  p = remotefs_write_u32( p, ~PACKET_SIG );
++  len = p - remotefs_packet_ptr;
++  p = remotefs_packet_ptr;
++  *p ++ = TYPE_PKT_SIZE;
++  remotefs_write_u16( p, len );  
++  return p;  
++}
++
++static const u8* remotefs_match_packet_start( const u8 *p )
++{
++  u32 data;
++  
++  p += RFS_START_OFFSET;
++  p = remotefs_read_expect( p, TYPE_START );
++  p = remotefs_read_u32( p, &amp;data );
++  if( data != PACKET_SIG )
++    remotefs_err_flag = REMOTEFS_ERR;
++  return p;
++}
++
++static const u8* remotefs_match_packet_end( const u8 *p )
++{
++  u32 data;
++  
++  p = remotefs_read_expect( p, TYPE_END );
++  p = remotefs_read_u32( p, &amp;data );
++  if( data != ~PACKET_SIG )
++    remotefs_err_flag = REMOTEFS_ERR;
++  return p;
++}
++
++// *****************************************************************************
++// Function serialization and deserialization
++
++int remotefs_get_request_id( const u8 *p, u8 *pid )
++{ 
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_read_op_id( p, pid );
++  return remotefs_err_flag;
++}
++
++u32 remotefs_replace_flag( u32 val, u32 origflag, u32 newflag )
++{
++  return ( val &amp; origflag ) ? newflag : 0; 
++}
++
++int remotefs_get_packet_size( const u8 *p, u16 *psize )
++{
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_read_expect( p, TYPE_PKT_SIZE );
++  p = remotefs_read_u16( p, psize );
++  return remotefs_err_flag;
++}
++
++// open: int open(const char *pathname,int flags, mode_t mode)
++void remotefs_open_write_response( u8 *p, int result )
++{
++  p = remotefs_start_packet( p );
++  *p ++ = RFS_OP_RES_MOD | RFS_OP_OPEN;
++  p = remotefs_write_u32( p, ( u32 )result );
++  remotefs_end_packet( p );  
++}
++
++int remotefs_open_read_response( const u8 *p, int *presult )
++{
++  u32 res = 0;
++  
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_read_expect( p, RFS_OP_RES_MOD | RFS_OP_OPEN );
++  p = remotefs_read_u32( p, &amp;res );
++  *presult = ( int )res;
++  remotefs_match_packet_end( p );  
++  return remotefs_err_flag;   
++}
++
++void remotefs_open_write_request( u8 *p, const char* pathname, int flags, int mode )
++{
++  p = remotefs_start_packet( p );
++  p = remotefs_write_op_id( p, RFS_OP_OPEN );
++  p = remotefs_write_ptr( p, pathname, strlen( pathname ) + 1 );
++  p = remotefs_write_u32( p, ( u32 )flags );
++  p = remotefs_write_u32( p, ( u32 )mode );
++  remotefs_end_packet( p );  
++}
++
++int remotefs_open_read_request( const u8 *p, const char **ppathname, int *pflags, int *pmode )
++{
++  u32 temp32 = 0;
++  const u8 *tempptr = NULL;
++  
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_expect_op_id( p, RFS_OP_OPEN );
++  tempptr = p;
++  p = remotefs_read_ptr( p, NULL, &amp;temp32 );
++  *ppathname = ( const char * )tempptr + RFS_PTR_HEADER_SIZE;
++  p = remotefs_read_u32( p, &amp;temp32 );
++  *pflags = ( int )temp32;
++  p = remotefs_read_u32( p, &amp;temp32 );
++  *pmode = ( int )temp32;
++  remotefs_match_packet_end( p );  
++  return remotefs_err_flag;         
++}  
++
++// write: ssize_t write(int fd, const void *buf, size_t count); 
++void remotefs_write_write_response( u8 *p, u32 result )
++{
++  p = remotefs_start_packet( p );
++  *p ++ = RFS_OP_RES_MOD | RFS_OP_WRITE;
++  p = remotefs_write_u32( p, result );
++  remotefs_end_packet( p );  
++}
++
++int remotefs_write_read_response( const u8 *p, u32 *presult )
++{
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_read_expect( p, RFS_OP_RES_MOD | RFS_OP_WRITE );
++  p = remotefs_read_u32( p, presult );
++  remotefs_match_packet_end( p );  
++  return remotefs_err_flag;   
++}
++
++void remotefs_write_write_request( u8 *p, int fd, const void *buf, u32 count )
++{
++  p = remotefs_start_packet( p );
++  p = remotefs_write_op_id( p, RFS_OP_WRITE );
++  p = remotefs_write_u32( p, ( u32 )fd );
++  p = remotefs_write_ptr( p, buf, count );
++  remotefs_end_packet( p ); 
++}
++
++int remotefs_write_read_request( const u8 *p, int *pfd, const void **pbuf, u32 *pcount )
++{
++  u32 temp32 = 0;
++  const u8 *tempptr;
++  
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_expect_op_id( p, RFS_OP_WRITE );
++  p = remotefs_read_u32( p, &amp;temp32 );
++  *pfd = ( int )temp32;  
++  tempptr = p;
++  p = remotefs_read_ptr( p, NULL, pcount );
++  *pbuf = tempptr + RFS_PTR_HEADER_SIZE;
++  remotefs_match_packet_end( p );  
++  return remotefs_err_flag;    
++}
++
++// Function: ssize_t read(int fd, void *buf, size_t count)
++// Assumes that the read data is already in the buffer
++void remotefs_read_write_response( u8 *p, u32 readbytes )
++{
++  p = remotefs_start_packet( p );
++  *p ++ = RFS_OP_RES_MOD | RFS_OP_READ;
++  p = remotefs_write_ptr( p, NULL, readbytes );
++  remotefs_end_packet( p );  
++}
++
++int remotefs_read_read_response( const u8 *p, const u8 **ppdata, u32 *preadbytes )
++{
++  const u8 *tempptr;
++    
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_read_expect( p, RFS_OP_RES_MOD | RFS_OP_READ );
++  tempptr = p;
++  p = remotefs_read_ptr( p, NULL, preadbytes );
++  *ppdata = tempptr + RFS_PTR_HEADER_SIZE;
++  remotefs_match_packet_end( p );  
++  return remotefs_err_flag; 
++}
++
++void remotefs_read_write_request( u8 *p, int fd, u32 count )
++{
++  p = remotefs_start_packet( p );
++  p = remotefs_write_op_id( p, RFS_OP_READ );
++  p = remotefs_write_u32( p, ( u32 )fd );
++  p = remotefs_write_u32( p, count );
++  remotefs_end_packet( p ); 
++}
++
++int remotefs_read_read_request( const u8 *p, int *pfd, u32 *pcount )
++{
++  u32 temp32;
++  
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_expect_op_id( p, RFS_OP_READ );
++  p = remotefs_read_u32( p, &amp;temp32 );
++  *pfd = ( int )temp32;
++  p = remotefs_read_u32( p, pcount );
++  remotefs_match_packet_end( p );
++  return remotefs_err_flag;  
++}
++  
++// close: int close( int fd )  
++void remotefs_close_write_response( u8 *p, int result )
++{
++  p = remotefs_start_packet( p );
++  *p ++ = RFS_OP_RES_MOD | RFS_OP_CLOSE;
++  p = remotefs_write_u32( p, ( u32 )result );
++  remotefs_end_packet( p );  
++}
++
++int remotefs_close_read_response( const u8 *p, int *presult )
++{
++  u32 res = 0;
++  
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_read_expect( p, RFS_OP_RES_MOD | RFS_OP_CLOSE );
++  p = remotefs_read_u32( p, &amp;res );
++  *presult = ( int )res;
++  remotefs_match_packet_end( p );  
++  return remotefs_err_flag;   
++}
++
++void remotefs_close_write_request( u8 *p, int fd )
++{
++  p = remotefs_start_packet( p );
++  p = remotefs_write_op_id( p, RFS_OP_CLOSE );
++  p = remotefs_write_u32( p, ( u32 )fd );
++  remotefs_end_packet( p ); 
++}
++
++int remotefs_close_read_request( const u8 *p, int *pfd )
++{
++  u32 temp32;
++  
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_expect_op_id( p, RFS_OP_CLOSE );
++  p = remotefs_read_u32( p, &amp;temp32 );
++  *pfd = ( int )temp32;
++  remotefs_match_packet_end( p );
++  return remotefs_err_flag;  
++}
++
++// lseek: lseek( int fd, off_t offset, int whence )
++void remotefs_lseek_write_response( u8 *p, s32 result )
++{
++  p = remotefs_start_packet( p );
++  *p ++ = RFS_OP_RES_MOD | RFS_OP_LSEEK;
++  p = remotefs_write_u32( p, ( u32 )result );
++  remotefs_end_packet( p );  
++}
++
++int remotefs_lseek_read_response( const u8 *p, s32 *presult )
++{
++  u32 temp;
++
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_read_expect( p, RFS_OP_RES_MOD | RFS_OP_LSEEK );
++  p = remotefs_read_u32( p, &amp;temp );
++  *presult = ( s32 )temp;
++  remotefs_match_packet_end( p );  
++  return remotefs_err_flag;   
++}
++
++void remotefs_lseek_write_request( u8 *p, int fd, s32 offset, int whence )
++{
++  p = remotefs_start_packet( p );
++  p = remotefs_write_op_id( p, RFS_OP_LSEEK );
++  p = remotefs_write_u32( p, ( u32 )fd );
++  p = remotefs_write_u32( p, ( u32 )offset );
++  p = remotefs_write_u8( p, ( u8 )whence );
++  remotefs_end_packet( p ); 
++}
++
++int remotefs_lseek_read_request( const u8 *p, int *pfd, s32 *poffset, int *pwhence )
++{
++  u32 temp32;
++  u8 temp8;
++  
++  remotefs_err_flag = REMOTEFS_OK;
++  p = remotefs_match_packet_start( p );
++  p = remotefs_expect_op_id( p, RFS_OP_LSEEK );
++  p = remotefs_read_u32( p, &amp;temp32 );
++  *pfd = ( int )temp32;
++  p = remotefs_read_u32( p, &amp;temp32 );
++  *poffset = ( s32 )temp32;
++  p = remotefs_read_u8( p, &amp;temp8 );
++  *pwhence = ( int )temp8;
++  remotefs_match_packet_end( p );
++  return remotefs_err_flag;
++}
++
+
+Modified: branches/remotefs/src/romfs.c
+===================================================================
+--- branches/remotefs/src/romfs.c	2009-12-28 02:24:59 UTC (rev 621)
++++ branches/remotefs/src/romfs.c	2010-01-05 01:33:40 UTC (rev 622)
+@@ -124,54 +124,48 @@
+   return actlen;
+ }
+ 
+-// IOCTL: only fseek
+-static int romfs_ioctl_r( struct _reent *r, int fd, unsigned long request, void *ptr )
++// lseek
++static off_t romfs_lseek_r( struct _reent *r, int fd, off_t off, int whence )
+ {
+-  struct fd_seek *pseek = ( struct fd_seek* )ptr;
+   FS* pfs = romfs_fd_table + fd;   
+   u32 newpos = 0;
+   
+-  if( request == FDSEEK )
++  switch( whence )
+   {
+-    switch( pseek-&gt;dir )
+-    {
+-      case SEEK_SET:
+-        newpos = pseek-&gt;off;
+-        break;
+-        
+-      case SEEK_CUR:
+-        newpos = pfs-&gt;offset + pseek-&gt;off;
+-        break;
+-        
+-      case SEEK_END:
+-        newpos = pfs-&gt;size + pseek-&gt;off;
+-        break;
+-        
+-      default:
+-        return -1;
+-    }    
+-    if( newpos &gt; pfs-&gt;size )
++    case SEEK_SET:
++      newpos = off;
++      break;
++      
++    case SEEK_CUR:
++      newpos = pfs-&gt;offset + off;
++      break;
++      
++    case SEEK_END:
++      newpos = pfs-&gt;size + off;
++      break;
++      
++    default:
+       return -1;
+-    pfs-&gt;offset = newpos;      
+-    pseek-&gt;off = newpos;
+-    return 0;
+-  }
+-  else
+-    return -1;  
++  }    
++  if( newpos &gt; pfs-&gt;size )
++    return -1;
++  pfs-&gt;offset = newpos;      
++  return newpos;
+ }
+ 
+-// Our UART device descriptor structure
+-static DM_DEVICE romfs_device = 
++// Our ROMFS device descriptor structure
++static const DM_DEVICE romfs_device = 
+ {
+   &quot;/rom&quot;,
+   romfs_open_r,  
+   romfs_close_r, 
+   romfs_write_r,
+   romfs_read_r,
+-  romfs_ioctl_r
++  romfs_lseek_r,
++  NULL
+ };
+ 
+-DM_DEVICE* romfs_init()
++const DM_DEVICE* romfs_init()
+ {
+   return &amp;romfs_device;
+ }
+@@ -195,7 +189,7 @@
+ 
+ #else // #ifdef BUILD_ROMFS
+ 
+-DM_DEVICE* romfs_init()
++const DM_DEVICE* romfs_init()
+ {
+   return NULL;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000579.html">[Elua-svn] r623 - in trunk: . src/platform src/platform/lpc17xx	src/platform/lpc17xx/drivers src/platform/lpc17xx/drivers/inc	src/platform/lpc17xx/drivers/src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#578">[ date ]</a>
+              <a href="thread.html#578">[ thread ]</a>
+              <a href="subject.html#578">[ subject ]</a>
+              <a href="author.html#578">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

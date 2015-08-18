@@ -1,0 +1,122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r642 - in branches/pre0.7: inc src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r642%20-%20in%20branches/pre0.7%3A%20inc%20src/modules&In-Reply-To=%3C201001132308.o0DN83Do015378%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000597.html">
+   <LINK REL="Next"  HREF="000599.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r642 - in branches/pre0.7: inc src/modules</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r642%20-%20in%20branches/pre0.7%3A%20inc%20src/modules&In-Reply-To=%3C201001132308.o0DN83Do015378%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r642 - in branches/pre0.7: inc src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Jan 14 00:08:03 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000597.html">[Elua-svn] r641 - in branches/pre0.7/doc: . en images
+</A></li>
+        <LI>Next message: <A HREF="000599.html">[Elua-svn] r643 - in branches/pre0.7: . inc inc/serial src	src/serial
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#598">[ date ]</a>
+              <a href="thread.html#598">[ thread ]</a>
+              <a href="subject.html#598">[ subject ]</a>
+              <a href="author.html#598">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-01-14 00:08:03 +0100 (Thu, 14 Jan 2010)
+New Revision: 642
+
+Modified:
+   branches/pre0.7/inc/validate.h
+   branches/pre0.7/src/modules/pio.c
+Log:
+PIO port fix merged from trunk
+
+Modified: branches/pre0.7/inc/validate.h
+===================================================================
+--- branches/pre0.7/inc/validate.h	2010-01-13 23:02:04 UTC (rev 641)
++++ branches/pre0.7/inc/validate.h	2010-01-13 23:08:03 UTC (rev 642)
+@@ -8,6 +8,11 @@
+ 
+ #include &quot;platform_conf.h&quot;
+ 
++// The maximum 32 GPIO ports limitation is given by the port_mask variable in src/modules/pio.c
++#if NUM_PIO &gt; 32
++#error &quot;Can't have more than 32 GPIO ports&quot;
++#endif
++
+ // Can't define more than one console devices
+ #if defined( BUILD_CON_TCP ) &amp;&amp; defined( BUILD_CON_GENERIC )
+ #error &quot;Can't have two console devices (don't enable BUILD_CON_TCP and BUILD_CON_GENERIC in platform_conf.h at the same time)&quot;
+
+Modified: branches/pre0.7/src/modules/pio.c
+===================================================================
+--- branches/pre0.7/src/modules/pio.c	2010-01-13 23:02:04 UTC (rev 641)
++++ branches/pre0.7/src/modules/pio.c	2010-01-13 23:08:03 UTC (rev 642)
+@@ -68,9 +68,8 @@
+ {
+   int total = lua_gettop( L );
+   int i, v, port;
+-  
+-  pioh_clear_masks();
+-  
++  u32 port_mask = 0;
++
+   // Get all masks
+   for( i = stackidx; i &lt;= total; i ++ )
+   {
+@@ -78,13 +77,13 @@
+     port = PLATFORM_IO_GET_PORT( v );
+     if( !PLATFORM_IO_IS_PORT( v ) || !platform_pio_has_port( port ) )
+       return luaL_error( L, &quot;invalid port&quot; );
+-    pio_masks[ port ] = mask;
++    port_mask |= ( 1ULL &lt;&lt; port );
+   }
+   
+   // Ask platform to execute the given operation
+   for( i = 0; i &lt; PLATFORM_IO_PORTS; i ++ )
+-    if( pio_masks[ i ] )
+-      if( !platform_pio_op( i, pio_masks[ i ], op ) )
++    if( port_mask &amp; ( 1ULL &lt;&lt; i ) )
++      if( !platform_pio_op( i, mask, op ) )
+         return luaL_error( L, &quot;invalid PIO operation&quot; );
+   return 0;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000597.html">[Elua-svn] r641 - in branches/pre0.7/doc: . en images
+</A></li>
+	<LI>Next message: <A HREF="000599.html">[Elua-svn] r643 - in branches/pre0.7: . inc inc/serial src	src/serial
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#598">[ date ]</a>
+              <a href="thread.html#598">[ thread ]</a>
+              <a href="subject.html#598">[ subject ]</a>
+              <a href="author.html#598">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

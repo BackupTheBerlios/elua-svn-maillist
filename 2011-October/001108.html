@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [eLua-svn] [elua/elua] 024efa: Fix AVR32 SPI initialization
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20024efa%3A%20Fix%20AVR32%20SPI%20initialization&In-Reply-To=%3C20111022173729.1DF57427DB%40smtp1.rs.github.com%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001107.html">
+   <LINK REL="Next"  HREF="001109.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[eLua-svn] [elua/elua] 024efa: Fix AVR32 SPI initialization</H1>
+    <B>noreply at github.com</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BeLua-svn%5D%20%5Belua/elua%5D%20024efa%3A%20Fix%20AVR32%20SPI%20initialization&In-Reply-To=%3C20111022173729.1DF57427DB%40smtp1.rs.github.com%3E"
+       TITLE="[eLua-svn] [elua/elua] 024efa: Fix AVR32 SPI initialization">noreply at github.com
+       </A><BR>
+    <I>Sat Oct 22 19:37:29 CEST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001107.html">[eLua-svn] [elua/elua] ced776: Revert &quot;Pass the right clock to	spi_initMaster() -...
+</A></li>
+        <LI>Next message: <A HREF="001109.html">[eLua-svn] [elua/elua] c36309: Remove unused variable
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1108">[ date ]</a>
+              <a href="thread.html#1108">[ thread ]</a>
+              <a href="subject.html#1108">[ subject ]</a>
+              <a href="author.html#1108">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>  Branch: refs/heads/master
+  Home:   <A HREF="https://github.com/elua/elua">https://github.com/elua/elua</A>
+
+  Commit: 024efa748554ebfd1f0e49489fb2b97850830067
+      <A HREF="https://github.com/elua/elua/commit/024efa748554ebfd1f0e49489fb2b97850830067">https://github.com/elua/elua/commit/024efa748554ebfd1f0e49489fb2b97850830067</A>
+  Author: Martin Guy &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">martinwguy at gmail.com</A>&gt;
+  Date:   2011-10-22 (Sat, 22 Oct 2011)
+
+  Changed paths:
+    M src/platform/avr32/platform.c
+  M src/platform/avr32/spi.c
+  M src/platform/avr32/spi.h
+
+  Log Message:
+  -----------
+  Fix AVR32 SPI initialization
+
+This fixes the following AVR32 SPI clock setting bugs:
+- it used to set the SPI frequency at a quarter of what you asked for
+  (by calculating it from the wrong clock)
+- it did not report what actual frequency it had set
+- spi.setup() always seemed to succeed even if it failed
+- it used to set the nearest frequency instead of the next lowest available
+  so half the time would drive devices at higher than their maximum speed.
+  This was hidden by it always setting a quarter of what you asked for (!)
+- it would set a junk frequency if you asked for a clock lower than its minimum
+- asking for a baud rate of zero made it divide by zero, which went undetected
+  and set a random baud rate instead of the minimum available
+- Now, if you ask for an invalid number of data bits (&lt; 8 or &gt; 16),
+  spi.setup() returns zero.
+  This is still wrong and undocumented.
+  It should give an error message in platform-independent spi_setup() and stop
+  but unfortunately the current code structure does not allow this, since the
+  possible numbers of data bits is platform-specific.
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001107.html">[eLua-svn] [elua/elua] ced776: Revert &quot;Pass the right clock to	spi_initMaster() -...
+</A></li>
+	<LI>Next message: <A HREF="001109.html">[eLua-svn] [elua/elua] c36309: Remove unused variable
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1108">[ date ]</a>
+              <a href="thread.html#1108">[ thread ]</a>
+              <a href="subject.html#1108">[ subject ]</a>
+              <a href="author.html#1108">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

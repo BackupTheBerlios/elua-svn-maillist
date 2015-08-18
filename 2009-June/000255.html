@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r299 - branches/luarpc/src/lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r299%20-%20branches/luarpc/src/lua&In-Reply-To=%3C200906161620.n5GGK7Yd016451%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000254.html">
+   <LINK REL="Next"  HREF="000256.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r299 - branches/luarpc/src/lua</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r299%20-%20branches/luarpc/src/lua&In-Reply-To=%3C200906161620.n5GGK7Yd016451%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r299 - branches/luarpc/src/lua">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Jun 16 18:20:07 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000254.html">[Elua-svn] r298 - branches/luarpc/src/lua
+</A></li>
+        <LI>Next message: <A HREF="000256.html">[Elua-svn] r300 - in branches/luarpc: . src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#255">[ date ]</a>
+              <a href="thread.html#255">[ thread ]</a>
+              <a href="subject.html#255">[ subject ]</a>
+              <a href="author.html#255">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-16 18:20:04 +0200 (Tue, 16 Jun 2009)
+New Revision: 299
+
+Modified:
+   branches/luarpc/src/lua/ldump.c
+   branches/luarpc/src/lua/lundump.c
+Log:
+Now working conversion between int 32 and float 64 bytecode on 64-bit systems
+(both ways on a float capable system).
+
+Modified: branches/luarpc/src/lua/ldump.c
+===================================================================
+--- branches/luarpc/src/lua/ldump.c	2009-06-16 02:23:31 UTC (rev 298)
++++ branches/luarpc/src/lua/ldump.c	2009-06-16 16:20:04 UTC (rev 299)
+@@ -170,12 +170,12 @@
+ {
+  if (s==NULL || getstr(s)==NULL)
+  {
+-  int32_t size=0;
++  strsize_t size=0;
+   DumpSize(size,D);
+  }
+  else
+  {
+-  int32_t size=s-&gt;tsv.len+1;		/* include trailing '\0' */
++  strsize_t size=s-&gt;tsv.len+1;		/* include trailing '\0' */
+   DumpSize(size,D);
+   DumpBlock(getstr(s),size,D);
+  }
+
+Modified: branches/luarpc/src/lua/lundump.c
+===================================================================
+--- branches/luarpc/src/lua/lundump.c	2009-06-16 02:23:31 UTC (rev 298)
++++ branches/luarpc/src/lua/lundump.c	2009-06-16 16:20:04 UTC (rev 299)
+@@ -26,6 +26,8 @@
+  Mbuffer* b;
+  const char* name;
+  int swap;
++ int numsize;
++ int toflt;
+ } LoadState;
+ 
+ #ifdef LUAC_TRUST_BINARIES
+@@ -112,7 +114,37 @@
+ static lua_Number LoadNumber(LoadState* S)
+ {
+  lua_Number x;
+- LoadVar(S,x);
++ if(S-&gt;toflt)
++ {
++  switch(S-&gt;numsize)
++  {
++   case 1: {
++    int8_t y;
++    LoadVar(S,y);
++    x = (lua_Number)y;
++   } break;
++   case 2: {
++    int16_t y;
++    LoadVar(S,y);
++    x = (lua_Number)y;
++   } break;
++   case 4: {
++    int32_t y;
++    LoadVar(S,y);
++    x = (lua_Number)y;
++   } break;
++   case 8: {
++    int64_t y;
++    LoadVar(S,y);
++    x = (lua_Number)y;
++   } break;
++   default: lua_assert(0);
++  }
++ }
++ else
++ {
++  LoadVar(S,x); /* should probably handle more cases for float here... */
++ }
+  return x;
+ }
+ 
+@@ -227,9 +259,13 @@
+ {
+  char h[LUAC_HEADERSIZE];
+  char s[LUAC_HEADERSIZE];
++ int intck = (((lua_Number)0.5)==0); /* 0=float, 1=int */
+  luaU_header(h);
+  LoadBlock(S,s,LUAC_HEADERSIZE);
+  S-&gt;swap=(s[6]!=h[6]); s[6]=h[6];
++ S-&gt;numsize=h[10]=s[10];
++ S-&gt;toflt=(s[11]&gt;intck);
++ if(S-&gt;toflt) s[11]=h[11];
+  IF (memcmp(h,s,LUAC_HEADERSIZE)!=0, &quot;bad header&quot;);
+ }
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000254.html">[Elua-svn] r298 - branches/luarpc/src/lua
+</A></li>
+	<LI>Next message: <A HREF="000256.html">[Elua-svn] r300 - in branches/luarpc: . src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#255">[ date ]</a>
+              <a href="thread.html#255">[ thread ]</a>
+              <a href="subject.html#255">[ subject ]</a>
+              <a href="author.html#255">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

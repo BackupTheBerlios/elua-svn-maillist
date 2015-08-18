@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r203 - in trunk: inc src
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r203%20-%20in%20trunk%3A%20inc%20src&In-Reply-To=%3C200902170352.n1H3qTPG013430%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000155.html">
+   <LINK REL="Next"  HREF="000157.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r203 - in trunk: inc src</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r203%20-%20in%20trunk%3A%20inc%20src&In-Reply-To=%3C200902170352.n1H3qTPG013430%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r203 - in trunk: inc src">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Feb 17 04:52:29 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000155.html">[Elua-svn] r202 - in branches/eagle_mmc: doc doc/en doc/wb inc	romfs src src/modules src/platform/at91sam7x	src/platform/avr32 src/platform/lm3s
+</A></li>
+        <LI>Next message: <A HREF="000157.html">[Elua-svn] r204 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#156">[ date ]</a>
+              <a href="thread.html#156">[ thread ]</a>
+              <a href="subject.html#156">[ subject ]</a>
+              <a href="author.html#156">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-02-17 04:52:29 +0100 (Tue, 17 Feb 2009)
+New Revision: 203
+
+Modified:
+   trunk/inc/utils.h
+   trunk/src/buf.c
+   trunk/src/elua_adc.c
+Log:
+Switch byte copying in buf.c to a Duff's device.  This seems to work as well
+for me as memcpy did.
+
+Check out inc/utils.h, since this Duff's device is implemented as a macro
+which could be used for unrolling other loops selectively.
+
+Modified: trunk/inc/utils.h
+===================================================================
+--- trunk/inc/utils.h	2009-02-17 01:09:56 UTC (rev 202)
++++ trunk/inc/utils.h	2009-02-17 03:52:29 UTC (rev 203)
+@@ -8,6 +8,28 @@
+ #define UMAX( x, y )      ( ( x ) &gt;= ( y ) ? ( x ) : ( y ) )
+ #define UABS( x )         ( ( x ) &gt;= 0 ? ( x ) : -( x ) )
+ 
++
++// Macro version of Duff's device found in 
++// &quot;A Reusable Duff Device&quot; by Ralf Holly
++// Dr Dobb's Journal, August 1, 2005
++
++#define DUFF_DEVICE_8(count, action)  \
++  do {                                \
++    int _count = ( count );           \
++    int _times = ( _count + 7 ) &gt;&gt; 3; \
++    switch ( _count &amp; 7 ){            \
++        case 0: do { action;          \
++        case 7:      action;          \
++        case 6:      action;          \
++        case 5:      action;          \
++        case 4:      action;          \
++        case 3:      action;          \
++        case 2:      action;          \
++        case 1:      action;          \
++           } while (--_times &gt; 0);    \
++        }                             \
++  } while (0)
++
+ #define STD_CTRLZ_CODE    26    
+ 
+ #endif
+
+Modified: trunk/src/buf.c
+===================================================================
+--- trunk/src/buf.c	2009-02-17 01:09:56 UTC (rev 202)
++++ trunk/src/buf.c	2009-02-17 03:52:29 UTC (rev 203)
+@@ -90,9 +90,11 @@
+ int buf_write( unsigned resid, unsigned resnum, t_buf_data *data )
+ {
+   BUF_GETPTR( resid, resnum );
+-    
+-  memcpy( &amp;pbuf-&gt;buf[ pbuf-&gt;wptr ], data, BUF_REALDSIZE( pbuf ) );
++  const char* s = ( const char* )data;
++  char* d = ( char* )( pbuf-&gt;buf + pbuf-&gt;wptr );
+   
++  DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
++  
+   BUF_MOD_INCR( pbuf, wptr );
+   
+   if( pbuf-&gt;count == BUF_REALSIZE( pbuf ) )
+@@ -143,7 +145,10 @@
+   if( READ16( pbuf-&gt;count ) == 0 )
+     return PLATFORM_UNDERFLOW;
+ 
+-  memcpy( data, &amp;pbuf-&gt;buf[ pbuf-&gt;rptr ], BUF_REALDSIZE( pbuf ) );
++  const char* s = ( const char* )( pbuf-&gt;buf + pbuf-&gt;rptr );
++  char* d = ( char* )data;
++  
++  DUFF_DEVICE_8( BUF_REALDSIZE( pbuf ),  *d++ = *s++ );
+ 
+   platform_cpu_disable_interrupts();
+   pbuf-&gt;count --;
+
+Modified: trunk/src/elua_adc.c
+===================================================================
+--- trunk/src/elua_adc.c	2009-02-17 01:09:56 UTC (rev 202)
++++ trunk/src/elua_adc.c	2009-02-17 03:52:29 UTC (rev 203)
+@@ -115,8 +115,7 @@
+       return sample;
+     }
+   }
+-  else
+-    return 0;
++  return 0;
+ }
+ 
+ void adc_flush_smoothing( unsigned id )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000155.html">[Elua-svn] r202 - in branches/eagle_mmc: doc doc/en doc/wb inc	romfs src src/modules src/platform/at91sam7x	src/platform/avr32 src/platform/lm3s
+</A></li>
+	<LI>Next message: <A HREF="000157.html">[Elua-svn] r204 - trunk/doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#156">[ date ]</a>
+              <a href="thread.html#156">[ thread ]</a>
+              <a href="subject.html#156">[ subject ]</a>
+              <a href="author.html#156">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

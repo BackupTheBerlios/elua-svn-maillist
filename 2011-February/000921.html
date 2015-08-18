@@ -1,0 +1,271 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r968 - in trunk: . src/platform/avr32 src/platform/stm32	utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r968%20-%20in%20trunk%3A%20.%20src/platform/avr32%20src/platform/stm32%0A%09utils&In-Reply-To=%3C20110221160855.9352C481264%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000920.html">
+   <LINK REL="Next"  HREF="000922.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r968 - in trunk: . src/platform/avr32 src/platform/stm32	utils</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r968%20-%20in%20trunk%3A%20.%20src/platform/avr32%20src/platform/stm32%0A%09utils&In-Reply-To=%3C20110221160855.9352C481264%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r968 - in trunk: . src/platform/avr32 src/platform/stm32	utils">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Feb 21 17:08:55 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000920.html">[Elua-svn] r967 - in trunk: . src/platform/avr32 utils
+</A></li>
+        <LI>Next message: <A HREF="000922.html">[Elua-svn] r969 - in trunk: . src/platform/at91sam7x	src/platform/i386 src/platform/lm3s src/platform/lpc17xx	src/platform/sim utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#921">[ date ]</a>
+              <a href="thread.html#921">[ thread ]</a>
+              <a href="subject.html#921">[ subject ]</a>
+              <a href="author.html#921">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-21 17:08:55 +0100 (Mon, 21 Feb 2011)
+New Revision: 968
+
+Modified:
+   trunk/build_elua.lua
+   trunk/src/platform/avr32/conf.lua
+   trunk/src/platform/stm32/conf.lua
+   trunk/utils/build.lua
+Log:
+More refinements to the new build system (yes, a lot of those, I know :) ) It is now possible to send arguments to targets if they are Lua functions. For example:
+
+$ lua build_elua.lua board=et-stm32 burn /dev/ttyUSB0
+
+will invoke stm32ld (the default for stm32's platform 'burn' target) on port /dev/ttyUSB0.
+I really have to document all this stuff somewhere. Don't panic though, for now you can use the old build system exactly like you used it before :)
+
+
+
+Modified: trunk/build_elua.lua
+===================================================================
+--- trunk/build_elua.lua	2011-02-21 13:22:47 UTC (rev 967)
++++ trunk/build_elua.lua	2011-02-21 16:08:55 UTC (rev 968)
+@@ -526,6 +526,7 @@
+ -- Create 'prog' target
+ progtarget = builder:target( &quot;#phony:prog&quot;, { exetarget }, tools[ platform ].progfunc )
+ builder:add_target( progtarget, &quot;build eLua firmware image&quot;, { &quot;prog&quot; } )
++progtarget:set_explicit_deps( tools[ platform ].prog_flist )
+ 
+ -- If the backend needs to do more processing before the build starts, do it now
+ if tools[ platform ].pre_build then
+
+Modified: trunk/src/platform/avr32/conf.lua
+===================================================================
+--- trunk/src/platform/avr32/conf.lua	2011-02-21 13:22:47 UTC (rev 967)
++++ trunk/src/platform/avr32/conf.lua	2011-02-21 16:08:55 UTC (rev 968)
+@@ -41,9 +41,6 @@
+   print &quot;Generating binary image...&quot;
+   os.execute( sf( &quot;%s -O ihex %s %s.hex&quot;, toolset.bin, outname, output ) )
+   return 0
+-
+-  -- print &quot;Programming...&quot;
+-  -- os.system( &quot;batchisp -hardware usb -device %s -operation erase f memory flash blankcheck loadbuffer %s program verify start reset 0&quot; % ( comp[ 'cpu' ].lower(), output + &quot;.hex&quot; ) )
+ end
+ 
+ -- Image burn function (DFU)
+@@ -54,20 +51,17 @@
+   local res
+   if utils.is_windows() then -- use batchisp in Windows
+     res = os.execute( sf( &quot;batchisp -hardware usb -device %s -operation erase f memory flash blankcheck loadbuffer %s program verify start reset 0&quot;, comp.cpu:lower(), fname ) )
+-  else -- use &quot;dfu-programmer&quot; in Windows
++  else -- use &quot;dfu-programmer&quot; if not running in Windows
+     res = utils.check_command( &quot;dfu-programmer at32uc3a0512 version&quot; )
+     if res ~= 0 then
+       print &quot;Cannot find 'dfu-programmer', install it first&quot;
+       return -1
+     end
+     local basecmd = &quot;dfu-programmer &quot; .. comp.cpu:lower()
+-    print( basecmd .. &quot; erase&quot; )
+     res = os.execute( basecmd .. &quot; erase&quot; )
+     if res == 0 then
+-      print( basecmd .. &quot; flash &quot; .. fname )
+       res = os.execute( basecmd .. &quot; flash &quot; .. fname )
+       if res == 0 then
+-        print( basecmd .. &quot; start&quot; )
+         os.execute( basecmd .. &quot; start&quot; )
+       end
+     end
+@@ -82,6 +76,9 @@
+   builder:add_target( burntarget, &quot;burn image to AVR32 board using the DFU bootloader&quot;, { &quot;burn&quot; } )
+ end
+ 
++-- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
++tools.avr32.prog_flist = { output .. &quot;.hex&quot; }
++
+ -- We use 'gcc' as the assembler
+ toolset.asm = toolset.compile
+ 
+
+Modified: trunk/src/platform/stm32/conf.lua
+===================================================================
+--- trunk/src/platform/stm32/conf.lua	2011-02-21 13:22:47 UTC (rev 967)
++++ trunk/src/platform/stm32/conf.lua	2011-02-21 16:08:55 UTC (rev 968)
+@@ -41,6 +41,30 @@
+   return 0
+ end
+ 
++-- Image burn function (stm32ld)
++-- args[1]: COM port name
++local function burnfunc( target, deps, args )
++  if type( args ) ~= &quot;table&quot; or #args == 0 then
++    print &quot;Error: stm32ld needs the port name, specify it as a target argument&quot;
++    return -1
++  end
++  print &quot;Burning image to target ...&quot;
++  local cmd = sf( 'stm32ld %s 115200 %s', args[ 1 ], output .. &quot;.bin&quot; )
++  local res = os.execute( cmd )
++  return res == 0 and 0 or -1
++end
++
++-- Add a 'burn' target before the build starts
++tools.stm32.pre_build = function()
++  local burntarget = builder:target( &quot;#phony:burn&quot;, { progtarget }, burnfunc )
++  burntarget:force_rebuild( true )
++  burntarget:set_target_args( builder:get_target_args() )
++  builder:add_target( burntarget, &quot;burn image to board using stm32ld (use COM port name as argument)&quot;, { &quot;burn&quot; } )
++end
++
++-- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
++tools.stm32.prog_flist = { output .. &quot;.bin&quot;, output .. &quot;.hex&quot; }
++
+ -- We use 'gcc' as the assembler
+ toolset.asm = toolset.compile
+ 
+
+Modified: trunk/utils/build.lua
+===================================================================
+--- trunk/utils/build.lua	2011-02-21 13:22:47 UTC (rev 967)
++++ trunk/utils/build.lua	2011-02-21 16:08:55 UTC (rev 968)
+@@ -239,6 +239,11 @@
+   self._force_rebuild = flag
+ end
+ 
++-- Set additional arguments to send to the builder function if it is a callable
++_target.set_target_args = function( self, args )
++  self._target_args = args
++end
++
+ -- Function to execute in clean mode
+ _target._cleaner = function( target, deps )
+   if is_phony( target ) then return 0 end
+@@ -254,6 +259,12 @@
+ -- Build the given target
+ _target.build = function( self )
+   local docmd = self:target_name() and lfs.attributes( self:target_name(), &quot;mode&quot; ) ~= &quot;file&quot;
++  -- Check explicit dependencies
++  if type( self._explicit_deps ) == &quot;table&quot; then
++    for _, v in pairs( self._explicit_deps ) do
++      if not utils.is_file( v ) then docmd = true end
++    end
++  end
+   local depends, dep = '', self.dep
+   -- Iterate through all dependencies, execute each one in turn
+   for i = 1, #dep do
+@@ -274,7 +285,7 @@
+       print( cmd )
+       code = os.execute( cmd )   
+     else
+-      code = cmd( self.target, self.dep )
++      code = cmd( self.target, self.dep, self._target_args )
+       if code == 1 then -- this means 'mark target as 'not executed'
+         keep_flag = false
+         code = 0
+@@ -288,10 +299,17 @@
+   return docmd and keep_flag
+ end
+ 
++-- Return the actual target name (taking into account phony targets)
+ _target.target_name = function( self )
+   return get_target_name( self.target )
+ end
+ 
++-- Set 'explicit dependencies' for this target
++-- The target will rebuild itself if these don't exist
++_target.set_explicit_deps = function( self, deps )
++  self._explicit_deps = deps
++end
++
+ -------------------------------------------------------------------------------
+ -- Builder public interface
+ 
+@@ -312,6 +330,7 @@
+   self.args = {}
+   self.build_mode = self.KEEP_DIR
+   self.targets = {}
++  self.targetargs = {}
+   return self
+ end
+ 
+@@ -468,12 +487,12 @@
+         os.exit( 1 )
+       end
+       self.args[ k:upper() ] = optv
+-    else                                        -- this must be the target name
+-      if self.targetname ~= nil then            
+-        print( sf( &quot;Invalid option '%s'&quot;, a ) )
+-        os.exit( 1 )
++    else                                        -- this must be the target name / target arguments
++      if self.targetname == nil then            
++        self.targetname = a
++      else
++        table.insert( self.targetargs, a )
+       end
+-      self.targetname = a
+     end
+   end
+   -- Read back the default options
+@@ -550,6 +569,11 @@
+   self:_create_outdir()
+ end
+ 
++-- Return the target arguments
++builder.get_target_args = function( self )
++  return self.targetargs
++end
++
+ ---------------------------------------
+ -- Command line builders
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000920.html">[Elua-svn] r967 - in trunk: . src/platform/avr32 utils
+</A></li>
+	<LI>Next message: <A HREF="000922.html">[Elua-svn] r969 - in trunk: . src/platform/at91sam7x	src/platform/i386 src/platform/lm3s src/platform/lpc17xx	src/platform/sim utils
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#921">[ date ]</a>
+              <a href="thread.html#921">[ thread ]</a>
+              <a href="subject.html#921">[ subject ]</a>
+              <a href="author.html#921">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

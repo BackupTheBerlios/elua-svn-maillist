@@ -1,0 +1,311 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r562 - trunk/src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r562%20-%20trunk/src/platform/stm32&In-Reply-To=%3C200912010008.nB108xhO010404%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000519.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r562 - trunk/src/platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r562%20-%20trunk/src/platform/stm32&In-Reply-To=%3C200912010008.nB108xhO010404%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r562 - trunk/src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Dec  1 01:08:59 CET 2009</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000519.html">[Elua-svn] r563 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#518">[ date ]</a>
+              <a href="thread.html#518">[ thread ]</a>
+              <a href="subject.html#518">[ subject ]</a>
+              <a href="author.html#518">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-01 01:08:53 +0100 (Tue, 01 Dec 2009)
+New Revision: 562
+
+Removed:
+   trunk/src/platform/stm32/systick.c
+   trunk/src/platform/stm32/systick.h
+Modified:
+   trunk/src/platform/stm32/conf.py
+   trunk/src/platform/stm32/platform.c
+   trunk/src/platform/stm32/platform_conf.h
+   trunk/src/platform/stm32/stm32f10x_it.c
+Log:
+Fixes for STM32 from mmc branch.
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2009-11-30 02:52:29 UTC (rev 561)
++++ trunk/src/platform/stm32/conf.py	2009-12-01 00:08:53 UTC (rev 562)
+@@ -8,7 +8,7 @@
+ fwlib_files = &quot; &quot;.join(glob.glob(&quot;src/platform/%s/FWLib/library/src/*.c&quot; % platform))
+ #print &quot;FWLib: %s &quot; % fwlib_files 
+ 
+-specific_files = &quot;core_cm3.c systick.c system_stm32f10x.c startup_stm32f10x_hd.s platform.c stm32f10x_it.c lcd.c lua_lcd.c&quot;
++specific_files = &quot;core_cm3.c system_stm32f10x.c startup_stm32f10x_hd.s platform.c stm32f10x_it.c lcd.c lua_lcd.c&quot;
+ 
+ ldscript = &quot;stm32.ld&quot;
+   
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2009-11-30 02:52:29 UTC (rev 561)
++++ trunk/src/platform/stm32/platform.c	2009-12-01 00:08:53 UTC (rev 562)
+@@ -27,6 +27,12 @@
+ #define PCLK1_DIV   2
+ #define PCLK2_DIV   1
+ 
++// SysTick Config Data
++// NOTE: when using virtual timers, SYSTICKHZ and VTMR_FREQ_HZ should have the
++// same value, as they're served by the same timer (the systick)
++// Max SysTick preload value is 16777215, for STM32F103RET6 @ 72 MHz, lowest acceptable rate would be about 5 Hz
++#define SYSTICKHZ               10  
++#define SYSTICKMS               (1000 / SYSTICKHZ)
+ // ****************************************************************************
+ // Platform initialization
+ 
+@@ -50,9 +56,6 @@
+   // Setup IRQ's
+   NVIC_Configuration();
+ 
+-  // Enable SysTick timer.
+-  SysTick_Config(720000);
+-
+   // Setup PIO
+   pios_init();
+ 
+@@ -73,7 +76,14 @@
+   
+   // Setup CANs
+   cans_init();
+-
++  
++  // Enable SysTick
++  if ( SysTick_Config( HCLK / SYSTICKHZ ) )
++  { 
++    /* Capture error */ 
++    while (1);
++  }
++  
+   cmn_platform_init();
+ 
+   // All done
+@@ -486,7 +496,7 @@
+   SPI_InitStructure.SPI_Mode = mode ? SPI_Mode_Master : SPI_Mode_Slave;
+   SPI_InitStructure.SPI_DataSize = ( databits == 16 ) ? SPI_DataSize_16b : SPI_DataSize_8b; // not ideal, but defaults to sane 8-bits
+   SPI_InitStructure.SPI_CPOL = cpol ? SPI_CPOL_High : SPI_CPOL_Low;
+-  SPI_InitStructure.SPI_CPHA = cpha ? SPI_CPHA_1Edge : SPI_CPHA_2Edge;
++  SPI_InitStructure.SPI_CPHA = cpha ? SPI_CPHA_2Edge : SPI_CPHA_1Edge;
+   SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
+   SPI_InitStructure.SPI_BaudRatePrescaler = spi_prescaler[ prescaler_idx ];
+   SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+@@ -500,6 +510,9 @@
+ spi_data_type platform_spi_send_recv( unsigned id, spi_data_type data )
+ {
+   SPI_I2S_SendData( spi[ id ], data );
++  
++  while ( SPI_I2S_GetFlagStatus( spi[ id ], SPI_I2S_FLAG_RXNE ) == RESET );
++  
+   return SPI_I2S_ReceiveData( spi[ id ] );
+ }
+ 
+@@ -679,9 +692,17 @@
+ #define TIM_GET_BASE_CLK( id ) ( ( id ) == 0 || ( id ) == 5 ? ( HCLK / PCLK2_DIV ) : ( HCLK / PCLK1_DIV ) )
+ #define TIM_STARTUP_CLOCK       50000
+ 
++static u32 timer_set_clock( unsigned id, u32 clock );
++
++void SysTick_Handler( void )
++{
++  // Handle virtual timers
++  cmn_virtual_timer_cb();
++}
++
++
+ static void timers_init()
+ {
+-  TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+   unsigned i;
+ 
+   // Enable clocks.
+@@ -695,12 +716,7 @@
+   // Configure timers
+   for( i = 0; i &lt; NUM_TIMER; i ++ )
+   {
+-    TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
+-    TIM_TimeBaseStructure.TIM_Prescaler = TIM_GET_BASE_CLK( i ) / TIM_STARTUP_CLOCK;
+-    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+-    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+-    TIM_TimeBaseStructure.TIM_RepetitionCounter = 0x0000;
+-    TIM_TimeBaseInit( timer[ i ], &amp;TIM_TimeBaseStructure );
++    timer_set_clock( i, TIM_STARTUP_CLOCK );
+   }
+ }
+ 
+@@ -715,17 +731,16 @@
+ {
+   TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+   TIM_TypeDef *ptimer = timer[ id ];
+-  u16 pre;
++  u16 pre = TIM_GET_BASE_CLK( id ) / clock;
+   
+   TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
+-  TIM_TimeBaseStructure.TIM_Prescaler = TIM_GET_BASE_CLK( id ) / TIM_STARTUP_CLOCK;
++  TIM_TimeBaseStructure.TIM_Prescaler = pre;
+   TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+   TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+   TIM_TimeBaseStructure.TIM_RepetitionCounter = 0x0000;
+   TIM_TimeBaseInit( timer[ id ], &amp;TIM_TimeBaseStructure );
+   TIM_Cmd( ptimer, ENABLE );
+   
+-  pre = TIM_GET_BASE_CLK( id ) / clock;
+   TIM_PrescalerConfig( ptimer, pre, TIM_PSCReloadMode_Immediate );
+   return TIM_GET_BASE_CLK( id ) / pre;
+ }
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2009-11-30 02:52:29 UTC (rev 561)
++++ trunk/src/platform/stm32/platform_conf.h	2009-12-01 00:08:53 UTC (rev 562)
+@@ -88,8 +88,8 @@
+ // Configuration data
+ 
+ // Virtual timers (0 if not used)
+-#define VTMR_NUM_TIMERS       0
+-#define VTMR_FREQ_HZ          4
++#define VTMR_NUM_TIMERS       4
++#define VTMR_FREQ_HZ          10
+ 
+ // Number of resources (0 if not available/not implemented)
+ #define NUM_PIO               7
+
+Modified: trunk/src/platform/stm32/stm32f10x_it.c
+===================================================================
+--- trunk/src/platform/stm32/stm32f10x_it.c	2009-11-30 02:52:29 UTC (rev 561)
++++ trunk/src/platform/stm32/stm32f10x_it.c	2009-12-01 00:08:53 UTC (rev 562)
+@@ -22,7 +22,6 @@
+ 
+ /* Includes ------------------------------------------------------------------*/
+ #include &quot;stm32f10x_it.h&quot;
+-#include &quot;systick.h&quot;
+ #include &lt;stdio.h&gt;
+ #include &quot;platform.h&quot;
+ /** @addtogroup Template_Project
+@@ -188,16 +187,6 @@
+ {
+ }
+ 
+-/**
+-  * @brief  This function handles SysTick Handler.
+-  * @param  None
+-  * @retval None
+-  */
+-void SysTick_Handler(void)
+-{
+-	/* Decrement the TimingDelay variable */
+-	Decrement_TimingDelay();
+-}
+ 
+ /******************************************************************************/
+ /*                 STM32F10x Peripherals Interrupt Handlers                   */
+@@ -206,19 +195,7 @@
+ /*  file (startup_stm32f10x_xx.s).                                            */
+ /******************************************************************************/
+ 
+-/**
+-  * @brief  This function handles PPP interrupt request.
+-  * @param  None
+-  * @retval None
+-  */
+-/*void PPP_IRQHandler(void)
+-{
+-}*/
+-
+-/**
+-  * @}
+-  */ 
+ extern void DMA1_Channel1_IRQHandler(void);
+ extern void USART1_IRQHandler(void);
+-
++extern void SysTick_Handler(void);
+ /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/
+
+Deleted: trunk/src/platform/stm32/systick.c
+===================================================================
+--- trunk/src/platform/stm32/systick.c	2009-11-30 02:52:29 UTC (rev 561)
++++ trunk/src/platform/stm32/systick.c	2009-12-01 00:08:53 UTC (rev 562)
+@@ -1,20 +0,0 @@
+-#include &lt;stdio.h&gt;
+-
+-#include &quot;stm32f10x.h&quot;
+-
+-static vu32 TimingDelay = 0;
+-
+-/*******************************************************************************
+-* Function Name  : Decrement_TimingDelay
+-* Description    : Decrements the TimingDelay variable.
+-* Input          : None
+-* Output         : TimingDelay
+-* Return         : None
+-*******************************************************************************/
+-void Decrement_TimingDelay(void)
+-{
+-  if (TimingDelay != 0x00)
+-  {
+-    TimingDelay--;
+-  }
+-}
+
+Deleted: trunk/src/platform/stm32/systick.h
+===================================================================
+--- trunk/src/platform/stm32/systick.h	2009-11-30 02:52:29 UTC (rev 561)
++++ trunk/src/platform/stm32/systick.h	2009-12-01 00:08:53 UTC (rev 562)
+@@ -1,7 +0,0 @@
+-#ifndef __SYSTICK_H__
+-#define __SYSTICK_H__
+-
+-/* void Delay(u32 nCount);*/
+-void Decrement_TimingDelay(void);
+-
+-#endif
+\ No newline at end of file
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000519.html">[Elua-svn] r563 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#518">[ date ]</a>
+              <a href="thread.html#518">[ thread ]</a>
+              <a href="subject.html#518">[ subject ]</a>
+              <a href="author.html#518">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

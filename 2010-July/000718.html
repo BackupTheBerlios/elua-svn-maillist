@@ -1,0 +1,303 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r765 - in trunk: doc doc/eluadoc src/modules
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-July/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r765%20-%20in%20trunk%3A%20doc%20doc/eluadoc%20src/modules&In-Reply-To=%3C20100721215955.6DEF6480B05%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000717.html">
+   <LINK REL="Next"  HREF="000719.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r765 - in trunk: doc doc/eluadoc src/modules</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r765%20-%20in%20trunk%3A%20doc%20doc/eluadoc%20src/modules&In-Reply-To=%3C20100721215955.6DEF6480B05%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r765 - in trunk: doc doc/eluadoc src/modules">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Jul 21 23:59:55 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000717.html">[Elua-svn] r764 - in trunk: . inc src src/modules	src/platform/stm32 src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000719.html">[Elua-svn] r766 - trunk/src/platform/avr32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#718">[ date ]</a>
+              <a href="thread.html#718">[ thread ]</a>
+              <a href="subject.html#718">[ subject ]</a>
+              <a href="author.html#718">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-07-21 23:59:55 +0200 (Wed, 21 Jul 2010)
+New Revision: 765
+
+Added:
+   trunk/doc/eluadoc/refman_gen_i2c.lua
+Modified:
+   trunk/doc/eluadoc.lua
+   trunk/doc/eluadoc/refman_gen_spi.lua
+   trunk/src/modules/i2c.c
+Log:
+added documentation for the new i2c module
+
+Added: trunk/doc/eluadoc/refman_gen_i2c.lua
+===================================================================
+--- trunk/doc/eluadoc/refman_gen_i2c.lua	                        (rev 0)
++++ trunk/doc/eluadoc/refman_gen_i2c.lua	2010-07-21 21:59:55 UTC (rev 765)
+@@ -0,0 +1,76 @@
++-- eLua reference manual - I2C module
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - I2C module&quot;,
++
++  -- Menu name
++  menu_name = &quot;i2c&quot;,
++
++  -- Overview
++  overview = [[This module contains functions for accessing the I2C interfaces of the eLua CPU.&lt;/p&gt;
++  &lt;p&gt;&lt;span class=&quot;warning&quot;&gt;IMPORTANT&lt;/span&gt;: right now, only master I2C mode is implemented in eLua.]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;speed = #i2c.setup#( id, speed )&quot;,
++      desc = &quot;Setup the I2C interface.&quot;,
++      args = 
++      {
++        &quot;$id$ - the ID of the I2C interface.&quot;,
++        &quot;$speed$ - the speed of the I2C interface. It can be either $i2c.FAST$ (400KHz) or $i2c.SLOW$ (100KHz).&quot;,
++      },
++      ret = &quot;the actual speed of the I2C interface.&quot;
++    },
++
++    { sig = &quot;#i2c.start#( id )&quot;,
++      desc = &quot;Send a START on the specified I2C interface.&quot;,
++      args = &quot;$id$ - the ID of the I2C interface.&quot;,
++    },
++
++    { sig = &quot;#i2c.stop#( id )&quot;,
++      desc = &quot;Send a STOP on the specified I2C interface.&quot;,
++      args = &quot;$id$ - the ID of the I2C interface.&quot;,
++    },
++
++    { sig = &quot;acked = #i2c.address#( id, address, direction )&quot;,
++      desc = &quot;Send an address on the I2C interface.&quot;,
++      args = 
++      {
++        &quot;$id$ - the ID of the I2C interface.&quot;,
++        &quot;$address$ - the address.&quot;,
++        &quot;$direction$ - $i2c.TRANSMITTER$ if the master wants to send data, or $i2c.RECEIVER$ if the master wants to receive data.&quot;
++      },
++      ret = &quot;$true$ if the address was acknowledged by an I2C slave, $false$ otherwise.&quot; 
++    },
++
++    { sig = &quot;wrote = #i2c.write#( id, data1, [data2], ..., [datan] )&quot;,
++      desc = &quot;Writes data to a slave that already acknowledged an @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">i2c.address at i2c.address</A>@ call.&quot;,
++      args = 
++      {
++        &quot;$id$ - the ID of the I2C interface.&quot;,
++        &quot;$data1$ - the data to send. It can be either a number between 0 and 255, a string or a table (array).&quot;,
++        &quot;$data2 (optional)$ - the second data to send.&quot;,
++        &quot;$datan (optional)$ - the %n%-th data to send.&quot;
++      },
++      ret = &quot;the number of bytes actually wrote.&quot;
++    },
++
++    { sig = &quot;data = #i2c.read#( id, numbytes )&quot;,
++      desc = &quot;Reads a number of bytes from a slave that already acknowledged an @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">i2c.address at i2c.address</A>@ call. It acknowledges all the bytes received, except for the last one.&quot;, 
++      args =
++      {
++        &quot;$id$ - the ID os the SPI interface.&quot;,
++        &quot;$numbytes$ - the number of bytes to read.&quot;
++      },
++      ret = &quot;a string with all the data read from the I2C interface.&quot;
++    }
++   
++  },
++
++}
++
++data_pt = data_en
+
+Modified: trunk/doc/eluadoc/refman_gen_spi.lua
+===================================================================
+--- trunk/doc/eluadoc/refman_gen_spi.lua	2010-07-21 20:21:55 UTC (rev 764)
++++ trunk/doc/eluadoc/refman_gen_spi.lua	2010-07-21 21:59:55 UTC (rev 765)
+@@ -44,7 +44,7 @@
+       desc = &quot;Write one or more strings/numbers to the SPI interface.&quot;,
+       args = 
+       {
+-        &quot;$id$ - the ID os the SPI interface.&quot;,
++        &quot;$id$ - the ID of the SPI interface.&quot;,
+         &quot;$data1$ - the first string/number to send.&quot;,
+         &quot;$data2 (optional)$ - the second string/number to send.&quot;,
+         &quot;$datan (optional)$ - the %n%-th string/number to send.&quot;
+@@ -55,7 +55,7 @@
+       desc = &quot;Write one or more strings/numbers to the SPI interface and return the data read from the same interface.&quot;,
+       args =
+       {
+-        &quot;$id$ - the ID os the SPI interface.&quot;,
++        &quot;$id$ - the ID of the SPI interface.&quot;,
+         &quot;$data1$ - the first string/number to send.&quot;,
+         &quot;$data2 (optional)$ - the second string/number to send.&quot;,
+         &quot;$datan (optional)$ - the %n%-th string/number to send.&quot;
+
+Modified: trunk/doc/eluadoc.lua
+===================================================================
+--- trunk/doc/eluadoc.lua	2010-07-21 20:21:55 UTC (rev 764)
++++ trunk/doc/eluadoc.lua	2010-07-21 21:59:55 UTC (rev 765)
+@@ -15,7 +15,7 @@
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot;, &quot;adc&quot; },
+-  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot;, &quot;can&quot;, &quot;rpc&quot;, &quot;elua&quot; },
++  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot;, &quot;adc&quot;, &quot;term&quot;, &quot;pio&quot;, &quot;uart&quot;, &quot;spi&quot;, &quot;tmr&quot;, &quot;pwm&quot;, &quot;net&quot;, &quot;can&quot;, &quot;rpc&quot;, &quot;elua&quot;, &quot;i2c&quot; },
+   refman_ps_lm3s = { &quot;disp&quot; },
+   refman_ps_str9 = { &quot;pio&quot; }
+ }
+
+Modified: trunk/src/modules/i2c.c
+===================================================================
+--- trunk/src/modules/i2c.c	2010-07-21 20:21:55 UTC (rev 764)
++++ trunk/src/modules/i2c.c	2010-07-21 21:59:55 UTC (rev 765)
+@@ -52,45 +52,58 @@
+   return 1;
+ }
+ 
+-// Lua: wrote = i2c.write( id, string | table | 8-bit number )
++// Lua: wrote = i2c.write( id, data1, [data2], ..., [datan] )
++// data can be either a string, a table or an 8-bit number
+ static int i2c_write( lua_State *L )
+ {
+   unsigned id = luaL_checkinteger( L, 1 );
+   const char *pdata;
+   size_t datalen, i;
+   int numdata;
+-  u32 wrote;
++  u32 wrote = 0;
++  unsigned argn;
+ 
+   MOD_CHECK_ID( i2c, id );
+-  if( lua_isnumber( L, 2 ) )
++  if( lua_gettop( L ) &lt; 2 )
++    return luaL_error( L, &quot;invalid number of arguments&quot; );
++  for( argn = 2; argn &lt;= lua_gettop( L ); argn ++ )
+   {
+-    numdata = ( int )luaL_checkinteger( L, 2 );
+-    if( numdata &lt; 0 || numdata &gt; 255 )
+-      return luaL_error( L, &quot;numeric data can be between 0 and 255&quot; );
+-    wrote = platform_i2c_send_byte( id, numdata );
+-  }
+-  else if( lua_istable( L, 2 ) )
+-  {
+-    datalen = lua_objlen( L, 2 );
+-    for( i = 0; i &lt; datalen; i ++ )
++    if( lua_isnumber( L, argn ) )
+     {
+-      lua_rawgeti( L, 2, i + 1 );
+-      numdata = luaL_checkinteger( L, -1 );
+-      lua_pop( L, 1 );
++      numdata = ( int )luaL_checkinteger( L, argn );
+       if( numdata &lt; 0 || numdata &gt; 255 )
+         return luaL_error( L, &quot;numeric data can be between 0 and 255&quot; );
+-      if( platform_i2c_send_byte( id, numdata ) == 0 )
++      if( platform_i2c_send_byte( id, numdata ) != 1 )
+         break;
++      wrote ++;
+     }
+-    wrote = i;
+-  }
+-  else
+-  {
+-    pdata = luaL_checklstring( L, 2, &amp;datalen );
+-    for( i = 0; i &lt; datalen; i ++ )
+-      if( platform_i2c_send_byte( id, pdata[ i ] ) == 0 )
++    else if( lua_istable( L, argn ) )
++    {
++      datalen = lua_objlen( L, argn );
++      for( i = 0; i &lt; datalen; i ++ )
++      {
++        lua_rawgeti( L, argn, i + 1 );
++        numdata = luaL_checkinteger( L, -1 );
++        lua_pop( L, 1 );
++        if( numdata &lt; 0 || numdata &gt; 255 )
++          return luaL_error( L, &quot;numeric data can be between 0 and 255&quot; );
++        if( platform_i2c_send_byte( id, numdata ) == 0 )
++          break;
++      }
++      wrote += i;
++      if( i &lt; datalen )
+         break;
+-    wrote = i;
++    }
++    else
++    {
++      pdata = luaL_checklstring( L, argn, &amp;datalen );
++      for( i = 0; i &lt; datalen; i ++ )
++        if( platform_i2c_send_byte( id, pdata[ i ] ) == 0 )
++          break;
++      wrote += i;
++      if( i &lt; datalen )
++        break;
++    }
+   }
+   lua_pushinteger( L, wrote );
+   return 1;
+@@ -127,8 +140,8 @@
+   { LSTRKEY( &quot;write&quot; ), LFUNCVAL( i2c_write ) },
+   { LSTRKEY( &quot;read&quot; ), LFUNCVAL( i2c_read ) },
+ #if LUA_OPTIMIZE_MEMORY &gt; 0
+-  { LSTRKEY( &quot;SPEED_FAST&quot; ), LNUMVAL( PLATFORM_I2C_SPEED_FAST ) },
+-  { LSTRKEY( &quot;SPEED_SLOW&quot; ), LNUMVAL( PLATFORM_I2C_SPEED_SLOW ) },
++  { LSTRKEY( &quot;FAST&quot; ), LNUMVAL( PLATFORM_I2C_SPEED_FAST ) },
++  { LSTRKEY( &quot;SLOW&quot; ), LNUMVAL( PLATFORM_I2C_SPEED_SLOW ) },
+   { LSTRKEY( &quot;TRANSMITTER&quot; ), LNUMVAL( PLATFORM_I2C_DIRECTION_TRANSMITTER ) },
+   { LSTRKEY( &quot;RECEIVER&quot; ), LNUMVAL( PLATFORM_I2C_DIRECTION_RECEIVER ) },
+ #endif
+@@ -143,8 +156,8 @@
+   luaL_register( L, AUXLIB_I2C, i2c_map );
+   
+   // Add the stop bits and parity constants (for uart.setup)
+-  MOD_REG_NUMBER( L, &quot;SPEED_FAST&quot;, PLATFORM_I2C_SPEED_FAST );
+-  MOD_REG_NUMBER( L, &quot;SPEED_SLOW&quot;, PLATFORM_I2C_SPEED_SLOW ); 
++  MOD_REG_NUMBER( L, &quot;FAST&quot;, PLATFORM_I2C_SPEED_FAST );
++  MOD_REG_NUMBER( L, &quot;SLOW&quot;, PLATFORM_I2C_SPEED_SLOW ); 
+   MOD_REG_NUMBER( L, &quot;TRANSMITTER&quot;, PLATFORM_I2C_DIRECTION_TRANSMITTER );
+   MOD_REG_NUMBER( L, &quot;RECEIVER&quot;, PLATFORM_I2C_DIRECTION_RECEIVER );
+   
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000717.html">[Elua-svn] r764 - in trunk: . inc src src/modules	src/platform/stm32 src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000719.html">[Elua-svn] r766 - trunk/src/platform/avr32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#718">[ date ]</a>
+              <a href="thread.html#718">[ thread ]</a>
+              <a href="subject.html#718">[ subject ]</a>
+              <a href="author.html#718">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

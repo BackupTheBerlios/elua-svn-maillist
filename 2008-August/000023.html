@@ -1,0 +1,285 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r68 - trunk/examples
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r68%20-%20trunk/examples&In-Reply-To=%3C200808272009.m7RK9Dj8002643%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000022.html">
+   <LINK REL="Next"  HREF="000024.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r68 - trunk/examples</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r68%20-%20trunk/examples&In-Reply-To=%3C200808272009.m7RK9Dj8002643%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r68 - trunk/examples">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Aug 27 22:09:13 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000022.html">[Elua-svn] r67 - in trunk: . examples inc src src/modules	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000024.html">[Elua-svn] r69 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc288x platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#23">[ date ]</a>
+              <a href="thread.html#23">[ thread ]</a>
+              <a href="subject.html#23">[ subject ]</a>
+              <a href="author.html#23">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-08-27 22:09:13 +0200 (Wed, 27 Aug 2008)
+New Revision: 68
+
+Modified:
+   trunk/examples/piano.lua
+Log:
+piano.lua with correct line endings
+
+Modified: trunk/examples/piano.lua
+===================================================================
+--- trunk/examples/piano.lua	2008-08-27 20:05:09 UTC (rev 67)
++++ trunk/examples/piano.lua	2008-08-27 20:09:13 UTC (rev 68)
+@@ -1 +1,102 @@
+--- &quot;Piano&quot; in eLua, showing yet another use for the PWM module :)
+
+local pwmid, tmrid
+
+if not math then
+  print &quot;This example required floating point Lua (integer Lua not supported)&quot; 
+  return
+end
+  
+if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+  pwmid, tmrid = 1, 1
+elseif pd.board() == &quot;SAM7-EX256&quot; then
+  pwmid, tmrid = 0, 1
+  tmr.setclock( 1, 1000000 )
+else
+  print( pd.board() .. &quot; not supported with this example\n&quot; )
+  return
+end
+
+local oct, pause = 4, 0
+
+-- Mapping between keys and note offsets
+local offsets = { a = 0, w = 1, s = 2, d = 3, r = 4, f = 5, t = 6, g = 7, h = 8,
+  u = 9, j = 10, i = 11, k = 12, o = 13, l = 14, [&quot;;&quot;] = 15, [&quot;[&quot;] = 16, [&quot;'&quot;] = 17,
+  [&quot;]&quot;] = 18, [&quot;\\&quot;] = 19 }
+  
+-- Write the curent octave
+function show_octave()
+  term.putstrxy( 2, 4, &quot;Oct: &quot; .. tostring( oct ) .. &quot;(+/-)&quot; )
+  term.gotoxy( 2, 19 )  
+end
+
+-- Write the current pause between notes
+function show_pause()
+  term.gotoxy( 2, 5 )
+  term.clreol()
+  term.putstrxy( 2, 5!
+ , &quot;Pause between notes: &quot; .. tostring( pause ) .. &quot;ms (&lt;/&gt;)&quot; )
+  term.gotoxy( 2, 19 )  
+end
+
+-- Show the main interface
+function show_all()
+  term.putstrxy( 2, 2, &quot;eLua piano demo&quot; )  
+  show_octave()
+  show_pause()
+  term.putstrxy( 4,  7, &quot; w   r  t   u  i  o   [  ]  &quot; )
+  term.putstrxy( 4,  8, &quot; |   |  |   |  |  |   |  |  &quot; )
+  term.putstrxy( 4,  9, &quot; A#  C# D#  F# G# A#  C# D# &quot; )
+  term.putstrxy( 4, 10, &quot;A  BC  D  EF  G  A  BC  D  E&quot; )
+  term.putstrxy( 4, 11, &quot;|  ||  |  ||  |  |  ||  |  |&quot; )
+  term.putstrxy( 4, 12, &quot;a  sd  f  gh  j  k  l;  '  \\&quot; )  
+  term.putstrxy( 2, 14, &quot;Use above keys to play notes.&quot; )
+  term.putstrxy( 2, 15, &quot;+/- to change octave.&quot; )
+  term.putstrxy( 2, 16, &quot;&lt;/&gt; to change pause between notes.&quot; )
+  term.putstrxy( 2, 17, &quot;Space to stop playing.&quot; ) 
+  term.putstrxy( 2, 18, &quot;ESC to exit.&quot; ) 
+  term.gotoxy( 2, 19 )
+end
+
+-- Conversion of note to frequency
+function note_to_freq( index )
+  return 55 * 2 ^ ( ( index + ( oct - 1 ) * 12 ) / 12 )
+end
+
+-- Entr!
+ y point
+term.clrscr()
+pwm.setclock( pwmid, 1000000 )
+show_all(!
+ )
+while 
+true do
+  local key = term.getch( term.WAIT )
+  if key == term.KC_ESC then break end
+  local res, strkey = pcall( string.char, key )
+  if res then     
+    if offsets[ strkey ] ~= nil then
+      local freq = note_to_freq( offsets[ strkey ] )
+      pwm.stop( pwmid )
+      if pause &gt; 0 then
+        tmr.delay( tmrid, pause * 1000 )
+      end
+      pwm.setup( pwmid, freq, 50 )
+      pwm.start( pwmid )
+    elseif strkey == &quot;&gt;&quot; then
+      pause = pause &lt; 1000 and pause + 10 or pause
+      show_pause()
+    elseif strkey == &quot;&lt;&quot; then
+      pause = pause &gt; 0 and pause - 10 or pause
+      show_pause() 
+    elseif strkey == &quot;+&quot; then
+      oct = oct &lt; 7 and oct + 1 or oct
+      show_octave()
+    elseif strkey == &quot;-&quot; then
+      oct = oct &gt; 1 and oct - 1 or oct
+      show_octave()
+    elseif strkey == &quot; &quot; then
+      pwm.stop( pwmid )
+    end
+  end  
+end
+
+pwm.stop( pwmid )
+term.clrscr()
+term.gotoxy( 1, 1 )
+\ No newline at end of file
++-- &quot;Piano&quot; in eLua, showing yet another use for the PWM module :)
++
++local pwmid, tmrid
++
++if not math then
++  print &quot;This example required floating point Lua (integer Lua not supported)&quot; 
++  return
++end
++  
++if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
++  pwmid, tmrid = 1, 1
++elseif pd.board() == &quot;SAM7-EX256&quot; then
++  pwmid, tmrid = 0, 1
++  tmr.setclock( 1, 1000000 )
++else
++  print( pd.board() .. &quot; not supported with this example\n&quot; )
++  return
++end
++
++local oct, pause = 4, 0
++
++-- Mapping between keys and note offsets
++local offsets = { a = 0, w = 1, s = 2, d = 3, r = 4, f = 5, t = 6, g = 7, h = 8,
++  u = 9, j = 10, i = 11, k = 12, o = 13, l = 14, [&quot;;&quot;] = 15, [&quot;[&quot;] = 16, [&quot;'&quot;] = 17,
++  [&quot;]&quot;] = 18, [&quot;\\&quot;] = 19 }
++  
++-- Write the curent octave
++function show_octave()
++  term.putstrxy( 2, 4, &quot;Oct: &quot; .. tostring( oct ) .. &quot;(+/-)&quot; )
++  term.gotoxy( 2, 19 )  
++end
++
++-- Write the current pause between notes
++function show_pause()
++  term.gotoxy( 2, 5 )
++  term.clreol()
++  term.putstrxy( 2, 5, &quot;Pause between notes: &quot; .. tostring( pause ) .. &quot;ms (&lt;/&gt;)&quot; )
++  term.gotoxy( 2, 19 )  
++end
++
++-- Show the main interface
++function show_all()
++  term.putstrxy( 2, 2, &quot;eLua piano demo&quot; )  
++  show_octave()
++  show_pause()
++  term.putstrxy( 4,  7, &quot; w   r  t   u  i  o   [  ]  &quot; )
++  term.putstrxy( 4,  8, &quot; |   |  |   |  |  |   |  |  &quot; )
++  term.putstrxy( 4,  9, &quot; A#  C# D#  F# G# A#  C# D# &quot; )
++  term.putstrxy( 4, 10, &quot;A  BC  D  EF  G  A  BC  D  E&quot; )
++  term.putstrxy( 4, 11, &quot;|  ||  |  ||  |  |  ||  |  |&quot; )
++  term.putstrxy( 4, 12, &quot;a  sd  f  gh  j  k  l;  '  \\&quot; )  
++  term.putstrxy( 2, 14, &quot;Use above keys to play notes.&quot; )
++  term.putstrxy( 2, 15, &quot;+/- to change octave.&quot; )
++  term.putstrxy( 2, 16, &quot;&lt;/&gt; to change pause between notes.&quot; )
++  term.putstrxy( 2, 17, &quot;Space to stop playing.&quot; ) 
++  term.putstrxy( 2, 18, &quot;ESC to exit.&quot; ) 
++  term.gotoxy( 2, 19 )
++end
++
++-- Conversion of note to frequency
++function note_to_freq( index )
++  return 55 * 2 ^ ( ( index + ( oct - 1 ) * 12 ) / 12 )
++end
++
++-- Entry point
++term.clrscr()
++pwm.setclock( pwmid, 1000000 )
++show_all()
++while true do
++  local key = term.getch( term.WAIT )
++  if key == term.KC_ESC then break end
++  local res, strkey = pcall( string.char, key )
++  if res then     
++    if offsets[ strkey ] ~= nil then
++      local freq = note_to_freq( offsets[ strkey ] )
++      pwm.stop( pwmid )
++      if pause &gt; 0 then
++        tmr.delay( tmrid, pause * 1000 )
++      end
++      pwm.setup( pwmid, freq, 50 )
++      pwm.start( pwmid )
++    elseif strkey == &quot;&gt;&quot; then
++      pause = pause &lt; 1000 and pause + 10 or pause
++      show_pause()
++    elseif strkey == &quot;&lt;&quot; then
++      pause = pause &gt; 0 and pause - 10 or pause
++      show_pause() 
++    elseif strkey == &quot;+&quot; then
++      oct = oct &lt; 7 and oct + 1 or oct
++      show_octave()
++    elseif strkey == &quot;-&quot; then
++      oct = oct &gt; 1 and oct - 1 or oct
++      show_octave()
++    elseif strkey == &quot; &quot; then
++      pwm.stop( pwmid )
++    end
++  end  
++end
++
++pwm.stop( pwmid )
++term.clrscr()
++term.gotoxy( 1, 1 )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000022.html">[Elua-svn] r67 - in trunk: . examples inc src src/modules	src/platform/at91sam7x src/platform/lm3s src/platform/lpc288x	src/platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000024.html">[Elua-svn] r69 - in trunk/src: . modules platform/at91sam7x	platform/lm3s platform/lpc288x platform/str9
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#23">[ date ]</a>
+              <a href="thread.html#23">[ thread ]</a>
+              <a href="subject.html#23">[ subject ]</a>
+              <a href="author.html#23">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

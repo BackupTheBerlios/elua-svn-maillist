@@ -1,0 +1,426 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r838 - in branches/dl: . dynld src src/modules	src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r838%20-%20in%20branches/dl%3A%20.%20dynld%20src%20src/modules%0A%09src/platform/stm32&In-Reply-To=%3C20101124234753.7046B480EF2%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000790.html">
+   <LINK REL="Next"  HREF="000792.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r838 - in branches/dl: . dynld src src/modules	src/platform/stm32</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r838%20-%20in%20branches/dl%3A%20.%20dynld%20src%20src/modules%0A%09src/platform/stm32&In-Reply-To=%3C20101124234753.7046B480EF2%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r838 - in branches/dl: . dynld src src/modules	src/platform/stm32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Nov 25 00:47:53 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000790.html">[Elua-svn] r837 - in branches/dl: . dynld inc src src/modules	src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000792.html">[Elua-svn] r839 - in branches/dl: . dynld inc src src/lua	src/modules src/platform/stm32 testmod
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#791">[ date ]</a>
+              <a href="thread.html#791">[ thread ]</a>
+              <a href="subject.html#791">[ subject ]</a>
+              <a href="author.html#791">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-25 00:47:53 +0100 (Thu, 25 Nov 2010)
+New Revision: 838
+
+Modified:
+   branches/dl/SConstruct
+   branches/dl/dynld/cortex_m3_stub_generator.lua
+   branches/dl/dynld/gcc_symbol_parser.lua
+   branches/dl/dynld/mktable.lua
+   branches/dl/mkfs.py
+   branches/dl/src/main.c
+   branches/dl/src/modules/elua.c
+   branches/dl/src/platform/stm32/platform_conf.h
+   branches/dl/src/platform/stm32/stm32.ld
+   branches/dl/src/romfs.c
+   branches/dl/src/udl.c
+Log:
+still playing with loadable modules :) indirect  calls via symbol table are now in place for Cortex M3
+
+Modified: branches/dl/SConstruct
+===================================================================
+--- branches/dl/SConstruct	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/SConstruct	2010-11-24 23:47:53 UTC (rev 838)
+@@ -368,7 +368,8 @@
+   local_libs = ''
+ 
+   # Application files
+-  app_files = &quot; src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua_uart.c src/udl.c &quot;
++  app_files = &quot;&quot;&quot; src/main.c src/romfs.c src/semifs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c 
++                  src/salloc.c src/luarpc_elua_uart.c src/udl.c &quot;&quot;&quot;
+ 
+   # Newlib related files
+   newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+
+Modified: branches/dl/dynld/cortex_m3_stub_generator.lua
+===================================================================
+--- branches/dl/dynld/cortex_m3_stub_generator.lua	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/dynld/cortex_m3_stub_generator.lua	2010-11-24 23:47:53 UTC (rev 838)
+@@ -11,23 +11,47 @@
+   local self = {}
+   self.f = f
+   -- Write header
+-  f:write( &quot;// Cortex M3 dynamic loader stubs\n&quot; )
+-  f:write( &quot;// AUTOMATICALLY GENERATED - DO NOT EDIT!\n\n&quot; )
+-  f:write( &quot;  .text\n&quot; )
+-  f:write( &quot;  .code16\n&quot; )
+-  f:write( &quot;  .syntax unified\n\n&quot; )
++  f:write( [[
++// Cortex M3 dynamic loader stubs
++// AUTOMATICALLY GENERATED - DO NOT EDIT!
++
++  .section    .text
++  .align      2
++  .thumb
++  .syntax     unified
++  .extern     udl_functable
++
++#define UDL_FTABLE_ADDRESS      0x20000000  
++
++// Common code for all functions
++_udl_common:
++  // Push new address to stack
++  push        {r0}
++  // Restore r0 
++  ldr.w       r0, [sp, #4]
++  // Restore stack
++  add         sp, sp, #8
++  // Jump directly to function, it will return to the original caller
++  ldr.w       pc, [sp, #-8]
++
++]])
+   setmetatable( self, { __index = gen } )
+   return self
+ end
+ 
+ gen.add_function = function( self, name, address, index )
+   local f = self.f  
+-  f:write( sf( &quot;  .export %s\n&quot;, name ) )
+-  f:write( &quot;  .thumb\n&quot; )
+-  f:write( &quot;  .thumb_func\n&quot; )
+-  f:write( sf( &quot;%s:\n&quot;, name ) )
+-  f:write( sf( &quot;  svc     %d\n&quot;, index ) )
+-  f:write( &quot;  bx      lr\n\n&quot; )
++  f:write( sf( [[
++  .global     %s
++  .thumb_func
++%s:
++  push        {r0}
++  ldr         r0, =UDL_FTABLE_ADDRESS
++  ldr         r0, [r0]
++  ldr.w       r0, [r0, %d]
++  b           _udl_common
++
++]], name, name, ( index - 1 ) * 4 ) )
+ end
+ 
+ gen.finalize = function( self )
+
+Modified: branches/dl/dynld/gcc_symbol_parser.lua
+===================================================================
+--- branches/dl/dynld/gcc_symbol_parser.lua	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/dynld/gcc_symbol_parser.lua	2010-11-24 23:47:53 UTC (rev 838)
+@@ -28,7 +28,7 @@
+   for l in f:lines() do
+     if l:find( &quot;FUNC&quot; ) then
+       l = l:gsub( &quot;%s+&quot;, &quot; &quot; )
+-      local _, __, v, n = l:find( &quot;%s%d-:%s(%x+)%s%d-%s[^%d]+%d-%s(.*)%s+$&quot; )
++      local _, __, v, n = l:find( &quot;%s%d-:%s(%x+)%s%d-%s[^%d]+%d-%s(.*)%s*$&quot; )
+       syms[ n ] = tonumber( &quot;0x&quot; .. v )
+       nsyms = nsyms + 1
+     end
+
+Modified: branches/dl/dynld/mktable.lua
+===================================================================
+--- branches/dl/dynld/mktable.lua	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/dynld/mktable.lua	2010-11-24 23:47:53 UTC (rev 838)
+@@ -6,7 +6,7 @@
+ local big_endian = false
+ 
+ local function put_number( s, n )
+-  return big_endian and s .. string.pack( &quot;&gt;L&quot;, n ) or s .. string.pack( &quot;&lt;L&quot;, n )
++  return big_endian and s .. string.pack( &quot;&gt;I&quot;, n ) or s .. string.pack( &quot;&lt;I&quot;, n )
+ end
+ 
+ local p = require( &quot;dynld.gcc_symbol_parser&quot; )
+@@ -32,7 +32,7 @@
+       end
+     end
+     outdata = put_number( outdata, addr ) 
+-    gen:add_function( l2, addr, nsym - 1 )
++    gen:add_function( l2, addr, addr &gt; 0 and nsym or 0 )
+     nsym = nsym + 1   
+   end
+ end
+
+Modified: branches/dl/mkfs.py
+===================================================================
+--- branches/dl/mkfs.py	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/mkfs.py	2010-11-24 23:47:53 UTC (rev 838)
+@@ -6,13 +6,14 @@
+ _crtline = '  '
+ _numdata = 0
+ _bytecnt = 0
+-
++_fcnt = 0
+ maxlen = 30
+ 
+ # Line output function
+ def _add_data( data, outfile, moredata = True ):
+-  global _crtline, _numdata, _bytecnt
++  global _crtline, _numdata, _bytecnt, _fcnt
+   _bytecnt = _bytecnt + 1
++  _fcnt = _fcnt + 1
+   if moredata:
+     _crtline = _crtline + &quot;0x%02X, &quot; % data
+   else:
+@@ -41,7 +42,7 @@
+     print &quot;Unable to create output file&quot;
+     return False
+   
+-  global _crtline, _numdata, _bytecnt
++  global _crtline, _numdata, _bytecnt, _fcnt
+   _crtline = '  '
+   _numdata = 0
+   _bytecnt = 0
+@@ -107,6 +108,7 @@
+       os.remove( newname )
+ 
+     # Write name, size, id, numpars
++    _fcnt = 0
+     for c in fname:
+       _add_data( ord( c ), outfile )
+     _add_data( 0, outfile ) # ASCIIZ
+@@ -116,7 +118,7 @@
+     _add_data( size_h, outfile )
+     # Round to a multiple of 4
+     actual = len( filedata )
+-    while _bytecnt &amp; 4 != 0:
++    while _bytecnt &amp; 3 != 0:
+       _add_data( 0, outfile )
+       actual = actual + 1
+     # Then write the rest of the file
+@@ -124,7 +126,7 @@
+       _add_data( ord( c ), outfile )
+     
+     # Report
+-    print &quot;Encoded file %s (%d bytes real size, %d bytes after rounding)&quot; % ( fname, len( filedata ), actual )
++    print &quot;Encoded file %s (%d bytes real size, %d bytes after rounding, %d bytes total)&quot; % ( fname, len( filedata ), actual, _fcnt )
+     
+   # All done, write the final &quot;0&quot; (terminator)
+   _add_data( 0, outfile, False )
+
+Modified: branches/dl/src/main.c
+===================================================================
+--- branches/dl/src/main.c	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/src/main.c	2010-11-24 23:47:53 UTC (rev 838)
+@@ -14,6 +14,7 @@
+ #include &quot;term.h&quot;
+ #include &quot;platform_conf.h&quot;
+ #include &quot;elua_rfs.h&quot;
++#include &quot;udl.h&quot;
+ #ifdef ELUA_SIMULATOR
+ #include &quot;hostif.h&quot;
+ #endif
+@@ -102,6 +103,9 @@
+   // Register the remote filesystem
+   dm_register( remotefs_init() );
+ 
++  // Initialize the dyanmic loader
++  udl_init();
++
+   // Search for autorun files in the defined order and execute the 1st if found
+   for( i = 0; i &lt; sizeof( boot_order )/sizeof( *boot_order ); i++ ){
+     if( ( fp = fopen( boot_order[i], &quot;r&quot; ) ) != NULL )
+@@ -136,3 +140,4 @@
+   while( 1 );
+ #endif
+ }
++
+
+Modified: branches/dl/src/modules/elua.c
+===================================================================
+--- branches/dl/src/modules/elua.c	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/src/modules/elua.c	2010-11-24 23:47:53 UTC (rev 838)
+@@ -32,13 +32,16 @@
+   return 1;
+ }
+ 
+-extern u32 uld_endflash[];
++extern u32 udl_functable[];
++extern int printf_test( const char *format, ... );
+ static int testlookup( lua_State *L )
+ {
+   int id = luaL_checkinteger( L, 1 );
+   
+   printf( &quot;Address for symbol %d is %08X\n&quot;, id, ( unsigned int )udl_get_elua_symbol( id ) );
+-  printf( &quot;Base table address is %08X\n&quot;, ( unsigned int )uld_endflash ); 
++  printf( &quot;Base table address is %08X\n&quot;, ( unsigned int )udl_functable ); 
++  printf( &quot;Calling printf via pointer...\n&quot; );
++  printf_test( &quot;If this works, I'm %s ID is %d\n&quot;, &quot;GOOOOOOD!!!!&quot;, id );
+   return 0;
+ }
+ 
+
+Modified: branches/dl/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/dl/src/platform/stm32/platform_conf.h	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/src/platform/stm32/platform_conf.h	2010-11-24 23:47:53 UTC (rev 838)
+@@ -14,7 +14,7 @@
+ #define BUILD_XMODEM
+ #define BUILD_SHELL
+ #define BUILD_ROMFS
+-#define BUILD_MMCFS
++//#define BUILD_MMCFS
+ #define BUILD_TERM
+ //#define BUILD_UIP
+ //#define BUILD_DHCPC
+@@ -172,6 +172,7 @@
+ 
+ // Loader data
+ #define UDL_MAX_MODULES       8
++#define UDL_FTABLE_ADDRESS    0x20000000
+ 
+ // Allocator data: define your free memory zones here in two arrays
+ // (start address and end address)
+
+Modified: branches/dl/src/platform/stm32/stm32.ld
+===================================================================
+--- branches/dl/src/platform/stm32/stm32.ld	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/src/platform/stm32/stm32.ld	2010-11-24 23:47:53 UTC (rev 838)
+@@ -1,6 +1,6 @@
+ MEMORY
+ {
+-    sram (W!RX) : ORIGIN = 0x20000000, LENGTH = 64k
++    sram (W!RX) : ORIGIN = 0x20000004, LENGTH = 64k
+     flash (RX) : ORIGIN = 0x08000000, LENGTH = 512k
+ }
+ 
+@@ -28,13 +28,11 @@
+ 				*(.fini)
+ 
+     } &gt;flash
+-    PROVIDE( uld_endflash = . );
+ 
+     .data : AT (_etext)
+     {
+         . = ALIGN(4);
+         /* Dynamic loader data is always at the beginning of RAM */
+-        *(.uld .uld.*)
+         _sdata = .;
+         *(.ramfunc .ramfunc.* .fastrun .fastrun.*)
+         *(.data .data.*)
+@@ -42,7 +40,8 @@
+         . = ALIGN(4);
+         _edata = .;
+     } &gt;sram
+-		
++
++
+ 		.ARM.extab :
+ 		{
+ 		    *(.ARM.extab*)
+@@ -54,6 +53,8 @@
+ 		    *(.ARM.exidx*)
+ 		} &gt;sram
+ 		__exidx_end = .;
++
++    PROVIDE( udl_functable = _etext + SIZEOF( .data ) + SIZEOF( .ARM.extab ) + SIZEOF( .ARM.exidx ) );
+ 		
+     .bss (NOLOAD) : {
+ 		. = ALIGN(4);
+
+Modified: branches/dl/src/romfs.c
+===================================================================
+--- branches/dl/src/romfs.c	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/src/romfs.c	2010-11-24 23:47:53 UTC (rev 838)
+@@ -185,7 +185,9 @@
+   pent-&gt;fname = dm_shared_fname;
+   pent-&gt;fsize = romfs_read( off ) + ( romfs_read( off + 1 ) &lt;&lt; 8 );
+   pent-&gt;ftime = 0;
+-  *( u32* )d = off + 2 + pent-&gt;fsize;
++  off += 2;
++  off = ( off + 3 ) &amp; ~3;
++  *( u32* )d = off + pent-&gt;fsize;
+   return pent;
+ }
+ 
+
+Modified: branches/dl/src/udl.c
+===================================================================
+--- branches/dl/src/udl.c	2010-11-24 16:50:22 UTC (rev 837)
++++ branches/dl/src/udl.c	2010-11-24 23:47:53 UTC (rev 838)
+@@ -16,18 +16,24 @@
+ } udl_module_data;
+ 
+ static udl_module_data udl_modules[ UDL_MAX_MODULES ];
+-extern u32 uld_endflash[];
++extern u32 udl_functable[];
+ 
+ void udl_init()
+ {
++  *( u32 *)UDL_FTABLE_ADDRESS = ( u32 )udl_functable;
+ }
+ 
+ // Loookup a symbol in the eLua symbol table
+ u32 udl_get_elua_symbol( u32 idx )
+ {
+-  return uld_endflash[ idx ];
++  return udl_functable[ idx ];
+ }
+ 
++void udl_invalid_symbol()
++{
++  while( 1 );
++}
++
+ #else // #ifdef BUILD_UDL
+ 
+ void udl_init()
+@@ -35,3 +41,4 @@
+ }
+ 
+ #endif // #ifdef BUILD_UDL
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000790.html">[Elua-svn] r837 - in branches/dl: . dynld inc src src/modules	src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000792.html">[Elua-svn] r839 - in branches/dl: . dynld inc src src/lua	src/modules src/platform/stm32 testmod
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#791">[ date ]</a>
+              <a href="thread.html#791">[ thread ]</a>
+              <a href="subject.html#791">[ subject ]</a>
+              <a href="author.html#791">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

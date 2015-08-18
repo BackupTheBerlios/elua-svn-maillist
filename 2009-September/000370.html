@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r414 - tags/pre0.6/doc/eluadoc
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r414%20-%20tags/pre0.6/doc/eluadoc&In-Reply-To=%3C200909030424.n834Oo7Y014905%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000371.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r414 - tags/pre0.6/doc/eluadoc</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r414%20-%20tags/pre0.6/doc/eluadoc&In-Reply-To=%3C200909030424.n834Oo7Y014905%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r414 - tags/pre0.6/doc/eluadoc">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Thu Sep  3 06:24:50 CEST 2009</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000371.html">[Elua-svn] r415 - tags/pre0.6/doc/eluadoc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#370">[ date ]</a>
+              <a href="thread.html#370">[ thread ]</a>
+              <a href="subject.html#370">[ subject ]</a>
+              <a href="author.html#370">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-09-03 06:24:47 +0200 (Thu, 03 Sep 2009)
+New Revision: 414
+
+Modified:
+   tags/pre0.6/doc/eluadoc/refman_gen_adc.lua
+Log:
+Some additional detail for the ADC documentation.
+
+Modified: tags/pre0.6/doc/eluadoc/refman_gen_adc.lua
+===================================================================
+--- tags/pre0.6/doc/eluadoc/refman_gen_adc.lua	2009-08-27 17:35:32 UTC (rev 413)
++++ tags/pre0.6/doc/eluadoc/refman_gen_adc.lua	2009-09-03 04:24:47 UTC (rev 414)
+@@ -10,21 +10,23 @@
+   menu_name = &quot;adc&quot;,
+ 
+   -- Overview
+-  overview = [[This module contains functions that access analog to digital converter (ADC) peripherals. ]],
++  overview = [[This module contains functions that access analog to digital converter (ADC) peripherals.&lt;/p&gt;
++  &lt;p&gt;Getting samples from an ADC channel is a two part process involving requesting conversions (using adc.sample), and extraction of conversion results from a conversion buffer (using adc.getsample, adc.getsamples or adc.insertsamples).  Various configuration parameters are available to set conversion rate, how results are extracted from the buffer and how these results are processed prior to extraction.&lt;/p&gt;
++  &lt;p&gt;This module can be utilized if the device in use has a supported ADC peripheral (see @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">status.html at status</A>@ for details) and if ADC functionality is enabled at build time (see @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">building.html at building</A>@).]],
+ 
+   -- Functions
+   funcs = 
+   {
+     { sig = &quot;#adc.sample#( id, count )&quot;,
+-      desc = &quot;Request sample conversions.&quot;,
++      desc = &quot;Initiate conversion and buffering of samples on an ADC channel.&quot;,
+       args = 
+       {
+         &quot;$id$ - ADC channel ID. Optionally, this may be a table containing a list of channel IDs (i.e.: {0, 2, 3}), allowing synchronization of acquisition. NOTE: This acceptance of mixed types is only for the sample function.&quot;,
+-        &quot;$count$ - number of samples to acquire.&quot;
++        &quot;$count$ - number of samples to acquire and place in buffer.&quot;
+       }
+     },
+     { sig = &quot;sample = #adc.getsample#( id )&quot;,
+-      desc = &quot;Get converted samples.&quot;,
++      desc = &quot;Get a single conversion value from the buffer associated with a given channel.&quot;,
+       args = 
+       {
+         &quot;$id$ - ADC channel ID.&quot;
+@@ -32,7 +34,7 @@
+       ret = &quot;$sample$ - numeric value of conversion, or nil if sample was not available.&quot;
+     },
+     { sig = &quot;samples = #adc.getsamples#( id, count )&quot;,
+-      desc = &quot;Get multiple converted samples.&quot;,
++      desc = &quot;Get multiple conversion values from the buffer associated with a given channel.&quot;,
+       args = 
+       {
+         &quot;$id$ - ADC channel ID.&quot;,
+@@ -41,35 +43,35 @@
+       ret = &quot;$samples$ - table containing integer conversion values. If not enough samples are available, remaining indices will be nil.&quot;
+     },
+     { sig = &quot;#adc.insertsamples#( id, table, idx, count )&quot;,
+-      desc = &quot;Write multiple samples to a table.&quot;,
++      desc = &quot;Get multiple conversion values from a channel's buffer, and write them into a table.&quot;,
+       args = 
+       {
+         &quot;$id$ - ADC channel ID.&quot;,
+         &quot;$table$ - table to write samples to. Values at $table$[$idx$] to $table$[$idx$ + $count$ -1] will be overwritten with samples (or nil if not enough samples are available).&quot;,
+-        &quot;$idx$ - first index to use for writing samples&quot;,
++        &quot;$idx$ - first index to use in the table for writing samples.&quot;,
+         &quot;$count$ - number of samples to return. If not enough samples are available (after blocking, if enabled) remaining values will be nil.&quot;
+       }
+     },
+     { sig = &quot;maxval = #adc.maxval#( id )&quot;,
+-      desc = &quot;Get maximum conversion value.&quot;,
++      desc = &quot;Get the maximum value that can be returned on a given channel.  This integer value corresponds to the maximum voltage supported by the channel.&quot;,
+       args = 
+       {
+         &quot;$id$ - ADC channel ID.&quot;
+       },
+-      ret = &quot;$maxval$ - maximum conversion value (based on channel resolution)&quot;
++      ret = &quot;$maxval$ - maximum integer conversion value (based on channel resolution)&quot;
+     },
+     { sig = &quot;clock = #adc.setclock#( id, clock, timer_id )&quot;,
+-      desc = &quot;Set frequency of sample acquisition.&quot;,
++      desc = &quot;Set the frequency (number of samples per second) at which voltages will be converted into samples.&quot;,
+       args = 
+       {
+         &quot;$id$ - ADC channel ID.&quot;,
+         &quot;$clock$ - frequency to acquire samples at in Hz (number of samples per second), 0 to acquire as fast as possible.&quot;,
+-        &quot;$timer_id$ - Timer channel ID to use to control ADC conversion. Note: At this time, a timer selection will apply to all channels on a given ADC peripheral.&quot;
++        &quot;$timer_id$ - Timer channel ID to use to control ADC conversion. &lt;strong&gt;Note:&lt;/strong&gt; At this time, a timer selection will apply to all channels on a given ADC peripheral.&quot;
+       },
+       ret = &quot;$clock$ - actual acquisition frequency to be used&quot;
+     },
+     { sig = &quot;status = #adc.isdone#( id )&quot;,
+-      desc = &quot;Check if sampling is done.&quot;,
++      desc = &quot;Check whether samples are still being acquired on a channel.&quot;,
+       args = 
+       {
+         &quot;$id$ - ADC channel ID.&quot;
+@@ -77,7 +79,7 @@
+       ret = &quot;$status$ - 1 if no samples are being acquired, 0 if samples are pending acquisition.&quot;
+     },
+     { sig = &quot;#adc.setblocking#( id, mode )&quot;,
+-      desc = &quot;Set whether or not to block waiting for requested samples.&quot;,
++      desc = &quot;Set whether or not functions that request converted samples should wait for requested samples or return immediately with what is available.&quot;,
+       args = 
+       {
+         &quot;$id$ - ADC channel ID.&quot;,
+@@ -85,11 +87,11 @@
+       },
+     },
+     { sig = &quot;#adc.setsmoothing#( id, length )&quot;,
+-      desc = &quot;Set length of moving average filter.&quot;,
++      desc = &quot;Set the length of the moving average filter. When $length$ is greater than 1, samples pulled from the conversion buffer will be averaged with the preceding $length$ - 1 buffered values.&quot;,
+       args = 
+       {
+         &quot;$id$ - ADC channel ID.&quot;,
+-        &quot;$length$ - number of samples to include in moving average filter (must be a power of 2). If 1, filter is disabled.&quot;
++        &quot;$length$ - number of preceding samples to include in moving average filter (must be a power of 2). If 1, filter is disabled. When enabled, a filter buffer is filled before the main conversion buffer, so that averages are always over the same number of samples.&quot;
+       }
+     }
+   }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000371.html">[Elua-svn] r415 - tags/pre0.6/doc/eluadoc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#370">[ date ]</a>
+              <a href="thread.html#370">[ thread ]</a>
+              <a href="subject.html#370">[ subject ]</a>
+              <a href="author.html#370">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

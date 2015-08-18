@@ -1,0 +1,971 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r839 - in branches/dl: . dynld inc src src/lua	src/modules src/platform/stm32 testmod
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r839%20-%20in%20branches/dl%3A%20.%20dynld%20inc%20src%20src/lua%0A%09src/modules%20src/platform/stm32%20testmod&In-Reply-To=%3C20101128011406.0CF31480EFB%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000791.html">
+   <LINK REL="Next"  HREF="000793.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r839 - in branches/dl: . dynld inc src src/lua	src/modules src/platform/stm32 testmod</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r839%20-%20in%20branches/dl%3A%20.%20dynld%20inc%20src%20src/lua%0A%09src/modules%20src/platform/stm32%20testmod&In-Reply-To=%3C20101128011406.0CF31480EFB%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r839 - in branches/dl: . dynld inc src src/lua	src/modules src/platform/stm32 testmod">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Nov 28 02:14:05 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000791.html">[Elua-svn] r838 - in branches/dl: . dynld src src/modules	src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000793.html">[Elua-svn] r840 - in branches/dl: . inc src src/lua src/modules	testmod
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#792">[ date ]</a>
+              <a href="thread.html#792">[ thread ]</a>
+              <a href="subject.html#792">[ subject ]</a>
+              <a href="author.html#792">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-11-28 02:14:05 +0100 (Sun, 28 Nov 2010)
+New Revision: 839
+
+Added:
+   branches/dl/testmod/
+   branches/dl/testmod/compcmd
+   branches/dl/testmod/linker.ld
+   branches/dl/testmod/mkmod.lua
+   branches/dl/testmod/testmod.c
+   branches/dl/testmod/testmod.c.old
+   branches/dl/testmod/udl_get_id.s
+Modified:
+   branches/dl/SConstruct
+   branches/dl/dynld/cortex_m3_stub_generator.lua
+   branches/dl/dynld/gcc_symbol_parser.lua
+   branches/dl/dynld/mktable.lua
+   branches/dl/dynld/symbol_list
+   branches/dl/inc/udl.h
+   branches/dl/src/lua/loadlib.c
+   branches/dl/src/lua/luaconf.h
+   branches/dl/src/modules/elua.c
+   branches/dl/src/platform/stm32/conf.py
+   branches/dl/src/platform/stm32/platform_conf.h
+   branches/dl/src/platform/stm32/stm32.ld
+   branches/dl/src/shell.c
+   branches/dl/src/udl.c
+Log:
+a working binary Lua module and a C module are included here, but only as an example. Yes, they actually work, but the code is very experimental, so don't try to understand what's happening here. You have been warned :) Still TODO: LTR compatibility
+
+Modified: branches/dl/SConstruct
+===================================================================
+--- branches/dl/SConstruct	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/SConstruct	2010-11-28 01:14:05 UTC (rev 839)
+@@ -125,7 +125,8 @@
+           'spaceship' : [ 'spaceship.lua' ],
+           'tetrives' : [ 'tetrives.lua' ],
+           'snake' : [ 'snake.lua' ],
+-          'pachube' : [ 'pachube_demo.lua' ]
++          'pachube' : [ 'pachube_demo.lua' ],
++          'udl' : [ 'testmod.ebm' ]
+         }
+ 
+ # List of board/romfs data combinations
+@@ -141,7 +142,7 @@
+               'MOD711' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'dualpwm' ],
+               'STM3210E-EVAL' : [ 'bisect', 'hello', 'info' ],
+               'ATEVK1100' : [ 'bisect', 'hangman', 'led', 'hello', 'info' ],
+-              'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect','adcscope','adcpoll', 'dualpwm', 'pwmled' ],
++              'ET-STM32' : [ 'hello', 'hangman', 'info', 'bisect', 'udl' ],
+               'EAGLE-100' : [ 'bisect', 'hangman', 'lhttpd', 'led', 'hello', 'info' ],
+               'ELUA-PUC' : [ 'bisect', 'hangman', 'led', 'hello', 'info', 'pwmled' ],
+               'MBED' : [ 'bisect', 'hangman', 'hello', 'info', 'led', 'pwmled', 'dualpwm', 'life', 'adcscope','adcpoll' ],
+
+Modified: branches/dl/dynld/cortex_m3_stub_generator.lua
+===================================================================
+--- branches/dl/dynld/cortex_m3_stub_generator.lua	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/dynld/cortex_m3_stub_generator.lua	2010-11-28 01:14:05 UTC (rev 839)
+@@ -43,15 +43,17 @@
+   local f = self.f  
+   f:write( sf( [[
+   .global     %s
++  .section    .text.%s, &quot;ax&quot;, %%progbits
++  .thumb
+   .thumb_func
+ %s:
+   push        {r0}
+-  ldr         r0, =UDL_FTABLE_ADDRESS
++  mov         r0, #UDL_FTABLE_ADDRESS
+   ldr         r0, [r0]
+   ldr.w       r0, [r0, %d]
+   b           _udl_common
+ 
+-]], name, name, ( index - 1 ) * 4 ) )
++]], name, name, name, ( index - 1 ) * 4 ) )
+ end
+ 
+ gen.finalize = function( self )
+
+Modified: branches/dl/dynld/gcc_symbol_parser.lua
+===================================================================
+--- branches/dl/dynld/gcc_symbol_parser.lua	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/dynld/gcc_symbol_parser.lua	2010-11-28 01:14:05 UTC (rev 839)
+@@ -24,21 +24,22 @@
+   --   16: 08004a9e     0 NOTYPE  LOCAL  DEFAULT    1 Infinite_Loop 
+   --   16: 08004a9e 0 NOTYPE LOCAL DEFAULT 1 Infinite_Loop 
+   local syms = {}
+-  local nsyms = 0
++  local symmap = {}
+   for l in f:lines() do
+-    if l:find( &quot;FUNC&quot; ) then
+-      l = l:gsub( &quot;%s+&quot;, &quot; &quot; )
+-      local _, __, v, n = l:find( &quot;%s%d-:%s(%x+)%s%d-%s[^%d]+%d-%s(.*)%s*$&quot; )
+-      syms[ n ] = tonumber( &quot;0x&quot; .. v )
+-      nsyms = nsyms + 1
++    l = l:gsub( &quot;%s+&quot;, &quot; &quot; )
++    local _, __, v, t, g, n = l:find( &quot;%s%d-:%s(%x+)%s%d-%s(.-)%s(.-)%s[^%d]+%d-%s(.*)%s*$&quot; )
++    if #n &gt; 0 and t ~= &quot;NOTYPE&quot; then
++      syms[ n ] = { address = tonumber( &quot;0x&quot; .. v ), isfunction = t == 'FUNC', isglobal = g == 'GLOBAL' }
++      symmap[ #symmap + 1 ] = { n, syms[ n ] }
+     end
+   end
+   f:close()
+-  print( string.format( &quot;done, found %d function symbols&quot;, nsyms ) )
++  print( string.format( &quot;done, found %d symbols&quot;, #symmap ) )
+        
+   local self = {}
+   setmetatable( self, { __index = parser } )
+   self.syms = syms
++  self.symmap = symmap
+   return self
+ end
+ 
+@@ -46,3 +47,12 @@
+   return self.syms[ symbol ]
+ end
+ 
++parser._iterfunc = function( self, i )
++  i = i + 1
++  local v = self.symmap[ i ]
++  if v then return i, { v[ 1 ], v[ 2 ].address, v[ 2 ].isfunction, v[ 2 ].isglobal } end
++end
++
++parser.iter = function( self )
++  return parser._iterfunc, self, 0
++end
+
+Modified: branches/dl/dynld/mktable.lua
+===================================================================
+--- branches/dl/dynld/mktable.lua	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/dynld/mktable.lua	2010-11-28 01:14:05 UTC (rev 839)
+@@ -25,10 +25,12 @@
+       print( string.format( &quot;Skipping lookup for obsolete symbol %s&quot;, l2 ) )
+       addr = 0
+     else 
+-      addr = parser:lookup( l2 )
+-      if not addr then
++      s = parser:lookup( l2 )
++      if not s or not s.isfunction then
+         print( string.format( &quot;WARNING: symbol %s not found&quot;, l2 ) )
+         addr = 0
++      else
++        addr = s.address
+       end
+     end
+     outdata = put_number( outdata, addr ) 
+@@ -42,3 +44,4 @@
+ f:write( outdata )
+ f:close()
+ print( string.format( &quot;Processed %d symbols&quot;, nsym - 1 ) )
++
+
+Modified: branches/dl/dynld/symbol_list
+===================================================================
+--- branches/dl/dynld/symbol_list	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/dynld/symbol_list	2010-11-28 01:14:05 UTC (rev 839)
+@@ -81,6 +81,8 @@
+ lua_gethook
+ lua_gethookmask
+ lua_gethookcount
++luaL_register
++luaL_checklstring
+ 
+ // libc/libm symbols
+ atoi
+
+Modified: branches/dl/inc/udl.h
+===================================================================
+--- branches/dl/inc/udl.h	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/inc/udl.h	2010-11-28 01:14:05 UTC (rev 839)
+@@ -5,7 +5,22 @@
+ 
+ #include &quot;type.h&quot;
+ 
++// Binary module signature
++#define UDL_MOD_SIGN          0x15AF29C8
++
++// Error codes
++#define UDL_OK                0
++#define UDL_INVALID_MODULE    ( -1 )
++#define UDL_OUT_OF_MEMORY     ( -2 )
++#define UDL_NOT_IMPLEMENTED   ( -3 )
++#define UDL_NO_SLOTS          ( -4 )
++
+ void udl_init();
+ u32 udl_get_elua_symbol( u32 idx );
++int udl_load( const char *pname );
++int udl_unload( int id );
++int udl_get_id( u32 pc );
++u32 udl_get_offset( int id );
++u32 udl_find_symbol( int id, const char *symname );
+ 
+ #endif
+
+Modified: branches/dl/src/lua/loadlib.c
+===================================================================
+--- branches/dl/src/lua/loadlib.c	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/src/lua/loadlib.c	2010-11-28 01:14:05 UTC (rev 839)
+@@ -46,8 +46,9 @@
+ static void *ll_load (lua_State *L, const char *path);
+ static lua_CFunction ll_sym (lua_State *L, void *lib, const char *sym);
+ 
++// BogdanM: added for eLua support
++#include &quot;platform_conf.h&quot;
+ 
+-
+ #if defined(LUA_DL_DLOPEN)
+ /*
+ ** {========================================================================
+@@ -222,13 +223,44 @@
+ 
+ 
+ 
++#elif defined( BUILD_UDL )
++
++// BogdanM: added support for eLua module loader
++
++/*
++** {======================================================
++** eLua binary module loader
++** =======================================================
++*/
++
++#include &quot;udl.h&quot;
++
++static void ll_unloadlib (void *lib) {
++  udl_unload((int)lib - 1 );
++}
++
++
++static void *ll_load (lua_State *L, const char *path) {
++  int id = udl_load(path);
++  if (id &lt; 0) lua_pushstring(L, &quot;cannot load module&quot;);
++  return (void*)( id + 1 );
++}
++
++
++static lua_CFunction ll_sym (lua_State *L, void *lib, const char *sym) {
++  lua_CFunction f = (lua_CFunction)(udl_find_symbol((int)lib - 1, sym));
++  if (f == NULL) lua_pushstring(L, &quot;cannot find function&quot;);
++  return f;
++}
++
++
+ #else
++
+ /*
+ ** {======================================================
+ ** Fallback for other systems
+ ** =======================================================
+ */
+-
+ #undef LIB_FAIL
+ #define LIB_FAIL	&quot;absent&quot;
+ 
+
+Modified: branches/dl/src/lua/luaconf.h
+===================================================================
+--- branches/dl/src/lua/luaconf.h	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/src/lua/luaconf.h	2010-11-28 01:14:05 UTC (rev 839)
+@@ -91,30 +91,32 @@
+ //## Defaults search modules path to our ROM File System
+ #ifndef LUA_RPC
+ #define LUA_PATH_DEFAULT &quot;/mmc/?.lua;/mmc/?.lc;/rom/?.lua;/rom/?.lc&quot;
+-#else
++#define LUA_CPATH_DEFAULT &quot;/rom/?.ebm&quot;
++#else // #ifndef LUA_RPC
+ #define LUA_PATH_DEFAULT  \
+ 		&quot;.\\?.lua;&quot;  LUA_LDIR&quot;?.lua;&quot;  LUA_LDIR&quot;?\\init.lua;&quot; \
+ 		             LUA_CDIR&quot;?.lua;&quot;  LUA_CDIR&quot;?\\init.lua&quot;
+-#endif	             
++#endif // #ifndef LUA_RPC
+ #define LUA_CPATH_DEFAULT \
+ 	&quot;.\\?.dll;&quot;  LUA_CDIR&quot;?.dll;&quot; LUA_CDIR&quot;loadall.dll&quot;
+ 
+-#else
++#else // #if defined(_WIN32)
+ #define LUA_ROOT	&quot;/usr/local/&quot;
+ #define LUA_LDIR	LUA_ROOT &quot;share/lua/5.1/&quot;
+ #define LUA_CDIR	LUA_ROOT &quot;lib/lua/5.1/&quot;
+ 
+ #ifndef LUA_RPC
+ #define LUA_PATH_DEFAULT  &quot;/mmc/?.lua;/mmc/?.lc;/rom/?.lua;/rom/?.lc&quot;
+-#else
++#define LUA_CPATH_DEFAULT &quot;/rom/?.ebm&quot;
++#else // #ifndef LUA_RPC
+ 
+ #define LUA_PATH_DEFAULT  \
+ 		&quot;./?.lua;&quot;  LUA_LDIR&quot;?.lua;&quot;  LUA_LDIR&quot;?/init.lua;&quot; \
+ 		            LUA_CDIR&quot;?.lua;&quot;  LUA_CDIR&quot;?/init.lua&quot;
+-#endif
+-#define LUA_CPATH_DEFAULT \
+-	&quot;./?.so;&quot;  LUA_CDIR&quot;?.so;&quot; LUA_CDIR&quot;loadall.so&quot;
+-#endif
++#endif // #ifndef LUA_RPC
++/*#define LUA_CPATH_DEFAULT \
++	&quot;./?.so;&quot;  LUA_CDIR&quot;?.so;&quot; LUA_CDIR&quot;loadall.so&quot;*/
++#endif // #if defined(_WIN32)
+ 
+ 
+ /*
+
+Modified: branches/dl/src/modules/elua.c
+===================================================================
+--- branches/dl/src/modules/elua.c	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/src/modules/elua.c	2010-11-28 01:14:05 UTC (rev 839)
+@@ -33,7 +33,7 @@
+ }
+ 
+ extern u32 udl_functable[];
+-extern int printf_test( const char *format, ... );
++//extern int printf_test( const char *format, ... );
+ static int testlookup( lua_State *L )
+ {
+   int id = luaL_checkinteger( L, 1 );
+@@ -41,7 +41,7 @@
+   printf( &quot;Address for symbol %d is %08X\n&quot;, id, ( unsigned int )udl_get_elua_symbol( id ) );
+   printf( &quot;Base table address is %08X\n&quot;, ( unsigned int )udl_functable ); 
+   printf( &quot;Calling printf via pointer...\n&quot; );
+-  printf_test( &quot;If this works, I'm %s ID is %d\n&quot;, &quot;GOOOOOOD!!!!&quot;, id );
++  //printf_test( &quot;If this works, I'm %s ID is %d\n&quot;, &quot;GOOOOOOD!!!!&quot;, id );
+   return 0;
+ }
+ 
+
+Modified: branches/dl/src/platform/stm32/conf.py
+===================================================================
+--- branches/dl/src/platform/stm32/conf.py	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/src/platform/stm32/conf.py	2010-11-28 01:14:05 UTC (rev 839)
+@@ -40,6 +40,8 @@
+   os.system( &quot;%s %s&quot; % ( toolset[ 'size' ], outname ) )
+   print &quot;Generating binary image...&quot;
+   os.system( &quot;%s -O binary %s %s.bin&quot; % ( toolset[ 'bin' ], outname, output ) )
++  os.system( &quot;lua dynld/mktable.lua&quot; )
++  os.system( &quot;cat %s.bin symaddr.bin &gt; final.bin&quot; % output )
+   os.system( &quot;%s -O ihex %s %s.hex&quot; % ( toolset[ 'bin' ], outname, output ) )
+   
+ tools[ 'stm32' ][ 'progfunc' ] = progfunc_stm32
+
+Modified: branches/dl/src/platform/stm32/platform_conf.h
+===================================================================
+--- branches/dl/src/platform/stm32/platform_conf.h	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/src/platform/stm32/platform_conf.h	2010-11-28 01:14:05 UTC (rev 839)
+@@ -171,7 +171,7 @@
+ #define RFS_UART_SPEED        115200
+ 
+ // Loader data
+-#define UDL_MAX_MODULES       8
++#define UDL_MAX_MODULES       4
+ #define UDL_FTABLE_ADDRESS    0x20000000
+ 
+ // Allocator data: define your free memory zones here in two arrays
+
+Modified: branches/dl/src/platform/stm32/stm32.ld
+===================================================================
+--- branches/dl/src/platform/stm32/stm32.ld	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/src/platform/stm32/stm32.ld	2010-11-28 01:14:05 UTC (rev 839)
+@@ -1,6 +1,6 @@
+ MEMORY
+ {
+-    sram (W!RX) : ORIGIN = 0x20000004, LENGTH = 64k
++    sram (W!RX) : ORIGIN = 0x20000010, LENGTH = 64k
+     flash (RX) : ORIGIN = 0x08000000, LENGTH = 512k
+ }
+ 
+
+Modified: branches/dl/src/shell.c
+===================================================================
+--- branches/dl/src/shell.c	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/src/shell.c	2010-11-28 01:14:05 UTC (rev 839)
+@@ -12,6 +12,7 @@
+ #include &quot;platform.h&quot;
+ #include &quot;elua_net.h&quot;
+ #include &quot;devman.h&quot;
++#include &quot;udl.h&quot;
+ 
+ #include &quot;platform_conf.h&quot;
+ #ifdef BUILD_SHELL
+@@ -54,6 +55,7 @@
+   printf( &quot;  lua [args]  - run Lua with the given arguments\n&quot; );
+   printf( &quot;  recv        - receive a file via XMODEM and execute it\n&quot; );
+   printf( &quot;  ver         - print eLua version\n&quot; );
++  printf( &quot;  modtest     - loadable modules test\n&quot; );
+ }
+ 
+ // 'lua' handler
+@@ -234,6 +236,27 @@
+       printf( &quot;Usage: cat (or type) &lt;filename1&gt; [&lt;filename2&gt; ...]\n&quot; );
+ }    
+ 
++// 'modtest' handler
++typedef int( *pp )();
++static void shell_modtest( char *args )
++{
++/*  u32 addr;
++  unsigned i;
++
++  udl_load( &quot;/rom/testmod.bin&quot; );
++  addr = udl_find_symbol( &quot;test&quot;, &quot;udl_init_module&quot; );
++  printf( &quot;Function found at address %08X\n&quot;, addr );
++  pp p = ( pp )( addr | 1 );
++  p();
++
++  printf( &quot;\n&quot; );
++
++  addr = udl_find_symbol( &quot;test&quot;, &quot;module_test1&quot; );
++  printf( &quot;Function found at address %08X\n&quot;, addr );
++  p = ( pp )( addr | 1 );
++  p();*/
++}
++
+ // Insert shell commands here
+ static const SHELL_COMMAND shell_commands[] =
+ {
+@@ -246,6 +269,7 @@
+   { &quot;dir&quot;, shell_ls },
+   { &quot;cat&quot;, shell_cat },
+   { &quot;type&quot;, shell_cat },
++  { &quot;modtest&quot;, shell_modtest },
+   { NULL, NULL }
+ };
+ 
+
+Modified: branches/dl/src/udl.c
+===================================================================
+--- branches/dl/src/udl.c	2010-11-24 23:47:53 UTC (rev 838)
++++ branches/dl/src/udl.c	2010-11-28 01:14:05 UTC (rev 839)
+@@ -5,22 +5,231 @@
+ 
+ #include &quot;udl.h&quot;
+ #include &quot;type.h&quot;
++#include &lt;string.h&gt;
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
+ 
+ // ***************************************************************************
+ // Internal data structures and variables
+ 
++#define UDL_NAME_OFFSET       8
++
+ typedef struct
+ {
+-  const char* pname;
+-  u32 loadaddr;
++  char *data;
++  const char* psymtable;
++  u32 offset, total;
+ } udl_module_data;
+ 
+ static udl_module_data udl_modules[ UDL_MAX_MODULES ];
+ extern u32 udl_functable[];
+ 
++#define UDL_DEBUG
++
++#ifdef UDL_DEBUG
++#define udl_debug printf
++#else
++#define udl_debug dummy
++static void dummy( const char* p, ... )
++{
++}
++#endif
++
++// Find a free slot
++static int udlh_find_slot()
++{
++  unsigned i;
++
++  for( i = 0; i &lt; UDL_MAX_MODULES; i ++ )
++    if( udl_modules[ i ].data == NULL )
++      return i;
++  return -1;      
++}
++
++// Free a slot
++static void udlh_free_slot( unsigned i )
++{
++  if( udl_modules[ i ].data )
++  {
++    free( udl_modules[ i ].data );
++    udl_modules[ i ].data = NULL;
++    udl_modules[ i ].total = 0;
++  }
++}
++
++// ****************************************************************************
++// Public interface
++
++int udl_load( const char *pname )
++{
++  FILE *fp;
++  long size;
++  char *pdata, *orig;
++  int id;
++  udl_module_data *m;
++  u32 temp;
++
++  udl_debug( &quot;Loading module %s\n&quot;, pname );
++
++  // Find a free slot
++  if( ( id = udlh_find_slot() ) == -1 )
++  {
++    udl_debug( &quot;No slots available\n&quot; );
++    return UDL_NO_SLOTS;
++  }
++  udl_debug( &quot;Will read module on slot %d\n&quot;, id );
++  m = udl_modules + id;
++
++  // Read module from file
++  // [UDLTODO] pseudo-mmap for XIP!
++  fp = fopen( pname, &quot;rb&quot; );
++  fseek( fp, 0, SEEK_END );
++  size = ftell( fp );
++  fseek( fp, 0, SEEK_SET );
++  if( ( pdata = ( char* )malloc( size ) ) == NULL )
++  {
++    udl_debug( &quot;Not enough memory\n&quot; );
++    return UDL_OUT_OF_MEMORY;
++  }
++  fread( pdata, size, 1, fp );
++  fclose( fp );
++  orig = pdata;
++  m-&gt;data = pdata;
++  m-&gt;total = size;
++  udl_debug( &quot;Memory range: %08X to %08X\n&quot;, ( unsigned int )pdata, ( unsigned int )pdata + size );
++  
++  // Check if the module is valid
++  temp = *( u32* )pdata;
++  if( temp != UDL_MOD_SIGN )
++  {
++    udl_debug( &quot;Invalid module signature\n&quot; );
++    return UDL_INVALID_MODULE;
++  }
++  udl_debug( &quot;Got signature\n&quot; );
++
++  // Read program offset
++  pdata += 4;
++  temp = *( u32 *)pdata;
++  udl_debug( &quot;Got program offset %08X\n&quot;, ( unsigned )temp );
++  m-&gt;offset = temp;
++
++  // Read module name
++  pdata += 4;
++  udl_debug( &quot;Module name is %s\n&quot;, pdata );
++  pdata += strlen( pdata ) + 1;
++  m-&gt;psymtable = pdata;
++
++#ifdef UDL_DEBUG 
++  // Dump symbol table
++  printf( &quot;Symbol table: \n&quot; );
++  while( 1 )
++  {
++    if( *pdata == '\0' )
++    {
++      pdata ++;
++      break;
++    }
++    printf( &quot;  name: %s\t\t &quot;, pdata );
++    pdata += strlen( pdata ) + 1;
++    pdata = ( char* )( ( ( u32 )pdata + 3 ) &amp; ~3 );
++    printf( &quot;offset: %08X\n&quot;, ( unsigned )*( u32* )pdata );
++    pdata += 4;
++  }
++  pdata = ( char* )( ( ( u32 )pdata + 3 ) &amp; ~3 );
++  printf( &quot;Offset of binary image: %d\n&quot;, pdata - orig );
++#endif
++
++  return UDL_OK;
++}
++
++int udl_get_id( u32 pc )
++{
++  unsigned i;
++  udl_module_data *m;
++
++  //udl_debug( &quot;udl_get_id with pc=%08X\n&quot;, pc );
++  for( i = 0; i &lt; UDL_MAX_MODULES; i ++ )
++  {
++    m = udl_modules + i;
++    if( ( u32 )m-&gt;data &lt; pc &amp;&amp; pc &lt; ( u32 )m-&gt;data + m-&gt;total )
++      return i;
++  }
++  //udl_debug( &quot;Unable to find an ID\n&quot; );
++  return -1;
++}
++
++u32 udl_get_offset( int id )
++{
++  udl_module_data *m = udl_modules + id;
++
++  udl_debug( &quot;udl_get_offset with id %d: %08X\n&quot;, id, ( u32 )m-&gt;data + m-&gt;offset );
++  return ( u32 )m-&gt;data + m-&gt;offset;
++}
++
++/*u32 udl_find_symbol( const char *pname, const char *symname )
++{
++  unsigned i;
++  udl_module_data *m;
++  const char *p;
++  int found = 0;
++
++  for( i = 0; i &lt; UDL_MAX_MODULES; i ++ )
++  {
++    m = udl_modules + i;
++    if( m-&gt;data &amp;&amp; !strcmp( pname, ( const char *)m-&gt;data + UDL_NAME_OFFSET ) )
++    {
++      p = m-&gt;psymtable;
++      while( 1 )
++      {
++        if( *p == '\0' )
++          return 0;
++        found = !strcmp( p, symname );
++        p += strlen( p ) + 1;
++        p = ( const char* )( ( ( u32 )p + 3 ) &amp; ~3 );
++        if( found )
++          return *( u32* )p + udl_get_offset( i );
++        p += 4;
++      }
++    }
++  }
++  return 0;
++}*/
++
++u32 udl_find_symbol( int id, const char *symname )
++{
++  int found = 0;
++  udl_module_data *m = udl_modules + id;
++  const char *p;
++
++  if( m-&gt;data == 0 )
++    return 0;
++  p = m-&gt;psymtable;
++  while( 1 )
++  {
++    if( *p == '\0' )
++      return 0;
++    found = !strcmp( p, symname );
++    p += strlen( p ) + 1;
++    p = ( const char* )( ( ( u32 )p + 3 ) &amp; ~3 );
++    if( found )
++      return *( u32* )p + udl_get_offset( id );
++    p += 4;
++  }
++  return 0;
++}
++
++int udl_unload( int id )
++{
++  udl_debug( &quot;udl_unload called for id=%d\n&quot;, id );
++  udlh_free_slot( id );
++  return UDL_OK;
++}
++
+ void udl_init()
+ {
+-  *( u32 *)UDL_FTABLE_ADDRESS = ( u32 )udl_functable;
++  *( u32* )UDL_FTABLE_ADDRESS = ( u32 )udl_functable;
++  *( u32* )( UDL_FTABLE_ADDRESS + 4 ) = ( u32 )udl_get_id;
++  *( u32* )( UDL_FTABLE_ADDRESS + 8 ) = ( u32 )udl_get_offset;
+ }
+ 
+ // Loookup a symbol in the eLua symbol table
+@@ -40,5 +249,10 @@
+ {
+ }
+ 
++int udl_load( const char *pname )
++{
++  return UDL_NOT_IMPLEMENTED;
++}
++
+ #endif // #ifdef BUILD_UDL
+ 
+
+Added: branches/dl/testmod/compcmd
+===================================================================
+--- branches/dl/testmod/compcmd	                        (rev 0)
++++ branches/dl/testmod/compcmd	2010-11-28 01:14:05 UTC (rev 839)
+@@ -0,0 +1,15 @@
++#!/bin/bash
++
++arm-none-eabi-gcc -o test.o -c -mcpu=cortex-m3 -mthumb -Os -fomit-frame-pointer -ffunction-sections -fdata-sections -fno-strict-aliasing -Wall -DLUA_OPTIMIZE_MEMORY=2 -D__BUFSIZ__=128 -Dgcc -I../inc -I../inc/newlib -I../inc/remotefs -I../src/platform -I../src/lua -I../src/modules -I../src/platform/str9 -I../src/uip -I../src/fatfs testmod.c
++
++arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -x assembler-with-cpp -ffunction-sections -fdata-sections -c -Wall -Dgcc -o cortex_m3_stubs.o ../cortex_m3_stubs.s
++arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -x assembler-with-cpp -ffunction-sections -fdata-sections -c -Wall -Dgcc -o udl_get_id.o udl_get_id.s
++
++arm-none-eabi-gcc -o testmod.elf -mcpu=cortex-m3 -mthumb -Wl,-e,0 -Wl,-static -nostartfiles -nostdlib -T linker.ld -Wl,--gc-sections -Wl,--allow-multiple-definition test.o cortex_m3_stubs.o udl_get_id.o -lc -lgcc -lm
++
++arm-none-eabi-objcopy -O binary testmod.elf udlimage.bin
++
++lua mkmod.lua
++
++cp testmod.ebm ../romfs
++
+
+
+Property changes on: branches/dl/testmod/compcmd
+___________________________________________________________________
+Added: svn:executable
+   + *
+
+Added: branches/dl/testmod/linker.ld
+===================================================================
+--- branches/dl/testmod/linker.ld	                        (rev 0)
++++ branches/dl/testmod/linker.ld	2010-11-28 01:14:05 UTC (rev 839)
+@@ -0,0 +1,17 @@
++MEMORY
++{
++    flash (RX) : ORIGIN = 0x0, LENGTH = 1M
++}
++
++SECTIONS
++{  
++    .text :
++    {
++        . = ALIGN(4);
++        KEEP(*(.modtext .modtext.*))
++        *(.text .text.*)
++        *(.rodata .rodata.*)    
++        . = ALIGN(4);
++    } &gt;flash
++}
++
+
+Added: branches/dl/testmod/mkmod.lua
+===================================================================
+--- branches/dl/testmod/mkmod.lua	                        (rev 0)
++++ branches/dl/testmod/mkmod.lua	2010-11-28 01:14:05 UTC (rev 839)
+@@ -0,0 +1,61 @@
++require &quot;pack&quot;
++
++local big_endian = false
++local modname = &quot;test&quot;
++
++local sign = 0x15AF29C8
++
++local function put_number( n )
++  return big_endian and string.pack( &quot;&gt;I&quot;, n ) or string.pack( &quot;&lt;I&quot;, n )
++end
++
++package.path = &quot;../?.lua;&quot; .. package.path
++
++local p = require( &quot;dynld.gcc_symbol_parser&quot; )
++local parser = p.new( &quot;testmod.elf&quot; )
++
++-- Build a list of all the exported symbols
++local f = io.open( &quot;../dynld/symbol_list&quot;, &quot;rb&quot; )
++local implist = {}
++for l in f:lines() do
++  local l2 = l:gsub( &quot;%s+&quot;, &quot;&quot; )
++  if #l2 &gt; 1 and not l2:match( &quot;^//&quot; ) then
++   if l2:sub( 1, 1 ) == '!' then l2 = l2:sub( 2 ) end
++   implist[ l2 ] = true
++  end
++end  
++f:close()
++
++-- Write module name
++local mod = modname .. &quot;\0&quot;
++
++-- Write symbol table
++for k, v in parser:iter() do 
++  local name, address, isfunction, isglobal = unpack( v )
++  if isfunction and isglobal and not implist[ name ] and name:find( &quot;udl_&quot; ) ~= 1 then
++    mod = mod .. name .. &quot;\0&quot;
++    while #mod % 4 ~= 0 do mod = mod .. &quot;\0&quot; end
++    mod = mod .. put_number( address )
++    print( string.format( &quot;Added %s at offset %08X to symbol table&quot;, name, address ) )
++  end
++end
++-- Write final '\0'
++mod = mod .. &quot;\0&quot;
++
++-- Align to 4 bytes
++while #mod % 4 ~= 0 do mod = mod .. &quot;\0&quot; end
++
++-- Get back and write signature and offset
++mod = put_number( sign ) .. put_number( #mod + 8 ) .. mod
++
++-- Append binary image
++f = io.open( &quot;udlimage.bin&quot;, &quot;rb&quot; )
++mod = mod .. f:read( &quot;*a&quot; )
++f:close()
++
++-- Write it to file
++local outf = io.open( &quot;testmod.ebm&quot;, &quot;wb&quot; )
++outf:write( mod )
++outf:close()
++print( string.format( &quot;Module saved to testmod.ebm, size is %d bytes&quot;, #mod ) )
++
+
+Added: branches/dl/testmod/testmod.c
+===================================================================
+--- branches/dl/testmod/testmod.c	                        (rev 0)
++++ branches/dl/testmod/testmod.c	2010-11-28 01:14:05 UTC (rev 839)
+@@ -0,0 +1,44 @@
++// eLua dynamic loader test module
++
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &quot;lua.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;type.h&quot;
++
++#define UDL_MODNAME           &quot;test&quot;
++
++typedef u32 ( *p_udl_get_offset )( int );
++extern int udl_get_id();
++#define UDL_MOD_FUNC          __attribute__ ((section(&quot;.modtext&quot;)))
++#define UDL_PTR( x )          ( ( x ) + udl_get_offset( udl_id ) )
++#define UDL_FUNC_PTR( x )     ( ( u32 )( x ) + udl_get_offset( udl_id ) + 1 )
++#define UDL_DECL_ID           int udl_id = udl_get_id()
++#define UDL_DECL_GET_OFFSET   p_udl_get_offset udl_get_offset = ( p_udl_get_offset )*( u32* )0x20000008
++#define UDL_FUNC_DECL\
++  int udl_id = udl_get_id();\
++  p_udl_get_offset udl_get_offset = ( p_udl_get_offset )*( u32* )0x20000008
++
++UDL_MOD_FUNC static int test_func( lua_State *L )
++{
++  UDL_FUNC_DECL;
++  const char *parg = luaL_checkstring( L, 1 );
++
++  printf( UDL_PTR( &quot;Called with argument '%s'\n&quot; ), parg );
++  lua_pushinteger( L, 666 );
++  return 1;
++}
++
++UDL_MOD_FUNC int luaopen_testmod( lua_State *L )
++{
++  UDL_FUNC_DECL;
++  struct luaL_Reg ftable[ 2 ];
++
++  printf( UDL_PTR( &quot;luaopen_testmod called: func offset is %08X, full ptr is %08X\n&quot; ), ( u32 )test_func, UDL_PTR( test_func ) );
++  ftable[ 0 ].name = UDL_PTR( &quot;testfunc&quot; );
++  ftable[ 0 ].func = ( lua_CFunction )UDL_PTR( test_func );
++  ftable[ 1 ].name = ftable[ 1 ].func = NULL;
++  luaL_register( L, UDL_PTR( UDL_MODNAME ), ftable );
++  return 1;
++}
++
+
+Added: branches/dl/testmod/testmod.c.old
+===================================================================
+--- branches/dl/testmod/testmod.c.old	                        (rev 0)
++++ branches/dl/testmod/testmod.c.old	2010-11-28 01:14:05 UTC (rev 839)
+@@ -0,0 +1,36 @@
++// eLua dynamic loader test module
++
++#include &lt;stdio.h&gt;
++#include &lt;stdlib.h&gt;
++#include &quot;type.h&quot;
++
++#define UDL_MODNAME           &quot;test&quot;
++#define UDL_MOD_FUNC          __attribute__ ((section(&quot;.modtext&quot;)))
++
++typedef u32 ( *p_udl_get_offset )( int );
++#define UDL_DECL_ID           int udl_id = udl_get_id()
++#define UDL_DECL_GET_OFFSET   p_udl_get_offset udl_get_offset = ( p_udl_get_offset )*( u32* )0x20000008
++#defome UDL_PTR( x )          ( ( x ) + udl_get_offset( udl_id ) )
++
++extern int udl_get_id();
++
++UDL_MOD_FUNC int udl_init_module()
++{
++  UDL_DECL_ID;
++  UDL_DECL_GET_OFFSET;
++
++  printf( &quot;module_init() called for id=%d\n&quot; + udl_get_offset( id ), id );
++  return 1;
++}
++
++UDL_MOD_FUNC void module_test1()
++{
++  UDL_DECL_ID;
++  UDL_DECL_GET_OFFSET;
++  int i;
++
++  printf( &quot;module_test1 function\n&quot; + udl_get_offset( id ) );
++  for( i = 0; i &lt; 20; i ++ )
++    printf( &quot;%d id = %d\n&quot; + udl_get_offset( id ), i, id );
++}
++
+
+Added: branches/dl/testmod/udl_get_id.s
+===================================================================
+--- branches/dl/testmod/udl_get_id.s	                        (rev 0)
++++ branches/dl/testmod/udl_get_id.s	2010-11-28 01:14:05 UTC (rev 839)
+@@ -0,0 +1,21 @@
++// Cortex M3 'get id' function
++
++#define UDL_GETID_ADDRESS     0x20000004
++
++  .section    .text
++  .align      2
++  .thumb
++  .syntax     unified
++  .global     udl_get_id
++  .thumb_func
++
++udl_get_id:
++  push        {lr}
++  ldr         r1, =UDL_GETID_ADDRESS
++  ldr         r1, [r1]
++  mov         r0, pc
++  blx         r1
++  pop         {pc}
++
++  .end
++  
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000791.html">[Elua-svn] r838 - in branches/dl: . dynld src src/modules	src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000793.html">[Elua-svn] r840 - in branches/dl: . inc src src/lua src/modules	testmod
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#792">[ date ]</a>
+              <a href="thread.html#792">[ thread ]</a>
+              <a href="subject.html#792">[ subject ]</a>
+              <a href="author.html#792">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

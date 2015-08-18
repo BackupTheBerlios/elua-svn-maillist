@@ -1,0 +1,344 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r113 - in trunk: . inc romfs src src/platform/i386
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r113%20-%20in%20trunk%3A%20.%20inc%20romfs%20src%20src/platform/i386&In-Reply-To=%3C200811011832.mA1IWbpw009233%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000070.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r113 - in trunk: . inc romfs src src/platform/i386</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r113%20-%20in%20trunk%3A%20.%20inc%20romfs%20src%20src/platform/i386&In-Reply-To=%3C200811011832.mA1IWbpw009233%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r113 - in trunk: . inc romfs src src/platform/i386">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sat Nov  1 19:32:37 CET 2008</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000070.html">[Elua-svn] r114 - tags
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#69">[ date ]</a>
+              <a href="thread.html#69">[ thread ]</a>
+              <a href="subject.html#69">[ subject ]</a>
+              <a href="author.html#69">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-11-01 19:32:37 +0100 (Sat, 01 Nov 2008)
+New Revision: 113
+
+Added:
+   trunk/src/platform/i386/platform_conf.h
+Removed:
+   trunk/src/platform/i386/build.h
+   trunk/src/platform/i386/platform_libs.h
+Modified:
+   trunk/CHANGELOG
+   trunk/inc/version.h
+   trunk/romfs/led.lua
+   trunk/romfs/lhttpd.lua
+   trunk/romfs/morse.lua
+   trunk/src/main.c
+Log:
+ready for 0.5
+
+Modified: trunk/CHANGELOG
+===================================================================
+--- trunk/CHANGELOG	2008-10-31 21:32:15 UTC (rev 112)
++++ trunk/CHANGELOG	2008-11-01 18:32:37 UTC (rev 113)
+@@ -1,3 +1,22 @@
++01.11.2008 Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdanm at users.berlios.de</A>&gt;
++           Dado Sutter &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">dadosutter at esp.puc-rio.br</A>&gt; 
++
++  * Official release 0.5
++  * Added support for STR7 CPUs from ST (bogdanm)
++  * Added TCP/IP support using the uIP stack (bogdanm)
++  * Added support for console and shell over TCP/IP instead of serial link
++    (bogdanm)
++  * Added the &quot;net&quot; module (eLua's interface to TCP/IP functions) (bogdanm)
++  * Added the &quot;cpu&quot; module (eLua's interface to the target CPU) (bogdanm)
++  * New samples: morse.lua (Morse code encoder) (dado), lhttpd.lua
++    (Lua scripting HTTP server) (bogdanm)
++  * Added support for cross-compiling Lua code (compile on PC, run on target)
++    (bogdanm)
++  * XMODEM can now receive Lua bytecode in addition to Lua source code (bogdanm)
++  * The XMODEM buffer is now dynamic (grows as needed) instead of fixed size
++    (bogdanm)
++  * Project documentation updated (bogdanm)
++
+ 10.09.2008 Bogdan Marinescu &lt;<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">bogdanm at users.berlios.de</A>&gt;
+ 
+   * Minor release 0.4.1; its main purpose is to integrate the new Lua 5.1.4
+
+Modified: trunk/inc/version.h
+===================================================================
+--- trunk/inc/version.h	2008-10-31 21:32:15 UTC (rev 112)
++++ trunk/inc/version.h	2008-11-01 18:32:37 UTC (rev 113)
+@@ -3,7 +3,7 @@
+ #ifndef __VERSION_H__
+ #define __VERSION_H__
+ 
+-#define     ELUA_VERSION          0.4.1
+-#define     ELUA_STR_VERSION      &quot;0.4.1&quot;
++#define     ELUA_VERSION          0.5
++#define     ELUA_STR_VERSION      &quot;0.5&quot;
+ 
+ #endif
+
+Modified: trunk/romfs/led.lua
+===================================================================
+--- trunk/romfs/led.lua	2008-10-31 21:32:15 UTC (rev 112)
++++ trunk/romfs/led.lua	2008-11-01 18:32:37 UTC (rev 113)
+@@ -1,5 +1,6 @@
+ -- eLua test 
+ 
++local uartid = 0
+ if pd.board() == &quot;SAM7-EX256&quot; then
+   ledpin = pio.PB_20
+ elseif pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
+@@ -8,6 +9,9 @@
+   ledpin = pio.P9_0
+ elseif pd.board() == &quot;LPC-H2888&quot; then
+   ledpin = pio.P2_1
++elseif pd.board() == &quot;MOD711&quot; then
++  ledpin = pio.P1_7
++  uartid = 1
+ else
+   print( &quot;\nError: Unknown board &quot; .. pd.board() .. &quot; !&quot; )
+   return
+@@ -25,6 +29,6 @@
+ print &quot;Watch your LED blinking :)&quot;
+ print &quot;Press any key to end this demo.\n&quot;
+ 
+-while uart.recv( 0, 0, 0 ) &lt; 0 do
++while uart.recv( uartid, 0, 0 ) &lt; 0 do
+   cycle()
+ end
+
+Modified: trunk/romfs/lhttpd.lua
+===================================================================
+--- trunk/romfs/lhttpd.lua	2008-10-31 21:32:15 UTC (rev 112)
++++ trunk/romfs/lhttpd.lua	2008-11-01 18:32:37 UTC (rev 113)
+@@ -1,3 +1,9 @@
++-- Check platform
++if pd.board() ~= 'EK-LM3S8962' and pd.board() ~= 'EK-LM3S6965' then
++  print( pd.board() .. &quot; not supported by this example&quot; )
++  return
++end
++
+ -- Mapping between file extension (and request) and HTTP response
+ local extmap = {
+   txt = &quot;text/plain&quot;,
+
+Modified: trunk/romfs/morse.lua
+===================================================================
+--- trunk/romfs/morse.lua	2008-10-31 21:32:15 UTC (rev 112)
++++ trunk/romfs/morse.lua	2008-11-01 18:32:37 UTC (rev 113)
+@@ -4,14 +4,22 @@
+ -- Dado Sutter         sep 2008
+ -------------------------------------------------------------------------------
+ 
++local pwmid, tmrid, ledpin
++if pd.board() == &quot;EK-LM3S8962&quot; or pd.board() == &quot;EK-LM3S6965&quot; then
++  pwmid, tmrid, ledpin = 1, 1, pio.PF_0
++elseif pd.board() == &quot;SAM7-EX256&quot; then
++  pwmid, tmrid, ledpin = 0, 1, pio.PB_20
++  tmr.setclock( 1, 100000 )
++else
++  print( pd.board() .. &quot; not supported with this example&quot; )
++  return
++end
++
+ ------------ User Adjusted Variables ------------
+ 
+ local dotDelay, playFreq, playFreqSave = 90000, 880, 880
+ local freqStep, dotDelayStep = 220, 10000
+ 
+------------- Program Variables ------------
+-local pwmid, ledpin= 1, pio.PF_0
+-
+ -- Morse Alphabet
+ local Morse = {
+   A='.-',
+@@ -47,14 +55,14 @@
+ local function play(m)
+   term.putstr(m)
+   if m == ' ' then
+-    tmr.delay(0, 2 * dotDelay)
++    tmr.delay(tmrid, 2 * dotDelay)
+   else
+     pio.set(ledpin)
+     pwm.start(pwmid)
+-    tmr.delay(0, m == '.' and dotDelay or 3 * dotDelay)
++    tmr.delay(tmrid, m == '.' and dotDelay or 3 * dotDelay)
+     pwm.stop(pwmid)
+     pio.clear(ledpin)
+-    tmr.delay(0, dotDelay)
++    tmr.delay(tmrid, dotDelay)
+   end
+ end
+ 
+
+Modified: trunk/src/main.c
+===================================================================
+--- trunk/src/main.c	2008-10-31 21:32:15 UTC (rev 112)
++++ trunk/src/main.c	2008-11-01 18:32:37 UTC (rev 113)
+@@ -32,19 +32,6 @@
+   return platform_uart_recv( XMODEM_UART_ID, XMODEM_TIMER_ID, timeout );
+ }
+ 
+-#else // #ifdef BUILD_XMODEM
+-
+-static void xmodem_send( u8 data )
+-{
+-  data = data;
+-}
+-
+-static int xmodem_recv( u32 timeout )
+-{
+-  timeout = timeout;
+-  return -1;
+-}
+-
+ #endif // #ifdef BUILD_XMODEM
+ 
+ // ****************************************************************************
+@@ -119,25 +106,6 @@
+   return KC_UNKNOWN;
+ }
+ 
+-#else // #ifdef BUILD_TERM
+-
+-static void term_out( u8 data )
+-{
+-  data = data;
+-}
+-
+-static int term_in( int mode )
+-{
+-  mode = mode;
+-  return -1;
+-}
+-
+-static int term_translate( u8 data )
+-{
+-  data = data;
+-  return -1;
+-}
+-
+ #endif // #ifdef BUILD_TERM
+ 
+ // ****************************************************************************
+@@ -159,12 +127,16 @@
+   
+   // Register the ROM filesystem
+   dm_register( romfs_init() );  
+-  
++
++#ifdef BUILD_XMODEM  
+   // Initialize XMODEM
+   xmodem_init( xmodem_send, xmodem_recv );    
+-  
++#endif
++
++#ifdef BUILD_TERM  
+   // Initialize terminal
+   term_init( TERM_LINES, TERM_COLS, term_out, term_in, term_translate );
++#endif
+ 
+   // Autorun: if &quot;autorun.lua&quot; is found in the ROM file system, run it first
+   if( ( fp = fopen( &quot;/rom/autorun.lua&quot;, &quot;r&quot; ) ) != NULL )
+
+Deleted: trunk/src/platform/i386/build.h
+===================================================================
+--- trunk/src/platform/i386/build.h	2008-10-31 21:32:15 UTC (rev 112)
++++ trunk/src/platform/i386/build.h	2008-11-01 18:32:37 UTC (rev 113)
+@@ -1,10 +0,0 @@
+-// Define here what components you want for this platform
+-
+-#ifndef __BUILD_H__
+-#define __BUILD_H__
+-
+-#define BUILD_ROMFS
+-#define BUILD_SHELL
+-#define BUILD_CON_GENERIC
+-
+-#endif
+
+Added: trunk/src/platform/i386/platform_conf.h
+===================================================================
+--- trunk/src/platform/i386/platform_conf.h	2008-10-31 21:32:15 UTC (rev 112)
++++ trunk/src/platform/i386/platform_conf.h	2008-11-01 18:32:37 UTC (rev 113)
+@@ -0,0 +1,22 @@
++// eLua platform configuration
++
++#ifndef __PLATFORM_CONF_H__
++#define __PLATFORM_CONF_H__
++
++#include &quot;auxmods.h&quot;
++
++// *****************************************************************************
++// Define here what components you want for this platform
++
++#define BUILD_SHELL
++#define BUILD_ROMFS
++#define BUILD_CON_GENERIC
++
++// *****************************************************************************
++// Auxiliary libraries that will be compiled for this platform
++
++#define LUA_PLATFORM_LIBS\
++  { AUXLIB_PD, luaopen_pd },\
++  { LUA_MATHLIBNAME, luaopen_math }
++  
++#endif // #ifndef __PLATFORM_CONF_H__
+
+Deleted: trunk/src/platform/i386/platform_libs.h
+===================================================================
+--- trunk/src/platform/i386/platform_libs.h	2008-10-31 21:32:15 UTC (rev 112)
++++ trunk/src/platform/i386/platform_libs.h	2008-11-01 18:32:37 UTC (rev 113)
+@@ -1,9 +0,0 @@
+-// Auxiliary libraries that will be compiled for this platform
+-
+-#ifndef __PLATFORM_LIBS_H__
+-#define __PLATFORM_LIBS_H__
+-
+-#define LUA_PLATFORM_LIBS\
+-  { LUA_MATHLIBNAME, luaopen_math }
+-  
+-#endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000070.html">[Elua-svn] r114 - tags
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#69">[ date ]</a>
+              <a href="thread.html#69">[ thread ]</a>
+              <a href="subject.html#69">[ subject ]</a>
+              <a href="author.html#69">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

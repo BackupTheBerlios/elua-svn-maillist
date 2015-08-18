@@ -1,0 +1,451 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r876 - in trunk: inc src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r876%20-%20in%20trunk%3A%20inc%20src/platform/str9&In-Reply-To=%3C20110105203227.03CA548088B%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000828.html">
+   <LINK REL="Next"  HREF="000830.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r876 - in trunk: inc src/platform/str9</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r876%20-%20in%20trunk%3A%20inc%20src/platform/str9&In-Reply-To=%3C20110105203227.03CA548088B%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r876 - in trunk: inc src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Wed Jan  5 21:32:26 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000828.html">[Elua-svn] r875 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000830.html">[Elua-svn] r877 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#829">[ date ]</a>
+              <a href="thread.html#829">[ thread ]</a>
+              <a href="subject.html#829">[ subject ]</a>
+              <a href="author.html#829">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-01-05 21:32:26 +0100 (Wed, 05 Jan 2011)
+New Revision: 876
+
+Modified:
+   trunk/inc/platform.h
+   trunk/src/platform/str9/platform.c
+   trunk/src/platform/str9/platform_conf.h
+   trunk/src/platform/str9/platform_int.c
+Log:
+INT_TMR_MATCH support for STR9 platforms, so far tested ONLY on virtual timers. Note that if a physical timer is allocated to virtual timers it can't be the target of INT_TMR_MATCH
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2011-01-05 15:54:19 UTC (rev 875)
++++ trunk/inc/platform.h	2011-01-05 20:32:26 UTC (rev 876)
+@@ -159,7 +159,8 @@
+ // Match interrupt error codes
+ #define PLATFORM_TIMER_INT_OK                 0
+ #define PLATFORM_TIMER_INT_TOO_SHORT          1
+-#define PLATFORM_TIMER_INT_INVALID_ID         2  
++#define PLATFORM_TIMER_INT_TOO_LONG           2
++#define PLATFORM_TIMER_INT_INVALID_ID         3  
+ 
+ // Timer operations
+ enum
+
+Modified: trunk/src/platform/str9/platform.c
+===================================================================
+--- trunk/src/platform/str9/platform.c	2011-01-05 15:54:19 UTC (rev 875)
++++ trunk/src/platform/str9/platform.c	2011-01-05 20:32:26 UTC (rev 876)
+@@ -28,7 +28,7 @@
+ // ****************************************************************************
+ // Platform initialization
+ const GPIO_TypeDef* port_data[] = { GPIO0, GPIO1, GPIO2, GPIO3, GPIO4, GPIO5, GPIO6, GPIO7, GPIO8, GPIO9 };
+-static const TIM_TypeDef* timer_data[] = { TIM0, TIM1, TIM2, TIM3 };
++const TIM_TypeDef* str9_timer_data[] = { TIM0, TIM1, TIM2, TIM3 };
+ 
+ static void platform_setup_adcs();
+ 
+@@ -122,9 +122,6 @@
+         
+   // System configuration
+   platform_config_scu();
+-
+-  // Initialize interrupt subsystem
+-  platform_int_init();
+   
+   // PIO setup
+   for( i = 0; i &lt; 10; i ++ )
+@@ -135,9 +132,9 @@
+   platform_uart_setup( CON_UART_ID, CON_UART_SPEED, 8, PLATFORM_UART_PARITY_NONE, PLATFORM_UART_STOPBITS_1 );
+ 
+   // Initialize timers
+-  for( i = 0; i &lt; 4; i ++ )
++  for( i = 0; i &lt; NUM_PHYS_TIMER; i ++ )
+   {
+-    base = ( TIM_TypeDef* )timer_data[ i ];
++    base = ( TIM_TypeDef* )str9_timer_data[ i ];
+     TIM_DeInit( base );
+     TIM_StructInit( &amp;tim );
+     tim.TIM_Clock_Source = TIM_CLK_APB;
+@@ -152,7 +149,9 @@
+ #endif
+   
+   cmn_platform_init();
+-
++#ifdef VTMR_TIMER_ID
++  platform_s_timer_set_match_int( VTMR_TIMER_ID, 1000000 / VTMR_FREQ_HZ, PLATFORM_TIMER_INT_CYCLIC );
++#endif
+   return PLATFORM_OK;
+ }
+ 
+@@ -290,17 +289,19 @@
+ // ****************************************************************************
+ // Timer
+ 
++u8 str9_timer_int_periodic_flag[ NUM_PHYS_TIMER ];
++
+ // Helper: get timer clock
+ static u32 platform_timer_get_clock( unsigned id )
+ {
+-  return ( SCU_GetPCLKFreqValue() * 1000 ) / ( TIM_GetPrescalerValue( ( TIM_TypeDef* )timer_data[ id ] ) + 1 );
++  return ( SCU_GetPCLKFreqValue() * 1000 ) / ( TIM_GetPrescalerValue( ( TIM_TypeDef* )str9_timer_data[ id ] ) + 1 );
+ }
+ 
+ // Helper: set timer clock
+ static u32 platform_timer_set_clock( unsigned id, u32 clock )
+ {
+   u32 baseclk = SCU_GetPCLKFreqValue() * 1000;
+-  TIM_TypeDef* base = ( TIM_TypeDef* )timer_data[ id ];      
++  TIM_TypeDef* base = ( TIM_TypeDef* )str9_timer_data[ id ];      
+   u64 bestdiv;
+   
+   bestdiv = ( ( u64 )baseclk &lt;&lt; 16 ) / clock;
+@@ -315,7 +316,7 @@
+ 
+ void platform_s_timer_delay( unsigned id, u32 delay_us )
+ {
+-  TIM_TypeDef* base = ( TIM_TypeDef* )timer_data[ id ];  
++  TIM_TypeDef* base = ( TIM_TypeDef* )str9_timer_data[ id ];  
+   u32 freq;
+   timer_data_type final;
+   
+@@ -337,7 +338,7 @@
+ u32 platform_s_timer_op( unsigned id, int op, u32 data )
+ {
+   u32 res = 0;
+-  TIM_TypeDef* base = ( TIM_TypeDef* )timer_data[ id ];  
++  TIM_TypeDef* base = ( TIM_TypeDef* )str9_timer_data[ id ];  
+ 
+   switch( op )
+   {
+@@ -373,7 +374,43 @@
+ 
+ int platform_s_timer_set_match_int( unsigned id, u32 period_us, int type )
+ {
+-  return PLATFORM_INT_NOT_HANDLED;
++  TIM_TypeDef* base = ( TIM_TypeDef* )str9_timer_data[ id ];  
++  u32 freq;
++  timer_data_type final;
++  TIM_InitTypeDef TIM_InitStructure;
++
++  if( period_us == 0 )
++  {
++    TIM_ITConfig( base, TIM_IT_OC1, DISABLE );
++    base-&gt;CR1 = 0;
++    base-&gt;CR2 = 0;
++    return PLATFORM_TIMER_INT_OK; 
++  }
++  platform_timer_set_clock( id, 1000000 );
++  freq = platform_timer_get_clock( id );
++  final = ( ( u64 )period_us * freq ) / 1000000;
++  if( final == 0 )
++    return PLATFORM_TIMER_INT_TOO_SHORT;
++  if( final &gt; 0xFFFF )
++    return PLATFORM_TIMER_INT_TOO_LONG;
++
++  TIM_CounterCmd( base, TIM_STOP );
++  TIM_StructInit( &amp;TIM_InitStructure );
++  TIM_InitStructure.TIM_Mode = TIM_OCM_CHANNEL_1;                           
++  TIM_InitStructure.TIM_OC1_Modes = TIM_TIMING;               
++  TIM_InitStructure.TIM_Clock_Source = TIM_CLK_APB;         
++  TIM_InitStructure.TIM_Clock_Edge = TIM_CLK_EDGE_FALLING;  
++  TIM_InitStructure.TIM_Prescaler = TIM_GetPrescalerValue( base );
++  TIM_InitStructure.TIM_Pulse_Length_1 = final;          
++  TIM_Init( base, &amp;TIM_InitStructure );
++  str9_timer_int_periodic_flag[ id ] = type;
++
++  TIM_CounterCmd( base, TIM_CLEAR );  
++  TIM_CounterCmd( base, TIM_START );  
++  while( TIM_GetCounterValue( base ) &gt;= 0xFFFC );
++  TIM_ITConfig( base, TIM_IT_OC1, ENABLE );
++
++  return PLATFORM_TIMER_INT_OK;
+ }
+ 
+ // *****************************************************************************
+@@ -588,7 +625,7 @@
+ 
+ u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
+ {
+-  TIM_TypeDef* p_timer = ( TIM_TypeDef* )timer_data[ id ];
++  TIM_TypeDef* p_timer = ( TIM_TypeDef* )str9_timer_data[ id ];
+   u32 base = SCU_GetPCLKFreqValue() * 1000;
+   u32 div = ( base / 256 ) / frequency;
+   TIM_InitTypeDef tim;
+@@ -608,7 +645,7 @@
+ 
+ static u32 platform_pwm_set_clock( unsigned id, u32 clock )
+ {
+-  TIM_TypeDef* p_timer = ( TIM_TypeDef* )timer_data[ id ];
++  TIM_TypeDef* p_timer = ( TIM_TypeDef* )str9_timer_data[ id ];
+   u32 base = ( SCU_GetPCLKFreqValue() * 1000 );
+   u32 div = base / clock;
+ 
+@@ -619,7 +656,7 @@
+ u32 platform_pwm_op( unsigned id, int op, u32 data )
+ {
+   u32 res = 0;
+-  TIM_TypeDef* p_timer = ( TIM_TypeDef* )timer_data[ id ];
++  TIM_TypeDef* p_timer = ( TIM_TypeDef* )str9_timer_data[ id ];
+ 
+   switch( op )
+   {
+
+Modified: trunk/src/platform/str9/platform_conf.h
+===================================================================
+--- trunk/src/platform/str9/platform_conf.h	2011-01-05 15:54:19 UTC (rev 875)
++++ trunk/src/platform/str9/platform_conf.h	2011-01-05 20:32:26 UTC (rev 876)
+@@ -40,19 +40,26 @@
+ // Configuration data
+ 
+ // Virtual timers (0 if not used)
+-#define VTMR_NUM_TIMERS       0
+-#define VTMR_FREQ_HZ          4
++#define VTMR_NUM_TIMERS       4
++#define VTMR_FREQ_HZ          10
++#define VTMR_TIMER_ID         2
+ 
+ // Number of resources (0 if not available/not implemented)
+ #define NUM_PIO               10
+ #define NUM_SPI               0
+ #define NUM_UART              3
+-#define NUM_TIMER             4
+ #define NUM_PWM               4
+ #define NUM_ADC               8
+ #define NUM_CAN               0
+ #define NUM_I2C               2
+ 
++#ifdef VTMR_TIMER_ID
++#define NUM_TIMER             3
++#else
++#define NUM_TIMER             4
++#endif
++#define NUM_PHYS_TIMER        4
++
+ // ADC Configuration Params
+ #define ADC_BIT_RESOLUTION    10
+ #define BUF_ENABLE_ADC
+@@ -131,11 +138,13 @@
+  // Interrupt list
+ #define INT_GPIO_POSEDGE      ELUA_INT_FIRST_ID
+ #define INT_GPIO_NEGEDGE      ( ELUA_INT_FIRST_ID + 1 )
+-#define INT_ELUA_LAST         INT_GPIO_NEGEDGE
++#define INT_TMR_MATCH         ( ELUA_INT_FIRST_ID + 2 )
++#define INT_ELUA_LAST         INT_TMR_MATCH
+ 
+ #define PLATFORM_CPU_CONSTANTS\
+  _C( INT_GPIO_POSEDGE ),\
+- _C( INT_GPIO_NEGEDGE )
++ _C( INT_GPIO_NEGEDGE ),\
++ _C( INT_TMR_MATCH )
+ 
+ #endif // #ifndef __PLATFORM_CONF_H__
+ 
+
+Modified: trunk/src/platform/str9/platform_int.c
+===================================================================
+--- trunk/src/platform/str9/platform_int.c	2011-01-05 15:54:19 UTC (rev 875)
++++ trunk/src/platform/str9/platform_int.c	2011-01-05 20:32:26 UTC (rev 876)
+@@ -9,7 +9,14 @@
+ // Platform-specific headers
+ #include &quot;91x_vic.h&quot;
+ #include &quot;91x_wiu.h&quot;
++#include &quot;91x_tim.h&quot;
+ 
++#include &lt;stdio.h&gt;
++
++#ifndef VTMR_TIMER_ID
++#define VTMR_TIMER_ID         ( -1 )
++#endif
++
+ // ****************************************************************************
+ // Interrupt handlers
+ 
+@@ -45,7 +52,9 @@
+   return ( i &lt;&lt; 3 ) + pin;
+ }
+ 
++// ----------------------------------------------------------------------------
+ // External interrupt handlers
++
+ static void exint_irq_handler( int group )
+ {
+   u32 bmask;
+@@ -68,9 +77,9 @@
+     {
+       // Enqueue interrupt
+       if( tr &amp; bmask )
+-        elua_int_add( INT_GPIO_POSEDGE, exint_src_to_gpio( shift + i ) );
++        cmn_int_handler( INT_GPIO_POSEDGE, exint_src_to_gpio( shift + i ) );
+       else
+-        elua_int_add( INT_GPIO_NEGEDGE, exint_src_to_gpio( shift + i ) );
++        cmn_int_handler( INT_GPIO_NEGEDGE, exint_src_to_gpio( shift + i ) );
+       // Then clear it
+       WIU-&gt;PR  = bmask;
+     }
+@@ -99,6 +108,47 @@
+   exint_irq_handler( 3 );
+ }
+ 
++// ----------------------------------------------------------------------------
++// Timer interrupt handlers
++
++extern TIM_TypeDef* const str9_timer_data[];
++extern u8 str9_timer_int_periodic_flag[ NUM_PHYS_TIMER ];
++
++static void tmr_int_handler( int id )
++{
++  TIM_TypeDef *base = ( TIM_TypeDef* )str9_timer_data[ id ];
++
++  TIM_ClearFlag( base, TIM_FLAG_OC1 );
++  TIM_CounterCmd( base, TIM_CLEAR );
++  if( id == VTMR_TIMER_ID )
++    cmn_virtual_timer_cb();
++  else
++    cmn_int_handler( INT_TMR_MATCH, id );
++  if( str9_timer_int_periodic_flag[ id ] != PLATFORM_TIMER_INT_CYCLIC )
++    TIM_ITConfig( base, TIM_IT_OC1, DISABLE );    
++  VIC0-&gt;VAR = 0xFF;
++}
++
++void TIM0_IRQHandler(void)
++{
++  tmr_int_handler( 0 );
++}
++
++void TIM1_IRQHandler(void)
++{
++  tmr_int_handler( 1 );
++}
++
++void TIM2_IRQHandler(void)
++{
++  tmr_int_handler( 2 );
++}
++
++void TIM3_IRQHandler(void)
++{
++  tmr_int_handler( 3 );
++}
++
+ // ****************************************************************************
+ // GPIO helper functions
+ 
+@@ -206,6 +256,35 @@
+ }
+ 
+ // ****************************************************************************
++// Interrupt: INT_TMR_MATCH
++
++static int int_tmr_match_get_status( elua_int_resnum resnum )
++{
++  TIM_TypeDef *base = ( TIM_TypeDef* )str9_timer_data[ resnum ];
++
++  return ( base-&gt;CR2 &amp; TIM_IT_OC1 ) != 0;
++}
++
++static int int_tmr_match_set_status( elua_int_resnum resnum, int status )
++{
++  int previous = int_tmr_match_get_status( resnum );
++  TIM_TypeDef *base = ( TIM_TypeDef* )str9_timer_data[ resnum ];
++  
++  TIM_ITConfig( base, TIM_IT_OC1, status == PLATFORM_CPU_ENABLE ? ENABLE : DISABLE );
++  return previous;
++}
++
++static int int_tmr_match_get_flag( elua_int_resnum resnum, int clear )
++{
++  TIM_TypeDef *base = ( TIM_TypeDef* )str9_timer_data[ resnum ];
++  int status = TIM_GetFlagStatus( base, TIM_FLAG_OC1 );
++
++  if( clear )
++    TIM_ClearFlag( base, TIM_FLAG_OC1 );
++  return status;
++}
++
++// ****************************************************************************
+ // Interrupt initialization
+ 
+ void platform_int_init()
+@@ -230,6 +309,17 @@
+ 
+   // Enable interrupt generation on WIU
+   WIU-&gt;CTRL |= 2; 
++
++#ifdef INT_TMR_MATCH
++  VIC_Config( TIM0_ITLine, VIC_IRQ, 5 );
++  VIC_Config( TIM1_ITLine, VIC_IRQ, 6 );
++  VIC_Config( TIM2_ITLine, VIC_IRQ, 7 );
++  VIC_Config( TIM3_ITLine, VIC_IRQ, 8 );
++  VIC_ITCmd( TIM0_ITLine, ENABLE );
++  VIC_ITCmd( TIM1_ITLine, ENABLE );
++  VIC_ITCmd( TIM2_ITLine, ENABLE );
++  VIC_ITCmd( TIM3_ITLine, ENABLE );
++#endif
+ }
+ 
+ // ****************************************************************************
+@@ -239,6 +329,7 @@
+ const elua_int_descriptor elua_int_table[ INT_ELUA_LAST ] = 
+ {
+   { int_gpio_posedge_set_status, int_gpio_posedge_get_status, int_gpio_posedge_get_flag },
+-  { int_gpio_negedge_set_status, int_gpio_negedge_get_status, int_gpio_negedge_get_flag }
++  { int_gpio_negedge_set_status, int_gpio_negedge_get_status, int_gpio_negedge_get_flag },
++  { int_tmr_match_set_status, int_tmr_match_get_status, int_tmr_match_get_flag }
+ };
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000828.html">[Elua-svn] r875 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000830.html">[Elua-svn] r877 - trunk
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#829">[ date ]</a>
+              <a href="thread.html#829">[ thread ]</a>
+              <a href="subject.html#829">[ subject ]</a>
+              <a href="author.html#829">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

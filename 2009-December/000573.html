@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r617 - in branches/pre0.7/doc: eluadoc en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r617%20-%20in%20branches/pre0.7/doc%3A%20eluadoc%20en&In-Reply-To=%3C200912261623.nBQGNt8i003402%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000572.html">
+   <LINK REL="Next"  HREF="000574.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r617 - in branches/pre0.7/doc: eluadoc en</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r617%20-%20in%20branches/pre0.7/doc%3A%20eluadoc%20en&In-Reply-To=%3C200912261623.nBQGNt8i003402%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r617 - in branches/pre0.7/doc: eluadoc en">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Sat Dec 26 17:23:55 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000572.html">[Elua-svn] r616 - in branches/pre0.7/src/platform: at91sam7x avr32	lpc288x str7 str9
+</A></li>
+        <LI>Next message: <A HREF="000574.html">[Elua-svn] r618 - in branches/pre0.7: doc/en src src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#573">[ date ]</a>
+              <a href="thread.html#573">[ thread ]</a>
+              <a href="subject.html#573">[ subject ]</a>
+              <a href="author.html#573">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-26 17:23:54 +0100 (Sat, 26 Dec 2009)
+New Revision: 617
+
+Modified:
+   branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua
+   branches/pre0.7/doc/en/building.html
+   branches/pre0.7/doc/en/using.html
+Log:
+Documentation on LuaRPC boot mode.
+
+Modified: branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua
+===================================================================
+--- branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua	2009-12-26 05:11:56 UTC (rev 616)
++++ branches/pre0.7/doc/eluadoc/refman_gen_rpc.lua	2009-12-26 16:23:54 UTC (rev 617)
+@@ -32,6 +32,8 @@
+     &lt;/li&gt;
+   &lt;/ul&gt;
+   &lt;/p&gt;
++  
++  &lt;p&gt;See @using.html#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">rpc at Using</A> eLua@ for a basic tutorial on getting started with the RPC module.&lt;/p&gt;
+ 
+   &lt;p&gt;&lt;span class=&quot;warning&quot;&gt;NOTE&lt;/span&gt;: This module is considered experimental. It currently works over a 
+   serial port with eLua targets and on desktop systems implementing POSIX serial communications (Linux, Mac OS X, etc).
+
+Modified: branches/pre0.7/doc/en/building.html
+===================================================================
+--- branches/pre0.7/doc/en/building.html	2009-12-26 05:11:56 UTC (rev 616)
++++ branches/pre0.7/doc/en/building.html	2009-12-26 16:23:54 UTC (rev 617)
+@@ -350,7 +350,8 @@
+ build also the platform-specific programming file where appropriate
+ (for example, on a AT91SAM7X256 this results in a .bin file that can be
+ programmed in the CPU). &lt;/li&gt;
+-&lt;li&gt;&lt;b&gt;romfs = verbatim | compress | compile&lt;/b&gt;: ROMFS compilation mode, check &lt;a href=&quot;arch_romfs.html#mode&quot;&gt;here&lt;/a&gt; for details (&lt;b&gt;new in 0.7&lt;/b&gt;).&lt;/li&gt; 
++&lt;li&gt;&lt;b&gt;romfs = verbatim | compress | compile&lt;/b&gt;: ROMFS compilation mode, check &lt;a href=&quot;arch_romfs.html#mode&quot;&gt;here&lt;/a&gt; for details (&lt;b&gt;new in 0.7&lt;/b&gt;).&lt;/li&gt;
++&lt;li&gt;&lt;b&gt;boot = standard | luarpc&lt;/b&gt;: Boot mode. 'standard' will boot to either a shell or lua interactive prompt. 'luarpc' boots with a waiting rpc server, using a UART &amp; timer as specified in &lt;a href=&quot;building.html#static&quot;&gt;static configuration data&lt;/a&gt; (&lt;b&gt;new in 0.7&lt;/b&gt;).&lt;/li&gt;
+ &lt;/ul&gt;
+ &lt;p&gt;The output will be a file named elua_&lt;i&gt;[target]&lt;/i&gt;_&lt;i&gt;[cpu]&lt;/i&gt;.elf
+ (and also another file with the same name but ending in .bin/.hex if
+
+Modified: branches/pre0.7/doc/en/using.html
+===================================================================
+--- branches/pre0.7/doc/en/using.html	2009-12-26 05:11:56 UTC (rev 616)
++++ branches/pre0.7/doc/en/using.html	2009-12-26 16:23:54 UTC (rev 617)
+@@ -246,6 +246,11 @@
+ &lt;/ul&gt;
+ &lt;p&gt;You should get a file called &lt;i&gt;luarpc&lt;/i&gt; in the same directory which, when started, should give you a normal Lua interpreter with a built-in rpc module.&lt;/p&gt;
+ 
++&lt;h2&gt;Building eLua with RPC Boot&lt;/h2&gt;
++
++&lt;p&gt;See &lt;a href=&quot;building.html&quot;&gt;building&lt;/a&gt; for details and requirements for the building process.  In order to boot into RPC mode, the RPC &lt;a href=&quot;building.html#components&quot;&gt;component&lt;/a&gt; will need to be enabled, and appropriate &lt;a href=&quot;building.html#static&quot;&gt;static configuration data&lt;/a&gt; need to be set.  To build &lt;b&gt;eLua&lt;/b&gt; to boot into RPC mode, include &lt;b&gt;boot=rpc&lt;/b&gt; in the &lt;a href=&quot;building.html#buildoptions&quot;&gt;build options&lt;/a&gt;.&lt;/p&gt;
++
++
+ &lt;h2&gt;LuaRPC Basics&lt;/h2&gt;
+ &lt;p&gt;In terms of the LED example from the beginning of this section, one could directly call pio module functions from the desktop side, experimenting with responses. If the experimentation developed into a program this could be tested both on the desktop side and on the microcontroller by making aliases to eLua modules in local Lua state.  Such aliasing can be done as follows:&lt;/p&gt;
+ &lt;pre&gt;&lt;code&gt;-- open connection from Linux host serial port to eLua
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000572.html">[Elua-svn] r616 - in branches/pre0.7/src/platform: at91sam7x avr32	lpc288x str7 str9
+</A></li>
+	<LI>Next message: <A HREF="000574.html">[Elua-svn] r618 - in branches/pre0.7: doc/en src src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#573">[ date ]</a>
+              <a href="thread.html#573">[ thread ]</a>
+              <a href="subject.html#573">[ subject ]</a>
+              <a href="author.html#573">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

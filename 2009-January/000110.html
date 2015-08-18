@@ -1,0 +1,232 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r154 - in trunk/src: lua platform/at91sam7x	platform/lpc288x platform/str7 platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r154%20-%20in%20trunk/src%3A%20lua%20platform/at91sam7x%0A%09platform/lpc288x%20platform/str7%20platform/str9&In-Reply-To=%3C200901121152.n0CBqx8M009343%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000109.html">
+   <LINK REL="Next"  HREF="000111.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r154 - in trunk/src: lua platform/at91sam7x	platform/lpc288x platform/str7 platform/str9</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r154%20-%20in%20trunk/src%3A%20lua%20platform/at91sam7x%0A%09platform/lpc288x%20platform/str7%20platform/str9&In-Reply-To=%3C200901121152.n0CBqx8M009343%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r154 - in trunk/src: lua platform/at91sam7x	platform/lpc288x platform/str7 platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Jan 12 12:52:59 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000109.html">[Elua-svn] r153 - trunk/src/lua
+</A></li>
+        <LI>Next message: <A HREF="000111.html">[Elua-svn] r155 - trunk/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#110">[ date ]</a>
+              <a href="thread.html#110">[ thread ]</a>
+              <a href="subject.html#110">[ subject ]</a>
+              <a href="author.html#110">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-01-12 12:52:58 +0100 (Mon, 12 Jan 2009)
+New Revision: 154
+
+Modified:
+   trunk/src/lua/luaconf.h
+   trunk/src/platform/at91sam7x/stacks.h
+   trunk/src/platform/lpc288x/stacks.h
+   trunk/src/platform/str7/stacks.h
+   trunk/src/platform/str9/stacks.h
+   trunk/src/platform/str9/startup912.s
+Log:
+eLua stack overflow fix
+
+DETAILS: for most platforms, the main stack size was set to 256 bytes to
+save RAM. During a routine Lua debugging session, I discovered that there
+are at least two data structures in Lua (declared on the stack) that can
+lead to a stack overflow problem because of their size:
+
+lparser.h -&gt; struct FuncState (original size: 572) is allocated on the stack
+when the parser needs to compile a Lua function
+lstrlib.c -&gt; MatchState (original size: 272) is allocated on the stack
+everytime the string library does match-related operations.
+
+To fix the first problem I modified these macros in luaconf.h:
+
+/*
+@@ LUAI_MAXUPVALUES is the maximum number of upvalues per function
+@* (must be smaller than 250).
+*/
+
+LUAI_MAXUPVALUES from 60 to 10
+
+/*
+@@ LUAI_MAXVARS is the maximum number of local variables per function
+@* (must be smaller than 250).
+*/
+LUAI_MAXVARS from 200 to 25
+
+The new size of the FuncState structure: 124
+
+To fix the second problem I modified this macro in luaconf.g
+
+/*
+@@ LUA_MAXCAPTURES is the maximum number of captures that a pattern
+@* can do during pattern-matching.
+** CHANGE it if you need more captures. This limit is arbitrary.
+*/
+
+LUA_MAXCAPTURES from 32 to 10
+
+The new size of the MatchState structure: 96
+
+All these values are experimental, but they should work well.
+
+Also, I forced the main stack to 512 bytes in all the backends. Hopefully
+this will take care of this problem.
+
+
+
+Modified: trunk/src/lua/luaconf.h
+===================================================================
+--- trunk/src/lua/luaconf.h	2009-01-12 10:35:58 UTC (rev 153)
++++ trunk/src/lua/luaconf.h	2009-01-12 11:52:58 UTC (rev 154)
+@@ -486,14 +486,14 @@
+ @@ LUAI_MAXVARS is the maximum number of local variables per function
+ @* (must be smaller than 250).
+ */
+-#define LUAI_MAXVARS		200
++#define LUAI_MAXVARS		25
+ 
+ 
+ /*
+ @@ LUAI_MAXUPVALUES is the maximum number of upvalues per function
+ @* (must be smaller than 250).
+ */
+-#define LUAI_MAXUPVALUES	60
++#define LUAI_MAXUPVALUES	10
+ 
+ 
+ /*
+@@ -696,7 +696,7 @@
+ @* can do during pattern-matching.
+ ** CHANGE it if you need more captures. This limit is arbitrary.
+ */
+-#define LUA_MAXCAPTURES		32
++#define LUA_MAXCAPTURES		10
+ 
+ 
+ /*
+
+Modified: trunk/src/platform/at91sam7x/stacks.h
+===================================================================
+--- trunk/src/platform/at91sam7x/stacks.h	2009-01-12 10:35:58 UTC (rev 153)
++++ trunk/src/platform/at91sam7x/stacks.h	2009-01-12 11:52:58 UTC (rev 154)
+@@ -3,7 +3,7 @@
+ #ifndef __STACKS_H__
+ #define __STACKS_H__
+ 
+-#define  STACK_SIZE_USR   256
++#define  STACK_SIZE_USR   512
+ #define  STACK_SIZE_IRQ   64
+ #define  STACK_SIZE_TOTAL ( STACK_SIZE_USR + STACK_SIZE_IRQ )
+ 
+
+Modified: trunk/src/platform/lpc288x/stacks.h
+===================================================================
+--- trunk/src/platform/lpc288x/stacks.h	2009-01-12 10:35:58 UTC (rev 153)
++++ trunk/src/platform/lpc288x/stacks.h	2009-01-12 11:52:58 UTC (rev 154)
+@@ -3,7 +3,7 @@
+ #ifndef __STACKS_H__
+ #define __STACKS_H__
+ 
+-#define STACK_SIZE_SVC   256
++#define STACK_SIZE_SVC   512
+ #define STACK_SIZE_IRQ   32
+ #define STACK_SIZE_TOTAL ( STACK_SIZE_SVC + STACK_SIZE_IRQ )
+ 
+
+Modified: trunk/src/platform/str7/stacks.h
+===================================================================
+--- trunk/src/platform/str7/stacks.h	2009-01-12 10:35:58 UTC (rev 153)
++++ trunk/src/platform/str7/stacks.h	2009-01-12 11:52:58 UTC (rev 154)
+@@ -3,7 +3,7 @@
+ #ifndef __STACKS_H__
+ #define __STACKS_H__
+ 
+-#define  STACK_SIZE_USR   256
++#define  STACK_SIZE_USR   512
+ #define  STACK_SIZE_TOTAL ( STACK_SIZE_USR )
+ 
+ #endif
+
+Modified: trunk/src/platform/str9/stacks.h
+===================================================================
+--- trunk/src/platform/str9/stacks.h	2009-01-12 10:35:58 UTC (rev 153)
++++ trunk/src/platform/str9/stacks.h	2009-01-12 11:52:58 UTC (rev 154)
+@@ -3,9 +3,8 @@
+ #ifndef __STACKS_H__
+ #define __STACKS_H__
+ 
+-#define STACK_SIZE_USR   256
+-#define STACK_SIZE_SVC   32
++#define STACK_SIZE_SVC   512
+ #define STACK_SIZE_IRQ   32
+-#define STACK_SIZE_TOTAL ( STACK_SIZE_USR + STACK_SIZE_SVC + STACK_SIZE_IRQ )
++#define STACK_SIZE_TOTAL ( STACK_SIZE_SVC + STACK_SIZE_IRQ )
+ 
+ #endif
+
+Modified: trunk/src/platform/str9/startup912.s
+===================================================================
+--- trunk/src/platform/str9/startup912.s	2009-01-12 10:35:58 UTC (rev 153)
++++ trunk/src/platform/str9/startup912.s	2009-01-12 11:52:58 UTC (rev 154)
+@@ -251,14 +251,9 @@
+               sub     r0, r0, #STACK_SIZE_IRQ                  
+ 
+ #    Set up Supervisor Mode and set Supervisor Mode Stack
+-              msr     CPSR_c, #Mode_SVC|I_BIT|F_BIT
++              msr     CPSR_c, #Mode_SVC
+               mov     r13, r0
+-              sub     r0, r0, #STACK_SIZE_SVC
+ 
+-#    Set up User Mode and set User Mode Stack
+-              msr     CPSR_c, #Mode_USR   /* Leave interrupts enabled in user mode                 */
+-              mov     r13, r0             /* Note: interrupts will not happen until VIC is enabled */
+-
+ #*************************************************************************
+ # Initialise RAM For Compiler Variables
+ #*************************************************************************
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000109.html">[Elua-svn] r153 - trunk/src/lua
+</A></li>
+	<LI>Next message: <A HREF="000111.html">[Elua-svn] r155 - trunk/src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#110">[ date ]</a>
+              <a href="thread.html#110">[ thread ]</a>
+              <a href="subject.html#110">[ subject ]</a>
+              <a href="author.html#110">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

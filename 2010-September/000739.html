@@ -1,0 +1,394 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r786 - in branches/ints: inc romfs src src/modules	src/platform/lpc24xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r786%20-%20in%20branches/ints%3A%20inc%20romfs%20src%20src/modules%0A%09src/platform/lpc24xx&In-Reply-To=%3C20100909210919.49079480041%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000738.html">
+   <LINK REL="Next"  HREF="000740.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r786 - in branches/ints: inc romfs src src/modules	src/platform/lpc24xx</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r786%20-%20in%20branches/ints%3A%20inc%20romfs%20src%20src/modules%0A%09src/platform/lpc24xx&In-Reply-To=%3C20100909210919.49079480041%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r786 - in branches/ints: inc romfs src src/modules	src/platform/lpc24xx">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Sep  9 23:09:19 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000738.html">[Elua-svn] r785 - in branches/ints: inc romfs src/modules	src/platform/lpc24xx
+</A></li>
+        <LI>Next message: <A HREF="000740.html">[Elua-svn] r787 - branches/ints/src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#739">[ date ]</a>
+              <a href="thread.html#739">[ thread ]</a>
+              <a href="subject.html#739">[ subject ]</a>
+              <a href="author.html#739">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-09-09 23:09:19 +0200 (Thu, 09 Sep 2010)
+New Revision: 786
+
+Modified:
+   branches/ints/inc/platform.h
+   branches/ints/romfs/inttest.lua
+   branches/ints/src/common.c
+   branches/ints/src/elua_int.c
+   branches/ints/src/modules/tmr.c
+   branches/ints/src/platform/lpc24xx/platform.c
+   branches/ints/src/platform/lpc24xx/platform_conf.h
+   branches/ints/src/platform/lpc24xx/startup.s
+Log:
+bug fixes, better IRQ management on LPC24xx, added periodic timer interrupt
+
+Modified: branches/ints/inc/platform.h
+===================================================================
+--- branches/ints/inc/platform.h	2010-09-08 20:25:37 UTC (rev 785)
++++ branches/ints/inc/platform.h	2010-09-09 21:09:19 UTC (rev 786)
+@@ -152,7 +152,8 @@
+   PLATFORM_TIMER_OP_SET_CLOCK,
+   PLATFORM_TIMER_OP_GET_CLOCK,
+   PLATFORM_TIMER_OP_GET_MAX_DELAY,
+-  PLATFORM_TIMER_OP_GET_MIN_DELAY
++  PLATFORM_TIMER_OP_GET_MIN_DELAY,
++  PLATFORM_TIMER_OP_SET_INT_TIMEOUT
+ };
+ 
+ // The platform timer functions
+
+Modified: branches/ints/romfs/inttest.lua
+===================================================================
+--- branches/ints/romfs/inttest.lua	2010-09-08 20:25:37 UTC (rev 785)
++++ branches/ints/romfs/inttest.lua	2010-09-09 21:09:19 UTC (rev 786)
+@@ -1,11 +1,21 @@
++local vtmrid = tmr.VIRT0
++local to = 1500000
++
+ local function handler( id, resnum )
+   print( string.format( &quot;Got interrupt with id %d and resnum %d&quot;, id, resnum ) )
+-  local port, pin = pio.decode( resnum )
+-  print( string.format( &quot;Port is %d, pin is %d&quot;, port, pin ) )
++  if id == cpu.INT_GPIO_POSEDGE or id == cpu.INT_GPIO_NEGEDGE then
++    local port, pin = pio.decode( resnum )
++    print( string.format( &quot;Port is %d, pin is %d&quot;, port, pin ) )
++  elseif id == cpu.INT_TMR_MATCH then
++    print &quot;Timer interrupt! Rearming ... &quot;
++    tmr.setinttimeout( vtmrid, to )
++  end
+ end
+ 
+ cpu.set_int_handler( handler )
+ cpu.sei( cpu.INT_GPIO_NEGEDGE, pio.P0_0 )
++cpu.sei( cpu.INT_TMR_MATCH, vtmrid )
++tmr.setinttimeout( vtmrid, to )
+ local tmrid = 0
+ while true do
+   print &quot;Outside interrupt&quot; 
+
+Modified: branches/ints/src/common.c
+===================================================================
+--- branches/ints/src/common.c	2010-09-08 20:25:37 UTC (rev 785)
++++ branches/ints/src/common.c	2010-09-09 21:09:19 UTC (rev 786)
+@@ -13,6 +13,7 @@
+ #include &quot;elua_adc.h&quot;
+ #include &quot;term.h&quot;
+ #include &quot;xmodem.h&quot;
++#include &quot;elua_int.h&quot;
+ 
+ // ****************************************************************************
+ // XMODEM support code
+@@ -232,13 +233,27 @@
+ static volatile u32 vtmr_counters[ VTMR_NUM_TIMERS ];
+ static volatile s8 vtmr_reset_idx = -1;
+ 
++#ifdef BUILD_LUA_INT_HANDLERS
++static volatile u32 vtmr_period_limit[ VTMR_NUM_TIMERS ];  
++static volatile u8 vtmr_int_enabled[ ( VTMR_NUM_TIMERS + 7 ) &gt;&gt; 3 ];
++#endif // #ifdef BUILD_LUA_INTERRUPT_HANDLERS
++
+ // This should be called from the platform's timer interrupt at VTMR_FREQ_HZ
+ void cmn_virtual_timer_cb()
+ {
+   unsigned i;
+ 
+   for( i = 0; i &lt; VTMR_NUM_TIMERS; i ++ )
++  {
+     vtmr_counters[ i ] ++;  
++#ifdef BUILD_LUA_INT_HANDLERS
++    if( ( vtmr_int_enabled[ i &gt;&gt; 3 ] &amp; ( 1 &lt;&lt; ( i &amp; 0x07 ) ) ) &amp;&amp; ( vtmr_counters[ i ] == vtmr_period_limit[ i ] ) )
++    {
++      vtmr_int_enabled[ i &gt;&gt; 3 ] &amp;= ( u8 )~( 1 &lt;&lt; ( i &amp; 0x07 ) );    
++      elua_int_add( INT_TMR_MATCH, i + VTMR_FIRST_ID );
++    }
++#endif // #ifdef BUILD_LUA_INT_HANDLERS
++  }    
+   if( vtmr_reset_idx != -1 )
+   {
+     vtmr_counters[ vtmr_reset_idx ] = 0;
+@@ -264,6 +279,27 @@
+   while( vtmr_counters[ id ] &lt; final );  
+ }
+ 
++#ifdef BUILD_LUA_INT_HANDLERS
++static int vtmr_set_int_timeout( unsigned vid, u32 delay_us )
++{
++  timer_data_type final;
++  unsigned id = VTMR_GET_ID( vid );
++    
++  if( ( final = ( ( u64 )delay_us * VTMR_FREQ_HZ ) / 1000000 ) == 0 )
++    return 0;
++  vtmr_period_limit[ id ] = final;
++  vtmr_reset_timer( vid );  
++  vtmr_int_enabled[ id &gt;&gt; 3 ] |= 1 &lt;&lt; ( id &amp; 0x07 );    
++  return 1; 
++}
++#else // #ifdef BUILD_LUA_INT_HANDLERS
++static int vtmr_set_int_timeout( unsigned vid, u32 delay_us )
++{
++  fprintf( stderr, &quot;Timeouts with interrupts not available when Lua interrupt support is not enabled\n&quot; );
++  return 0;
++}
++#endif // #ifdef BUILD_LUA_INT_HANDLERS
++
+ #else // #if VTMR_NUM_TIMERS &gt; 0
+ 
+ void cmn_virtual_timer_cb()
+@@ -321,6 +357,10 @@
+     case PLATFORM_TIMER_OP_GET_CLOCK:
+       res = VTMR_FREQ_HZ;
+       break;      
++      
++    case PLATFORM_TIMER_OP_SET_INT_TIMEOUT:
++      res = vtmr_set_int_timeout( id, data );
++      break;
+   }
+ #endif
+   return res;
+
+Modified: branches/ints/src/elua_int.c
+===================================================================
+--- branches/ints/src/elua_int.c	2010-09-08 20:25:37 UTC (rev 785)
++++ branches/ints/src/elua_int.c	2010-09-09 21:09:19 UTC (rev 786)
+@@ -39,9 +39,6 @@
+   // Call Lua handler
+   if( cpu_is_int_handler_active() )
+   {
+-    old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );    
+-    lua_sethook( L, NULL, 0, 0 );
+-    platform_cpu_set_global_interrupts( old_status );    
+     lua_rawgeti( L, LUA_REGISTRYINDEX, LUA_INT_HANDLER_KEY );
+     lua_pushinteger( L, crt.id );
+     lua_pushinteger( L, crt.resnum );
+@@ -50,8 +47,8 @@
+ 
+   // Set hook again if needed
+   old_status = platform_cpu_set_global_interrupts( PLATFORM_CPU_DISABLE );
+-  if( elua_int_queue[ elua_int_read_idx ].id != ELUA_INT_EMPTY_SLOT )
+-    lua_sethook( lua_getstate(), elua_int_hook, LUA_MASKCOUNT, 2 );
++  if( elua_int_queue[ elua_int_read_idx ].id == ELUA_INT_EMPTY_SLOT )
++    lua_sethook( L, NULL, 0, 0 );
+   platform_cpu_set_global_interrupts( old_status );
+ }
+ 
+
+Modified: branches/ints/src/modules/tmr.c
+===================================================================
+--- branches/ints/src/modules/tmr.c	2010-09-08 20:25:37 UTC (rev 785)
++++ branches/ints/src/modules/tmr.c	2010-09-09 21:09:19 UTC (rev 786)
+@@ -120,6 +120,23 @@
+   return 1;
+ }
+ 
++// Lua: setinttimeout( id, timeout )
++static int tmr_setinttimeout( lua_State *L )
++{
++#ifdef BUILD_LUA_INT_HANDLERS
++  unsigned id;
++  u32 res;
++  
++  id = luaL_checkinteger( L, 1 );
++  MOD_CHECK_ID( timer, id );
++  res = platform_timer_op( id, PLATFORM_TIMER_OP_SET_INT_TIMEOUT, ( u32 )luaL_checknumber( L, 2 ) );
++  lua_pushinteger( L, res );
++  return 1;
++#else
++  return luaL_error( L, &quot;setinttimeout not supported when Lua interrupt support is not compiled&quot; );
++#endif
++}
++
+ #if VTMR_NUM_TIMERS &gt; 0
+ // __index metafunction for TMR
+ // Look for all VIRTx timer identifiers
+@@ -156,6 +173,7 @@
+   { LSTRKEY( &quot;getmaxdelay&quot; ), LFUNCVAL( tmr_getmaxdelay ) },
+   { LSTRKEY( &quot;setclock&quot; ), LFUNCVAL( tmr_setclock ) },
+   { LSTRKEY( &quot;getclock&quot; ), LFUNCVAL( tmr_getclock ) },
++  { LSTRKEY( &quot;setinttimeout&quot; ), LFUNCVAL( tmr_setinttimeout ) },
+ #if LUA_OPTIMIZE_MEMORY &gt; 0 &amp;&amp; VTMR_NUM_TIMERS &gt; 0
+   { LSTRKEY( &quot;__metatable&quot; ), LROVAL( tmr_map ) },
+ #endif
+
+Modified: branches/ints/src/platform/lpc24xx/platform.c
+===================================================================
+--- branches/ints/src/platform/lpc24xx/platform.c	2010-09-08 20:25:37 UTC (rev 785)
++++ branches/ints/src/platform/lpc24xx/platform.c	2010-09-09 21:09:19 UTC (rev 786)
+@@ -28,7 +28,8 @@
+ static PREG const negedge_status[] = { ( PREG )&amp;IO0_INT_STAT_F, ( PREG )&amp;IO2_INT_STAT_F };
+ static PREG const intclr_regs[] = { ( PREG )&amp;IO0_INT_CLR, ( PREG )&amp;IO2_INT_CLR };
+ 
+-static void __attribute__((optimize(0))) __attribute__((interrupt (&quot;IRQ&quot;))) eint3_int_handler()
++extern void irqh_eint3();
++void c_handler_eint3()
+ {
+   elua_int_id id = ELUA_INT_INVALID_INTERRUPT;
+   pio_code resnum = 0;
+@@ -91,7 +92,7 @@
+ // Setup all required interrupt handlers
+ static void platform_setup_interrupts()
+ {
+-  install_irq( EINT3_INT, eint3_int_handler, HIGHEST_PRIORITY - 1 );   
++  install_irq( EINT3_INT, irqh_eint3, HIGHEST_PRIORITY - 1 );   
+ }
+ 
+ int platform_init()
+@@ -367,7 +368,8 @@
+ }
+ 
+ #if VTMR_NUM_TIMERS &gt; 0
+-static void __attribute__((interrupt (&quot;IRQ&quot;))) tmr_int_handler() 
++extern void irqh_tmr();
++void c_handler_tmr()
+ {
+   T3IR = 1; // clear interrupt
+   cmn_virtual_timer_cb();
+@@ -396,7 +398,7 @@
+   T3IR = 0xFF;
+   // Set interrupt handle and eanble timer interrupt (and global interrupts)
+   T3MCR = 0x03; // interrupt on match with MR0 and clear on match
+-  install_irq( TIMER3_INT, tmr_int_handler, HIGHEST_PRIORITY ); 
++  install_irq( TIMER3_INT, irqh_tmr, HIGHEST_PRIORITY ); 
+   platform_cpu_set_global_interrupts( PLATFORM_CPU_ENABLE );
+   // Start timer
+   T3TCR = TMR_ENABLE;
+@@ -471,12 +473,12 @@
+     enable_ints();
+   else
+     disable_ints();
+-  return ( crt_status &amp; INTERRUPT_ENABLED_MASK ) != 0;
++  return ( crt_status &amp; INTERRUPT_ENABLED_MASK ) == 0;
+ }
+ 
+ int platform_cpu_get_global_interrupts()
+ {
+-  return ( get_int_status() &amp; INTERRUPT_ENABLED_MASK ) != 0;
++  return ( get_int_status() &amp; INTERRUPT_ENABLED_MASK ) == 0;
+ }
+ 
+ // Helper: return the status of a specific interrupt (enabled/disabled)
+
+Modified: branches/ints/src/platform/lpc24xx/platform_conf.h
+===================================================================
+--- branches/ints/src/platform/lpc24xx/platform_conf.h	2010-09-08 20:25:37 UTC (rev 785)
++++ branches/ints/src/platform/lpc24xx/platform_conf.h	2010-09-09 21:09:19 UTC (rev 786)
+@@ -110,8 +110,10 @@
+ // Interrupt list
+ enum
+ {
++  // Platform interrupts
+   INT_GPIO_POSEDGE = ELUA_INT_FIRST_ID,
+   INT_GPIO_NEGEDGE,
++  INT_TMR_MATCH
+ };
+ 
+ #define PLATFORM_CPU_CONSTANTS\
+@@ -127,7 +129,8 @@
+  _C( IO_PINSEL9 ),\
+  _C( IO_PINSEL10 ),\
+  _C( INT_GPIO_POSEDGE ),\
+- _C( INT_GPIO_NEGEDGE )
++ _C( INT_GPIO_NEGEDGE ),\
++ _C( INT_TMR_MATCH )
+  
+ #endif // #ifndef __PLATFORM_CONF_H__
+ 
+
+Modified: branches/ints/src/platform/lpc24xx/startup.s
+===================================================================
+--- branches/ints/src/platform/lpc24xx/startup.s	2010-09-08 20:25:37 UTC (rev 785)
++++ branches/ints/src/platform/lpc24xx/startup.s	2010-09-09 21:09:19 UTC (rev 786)
+@@ -44,7 +44,21 @@
+          ldr     pc, [pc, #-0x0120]      /* Vector from VicVectAddr */
+ fiqVector:
+          b       fiqVector               /* Fast interrupt */
++         
++//------------------------------------------------------------------------------
++/// IRQ handler macro
++//------------------------------------------------------------------------------                          
++            .macro    irq_handler label
+ 
++            .global   irqh_\label
++            .extern   c_handler_\label
++irqh_\label:
++            stmfd     sp!, {r0-r4, r12, lr}
++            bl        c_handler_\label
++            ldmfd     sp!, {r0-r4, r12, lr}
++            subs      pc, lr, #4
++
++            .endm
+ //------------------------------------------------------------------------------
+ /// Initializes the chip and branches to the main() function.
+ //------------------------------------------------------------------------------
+@@ -56,7 +70,6 @@
+ entry:
+ resetHandler:
+ 
+-// [TODO] enable interrupts
+ /* Setup stacks for each mode */
+         ldr     r0, =Top_Stack
+ 
+@@ -102,6 +115,10 @@
+ /* Loop indefinitely when program is finished */
+ forever:
+         b       forever
++        
++// IRQ handlers
++        irq_handler   eint3       
++        irq_handler   tmr 
+ 
+ # enable interrupts
+         .global    enable_ints
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000738.html">[Elua-svn] r785 - in branches/ints: inc romfs src/modules	src/platform/lpc24xx
+</A></li>
+	<LI>Next message: <A HREF="000740.html">[Elua-svn] r787 - branches/ints/src/platform/lpc24xx
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#739">[ date ]</a>
+              <a href="thread.html#739">[ thread ]</a>
+              <a href="subject.html#739">[ subject ]</a>
+              <a href="author.html#739">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

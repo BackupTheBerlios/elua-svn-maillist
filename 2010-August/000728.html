@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r775 - branches/dl/src/platform/str9
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-August/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r775%20-%20branches/dl/src/platform/str9&In-Reply-To=%3C20100829185524.71E18480FD8%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000727.html">
+   <LINK REL="Next"  HREF="000729.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r775 - branches/dl/src/platform/str9</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r775%20-%20branches/dl/src/platform/str9&In-Reply-To=%3C20100829185524.71E18480FD8%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r775 - branches/dl/src/platform/str9">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Aug 29 20:55:24 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000727.html">[Elua-svn] r774 - in trunk/src: modules platform/str9
+</A></li>
+        <LI>Next message: <A HREF="000729.html">[Elua-svn] r776 - in branches/dl: . dynld
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#728">[ date ]</a>
+              <a href="thread.html#728">[ thread ]</a>
+              <a href="subject.html#728">[ subject ]</a>
+              <a href="author.html#728">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2010-08-29 20:55:24 +0200 (Sun, 29 Aug 2010)
+New Revision: 775
+
+Modified:
+   branches/dl/src/platform/str9/conf.py
+   branches/dl/src/platform/str9/startup912.s
+   branches/dl/src/platform/str9/str912fw44.lds
+Log:
+symbol parser
+
+Modified: branches/dl/src/platform/str9/conf.py
+===================================================================
+--- branches/dl/src/platform/str9/conf.py	2010-08-24 19:52:33 UTC (rev 774)
++++ branches/dl/src/platform/str9/conf.py	2010-08-29 18:55:24 UTC (rev 775)
+@@ -19,7 +19,7 @@
+ 
+ # Standard GCC Flags
+ comp.Append(CCFLAGS = ['-ffunction-sections','-fdata-sections','-fno-strict-aliasing','-Wall'])
+-comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition'])
++comp.Append(LINKFLAGS = ['-nostartfiles','-nostdlib','-T',ldscript,'-Wl,--gc-sections','-Wl,--allow-multiple-definition','-Wl,-Map=elua.map'])
+ comp.Append(ASFLAGS = ['-x','assembler-with-cpp','-c','-Wall','$_CPPDEFFLAGS','$_CPPINCFLAGS'])
+ comp.Append(LIBS = ['c','gcc','m'])
+ 
+
+Modified: branches/dl/src/platform/str9/startup912.s
+===================================================================
+--- branches/dl/src/platform/str9/startup912.s	2010-08-24 19:52:33 UTC (rev 774)
++++ branches/dl/src/platform/str9/startup912.s	2010-08-29 18:55:24 UTC (rev 775)
+@@ -132,6 +132,11 @@
+ IRQ_Handler:        B       IRQ_Handler       /* should never get here as IRQ is via VIC slot... */
+ FIQ_Handler:        B       FIQ_Handler
+ 
++          .section  .dlsym, &quot;a&quot;
++          .extern symaddr
++
++.word     symaddr
++
+           .text
+ 
+ 
+
+Modified: branches/dl/src/platform/str9/str912fw44.lds
+===================================================================
+--- branches/dl/src/platform/str9/str912fw44.lds	2010-08-24 19:52:33 UTC (rev 774)
++++ branches/dl/src/platform/str9/str912fw44.lds	2010-08-29 18:55:24 UTC (rev 775)
+@@ -15,6 +15,7 @@
+         _sfixed = .;
+         PROVIDE(stext = .);
+         KEEP(*(.vectors))
++        KEEP(*(.dlsym))
+         *(.text .text.*)        
+         *(.rodata .rodata.*)        
+         *(.gnu.linkonce.t.*)
+@@ -23,12 +24,14 @@
+         *(.gcc_except_table)
+         *(.gnu.linkonce.r.*)
+         . = ALIGN(4);
+-        _efixed = .;
+         PROVIDE(etext = .);        
+         _fini = .;
+         *(.fini)
++        . = ALIGN(4);
++        _efixed = .;
+     } &gt;flash
+-
++    
++    firstsram = .;
+     .relocate : AT (_efixed)
+     {
+         . = ALIGN(4);
+@@ -38,7 +41,7 @@
+         . = ALIGN(4);
+         _erelocate = .;
+     } &gt;sram
+-
++    
+     .ARM.extab :
+     {
+         *(.ARM.extab*)
+@@ -51,6 +54,8 @@
+     } &gt;sram
+      __exidx_end = .;
+ 
++    PROVIDE(symaddr = _efixed + . - _srelocate );
++
+     .bss (NOLOAD) : {
+         _szero = .;
+         *(.bss .bss.*)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000727.html">[Elua-svn] r774 - in trunk/src: modules platform/str9
+</A></li>
+	<LI>Next message: <A HREF="000729.html">[Elua-svn] r776 - in branches/dl: . dynld
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#728">[ date ]</a>
+              <a href="thread.html#728">[ thread ]</a>
+              <a href="subject.html#728">[ subject ]</a>
+              <a href="author.html#728">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

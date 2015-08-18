@@ -1,0 +1,510 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r232 - in trunk: inc romfs src src/modules	src/platform/lm3s
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r232%20-%20in%20trunk%3A%20inc%20romfs%20src%20src/modules%0A%09src/platform/lm3s&In-Reply-To=%3C200903030123.n231Nln0016927%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000187.html">
+   <LINK REL="Next"  HREF="000189.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r232 - in trunk: inc romfs src src/modules	src/platform/lm3s</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r232%20-%20in%20trunk%3A%20inc%20romfs%20src%20src/modules%0A%09src/platform/lm3s&In-Reply-To=%3C200903030123.n231Nln0016927%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r232 - in trunk: inc romfs src src/modules	src/platform/lm3s">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Mar  3 02:23:47 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000187.html">[Elua-svn] r231 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000189.html">[Elua-svn] r233 - trunk/doc/wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#188">[ date ]</a>
+              <a href="thread.html#188">[ thread ]</a>
+              <a href="subject.html#188">[ subject ]</a>
+              <a href="author.html#188">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-03-03 02:23:45 +0100 (Tue, 03 Mar 2009)
+New Revision: 232
+
+Modified:
+   trunk/inc/platform.h
+   trunk/romfs/adcscope.lua
+   trunk/src/common.c
+   trunk/src/elua_adc.c
+   trunk/src/modules/adc.c
+   trunk/src/platform/lm3s/platform.c
+Log:
+ADC Changes
+
+- removed getsmoothing, setfreerunning, samplesready
+- isdone has returned so that one can check if the reason why the buffer is
+  dry is because no more samples are being collected
+- smoothing should support fairly large lengths now (as long as you have the
+  memory)
+- added support to adc.sample to take a table as the first argument so that a
+  set of channels can be started at closer to the same time.
+    example:
+    adcchannels = {0,1,2,3}
+    adc.sample(adcchannels,8)
+
+    this should collect samples on all 4 channels starting nearly at the same
+    time.
+
+- more comments added to elua_adc.c to describe behavior.
+
+Misc
+- remove rndpow2, not being used
+
+Modified: trunk/inc/platform.h
+===================================================================
+--- trunk/inc/platform.h	2009-03-02 19:31:45 UTC (rev 231)
++++ trunk/inc/platform.h	2009-03-03 01:23:45 UTC (rev 232)
+@@ -184,17 +184,18 @@
+ enum
+ {
+   PLATFORM_ADC_GET_MAXVAL,
+-  PLATFORM_ADC_GET_SMOOTHING,
+   PLATFORM_ADC_SET_SMOOTHING,
+   PLATFORM_ADC_SET_BLOCKING,
+   PLATFORM_ADC_SET_FREERUNNING,
++  PLATFORM_ADC_IS_DONE,
+   PLATFORM_ADC_OP_SET_TIMER,
+   PLATFORM_ADC_OP_SET_CLOCK,
+   PLATFORM_ADC_FLUSH,
+ };
+ 
+ // Functions requiring platform-specific implementation
+-int platform_adc_sample( unsigned id, u8 logcount );
++int platform_adc_primechannel( unsigned id, u8 logcount );
++int platform_adc_startchannel( unsigned id );
+ void platform_adc_stop( unsigned id );
+ u32 platform_adc_setclock( unsigned id, u32 frequency);
+ 
+@@ -216,10 +217,4 @@
+ void* platform_get_first_free_ram( unsigned id );
+ void* platform_get_last_free_ram( unsigned id );
+ 
+-// *****************************************************************************
+-// Misc support
+-
+-unsigned int intlog2( unsigned int v );
+-u32 rndpow2( u32 v);
+-
+ #endif
+
+Modified: trunk/romfs/adcscope.lua
+===================================================================
+--- trunk/romfs/adcscope.lua	2009-03-02 19:31:45 UTC (rev 231)
++++ trunk/romfs/adcscope.lua	2009-03-03 01:23:45 UTC (rev 232)
+@@ -29,8 +29,8 @@
+   ctr = ctr + 1
+   
+   stime = tread(0)
++  sample(adcchannels, 1)
+   for i, v in ipairs(adcchannels) do
+-    sample(v,1)
+     adcvals[i] = getsample(v)
+   end
+   etime = tread(0)
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2009-03-02 19:31:45 UTC (rev 231)
++++ trunk/src/common.c	2009-03-03 01:23:45 UTC (rev 232)
+@@ -281,10 +281,6 @@
+       res = pow( 2, ADC_BIT_RESOLUTION ) - 1;
+       break;
+ 
+-    case PLATFORM_ADC_GET_SMOOTHING:
+-      res = (u16) 1 &lt;&lt; s-&gt;logsmoothlen;
+-      break;
+-
+     case PLATFORM_ADC_SET_SMOOTHING:
+       res = adc_update_smoothing( id, ( u8 )intlog2( ( unsigned ) data ) );
+       break;
+@@ -293,6 +289,10 @@
+       s-&gt;blocking = data;
+       break;
+       
++    case PLATFORM_ADC_IS_DONE:
++      res = ( s-&gt;op_pending == 0 );
++      break;
++    
+     case PLATFORM_ADC_OP_SET_TIMER:
+       platform_adc_stop( id );
+       s-&gt;timer_id = data;
+@@ -363,16 +363,3 @@
+   return r;
+ }
+ 
+-u32 rndpow2( u32 v )
+-{
+-  v--;
+-  v |= v &gt;&gt; 1;
+-  v |= v &gt;&gt; 2;
+-  v |= v &gt;&gt; 4;
+-  v |= v &gt;&gt; 8;
+-  v |= v &gt;&gt; 16;
+-  v++;
+-  
+-  return v;
+-}
+-
+
+Modified: trunk/src/elua_adc.c
+===================================================================
+--- trunk/src/elua_adc.c	2009-03-02 19:31:45 UTC (rev 231)
++++ trunk/src/elua_adc.c	2009-03-03 01:23:45 UTC (rev 232)
+@@ -42,7 +42,10 @@
+   buf_set( BUF_ID_ADC, id, ADC_BUF_SIZE, BUF_DSIZE_U16 );
+ }
+ 
+-int adc_update_smoothing( unsigned id, u8 loglen )
++// Update smoothing buffer length
++// If new length differs from existing length, attempt to resize, then
++// re-initialize buffer so that it is ready for new data.
++int adc_update_smoothing( unsigned id, u8 loglen ) 
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+   
+@@ -65,6 +68,9 @@
+   return PLATFORM_OK;
+ }
+ 
++// Load oldest sample from the buffer, replace oldest value in smoothing ring
++// buffer with this new sample.  Subtract previous oldest sample value from
++// sum and add new sample to sum.
+ void adc_smooth_data( unsigned id )
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+@@ -89,6 +95,20 @@
+   s-&gt;smoothidx++;
+ }
+ 
++// Get samples from the buffer
++// If samples are available and...
++//  Smoothing is enabled
++//    If smoothing is warmed up, put oldest buffer sample into smoothing
++//    buffer and return result of this sample averaged with length-1
++//    previous samples which had been loaded into the smoothing buffer.
++//    Decrements count of requested samples.
++//
++//  Smoothing is off
++//    Return results directly from the buffer. Decrements count of requested
++//    samples.
++//
++// If samples are not available...
++//  return 0
+ u16 adc_get_processed_sample( unsigned id )
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+@@ -119,10 +139,11 @@
+   return 0;
+ }
+ 
++// Zero out and reset smoothing buffer
+ void adc_flush_smoothing( unsigned id )
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+-  u8 i;
++  u16 i;
+   
+   s-&gt;smoothidx = 0;
+   s-&gt;smoothsum = 0;
+@@ -135,17 +156,21 @@
+   }
+ }
+ 
++// Number of samples requested that have not yet been removed from the buffer
+ u16 adc_samples_requested( unsigned id )
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+   return s-&gt;reqsamples;
+ }
+ 
++// Return count of available samples in the buffer
+ u16 adc_samples_available( unsigned id ) 
+ {
+   return ( u16 ) buf_get_count( BUF_ID_ADC, id );
+ }
+ 
++// If blocking is enabled, wait until we have enough samples or the current
++//  sampling event has finished
+ void adc_wait_samples( unsigned id, unsigned samples )
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+
+Modified: trunk/src/modules/adc.c
+===================================================================
+--- trunk/src/modules/adc.c	2009-03-02 19:31:45 UTC (rev 231)
++++ trunk/src/modules/adc.c	2009-03-03 01:23:45 UTC (rev 232)
+@@ -4,6 +4,7 @@
+ #include &quot;lualib.h&quot;
+ #include &quot;lauxlib.h&quot;
+ #include &quot;platform.h&quot;
++#include &quot;common.h&quot;
+ #include &quot;auxmods.h&quot;
+ #include &quot;lrotable.h&quot;
+ #include &quot;platform_conf.h&quot;
+@@ -45,38 +46,39 @@
+   return 1;
+ }
+ 
+-// Lua: data = samplesready( id )
+-static int adc_samplesready( lua_State* L )
++// Lua: data = isdone( id )
++static int adc_isdone( lua_State* L )
+ {
+   unsigned id;
+     
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( adc, id );
+-  lua_pushinteger( L, adc_samples_available( id ) );
++  lua_pushinteger( L, platform_adc_op( id, PLATFORM_ADC_IS_DONE, 0 ) );
+   return 1;
+ }
+ 
+-// Lua: setblocking( id, mode )
+-static int adc_setblocking( lua_State* L )
++// Lua: flush( id )
++static int adc_flush( lua_State* L )
+ {
+-  unsigned id, mode;
++  unsigned id;
++  u32 res;
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( adc, id );
+-  mode = luaL_checkinteger( L, 2 );
+-  platform_adc_op( id, PLATFORM_ADC_SET_BLOCKING, mode );
+-  return 0;
++  res = platform_adc_op( id, PLATFORM_ADC_FLUSH, 0 );
++  lua_pushinteger( L, res );
++  return 1;
+ }
+ 
+-// Lua: setfreerunning( id, mode )
+-static int adc_setfreerunning( lua_State* L )
++// Lua: setblocking( id, mode )
++static int adc_setblocking( lua_State* L )
+ {
+   unsigned id, mode;
+   
+   id = luaL_checkinteger( L, 1 );
+   MOD_CHECK_ID( adc, id );
+   mode = luaL_checkinteger( L, 2 );
+-  platform_adc_op( id, PLATFORM_ADC_SET_FREERUNNING, mode );
++  platform_adc_op( id, PLATFORM_ADC_SET_BLOCKING, mode );
+   return 0;
+ }
+ 
+@@ -103,49 +105,51 @@
+ 
+ }
+ 
+-// Lua: getsmoothing( id )
+-static int adc_getsmoothing( lua_State* L )
+-{
+-  unsigned id;
+-  u32 res;
+-  
+-  id = luaL_checkinteger( L, 1 );
+-  MOD_CHECK_ID( adc, id );
+-  res = platform_adc_op( id, PLATFORM_ADC_GET_SMOOTHING, 0 );
+-  lua_pushinteger( L, res );
+-  return 1;
+-}
+-
+-// Lua: flush( id )
+-static int adc_flush( lua_State* L )
+-{
+-  unsigned id;
+-  u32 res;
+-  
+-  id = luaL_checkinteger( L, 1 );
+-  MOD_CHECK_ID( adc, id );
+-  res = platform_adc_op( id, PLATFORM_ADC_FLUSH, 0 );
+-  lua_pushinteger( L, res );
+-  return 1;
+-}
+-
+ // Lua: sample( id, count )
+ static int adc_sample( lua_State* L )
+ {
+-  unsigned id, count;
+-  int res;
++  unsigned id, count, nchans = 1;
++  int res, i;  
+   
+-  id = luaL_checkinteger( L, 1 );
+-  MOD_CHECK_ID( adc, id );
+   count = luaL_checkinteger( L, 2 );
+-  
+   if  ( ( count == 0 ) || count &amp; ( count - 1 ) )
+     return luaL_error( L, &quot;count must be power of 2 and &gt; 0&quot; );
+   
+-  res = platform_adc_sample( id, intlog2( count ) );
+-  if ( res != PLATFORM_OK )
+-    return luaL_error( L, &quot;sampling failed&quot; );
++  // If first parameter is a table, extract channel list
++  if ( lua_istable( L, 1 ) == 1 )
++  {
++    nchans = lua_objlen(L, 1);
+     
++    // Get/check list of channels and setup
++    for( i = 0; i &lt; nchans; i++ )
++    {
++      lua_rawgeti( L, 1, i+1 );
++      id = luaL_checkinteger( L, -1 );
++      MOD_CHECK_ID( adc, id );
++      
++      res = platform_adc_primechannel( id, intlog2( count ) );
++      if ( res != PLATFORM_OK )
++        return luaL_error( L, &quot;sampling setup failed&quot; );
++    }
++    // Initiate sampling
++    for( i = -1; i &gt;= -nchans; i-- )
++      platform_adc_startchannel( luaL_checkinteger( L, i ) );
++  }
++  else if ( lua_isnumber( L, 1 ) == 1 )
++  {
++    id = luaL_checkinteger( L, 1 );
++    MOD_CHECK_ID( adc, id );
++    
++    res = platform_adc_primechannel( id, intlog2( count ) );
++    if ( res != PLATFORM_OK )
++      return luaL_error( L, &quot;sampling setup failed&quot; );
++    
++    platform_adc_startchannel( id );
++  }
++  else
++  {
++    return luaL_error( L, &quot;invalid channel selection&quot; );
++  }
+   return 0;
+ }
+ 
+@@ -214,14 +218,13 @@
+   { LSTRKEY( &quot;sample&quot; ), LFUNCVAL( adc_sample ) },
+   { LSTRKEY( &quot;maxval&quot; ), LFUNCVAL( adc_maxval ) },
+   { LSTRKEY( &quot;setclock&quot; ), LFUNCVAL( adc_setclock ) },
+-  { LSTRKEY( &quot;samplesready&quot; ), LFUNCVAL( adc_samplesready ) },
++  { LSTRKEY( &quot;isdone&quot; ), LFUNCVAL( adc_isdone ) },
+   { LSTRKEY( &quot;setblocking&quot; ), LFUNCVAL( adc_setblocking ) },
+   { LSTRKEY( &quot;setsmoothing&quot; ), LFUNCVAL( adc_setsmoothing ) },
+-  { LSTRKEY( &quot;setfreerunning&quot; ), LFUNCVAL( adc_setfreerunning ) },
+-  { LSTRKEY( &quot;getsmoothing&quot; ), LFUNCVAL( adc_getsmoothing ) },
+   { LSTRKEY( &quot;flush&quot; ), LFUNCVAL( adc_flush ) },
+   { LSTRKEY( &quot;getsample&quot; ), LFUNCVAL( adc_getsample ) },
+   { LSTRKEY( &quot;getsamples&quot; ), LFUNCVAL( adc_getsamples ) },
++//  { LSTRKEY( &quot;putsamples&quot; ), LFUNCVAL( adc_putsamples ) },
+   { LNILKEY, LNILVAL }
+ };
+ 
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2009-03-02 19:31:45 UTC (rev 231)
++++ trunk/src/platform/lm3s/platform.c	2009-03-03 01:23:45 UTC (rev 232)
+@@ -518,15 +518,8 @@
+ void platform_adc_stop( unsigned id )
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+-  
+   ADCSequenceDisable( ADC_BASE, s-&gt;id );
+-  
+   s-&gt;op_pending = 0;
+-  
+-  if ( s-&gt;clocked )
+-  {
+-    TimerControlTrigger( timer_base[s-&gt;timer_id], TIMER_A, false );
+-  }
+ }
+ 
+ // Handle ADC interrupts
+@@ -589,7 +582,6 @@
+ u32 platform_adc_setclock( unsigned id, u32 frequency)
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+-  u32 res = frequency;
+   
+   // Make sure sequencer is disabled before making changes
+   ADCSequenceDisable( ADC_BASE, id );
+@@ -602,7 +594,6 @@
+     // Set up timer trigger
+     TimerConfigure(timer_base[s-&gt;timer_id], TIMER_CFG_32_BIT_PER);
+     TimerLoadSet(timer_base[s-&gt;timer_id], TIMER_A, SysCtlClockGet() / frequency);
+-    TimerControlTrigger(timer_base[s-&gt;timer_id], TIMER_A, true);
+     s-&gt;clocked = 1;
+     frequency = SysCtlClockGet() / TimerLoadGet(timer_base[s-&gt;timer_id], TIMER_A);
+   }
+@@ -619,11 +610,11 @@
+   return frequency;
+ }
+ 
+-int platform_adc_sample( unsigned id, u8 logcount )
++int platform_adc_primechannel( unsigned id, u8 logcount )
+ {
+   elua_adc_state *s = adc_get_ch_state( id );
+   int res;
+-
++  
+   ADCSequenceDisable( ADC_BASE, id );
+   
+   if( ( (u16) 1 &lt;&lt; logcount ) &gt; buf_get_size( BUF_ID_ADC, id ) )
+@@ -639,9 +630,17 @@
+   
+   // Enable Sequence
+   ADCSequenceEnable( ADC_BASE, id );
++    
++  return PLATFORM_OK;
++}
+ 
++int platform_adc_startchannel( unsigned id )
++{
++  elua_adc_state *s = adc_get_ch_state( id );
++
+   if( s-&gt;clocked == 1 )
+   {
++    TimerControlTrigger(timer_base[s-&gt;timer_id], TIMER_A, true);
+     TimerEnable(timer_base[s-&gt;timer_id], TIMER_A);
+   }
+   else
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000187.html">[Elua-svn] r231 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000189.html">[Elua-svn] r233 - trunk/doc/wb
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#188">[ date ]</a>
+              <a href="thread.html#188">[ thread ]</a>
+              <a href="subject.html#188">[ subject ]</a>
+              <a href="author.html#188">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

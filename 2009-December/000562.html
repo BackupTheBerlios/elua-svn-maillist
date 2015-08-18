@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r606 - branches/pre0.7/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r606%20-%20branches/pre0.7/doc/en&In-Reply-To=%3C200912232213.nBNMDh0B027711%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000561.html">
+   <LINK REL="Next"  HREF="000563.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r606 - branches/pre0.7/doc/en</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r606%20-%20branches/pre0.7/doc/en&In-Reply-To=%3C200912232213.nBNMDh0B027711%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r606 - branches/pre0.7/doc/en">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Dec 23 23:13:43 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000561.html">[Elua-svn] r605 - in branches/pre0.7: doc/eluadoc doc/en src	src/modules src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000563.html">[Elua-svn] r607 - branches/pre0.7/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#562">[ date ]</a>
+              <a href="thread.html#562">[ thread ]</a>
+              <a href="subject.html#562">[ subject ]</a>
+              <a href="author.html#562">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-12-23 23:13:42 +0100 (Wed, 23 Dec 2009)
+New Revision: 606
+
+Modified:
+   branches/pre0.7/doc/en/using.html
+Log:
+Added to LuaRPC usage docs.
+
+Modified: branches/pre0.7/doc/en/using.html
+===================================================================
+--- branches/pre0.7/doc/en/using.html	2009-12-23 19:04:44 UTC (rev 605)
++++ branches/pre0.7/doc/en/using.html	2009-12-23 22:13:42 UTC (rev 606)
+@@ -226,7 +226,7 @@
+ &lt;/ul&gt;
+ 
+ &lt;a name=&quot;rpc&quot;&gt;&lt;h3&gt;Controlling eLua with LuaRPC&lt;/h3&gt;&lt;/a&gt;
+-&lt;p&gt;&lt;i&gt;Remote procedure calls&lt;/i&gt; (RPC) allow one program to communicate with another and call functions or subroutines within the second program. For example one might want to programmatically control an array of LEDs connected to an eLua embedded device from a desktop Lua state.  A simple implementation might be a protocol that would allow one to send commands numeric or text-based commands that would cause code to be executed in eLua that would change the state of the LEDs. As one needs new commands to change these LEDs, one would need to upload a new Lua program to handle changing functionality.  In contrast to this ad-hoc method for remote calls, LuaRPC provides one with much more flexible control over remote state.&lt;/p&gt;
++&lt;p&gt;&lt;i&gt;Remote procedure calls&lt;/i&gt; (RPC) allow one program to communicate with another and call functions or subroutines within the second program. For example one might want to programmatically control an array of LEDs connected to an eLua embedded device from a desktop Lua state.  A simple implementation might be a protocol that would allow one to send commands numeric or text-based commands that would cause code to be executed in eLua that would change the state of the LEDs. As one needs new commands to change these LEDs, one would need to upload a new Lua program to handle changing functionality.  In contrast to this ad-hoc method for remote calls, LuaRPC provides a more general way to manipulate the state and execution of a remote Lua environment.&lt;/p&gt;
+   &lt;p&gt;When a client is connected to a LuaRPC server, it can interact with it in the following ways:&lt;/p&gt;
+ &lt;ul&gt;
+   &lt;li&gt;assign values to new or existing variables in the server state&lt;/li&gt;
+@@ -234,34 +234,61 @@
+   &lt;li&gt;call functions to be executed on the server side using parameters of serializable types, with return values being sent back to the client&lt;/li&gt;
+   &lt;li&gt;create local userdata helpers (aliases) which provide short-hand access to remote state&lt;/li&gt;
+ &lt;/ul&gt;
+-&lt;p&gt;In terms of our LED example, one could directly call pio module functions from the desktop side, experimenting with responses. If the experimentation developed into a program this could be tested both on the desktop side and on the microcontroller by making aliases to eLua modules in local Lua state. Such aliasing can be done as follows (from desktop Linux):&lt;/p&gt;
+-&lt;pre&gt;&lt;code&gt;slave,err = rpc.connect(&quot;/dev/ttyUSB0&quot;)
+-pio = slave.pio -- pio in the local state is now a helper
+ 
++&lt;h2&gt;Building the Desktop Client/Server&lt;/h2&gt;
++&lt;ul&gt;
++&lt;li&gt;first, make sure that your PC has already a build system installed (gcc,
++  binutils, libc, headers...). You'll also need scons. The good news is that 
++  you should have it already installed, since otherwise you won't be able to 
++  build even regular &lt;b&gt;eLua&lt;/b&gt; (see &lt;a href=&quot;building.html&quot;&gt;building&lt;/a&gt; for more in-depth instructions).&lt;/li&gt;
++&lt;li&gt;from the &lt;b&gt;eLua&lt;/b&gt; base directory, issue this command:
++  &lt;pre&gt;&lt;code&gt;$ scons -f rpc-lua.py&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
++&lt;/ul&gt;
++&lt;p&gt;You should get a file called &lt;i&gt;luarpc&lt;/i&gt; in the same directory which, when started, should give you a normal Lua interpreter with a built-in rpc module.&lt;/p&gt;
++
++&lt;h2&gt;LuaRPC Basics&lt;/h2&gt;
++&lt;p&gt;In terms of the LED example from the beginning of this section, one could directly call pio module functions from the desktop side, experimenting with responses. If the experimentation developed into a program this could be tested both on the desktop side and on the microcontroller by making aliases to eLua modules in local Lua state.  Such aliasing can be done as follows:&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;-- open connection from Linux host serial port to eLua
++slave,err = rpc.connect(&quot;/dev/ttyUSB0&quot;)
++
++-- make a local helper pointing to pio module in eLua
++pio = slave.pio 
++
++-- define function to set direction and value of port B
+ function set_port_val(val)
+   pio.port.setdir( pio.OUTPUT, pio.PB )
+   pio.port.setval( val, pio.PB )
+ end
+ 
+ set_port_val(23)&lt;/pre&gt;&lt;/code&gt;
+-&lt;p&gt;When we run this locally, calling and indexing helpers are translated into appropriate actions on the server.  If we were done with modifications to the above function and wanted it to execute in eLua rather than using local aliases which will result in a great deal of RPC traffic every time the function is called, we can send the function to the remote side:&lt;/p&gt;
+-&lt;pre&gt;&lt;code&gt;-- send bytecode to target
++&lt;p&gt;When we run this locally, calling and indexing helpers are translated into appropriate actions on the server.  If we were done with modifications to the above function and wanted it to execute in eLua rather than using local aliases, which will result in a great deal of RPC traffic every time the function is called, we can send the function to the remote side:&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;-- cross-compile local chunk for function and send to server
+ slave.set_port_val = set_port_val 
+ 
+ -- call function on server device
+ slave.set_port_val(23)&lt;/pre&gt;&lt;/code&gt;
+ 
+-&lt;p&gt;The above should work even when the server or client is integer-only but the other end of the connection is using floating point, or if one side is not of the same endianness as the other.&lt;/p&gt;
++&lt;p&gt;In addition to functions, we can also copy most other Lua types from client to server using simple assignment. Due to Lua's internal workings the opposite operation of copying Lua types from server to client requires an additional metamethod:&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;-- make table on remote server
++slave.remote_table = {}
+ 
+-&lt;p&gt;While this example is trivial, it serves to illustrate a compelling development paradigm that gives one a great deal of flexibility for development and testing with an embedded target.&lt;/p&gt;
++-- put data in table
++slave.remote_table.rval = 42
+ 
+-&lt;p&gt;Most Lua types can be transferred between the client and server states.  The following list indicates which ones can be transferred, and where there can be issues:&lt;/p&gt;
++-- get data back from server, print
++local_table = slave.remote_table:get()
++print(local_table.rval)&lt;/pre&gt;&lt;/code&gt;
+ 
++&lt;p&gt;While these examples are trivial, they serve to illustrate a compelling development paradigm that gives one a great deal of flexibility for development and testing with an embedded target.&lt;/p&gt;
++
++&lt;h2&gt;Serializable Lua Types&lt;/h2&gt;
++&lt;p&gt;Most Lua types can be transferred between the client and server states.  The following list indicates which ones can be transferred, and where there are known exceptions:&lt;/p&gt;
++
+ &lt;table style=&quot;text-align: left;&quot; class=&quot;table_center&quot;&gt;
+ &lt;tbody&gt;
+ &lt;tr&gt;
+   &lt;th style=&quot;text-align: left;&quot;&gt;Serializable Types&lt;/th&gt;
+-  &lt;th style=&quot;text-align: center;&quot;&gt;Exceptions&lt;/th&gt;
++  &lt;th style=&quot;text-align: center;&quot;&gt;Exceptions and Notes&lt;/th&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+   &lt;td&gt;numbers&lt;/td&gt;
+@@ -289,6 +316,7 @@
+ &lt;/tr&gt;
+ &lt;/tbody&gt;
+ &lt;/table&gt;
+-&lt;p&gt;
++
++
+ $$FOOTER$$
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000561.html">[Elua-svn] r605 - in branches/pre0.7: doc/eluadoc doc/en src	src/modules src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000563.html">[Elua-svn] r607 - branches/pre0.7/doc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#562">[ date ]</a>
+              <a href="thread.html#562">[ thread ]</a>
+              <a href="subject.html#562">[ subject ]</a>
+              <a href="author.html#562">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

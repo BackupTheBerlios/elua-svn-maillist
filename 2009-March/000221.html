@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r265 - trunk/romfs
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r265%20-%20trunk/romfs&In-Reply-To=%3C200903251617.n2PGHJR5026080%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000220.html">
+   <LINK REL="Next"  HREF="000222.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r265 - trunk/romfs</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r265%20-%20trunk/romfs&In-Reply-To=%3C200903251617.n2PGHJR5026080%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r265 - trunk/romfs">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Wed Mar 25 17:17:19 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000220.html">[Elua-svn] r264 - trunk/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000222.html">[Elua-svn] r266 - in trunk/src: . platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#221">[ date ]</a>
+              <a href="thread.html#221">[ thread ]</a>
+              <a href="subject.html#221">[ subject ]</a>
+              <a href="author.html#221">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-03-25 17:17:19 +0100 (Wed, 25 Mar 2009)
+New Revision: 265
+
+Modified:
+   trunk/romfs/adcpoll.lua
+   trunk/romfs/adcscope.lua
+Log:
+Changes to further test that ADC is behaving correctly.
+
+Modified: trunk/romfs/adcpoll.lua
+===================================================================
+--- trunk/romfs/adcpoll.lua	2009-03-24 08:12:08 UTC (rev 264)
++++ trunk/romfs/adcpoll.lua	2009-03-25 16:17:19 UTC (rev 265)
+@@ -1,18 +1,18 @@
+ 
+ if pd.board() == &quot;ET-STM32&quot; then
+   timer = 2
+-  adcchannels = {0,1,2,3}
+-  adcsmoothing = {4, 16, 32, 64}
++  adcchannels = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}
++  adcsmoothing = {4, 4, 4, 4, 16, 16, 16, 16, 32, 32, 32, 32, 64, 128, 64, 128}
+ else
+   timer = 0
+   adcchannels = {0,1,2,3}
+-  adcsmoothing = {4, 16, 32, 64}
++  adcsmoothing = {4, 64, 32, 16}
+ end
+ 
+ for i, v in ipairs(adcchannels) do
+   adc.setblocking(v,0)
+   adc.setsmoothing(v,adcsmoothing[i])
+-  adc.setclock(v, 30 ,timer)
++  adc.setclock(v, 50 ,timer)
+ end
+ 
+ adc.sample(adcchannels,128)
+@@ -26,9 +26,6 @@
+ term.gotoxy(1,#adcchannels+5)
+ term.putstr(&quot;Press ESC to exit.&quot;)
+ 
+-local adcvals = {}
+-local ctr = 0
+-local key
+ local sample = adc.sample
+ local getsample = adc.getsample
+ local samplesready = adc.samplesready
+@@ -42,7 +39,7 @@
+     	term.gotoxy(1,i+3)
+     	term.putstr(string.format(&quot;ADC%d (%03d): %04d\n&quot;, v, adcsmoothing[i], tsample))
+     end
+-    if adc.isdone(v) == 1 then adc.sample(adcchannels,128) end
++    if adc.isdone(v) == 1 then adc.sample(v,128) end
+   end
+   key = term.getch( term.NOWAIT )
+   if key == term.KC_ESC then break end
+
+Modified: trunk/romfs/adcscope.lua
+===================================================================
+--- trunk/romfs/adcscope.lua	2009-03-24 08:12:08 UTC (rev 264)
++++ trunk/romfs/adcscope.lua	2009-03-25 16:17:19 UTC (rev 265)
+@@ -24,17 +24,15 @@
+ term.putstr(&quot;Press ESC to exit.&quot;)
+ 
+ local adcvals = {}
+-local ctr = 0
+ local key, stime, etime, dtime
+ local sample = adc.sample
+ local getsample = adc.getsample
+ local tread = tmr.read
++local tstart = tmr.start
+ local i, v
+ 
+-tmr.start(0)
+-
+ while true do
+-  stime = tread(0)
++  stime = tstart(0)
+   for j=1,numiter do 
+     sample(adcchannels, 1)
+     for i, v in ipairs(adcchannels) do
+@@ -46,7 +44,7 @@
+   
+   term.gotoxy(1,4)
+   for i, v in ipairs(adcchannels) do
+-    term.putstr(string.format(&quot;ADC%d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
++    term.putstr(string.format(&quot;ADC%02d (%03d): %04d\n&quot;, v, adcsmoothing[i],adcvals[i]))
+     term.gotoxy(1,i+4)
+   end
+   term.putstr(string.format(&quot;Tcyc: %06d (us)\n&quot;,dtime))
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000220.html">[Elua-svn] r264 - trunk/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000222.html">[Elua-svn] r266 - in trunk/src: . platform/lm3s
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#221">[ date ]</a>
+              <a href="thread.html#221">[ thread ]</a>
+              <a href="subject.html#221">[ subject ]</a>
+              <a href="author.html#221">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

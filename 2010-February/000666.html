@@ -1,0 +1,338 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r713 - trunk/src/platform/lpc17xx
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r713%20-%20trunk/src/platform/lpc17xx&In-Reply-To=%3C201002160033.o1G0X47i021083%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000665.html">
+   <LINK REL="Next"  HREF="000667.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r713 - trunk/src/platform/lpc17xx</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r713%20-%20trunk/src/platform/lpc17xx&In-Reply-To=%3C201002160033.o1G0X47i021083%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r713 - trunk/src/platform/lpc17xx">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Feb 16 01:33:04 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000665.html">[Elua-svn] r712 - trunk/src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000667.html">[Elua-svn] r714 - trunk/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#666">[ date ]</a>
+              <a href="thread.html#666">[ thread ]</a>
+              <a href="subject.html#666">[ subject ]</a>
+              <a href="author.html#666">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2010-02-16 01:33:03 +0100 (Tue, 16 Feb 2010)
+New Revision: 713
+
+Added:
+   trunk/src/platform/lpc17xx/mbed_pio.c
+Modified:
+   trunk/src/platform/lpc17xx/conf.py
+   trunk/src/platform/lpc17xx/platform.c
+   trunk/src/platform/lpc17xx/platform_conf.h
+Log:
+Support mbed pin mappings through mbed.pio platform specific module, instead
+of directly within platform.c.
+
+Modified: trunk/src/platform/lpc17xx/conf.py
+===================================================================
+--- trunk/src/platform/lpc17xx/conf.py	2010-02-16 00:32:39 UTC (rev 712)
++++ trunk/src/platform/lpc17xx/conf.py	2010-02-16 00:33:03 UTC (rev 713)
+@@ -7,7 +7,7 @@
+ 
+ fwlib_files = &quot; &quot;.join(glob.glob(&quot;src/platform/%s/drivers/src/*.c&quot; % platform))
+ 
+-specific_files = &quot;startup_LPC17xx.c system_LPC17xx.c core_cm3.c platform.c&quot;
++specific_files = &quot;startup_LPC17xx.c system_LPC17xx.c core_cm3.c platform.c mbed_pio.c&quot;
+ 
+ # Check CPU
+ if cputype == 'LPC1768':
+
+Added: trunk/src/platform/lpc17xx/mbed_pio.c
+===================================================================
+--- trunk/src/platform/lpc17xx/mbed_pio.c	2010-02-16 00:32:39 UTC (rev 712)
++++ trunk/src/platform/lpc17xx/mbed_pio.c	2010-02-16 00:33:03 UTC (rev 713)
+@@ -0,0 +1,83 @@
++// MBED specific PIO support
++#include &lt;string.h&gt;
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;lrotable.h&quot;
++#include &quot;platform_conf.h&quot;
++#include &quot;auxmods.h&quot;
++
++
++u32 pin_ports[] = {0,0,0,0,0,0,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,2,2,2,2,2,2,0 ,0 ,0,0, // mbed p5 - p30 -- mapped to P0_
++                 1 ,1 ,1 ,1 ,0,0}; // mbed LED1-4, USBTX, USBRX -- mapped to P1_
++u32 pin_nums[]  = {9,8,7,6,0,1,18,17,15,16,23,24,25,26,30,31,5,4,3,2,1,0,11,10,5,4,
++                 18,20,21,23,2,3};
++
++static int mbed_pio_mt_index( lua_State* L ) 
++{
++  const char *key = luaL_checkstring( L, 2 );
++  int pin, sz;
++  
++  if( *key == 'P' || *key == 'p' ) // p5 - p30
++  {
++    if( sscanf( key + 1, &quot;%d%n&quot;, &amp;pin, &amp;sz ) != 1  || sz != strlen( key ) - 1 )
++      return 0;
++    if(pin &lt; 5 || pin &gt; 30)
++      return 0;
++    pin -= 5;
++  }
++  else if ( *key == 'L' ) // LED1-4
++  {
++    pin = key[3] - '0';
++    if ( pin &gt; 4 || pin &lt; 1 )
++      return 0;
++    pin += 25; // LED pins begin at pin_*[26], led #s begin at 1
++  }
++  else if ( *key == 'U' ) // USBTX, USBRX
++  {
++    switch( key[3] )
++    {
++      case 'T': pin = 30;
++      case 'R': pin = 31;
++      default: return 0;
++    }
++  }
++  
++  sz = PLATFORM_IO_ENCODE( pin_ports[ pin ], pin_nums[ pin ], 0 );
++
++  if( sz == -1 )
++    return 0;
++  else
++  {
++    lua_pushinteger( L, sz );
++    return 1;
++  }
++}
++
++// Module function map
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot; 
++const LUA_REG_TYPE mbed_pio_map[] =
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;__metatable&quot; ), LROVAL( mbed_pio_map ) },
++#endif
++  { LSTRKEY( &quot;__index&quot; ), LFUNCVAL( mbed_pio_mt_index ) },
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_pio( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else
++  luaL_register( L, PS_LIB_TABLE_NAME, mbed_pio_map );
++  
++  // Set it as its own metatable
++  lua_pushvalue( L, -1 );
++  lua_setmetatable( L, -2 );
++  
++  return 1;  
++#endif
++}  
+
+Modified: trunk/src/platform/lpc17xx/platform.c
+===================================================================
+--- trunk/src/platform/lpc17xx/platform.c	2010-02-16 00:32:39 UTC (rev 712)
++++ trunk/src/platform/lpc17xx/platform.c	2010-02-16 00:33:03 UTC (rev 713)
+@@ -13,6 +13,7 @@
+ #include &quot;utils.h&quot;
+ #include &quot;common.h&quot;
+ #include &quot;platform_conf.h&quot;
++#include &quot;lrotable.h&quot;
+ 
+ // Platform includes
+ #include &quot;lpc17xx_gpio.h&quot;
+@@ -67,75 +68,10 @@
+ // ****************************************************************************
+ // PIO section
+    
+-u32 pin_ports[] = {0,0,0,0,0,0,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ,1 ,2,2,2,2,2,2,0 ,0 ,0,0, // mbed p5 - p30 -- mapped to P0_
+-                 1 ,1 ,1 ,1 ,0,0}; // mbed LED1-4, USBTX, USBRX -- mapped to P1_
+-u32 pin_nums[]  = {9,8,7,6,0,1,18,17,15,16,23,24,25,26,30,31,5,4,3,2,1,0,11,10,5,4,
+-                 18,20,21,23,2,3};
+-
+ // The platform I/O functions
+ pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
+ {
+-  pio_type tmp_mask;
+-  u32 idx = 0;
+   pio_type retval = 1;
+-  
+-  /*if ( op == PLATFORM_IO_PORT_GET_VALUE )
+-    retval = 0;*/
+-  if ( port == 0 )
+-    pinmask &gt;&gt;= 5; // mbed pins start at pin 5
+-  
+-  // roll through  
+-  while( pinmask &gt; 0)
+-  {
+-    if ( pinmask &amp; 1 )
+-    {
+-      
+-      if ( port == 1 )
+-        idx += 26;
+-
+-      tmp_mask = (u32)1 &lt;&lt; pin_nums[idx];
+-
+-      switch( op )
+-      {
+-        case PLATFORM_IO_PIN_SET:
+-          GPIO_SetValue(pin_ports[idx], tmp_mask);
+-          break;
+-
+-        case PLATFORM_IO_PIN_CLEAR:
+-          GPIO_ClearValue(pin_ports[idx], tmp_mask);
+-          break;  
+-
+-        case PLATFORM_IO_PIN_DIR_OUTPUT:
+-          GPIO_SetDir(pin_ports[idx], tmp_mask, 1);
+-          break;
+-
+-        case PLATFORM_IO_PIN_DIR_INPUT:
+-          GPIO_SetDir(pin_ports[idx], tmp_mask, 0);
+-          break;
+-
+-        case PLATFORM_IO_PIN_GET:
+-          retval = ( GPIO_ReadValue(pin_ports[idx]) &amp; tmp_mask ) ? 1 : 0;
+-          break;
+-          
+-        /*case PLATFORM_IO_PORT_GET_VALUE:
+-          retval |=  ( pio_type ) ( ( GPIO_ReadValue(port) &amp; tmp_mask ) ? 1 : 0 ) &lt;&lt; idx;
+-          break;*/
+-          
+-        default:
+-          retval = 0;
+-          break;
+-      }
+-    }
+-    pinmask &gt;&gt;= 1;
+-    idx++;
+-  }
+-  return retval;
+-}
+-// The platform I/O functions
+-/*
+-pio_type platform_pio_op( unsigned port, pio_type pinmask, int op )
+-{
+-  pio_type retval = 1;
+   u32 idx = 0;
+   
+   switch( op )
+@@ -182,7 +118,6 @@
+   }
+   return retval;
+ }
+-*/
+ 
+ 
+ // ****************************************************************************
+@@ -512,4 +447,35 @@
+   return res;
+ }
+ 
+-*/
+\ No newline at end of file
++*/
++
++// ****************************************************************************
++// Platform specific modules go here
++
++#define MIN_OPT_LEVEL 2
++#include &quot;lrodefs.h&quot;
++extern const LUA_REG_TYPE mbed_pio_map[];
++
++const LUA_REG_TYPE platform_map[] =
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  { LSTRKEY( &quot;pio&quot; ), LROVAL( mbed_pio_map ) },
++#endif
++  { LNILKEY, LNILVAL }
++};
++
++LUALIB_API int luaopen_platform( lua_State *L )
++{
++#if LUA_OPTIMIZE_MEMORY &gt; 0
++  return 0;
++#else // #if LUA_OPTIMIZE_MEMORY &gt; 0
++  luaL_register( L, PS_LIB_TABLE_NAME, platform_map );
++  
++  // Setup the new tables inside platform table
++  lua_newtable( L );
++  luaL_register( L, NULL, mbed_pio_map );
++  lua_setfield( L, -2, &quot;pio&quot; );
++
++  return 1;
++#endif // #if LUA_OPTIMIZE_MEMORY &gt; 0
++}
+
+Modified: trunk/src/platform/lpc17xx/platform_conf.h
+===================================================================
+--- trunk/src/platform/lpc17xx/platform_conf.h	2010-02-16 00:32:39 UTC (rev 712)
++++ trunk/src/platform/lpc17xx/platform_conf.h	2010-02-16 00:33:03 UTC (rev 713)
+@@ -28,6 +28,9 @@
+ // *****************************************************************************
+ // Auxiliary libraries that will be compiled for this platform
+ 
++// The name of the platform specific libs table
++#define PS_LIB_TABLE_NAME   &quot;mbed&quot;
++
+ #define LUA_PLATFORM_LIBS_ROM\
+   _ROM( AUXLIB_PIO, luaopen_pio, pio_map )\
+   _ROM( AUXLIB_UART, luaopen_uart, uart_map )\
+@@ -37,7 +40,8 @@
+   _ROM( AUXLIB_PACK, luaopen_pack, pack_map )\
+   _ROM( AUXLIB_BIT, luaopen_bit, bit_map )\
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+-  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
++  _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )\
++  _ROM( PS_LIB_TABLE_NAME, luaopen_platform, platform_map )
+ 
+ // *****************************************************************************
+ // Configuration data
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000665.html">[Elua-svn] r712 - trunk/src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000667.html">[Elua-svn] r714 - trunk/romfs
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#666">[ date ]</a>
+              <a href="thread.html#666">[ thread ]</a>
+              <a href="subject.html#666">[ subject ]</a>
+              <a href="author.html#666">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

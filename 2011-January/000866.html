@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r913 - branches/pre0.8/doc/en
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r913%20-%20branches/pre0.8/doc/en&In-Reply-To=%3C20110130180234.9469C481350%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000865.html">
+   <LINK REL="Next"  HREF="000867.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r913 - branches/pre0.8/doc/en</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r913%20-%20branches/pre0.8/doc/en&In-Reply-To=%3C20110130180234.9469C481350%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r913 - branches/pre0.8/doc/en">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Jan 30 19:02:34 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000865.html">[Elua-svn] r912 - branches/pre0.8/doc/en
+</A></li>
+        <LI>Next message: <A HREF="000867.html">[Elua-svn] r914 - in branches/pre0.8: . doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#866">[ date ]</a>
+              <a href="thread.html#866">[ thread ]</a>
+              <a href="subject.html#866">[ subject ]</a>
+              <a href="author.html#866">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-01-30 19:02:33 +0100 (Sun, 30 Jan 2011)
+New Revision: 913
+
+Modified:
+   branches/pre0.8/doc/en/inthandlers.txt
+   branches/pre0.8/doc/en/linenoise.txt
+   branches/pre0.8/doc/en/sermux.txt
+   branches/pre0.8/doc/en/using.html
+Log:
+various fixes in the docs, added documentation for the 'cp' command in the shell
+
+Modified: branches/pre0.8/doc/en/inthandlers.txt
+===================================================================
+--- branches/pre0.8/doc/en/inthandlers.txt	2011-01-30 00:15:57 UTC (rev 912)
++++ branches/pre0.8/doc/en/inthandlers.txt	2011-01-30 18:02:33 UTC (rev 913)
+@@ -2,7 +2,7 @@
+ eLua interrupt handlers
+ -----------------------
+ 
+-Starting with version link:TODO[0.8], eLua supports interrupt handlers written in Lua. Once an interrupt handler is set in the Lua code, it will be called each time a supported 
++Starting with link:downloads.html[vesion 0.8] eLua supports interrupt handlers written in Lua. Once an interrupt handler is set in the Lua code, it will be called each time a supported 
+ interrupt is generated. A *supported interrupt* is any interrupt that is handled by the platform C code (see link:arch_ints.html[here] for more details).
+ 
+ [red]*IMPORTANT*: before learning how to use interrupt handlers in Lua, please keep in mind that Lua interrupt handlers don't work the same way as 
+@@ -23,7 +23,7 @@
+     are still recorded in the interrupt queue, but the Lua handler won't be called until the virtual machine runs again. In this case though, the &quot;clock&quot; of the Lua VM is a 
+     C function that is executed for every VM instruction. If this function blocks for some reason, the VM instructions are not executed anymore. It's not hard to make
+     this function block; for example, it blocks everytime the Lua code waits for some user input at the console, or when a link:refman_gen_tmr.html#tmr.delay[tmr.delay] is executed, 
+-    or when TODO link:refman_gen_uart.html#uart.read[uart.read] is called  with an infinite or very large timeout; in general, any function from a Lua library that doesn't return 
++    or when link:refman_gen_uart.html#uart.read[uart.read] is called  with an infinite or very large timeout; in general, any function from a Lua library that doesn't return 
+     immediately or after a short ammount of time will block the VM. Care must be taken to avoid such operations as much as possible, otherwise the interrupt support code won't run properly.
+ 
+ * There is a single interrupt handler per interrupt type in Lua (the same holds true for C interrupt support), as opposed to the many hardware interrupts 
+@@ -171,7 +171,7 @@
+ *elua_int_c_handler* is a function that doesn't return anything and receives a single parameter of type *elua_int_resnum* to differentiate between the sources (GPIO pin, UART id, timer id
+ and so on) that can trigger the interrupt *inttype*. This is similar in functionality with the Lua handlers. 
+ 
+-To work with interrupts from C code use these functions defined by the link:TODO[CPU platform interface]:
++To work with interrupts from C code use these functions defined by the link:arch_platform_cpu.html[CPU platform interface]:
+ 
+ int platform_cpu_set_interrupt( elua_int_id id, elua_int_resnum resnum, int status )::
+   Enable (*status* = *PLATFORM_CPU_ENABLE*) or disable (*status* = *PLATFORM_CPU_DISABLE*) interrupt *id* for resource *resnum*. 
+
+Modified: branches/pre0.8/doc/en/linenoise.txt
+===================================================================
+--- branches/pre0.8/doc/en/linenoise.txt	2011-01-30 00:15:57 UTC (rev 912)
++++ branches/pre0.8/doc/en/linenoise.txt	2011-01-30 18:02:33 UTC (rev 913)
+@@ -15,7 +15,7 @@
+ Linenoise in eLua
+ -----------------
+ Starting with version 0.8 eLua contains a port of the linenoise library. To use it make sure it is included 
+-in the build, reffer to the link:build.html[build instructions] for details. Note that linenoise requires
++in the build, reffer to the link:building.html[build instructions] for details. Note that linenoise requires
+ ANSI terminal support (*BUILD_TERM*), so you need to enable that too. To use it, simply start the Lua interpreter.
+ The table below contains a list of keys that can be used to take advantage of linenoise:
+ 
+
+Modified: branches/pre0.8/doc/en/sermux.txt
+===================================================================
+--- branches/pre0.8/doc/en/sermux.txt	2011-01-30 00:15:57 UTC (rev 912)
++++ branches/pre0.8/doc/en/sermux.txt	2011-01-30 18:02:33 UTC (rev 913)
+@@ -4,7 +4,7 @@
+ *(v0.8 and above)* The *serial multiplexer* is an optional eLua component that allows
+ using several serial ports over a single physical serial link connection. It can be a 
+ very convenient feature, since some eLua components (such as link:using.html#rpc[the RPC mechanism] 
+-or link:arfs_rfs.html[the remote file system]) need a serial link to the PC and 
++or link:arch_rfs.html[the remote file system]) need a serial link to the PC and 
+ it's very incovenient (or even impossible sometimes) to connect the eLua board 
+ to the PC with 2 or more serial cables. A common use scenario for the serial
+ multiplexer is to have the eLua shell and RFS running over a single physical 
+
+Modified: branches/pre0.8/doc/en/using.html
+===================================================================
+--- branches/pre0.8/doc/en/using.html	2011-01-30 00:15:57 UTC (rev 912)
++++ branches/pre0.8/doc/en/using.html	2011-01-30 18:02:33 UTC (rev 913)
+@@ -141,6 +141,11 @@
+ &lt;pre&gt;&lt;code&gt;$ cat &lt;i&gt;filename1&lt;/i&gt; [&lt;i&gt;filename2 filename3 ...&lt;/i&gt;]
+ $ type &lt;i&gt;filename1&lt;/i&gt; [&lt;i&gt;filename2 filename3 ...&lt;/i&gt;]&lt;/code&gt;&lt;/pre&gt;
+ 
++&lt;h2&gt;cp&lt;/h2&gt;
++&lt;p&gt;Copies a file to another file. This command can be used to copy files between different file systems (for example between the MMC file system and the RFS file system).&lt;/p&gt;
++&lt;pre&gt;&lt;code&gt;$ cp &lt;i&gt;source&lt;/i&gt; &lt;i&gt;destination&lt;/i&gt;&lt;/code&gt;&lt;/pre&gt;
++&lt;p&gt;Note that both &lt;b&gt;source&lt;/b&gt; and &lt;b&gt;destination&lt;/b&gt; must be file names.&lt;/p&gt;
++
+ &lt;h2&gt;exit&lt;/h2&gt;
+ &lt;p&gt;Exits the shell. This only makes sense if &lt;b&gt;eLua&lt;/b&gt; is compiled with terminal support over TCP/IP , as it closes the telnet session to the &lt;b&gt;eLua&lt;/b&gt; board. Otherwise it just
+   terminates the shell and blocks forever until you reset your board.&lt;/p&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000865.html">[Elua-svn] r912 - branches/pre0.8/doc/en
+</A></li>
+	<LI>Next message: <A HREF="000867.html">[Elua-svn] r914 - in branches/pre0.8: . doc/en
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#866">[ date ]</a>
+              <a href="thread.html#866">[ thread ]</a>
+              <a href="subject.html#866">[ subject ]</a>
+              <a href="author.html#866">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,786 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r975 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9 utils
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2011-February/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r975%20-%20in%20trunk%3A%20.%20src/platform/at91sam7x%0A%09src/platform/avr32%20src/platform/i386%20src/platform/lm3s%0A%09src/platform/lpc17xx%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/sim%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9%20utils&In-Reply-To=%3C20110227183110.38F5748144F%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000927.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r975 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9 utils</H1>
+    <B>bogdanm at mail.berlios.de</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r975%20-%20in%20trunk%3A%20.%20src/platform/at91sam7x%0A%09src/platform/avr32%20src/platform/i386%20src/platform/lm3s%0A%09src/platform/lpc17xx%20src/platform/lpc24xx%0A%09src/platform/lpc288x%20src/platform/sim%20src/platform/stm32%0A%09src/platform/str7%20src/platform/str9%20utils&In-Reply-To=%3C20110227183110.38F5748144F%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r975 - in trunk: . src/platform/at91sam7x	src/platform/avr32 src/platform/i386 src/platform/lm3s	src/platform/lpc17xx src/platform/lpc24xx	src/platform/lpc288x src/platform/sim src/platform/stm32	src/platform/str7 src/platform/str9 utils">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Feb 27 19:31:09 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000927.html">[Elua-svn] r974 - trunk
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#928">[ date ]</a>
+              <a href="thread.html#928">[ thread ]</a>
+              <a href="subject.html#928">[ subject ]</a>
+              <a href="author.html#928">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2011-02-27 19:31:09 +0100 (Sun, 27 Feb 2011)
+New Revision: 975
+
+Modified:
+   trunk/build_elua.lua
+   trunk/rfs_server.lua
+   trunk/src/platform/at91sam7x/conf.lua
+   trunk/src/platform/avr32/conf.lua
+   trunk/src/platform/i386/conf.lua
+   trunk/src/platform/lm3s/conf.lua
+   trunk/src/platform/lpc17xx/conf.lua
+   trunk/src/platform/lpc24xx/conf.lua
+   trunk/src/platform/lpc288x/conf.lua
+   trunk/src/platform/sim/conf.lua
+   trunk/src/platform/stm32/conf.lua
+   trunk/src/platform/str7/conf.lua
+   trunk/src/platform/str9/conf.lua
+   trunk/utils/build.lua
+Log:
+Yeah, you guessed it: even more improvements to the build system :)
+
+Modified: trunk/build_elua.lua
+===================================================================
+--- trunk/build_elua.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/build_elua.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -515,6 +515,23 @@
+   return 0
+ end
+ 
++-- Generic 'prog' action function
++local function genprog( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  local outtype = target:find( &quot;%.hex$&quot; ) and &quot;ihex&quot; or &quot;binary&quot;
++  print( sf( &quot;Generating binary image %s...&quot;, target ) )
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  os.execute( sf( &quot;%s -O %s %s %s&quot;, toolset.bin, outtype, outname, target ) )
++  return 0
++end
++
++-- Generic 'size' action function
++local function sizefunc( target, deps )
++  local outname = deps[ 1 ]:target_name()
++  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
++  return 0
++end
++
+ -- Command lines for the tools (compiler, linker, assembler)
+ compcmd = compcmd or builder:compile_cmd{ flags = cflags, defines = cdefs, includes = includes, compiler = toolset.compile }
+ linkcmd = linkcmd or builder:link_cmd{ flags = lflags, libraries = libs, linker = toolset.compile }
+@@ -524,19 +541,32 @@
+ builder:set_asm_cmd( ascmd )
+ builder:set_exe_extension( &quot;.elf&quot; )
+ 
+--- Create executable target 
+-romtarget = builder:target( &quot;inc/romfiles.h&quot;, nil, make_romfs )
+-builder:make_depends( source_files, { romtarget } )
++-- Create the ROM file system
++make_romfs()
++-- Creaate executable targets
++builder:make_depends( source_files )
+ odeps = builder:create_compile_targets( source_files )
+ exetarget = builder:link_target( output, odeps )
+ -- This is also the default target
+ builder:default( builder:add_target( exetarget, 'build eLua executable' ) )
+ 
+--- Create 'prog' target
+-progtarget = builder:target( &quot;#phony:prog&quot;, { exetarget }, tools[ platform ].progfunc )
+-builder:add_target( progtarget, &quot;build eLua firmware image&quot;, { &quot;prog&quot; } )
+-progtarget:set_explicit_targets( tools[ platform ].prog_flist )
++-- Create 'prog' target(s)
++local ptargets = {}
++local progfunc = tools[ platform ].progfunc or genprog
++utils.foreach( tools[ platform ].prog_flist, function( _, t )
++  local target = builder:target( t, { exetarget }, progfunc )
++  table.insert( ptargets, target )
++end )
++if #ptargets &gt; 0 then
++  progtarget = builder:target( &quot;#phony:prog&quot;, ptargets )
++  builder:add_target( progtarget, &quot;build eLua firmware image&quot;, { &quot;prog&quot; } )
++end
+ 
++-- Create generic 'size' target
++local size_target = builder:target( &quot;#phony:size&quot;, { exetarget }, sizefunc )
++size_target:force_rebuild( true )
++builder:add_target( size_target, &quot;shows the size of the eLua firmware&quot;, { &quot;size&quot; } )
++
+ -- If the backend needs to do more processing before the build starts, do it now
+ if tools[ platform ].pre_build then
+   tools[ platform ].pre_build()
+
+Modified: trunk/rfs_server.lua
+===================================================================
+--- trunk/rfs_server.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/rfs_server.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -38,6 +38,6 @@
+ builder:set_exe_extension( exeprefix )
+ 
+ -- Build everything
+-builder:make_exe_target( &quot;rfs_server&quot;, full_files )
++builder:make_exe_target( output, full_files )
+ builder:build()
+ 
+
+Modified: trunk/src/platform/at91sam7x/conf.lua
+===================================================================
+--- trunk/src/platform/at91sam7x/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/at91sam7x/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -43,15 +43,6 @@
+ -- Toolset data
+ tools.at91sam7x = {}
+ 
+--- Programming function for AT91SAM7X
+-tools.at91sam7x.progfunc = function( target, deps )
+-  local outname = deps[ 1 ]:target_name()
+-  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
+-  print &quot;Generating binary image...&quot;
+-  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
+-  return 0
+-end
+- 
+ -- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
+ tools.at91sam7x.prog_flist = { output .. &quot;.bin&quot; }
+ 
+
+Modified: trunk/src/platform/avr32/conf.lua
+===================================================================
+--- trunk/src/platform/avr32/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/avr32/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -35,15 +35,6 @@
+ -- Toolset data
+ tools.avr32 = {}
+ 
+--- Programming function
+-tools.avr32.progfunc = function( target, deps )
+-  local outname = deps[ 1 ]:target_name()
+-  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
+-  print &quot;Generating binary image...&quot;
+-  os.execute( sf( &quot;%s -O ihex %s %s.hex&quot;, toolset.bin, outname, output ) )
+-  return 0
+-end
+-
+ -- Image burn function (DFU)
+ local function burnfunc( target, deps )
+   print &quot;Burning image to target ...&quot;
+
+Modified: trunk/src/platform/i386/conf.lua
+===================================================================
+--- trunk/src/platform/i386/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/i386/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -34,3 +34,9 @@
+   return 0
+ end
+ 
++-- Add the programming function explicitly for this target
++tools.i386.pre_build = function()
++  local t = builder:target( &quot;#phony:prog&quot;, { exetarget }, tools.i386.progfunc )
++  builder:add_target( t, &quot;build eLua firmware image&quot;, { &quot;prog&quot; } )
++end
++
+
+Modified: trunk/src/platform/lm3s/conf.lua
+===================================================================
+--- trunk/src/platform/lm3s/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/lm3s/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -39,15 +39,6 @@
+ -- Toolset data
+ tools.lm3s = {}
+ 
+--- Programming function
+-tools.lm3s.progfunc = function( target, deps )
+-  local outname = deps[ 1 ]:target_name()
+-  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
+-  print &quot;Generating binary image...&quot;
+-  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
+-  return 0
+-end
+-
+ -- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
+ tools.lm3s.prog_flist = { output .. &quot;.bin&quot; }
+ 
+
+Modified: trunk/src/platform/lpc17xx/conf.lua
+===================================================================
+--- trunk/src/platform/lpc17xx/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/lpc17xx/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -30,15 +30,6 @@
+ -- Toolset data
+ tools.lpc17xx = {}
+ 
+--- Programming function
+-tools.lpc17xx.progfunc = function( target, deps )
+-  local outname = deps[ 1 ]:target_name()
+-  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
+-  print &quot;Generating binary image...&quot;
+-  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
+-  return 0
+-end
+-
+ -- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
+ tools.lpc17xx.prog_flist = { output .. &quot;.bin&quot; }
+ 
+
+Modified: trunk/src/platform/lpc24xx/conf.lua
+===================================================================
+--- trunk/src/platform/lpc24xx/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/lpc24xx/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -35,15 +35,6 @@
+ -- Toolset data
+ tools.lpc24xx = {}
+ 
+--- Programming function
+-tools.lpc24xx.progfunc = function( target, deps )
+-  local outname = deps[ 1 ]:target_name()
+-  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
+-  print &quot;Generating binary image...&quot;
+-  os.execute( sf( &quot;%s -O ihex %s %s.hex&quot;, toolset.bin, outname, output ) )
+-  return 0
+-end
+-
+ -- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
+ tools.lpc24xx.prog_flist = { output .. &quot;.hex&quot; }
+ 
+
+Modified: trunk/src/platform/lpc288x/conf.lua
+===================================================================
+--- trunk/src/platform/lpc288x/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/lpc288x/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -36,15 +36,6 @@
+ -- Toolset data
+ tools.lpc288x = {}
+ 
+--- Programming function for AT91SAM7X
+-tools.lpc288x.progfunc = function( target, deps )
+-  local outname = deps[ 1 ]:target_name()
+-  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
+-  print &quot;Generating binary image...&quot;
+-  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
+-  return 0
+-end
+- 
+ -- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
+ tools.lpc288x.prog_flist = { output .. &quot;.bin&quot; }
+ 
+
+Modified: trunk/src/platform/sim/conf.lua
+===================================================================
+--- trunk/src/platform/sim/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/sim/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -36,3 +36,9 @@
+   return 0
+ end
+ 
++-- Add the programming function explicitly for this target
++tools.sim.pre_build = function()
++  local t = builder:target( &quot;#phony:prog&quot;, { exetarget }, tools.sim.progfunc )
++  builder:add_target( t, &quot;build eLua firmware image&quot;, { &quot;prog&quot; } )
++end
++
+
+Modified: trunk/src/platform/stm32/conf.lua
+===================================================================
+--- trunk/src/platform/stm32/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/stm32/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -31,16 +31,6 @@
+ -- Toolset data
+ tools.stm32 = {}
+ 
+--- Programming function
+-tools.stm32.progfunc = function( target, deps )
+-  local outname = deps[ 1 ]:target_name()
+-  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
+-  print &quot;Generating binary image...&quot;
+-  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
+-  os.execute( sf( &quot;%s -O ihex %s %s.hex&quot;, toolset.bin, outname, output ) )
+-  return 0
+-end
+-
+ -- Image burn function (stm32ld)
+ -- args[1]: COM port name
+ local function burnfunc( target, deps, args )
+
+Modified: trunk/src/platform/str7/conf.lua
+===================================================================
+--- trunk/src/platform/str7/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/str7/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -33,15 +33,6 @@
+ -- Toolset data
+ tools.str7 = {}
+ 
+--- Programming function for AT91SAM7X
+-tools.str7.progfunc = function( target, deps )
+-  local outname = deps[ 1 ]:target_name()
+-  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
+-  print &quot;Generating binary image...&quot;
+-  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
+-  return 0
+-end
+- 
+ -- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
+ tools.str7.prog_flist = { output .. &quot;.bin&quot; }
+ 
+
+Modified: trunk/src/platform/str9/conf.lua
+===================================================================
+--- trunk/src/platform/str9/conf.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/src/platform/str9/conf.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -40,15 +40,6 @@
+ -- Toolset data
+ tools.str9 = {}
+ 
+--- Programming function for AT91SAM7X
+-tools.str9.progfunc = function( target, deps )
+-  local outname = deps[ 1 ]:target_name()
+-  os.execute( sf( &quot;%s %s&quot;, toolset.size, outname ) )
+-  print &quot;Generating binary image...&quot;
+-  os.execute( sf( &quot;%s -O binary %s %s.bin&quot;, toolset.bin, outname, output ) )
+-  return 0
+-end
+- 
+ -- Array of file names that will be checked against the 'prog' target; their absence will force a rebuild
+ tools.str9.prog_flist = { output .. &quot;.bin&quot; }
+ 
+
+Modified: trunk/utils/build.lua
+===================================================================
+--- trunk/utils/build.lua	2011-02-27 04:27:29 UTC (rev 974)
++++ trunk/utils/build.lua	2011-02-27 18:31:09 UTC (rev 975)
+@@ -93,6 +93,7 @@
+ 
+ -- Converts a string with items separated by 'sep' into a table
+ utils.string_to_table = function( s, sep )
++  if type( s ) ~= &quot;string&quot; then return end
+   sep = sep or ' '
+   if s:sub( -1, -1 ) ~= sep then s = s .. sep end
+   s = s:gsub( sf( &quot;^%s*&quot;, sep ), &quot;&quot; )
+@@ -248,6 +249,11 @@
+   return get_target_name( self.dep )
+ end
+ 
++-- Object type
++_fbuilder.objtype = function()
++  return &quot;_fbuilder&quot;
++end
++
+ -------------------------------------------------------------------------------
+ -- Target object
+ 
+@@ -258,6 +264,16 @@
+   setmetatable( self, { __index = _target } )
+   self.target = target
+   self.command = command
++  self:set_dependencies( dep )
++  self._force_rebuild = #self.dep == 0
++  self.builder = builder
++  builder.tlist[ target ] = self
++  builder.runlist[ target ] = false
++  return self
++end
++
++-- Set dependencies
++_target.set_dependencies = function( self, dep )
+   -- Transform 'dep' into a list of objects that support the 'build' method
+   if type( dep ) == 'string' then 
+     dep = utils.string_to_table( dep ) 
+@@ -267,15 +283,22 @@
+   -- Iterate through 'dep' transforming file names in _fbuilder targets
+   for i = 1, #dep do
+     if type( dep[ i ] ) == &quot;string&quot; then
+-      dep[ i ] = _fbuilder.new( target, dep[ i ] )
++      dep[ i ] = _fbuilder.new( self.target, dep[ i ] )
+     end
+   end
+   self.dep = dep
+-  self._force_rebuild = #dep == 0
+-  self.builder = builder
+-  return self
+ end
+ 
++-- Set pre-build function
++_target.set_pre_build_function = function( self, f )
++  self._pre_build_function = f
++end
++
++-- Set post-build function
++_target.set_post_build_function = function( self, f )
++  self._post_build_function = f
++end
++
+ -- Force rebuild
+ _target.force_rebuild = function( self, flag )
+   self._force_rebuild = flag
+@@ -287,33 +310,43 @@
+ end
+ 
+ -- Function to execute in clean mode
+-_target._cleaner = function( target, deps, dummy, explicit_targets )
+-  local cleaner = function( fname )
+-    io.write( sf( &quot;[builder] Removing %s ... &quot;, fname ) )
+-    if os.remove( fname ) then print &quot;done.&quot; else print &quot;failed!&quot; end
+-    end
+-  -- Clean explicit targets
+-  utils.foreach( explicit_targets, function( k, v ) cleaner( v ) end )
++_target._cleaner = function( target, deps, dummy )
+   -- Clean the main target if it is not a phony target
+-  if not is_phony( target ) then cleaner( target ) end
++  if not is_phony( target ) then 
++    io.write( sf( &quot;[builder] Removing %s ... &quot;, target ) )
++    if os.remove( target ) then print &quot;done.&quot; else print &quot;failed!&quot; end
++  end
+   return 0
+ end
+ 
+ -- Build the given target
+ _target.build = function( self )
++  if self.builder.runlist[ self.target ] then return end
+   local docmd = self:target_name() and lfs.attributes( self:target_name(), &quot;mode&quot; ) ~= &quot;file&quot;
+-  -- Check explicit targets
+-  if type( self._explicit_targets ) == &quot;table&quot; then
+-    utils.foreach( self._explicit_targets, function( k, v ) if not utils.is_file( v ) then docmd = true end end )
+-  end
++  docmd = docmd or self.builder.global_force_rebuild
++  local initdocmd = docmd
+   local depends, dep = '', self.dep
+   -- Iterate through all dependencies, execute each one in turn
+-  for i = 1, #dep do
+-    local res = dep[ i ]:build()
+-    docmd = docmd or res
+-    local t = dep[ i ]:target_name()
+-    if t then depends = depends .. t .. &quot; &quot; end
++  local deprunner = function()
++    for i = 1, #dep do
++      local res = dep[ i ]:build()
++      docmd = docmd or res
++      local t = dep[ i ]:target_name()
++      if dep[ i ]:objtype() == &quot;_target&quot; and t then
++        docmd = docmd or get_ftime( t ) &gt; get_ftime( self.target )
++      end
++      if t then depends = depends .. t .. &quot; &quot; end
++    end
+   end
++  deprunner()
++  -- Execute the preb-build function if needed
++  if self._pre_build_function then self._pre_build_function( self, docmd ) end
++  -- If the dependencies changed as a result of running the pre-build function
++  -- run through them again
++  if dep ~= self.dep then
++     depends, dep, docmd = '', self.dep, initdocmd
++     deprunner()
++  end
+   -- If at least one dependency is new rebuild the target
+   docmd = docmd or self._force_rebuild or self.builder.clean_mode
+   local keep_flag = true
+@@ -327,7 +360,7 @@
+       print( cmd )
+       code = os.execute( cmd )   
+     else
+-      code = cmd( self.target, self.dep, self._target_args, self._explicit_targets )
++      code = cmd( self.target, self.dep, self._target_args )
+       if code == 1 then -- this means &quot;mark target as 'not executed'&quot;
+         keep_flag = false
+         code = 0
+@@ -338,6 +371,10 @@
+       os.exit( 1 ) 
+     end
+   end
++  -- Execute the post-build function if needed
++  if self._post_build_function then self._post_build_function( self, docmd ) end
++  -- Marked target as &quot;already ran&quot; so it won't run again
++  self.builder.runlist[ self.target ] = true
+   return docmd and keep_flag
+ end
+ 
+@@ -346,10 +383,9 @@
+   return get_target_name( self.target )
+ end
+ 
+--- Set 'explicit targets'
+--- The target will rebuild itself if these don't exist
+-_target.set_explicit_targets = function( self, targets )
+-  self._explicit_targets = targets
++-- Object type
++_target.objtype = function()
++  return &quot;_target&quot;
+ end
+ 
+ -------------------------------------------------------------------------------
+@@ -373,8 +409,8 @@
+   self.build_mode = self.KEEP_DIR
+   self.targets = {}
+   self.targetargs = {}
+-  -- 'State fields' are used to check if a change in different fields should force a rebuild
+-  self.state_fields = { 'link_cmd', 'comp_cmd', 'asm_cmd', 'asm_dep_cmd', 'c_dep_cmd', 'obj_extension' }
++  self.tlist = {}
++  self.runlist = {}
+   return self
+ end
+ 
+@@ -580,7 +616,7 @@
+ 
+ -- Set the assembler command
+ builder.set_asm_cmd = function( self, cmd )
+-  self.asm_cmd = cmd
++  self._asm_cmd = cmd
+ end
+ 
+ -- Set (actually force) the object file extension
+@@ -630,17 +666,42 @@
+   self.c_dep_cmd = c_dep_cmd
+ end
+ 
+--- Save the builder configuration to a string
+-builder._config_to_string = function( self )
++-- Save the builder configuration for a given component to a string
++builder._config_to_string = function( self, what )
+   local ctable = {}
+-  utils.foreach( self.state_fields, function( k, v ) ctable[ v ] = self[ v ] end )
++  local state_fields 
++  if what == 'comp' then
++    state_fields = { 'comp_cmd', '_asm_cmd', 'c_dep_cmd', 'asm_dep_cmd', 'obj_extension' }
++  elseif what == 'link' then
++    state_fields = { 'link_cmd' }
++  else
++    print( sf( &quot;Invalid argument '%s' to _config_to_string&quot;, what ) )
++    os.exit( 1 )
++  end
++  utils.foreach( state_fields, function( k, v ) ctable[ v ] = self[ v ] end )
+   return table.tostring( ctable )
+ end
+ 
+--- Load the builder configuration from a string and return it as a table
+-builder._config_from_string = function( self, s )
+-  local f = loadstring( s )
+-  return f and f() 
++-- Check the configuration of the given component against the previous one
++-- Return true if the configuration has changed
++builder._compare_config = function( self, what )
++  local res = false
++  local crtstate = self:_config_to_string( what )
++  if not self.clean_mode then
++    local fconf = io.open( self.build_dir .. dir_sep .. &quot;.builddata.&quot; .. what, &quot;rb&quot; )
++    if fconf then
++      local oldstate = fconf:read( &quot;*a&quot; )
++      fconf:close()
++      if oldstate:lower() ~= crtstate:lower() then res = true end
++    end
++  end
++  -- Write state to build dir
++  fconf = io.open( self.build_dir .. dir_sep .. &quot;.builddata.&quot; .. what, &quot;wb&quot; )
++  if fconf then
++    fconf:write( self:_config_to_string( what ) )
++    fconf:close()
++  end
++  return res
+ end
+ 
+ ---------------------------------------
+@@ -650,9 +711,9 @@
+ builder._generic_cmd = function( self, args )
+   local compcmd = args.compiler or &quot;gcc&quot;
+   compcmd = compcmd .. &quot; &quot;
+-  local flags = table_to_string( utils.linearize_array( args.flags ) )
+-  local defines = table_to_string( utils.linearize_array( args.defines ) )
+-  local includes = table_to_string( utils.linearize_array( args.includes ) )
++  local flags = type( args.flags ) == 'table' and table_to_string( utils.linearize_array( args.flags ) ) or args.flags
++  local defines = type( args.defines ) == 'table' and table_to_string( utils.linearize_array( args.defines ) ) or args.defines
++  local includes = type( args.includes ) == 'table' and table_to_string( utils.linearize_array( args.includes ) ) or args.includes
+   local comptype = table_to_string( args.comptype ) or &quot;-c&quot;
+   compcmd = compcmd .. utils.prepend_string( defines, &quot;-D&quot; )
+   compcmd = compcmd .. utils.prepend_string( includes, &quot;-I&quot; )
+@@ -672,8 +733,8 @@
+ 
+ -- Return a link command based on the specified args
+ builder.link_cmd = function( self, args )
+-  local flags = table_to_string( utils.linearize_array( args.flags ) )
+-  local libraries = table_to_string( utils.linearize_array( args.libraries ) )
++  local flags = type( args.flags ) == 'table' and table_to_string( utils.linearize_array( args.flags ) ) or args.flags
++  local libraries = type( args.libraries ) == 'table' and table_to_string( utils.linearize_array( args.libraries ) ) or args.libraries
+   local linkcmd = args.linker or &quot;gcc&quot;
+   linkcmd = linkcmd .. &quot; &quot; .. flags .. &quot; -o $(TARGET) $(DEPENDS)&quot;
+   linkcmd = linkcmd .. &quot; &quot; .. utils.prepend_string( libraries, &quot;-l&quot; )
+@@ -690,7 +751,7 @@
+ 
+ -- Create a return a new ASM to object target
+ builder.asm_target = function( self, target, deps, asm_cmd )
+-  return _target.new( target, deps, asm_cmd or self.asm_cmd, self )
++  return _target.new( target, deps, asm_cmd or self._asm_cmd, self )
+ end
+ 
+ -- Return the name of a dependency file name corresponding to a C source
+@@ -709,7 +770,9 @@
+   if not out:find( &quot;%.&quot; ) and self.exe_extension and #self.exe_extension &gt; 0 then
+     out = out .. self.exe_extension
+   end
+-  return _target.new( out, dep, link_cmd or self.link_cmd, self )
++  local t = _target.new( out, dep, link_cmd or self.link_cmd, self )
++  if self:_compare_config( 'link' ) then t:force_rebuild( true ) end
++  return t
+ end
+ 
+ -- Create and return a new generic target
+@@ -759,15 +822,14 @@
+ 
+ -- Build and interpret dependencies for the given source files
+ -- &quot;flable&quot; is either a space-separated string with all the source files or an array
+-builder.make_depends = function( self, ftable, deptargets )
+-  if type( ftable ) == 'string' then ftable = utils.string_to_table( ftable )end
+-  self:_create_outdir()
++builder.make_depends = function( self, ftable )
++  if type( ftable ) == 'string' then ftable = utils.string_to_table( ftable ) end
+ 
+   -- Start with initial dependency data (this might be nil when generated initially)
+   local initdep = self:read_depends( ftable )
+ 
+   -- Build dependencies for all targets
+-  deptargets = deptargets or {}
++  self.dtable = {}
+   for i = 1, #ftable do
+     local isasm = ftable[ i ]:find( &quot;%.c$&quot; ) == nil
+     -- Skip assembler targets if 'asm_dep_cmd' is set to 'false'
+@@ -775,43 +837,45 @@
+     local skip = isasm and self.asm_dep_cmd == false
+     skip = skip or ( not isasm and self.c_dep_cmd == false )
+     if not skip then
+-      local cmd = isasm and self.asm_cmd or self.comp_cmd
++      local cmd = isasm and self._asm_cmd or self.comp_cmd
+       local depcmd = cmd:gsub( &quot;-c &quot;, &quot;-E -MM &quot; )
+       if isasm and self.asm_dep_cmd then depcmd = self.asm_dep_cmd end
+       if not isasm and self.c_dep_cmd then depcmd = self.c_dep_cmd end
+       local target = self:dep_target( ftable[ i ], initdep[ ftable[ i ] ], depcmd )
+-      table.insert( deptargets, target )
++      -- The post build function will read the generated dependencies and save
++      -- them into an instance-related field (dtable)
++      target:set_post_build_function( function( t, _ ) 
++        if not self.clean_mode then
++          local tname = t.dep[ 1 ]:target_name()
++          if tname then
++            local fres = self:read_depends( tname )
++            self.dtable[ tname ] = fres[ tname ] 
++          end
++        end
++      end )
+     end
+   end
+-  local t = self:target( &quot;#phony:deps&quot;, deptargets )
+-  t:build()
+-  if self.clean_mode then return end
+-
+-  -- Read dependency data
+-  self.dtable = self:read_depends( ftable )
+ end
+ 
+ -- Create and return compile targets for the given sources
+ builder.create_compile_targets = function( self, ftable, res )
+-  if not self.dtable then
+-    if not self.clean_mode then
+-      print &quot;[builder] Error: call make_depends before compile_targets&quot;
+-      os.exit( 1 )
+-    end
+-  end
++  if type( ftable ) == 'string' then ftable = utils.string_to_table( ftable ) end
+   res = res or {}
+-  if type( ftable ) == 'string' then
+-    ftable = utils.string_to_table( ftable )
+-  end
+   -- Build dependencies for all targets
+   for i = 1, #ftable do
+     local target 
+-    local deps = self.dtable and self.dtable[ ftable[ i ] ]
++    local deps = self:get_dep_filename( ftable[ i ] )
+     if ftable[ i ]:find( &quot;%.c$&quot; ) then
+-      target = self:c_target( self:obj_name( ftable[ i ] ), deps )
++      target = self:c_target( self:obj_name( ftable[ i ] ), { self.tlist[ deps ] or ftable[ i ] } )
+     else
+-      target = self:asm_target( self:obj_name( ftable[ i ] ), deps )
++      target = self:asm_target( self:obj_name( ftable[ i ] ), { self.tlist[ deps ] or ftable[ i ] } )
+     end
++    -- Post build step: replace dependencies with the ones generated by 'make_depends'
++    target:set_pre_build_function( function( t, _ ) 
++      if not self.clean_mode then
++        t:set_dependencies( self.dtable[ ftable[ i ] ] or ftable[ i ] )
++      end
++    end )
+     table.insert( res, target )
+   end
+   return res
+@@ -855,29 +919,20 @@
+   end
+   self:_create_outdir()
+   -- At this point check if we have a change in the state that would require a rebuild
+-  if not self.clean_mode then
+-    local fconf = io.open( self.build_dir .. dir_sep .. &quot;.builddata&quot;, &quot;rb&quot; )
+-    if fconf then
+-      local oldstate = fconf:read( &quot;*a&quot; )
+-      fconf:close()
+-      local crtstate = self:_config_to_string()
+-      if oldstate:lower() ~= crtstate:lower() then -- Need to rebuild
+-        print &quot;[builder] Forcing clean due to configuration change&quot;
+-        self.clean_mode = true
+-        self.targets[ t ].target:build()
+-        self.clean_mode = false
+-      end
+-    end
++  if self:_compare_config( 'comp' ) then
++    print &quot;[builder] Forcing rebuild due to configuration change&quot;
++    self.global_force_rebuild = true
++  else
++    self.global_force_rebuild = false
+   end
+-  -- Write state to build dir
+-  fconf = io.open( self.build_dir .. dir_sep .. &quot;.builddata&quot;, &quot;wb&quot; )
+-  fconf:write( self:_config_to_string() )
+-  fconf:close()
+   -- Do the actual build
+   local res = self.targets[ t ].target:build()
+   if not res then print( sf( '[builder] %s: up to date', t ) ) end
+-  if self.clean_mode then os.remove( self.build_dir .. dir_sep .. &quot;.builddata&quot; ) end
+-  print &quot;[builder] Done building targets.&quot;
++  if self.clean_mode then 
++    os.remove( self.build_dir .. dir_sep .. &quot;.builddata.comp&quot; ) 
++    os.remove( self.build_dir .. dir_sep .. &quot;.builddata.link&quot; ) 
++  end
++  print &quot;[builder] Done building target.&quot;
+   return res
+ end
+ 
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000927.html">[Elua-svn] r974 - trunk
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#928">[ date ]</a>
+              <a href="thread.html#928">[ thread ]</a>
+              <a href="subject.html#928">[ subject ]</a>
+              <a href="author.html#928">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

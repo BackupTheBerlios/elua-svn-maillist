@@ -1,0 +1,862 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r310 - in trunk: . inc src src/lua src/modules	src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r310%20-%20in%20trunk%3A%20.%20inc%20src%20src/lua%20src/modules%0A%09src/platform/stm32&In-Reply-To=%3C200906222349.n5MNnL2r007340%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000265.html">
+   <LINK REL="Next"  HREF="000267.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r310 - in trunk: . inc src src/lua src/modules	src/platform/stm32</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r310%20-%20in%20trunk%3A%20.%20inc%20src%20src/lua%20src/modules%0A%09src/platform/stm32&In-Reply-To=%3C200906222349.n5MNnL2r007340%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r310 - in trunk: . inc src src/lua src/modules	src/platform/stm32">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Tue Jun 23 01:49:21 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000265.html">[Elua-svn] r309 - in branches/luarpc: inc src src/modules test
+</A></li>
+        <LI>Next message: <A HREF="000267.html">[Elua-svn] r311 - in trunk: src/modules test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#266">[ date ]</a>
+              <a href="thread.html#266">[ thread ]</a>
+              <a href="subject.html#266">[ subject ]</a>
+              <a href="author.html#266">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-23 01:49:21 +0200 (Tue, 23 Jun 2009)
+New Revision: 310
+
+Added:
+   trunk/inc/cexcept.h
+   trunk/inc/luarpc_rpc.h
+   trunk/remote-lua.py
+   trunk/src/luarpc_elua_uart.c
+   trunk/src/luarpc_posix_serial.c
+   trunk/src/modules/luarpc.c
+   trunk/test/
+Modified:
+   trunk/SConstruct
+   trunk/cross-lua.py
+   trunk/src/common.c
+   trunk/src/lua/ldump.c
+   trunk/src/lua/linit.c
+   trunk/src/lua/liolib.c
+   trunk/src/lua/lua.c
+   trunk/src/lua/luac.c
+   trunk/src/lua/lundump.c
+   trunk/src/lua/lundump.h
+   trunk/src/modules/auxmods.h
+   trunk/src/platform/stm32/platform.c
+   trunk/src/platform/stm32/platform_conf.h
+   trunk/src/platform/stm32/stm32f10x_it.c
+Log:
+Commit of initial working RPC.
+- disabled by default (enable on a target-by-target basis) so it shouldn't
+  cause much breakage for non-rpc users
+- some modifications to the binary chunk reader which should allow reading of
+  chunks encoded on various platforms (with certain limitations like lualong
+can't read float lua bytecode, one must generate lualong bytecode from a float
+lua)
+- other misc changes.
+
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/SConstruct	2009-06-22 23:49:21 UTC (rev 310)
+@@ -230,7 +230,7 @@
+ local_libs = ''
+ 
+ # Application files
+-app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c &quot;
++app_files = &quot; src/main.c src/romfs.c src/xmodem.c src/shell.c src/term.c src/common.c src/buf.c src/elua_adc.c src/dlmalloc.c src/salloc.c src/luarpc_elua_uart.c &quot;
+ 
+ # Newlib related files
+ newlib_files = &quot; src/newlib/devman.c src/newlib/stubs.c src/newlib/genstd.c src/newlib/stdtcp.c&quot;
+@@ -241,7 +241,7 @@
+ local_include += ['src/uip']
+ 
+ # Lua module files
+-module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c&quot;
++module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c adc.c luarpc.c&quot;
+ module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+ 
+ # Optimizer flags (speed or size)
+
+Modified: trunk/cross-lua.py
+===================================================================
+--- trunk/cross-lua.py	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/cross-lua.py	2009-06-22 23:49:21 UTC (rev 310)
+@@ -11,7 +11,7 @@
+ local_include = &quot;-Isrc/lua&quot;
+ 
+ # Compiler/linker options
+-cccom = &quot;gcc -O3 %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++cccom = &quot;gcc -g %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
+ linkcom = &quot;gcc -o $TARGET $SOURCES -lm&quot;
+ 
+ # Env for building the program
+
+Copied: trunk/inc/cexcept.h (from rev 309, branches/luarpc/inc/cexcept.h)
+
+Copied: trunk/inc/luarpc_rpc.h (from rev 309, branches/luarpc/inc/luarpc_rpc.h)
+
+Copied: trunk/remote-lua.py (from rev 309, branches/luarpc/remote-lua.py)
+
+Modified: trunk/src/common.c
+===================================================================
+--- trunk/src/common.c	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/common.c	2009-06-22 23:49:21 UTC (rev 310)
+@@ -454,7 +454,6 @@
+   return ( void* )p;
+ }
+ 
+-
+ // ****************************************************************************
+ // Misc support
+ unsigned int intlog2( unsigned int v )
+
+Modified: trunk/src/lua/ldump.c
+===================================================================
+--- trunk/src/lua/ldump.c	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/lua/ldump.c	2009-06-22 23:49:21 UTC (rev 310)
+@@ -91,24 +91,24 @@
+  DumpIntWithSize(x,D-&gt;target.sizeof_int,D);
+ }
+ 
+-static void DumpSize(size_t x, DumpState* D)
++static void DumpSize(int32_t x, DumpState* D)
+ {
+  /* dump unsigned integer */
+- switch(D-&gt;target.sizeof_size_t) {
++ switch(D-&gt;target.sizeof_strsize_t) {
+   case 1: {
+    if (x&gt;0xFF) D-&gt;status=LUA_ERR_CC_INTOVERFLOW; 
+    DumpChar(x,D);
+   } break;
+   case 2: {
+    if (x&gt;0xFFFF) D-&gt;status=LUA_ERR_CC_INTOVERFLOW;
+-   unsigned short y=x;
++   uint16_t y=(uint16_t)x;
+    MaybeByteSwap((char*)&amp;y,2,D);
+    DumpVar(y,D);
+   } break;
+   case 4: {
+    /* Reduce bounds to avoid messing 32-bit compilers up */
+    if (x&gt;0xFFFFFFFE) D-&gt;status=LUA_ERR_CC_INTOVERFLOW;
+-   unsigned long y=x;
++   uint32_t y=x;
+    MaybeByteSwap((char*)&amp;y,4,D);
+    DumpVar(y,D);
+   } break;
+@@ -170,12 +170,12 @@
+ {
+  if (s==NULL || getstr(s)==NULL)
+  {
+-  size_t size=0;
++  strsize_t size=0;
+   DumpSize(size,D);
+  }
+  else
+  {
+-  size_t size=s-&gt;tsv.len+1;		/* include trailing '\0' */
++  strsize_t size=s-&gt;tsv.len+1;		/* include trailing '\0' */
+   DumpSize(size,D);
+   DumpBlock(getstr(s),size,D);
+  }
+@@ -264,7 +264,7 @@
+  *h++=(char)LUAC_FORMAT;
+  *h++=(char)D-&gt;target.little_endian;
+  *h++=(char)D-&gt;target.sizeof_int;
+- *h++=(char)D-&gt;target.sizeof_size_t;
++ *h++=(char)D-&gt;target.sizeof_strsize_t;
+  *h++=(char)sizeof(Instruction);
+  *h++=(char)D-&gt;target.sizeof_lua_Number;
+  *h++=(char)D-&gt;target.lua_Number_integral;
+@@ -298,7 +298,7 @@
+  int test=1;
+  target.little_endian=*(char*)&test;
+  target.sizeof_int=sizeof(int);
+- target.sizeof_size_t=sizeof(size_t);
++ target.sizeof_strsize_t=sizeof(strsize_t);
+  target.sizeof_lua_Number=sizeof(lua_Number);
+  target.lua_Number_integral=(((lua_Number)0.5)==0);
+  target.is_arm_fpa=0;
+
+Modified: trunk/src/lua/linit.c
+===================================================================
+--- trunk/src/lua/linit.c	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/lua/linit.c	2009-06-22 23:49:21 UTC (rev 310)
+@@ -19,6 +19,12 @@
+ #include &quot;platform_conf.h&quot;
+ #endif
+ 
++#ifdef LUA_REMOTE
++#include &quot;auxmods.h&quot;
++#define LUA_PLATFORM_LIBS_ROM \
++  _ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )
++#endif
++
+ static const luaL_Reg lualibs[] = {
+   {&quot;&quot;, luaopen_base},
+   {LUA_LOADLIBNAME, luaopen_package},
+
+Modified: trunk/src/lua/liolib.c
+===================================================================
+--- trunk/src/lua/liolib.c	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/lua/liolib.c	2009-06-22 23:49:21 UTC (rev 310)
+@@ -30,12 +30,14 @@
+ #else
+ #define LUA_IO_GETFIELD(f)  lua_rawgeti(L, LUA_REGISTRYINDEX, liolib_keys[f])
+ #define LUA_IO_SETFIELD(f)  lua_rawseti(L, LUA_REGISTRYINDEX, liolib_keys[f])
+-#endif
+ 
+-static const char *const fnames[] = {&quot;input&quot;, &quot;output&quot;};
+ /* &quot;Pseudo-random&quot; keys for the registry */
+ static const int liolib_keys[] = {(int)&amp;luaL_callmeta, (int)&amp;luaL_typerror, (int)&amp;luaL_argerror};
++#endif
+ 
++static const char *const fnames[] = {&quot;input&quot;, &quot;output&quot;};
++
++
+ static int pushresult (lua_State *L, int i, const char *filename) {
+   int en = errno;  /* calls to Lua API may change this value */
+   if (i) {
+
+Modified: trunk/src/lua/lua.c
+===================================================================
+--- trunk/src/lua/lua.c	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/lua/lua.c	2009-06-22 23:49:21 UTC (rev 310)
+@@ -373,8 +373,11 @@
+   return 0;
+ }
+ 
+-
++#ifdef LUA_REMOTE
++int main (int argc, char **argv) {
++#else
+ int lua_main (int argc, char **argv) {
++#endif
+   int status;
+   struct Smain s;
+   lua_State *L = lua_open();  /* create state */
+
+Modified: trunk/src/lua/luac.c
+===================================================================
+--- trunk/src/lua/luac.c	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/lua/luac.c	2009-06-22 23:49:21 UTC (rev 310)
+@@ -104,7 +104,7 @@
+    ++version;
+   else if (IS(&quot;-cci&quot;)) /* target integer size */
+   {
+-   int s = target.sizeof_int = target.sizeof_size_t = atoi(argv[++i])/8;
++   int s = target.sizeof_int = atoi(argv[++i])/8;
+    if (!(s==1 || s==2 || s==4)) fatal(LUA_QL(&quot;-cci&quot;) &quot; must be 8, 16 or 32&quot;);
+   }
+   else if (IS(&quot;-ccn&quot;)) /* target lua_Number type and size */
+@@ -224,7 +224,7 @@
+  int test=1;
+  target.little_endian=*(char*)&test;
+  target.sizeof_int=sizeof(int);
+- target.sizeof_size_t=sizeof(size_t);
++ target.sizeof_strsize_t=sizeof(strsize_t);
+  target.sizeof_lua_Number=sizeof(lua_Number);
+  target.lua_Number_integral=(((lua_Number)0.5)==0);
+  target.is_arm_fpa=0;
+
+Modified: trunk/src/lua/lundump.c
+===================================================================
+--- trunk/src/lua/lundump.c	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/lua/lundump.c	2009-06-22 23:49:21 UTC (rev 310)
+@@ -25,6 +25,9 @@
+  ZIO* Z;
+  Mbuffer* b;
+  const char* name;
++ int swap;
++ int numsize;
++ int toflt;
+ } LoadState;
+ 
+ #ifdef LUAC_TRUST_BINARIES
+@@ -40,7 +43,6 @@
+ }
+ #endif
+ 
+-#define LoadMem(S,b,n,size)	LoadBlock(S,b,(n)*(size))
+ #define	LoadByte(S)		(lu_byte)LoadChar(S)
+ #define LoadVar(S,x)		LoadMem(S,&amp;x,1,sizeof(x))
+ #define LoadVector(S,b,n,size)	LoadMem(S,b,n,size)
+@@ -51,6 +53,49 @@
+  IF (r!=0, &quot;unexpected end&quot;);
+ }
+ 
++static void LoadMem (LoadState* S, void* b, int n, size_t size)
++{
++  LoadBlock(S,b,n*size);
++  if (S-&gt;swap)
++  {
++    char* p=(char*) b;
++    char c;
++    switch (size)
++    {
++      case 1:
++        break;
++      case 2:
++	      while (n--)
++	      {
++	        c=p[0]; p[0]=p[1]; p[1]=c;
++	        p+=2;
++	      }
++  	    break;
++      case 4:
++	      while (n--)
++	      {
++	        c=p[0]; p[0]=p[3]; p[3]=c;
++	        c=p[1]; p[1]=p[2]; p[2]=c;
++	        p+=4;
++	      }
++  	    break;
++      case 8:
++	      while (n--)
++	      {
++          c=p[0]; p[0]=p[7]; p[7]=c;
++          c=p[1]; p[1]=p[6]; p[6]=c;
++          c=p[2]; p[2]=p[5]; p[5]=c;
++          c=p[3]; p[3]=p[4]; p[4]=c;
++          p+=8;
++        }
++  	    break;
++      default:
++   	    IF(1, &quot;bad size&quot;);
++  	    break;
++    }
++  }
++}
++
+ static int LoadChar(LoadState* S)
+ {
+  char x;
+@@ -69,13 +114,43 @@
+ static lua_Number LoadNumber(LoadState* S)
+ {
+  lua_Number x;
+- LoadVar(S,x);
++ if(S-&gt;toflt)
++ {
++  switch(S-&gt;numsize)
++  {
++   case 1: {
++    int8_t y;
++    LoadVar(S,y);
++    x = (lua_Number)y;
++   } break;
++   case 2: {
++    int16_t y;
++    LoadVar(S,y);
++    x = (lua_Number)y;
++   } break;
++   case 4: {
++    int32_t y;
++    LoadVar(S,y);
++    x = (lua_Number)y;
++   } break;
++   case 8: {
++    int64_t y;
++    LoadVar(S,y);
++    x = (lua_Number)y;
++   } break;
++   default: lua_assert(0);
++  }
++ }
++ else
++ {
++  LoadVar(S,x); /* should probably handle more cases for float here... */
++ }
+  return x;
+ }
+ 
+ static TString* LoadString(LoadState* S)
+ {
+- size_t size;
++ int32_t size;
+  LoadVar(S,size);
+  if (size==0)
+   return NULL;
+@@ -184,8 +259,13 @@
+ {
+  char h[LUAC_HEADERSIZE];
+  char s[LUAC_HEADERSIZE];
++ int intck = (((lua_Number)0.5)==0); /* 0=float, 1=int */
+  luaU_header(h);
+  LoadBlock(S,s,LUAC_HEADERSIZE);
++ S-&gt;swap=(s[6]!=h[6]); s[6]=h[6]; /* Check if byte-swapping is needed  */
++ S-&gt;numsize=h[10]=s[10]; /* length of lua_Number */
++ S-&gt;toflt=(s[11]&gt;intck); /* check if conversion from int lua_Number to flt is needed */
++ if(S-&gt;toflt) s[11]=h[11];
+  IF (memcmp(h,s,LUAC_HEADERSIZE)!=0, &quot;bad header&quot;);
+ }
+ 
+@@ -220,7 +300,7 @@
+  *h++=(char)LUAC_FORMAT;
+  *h++=(char)*(char*)&x;				/* endianness */
+  *h++=(char)sizeof(int);
+- *h++=(char)sizeof(size_t);
++ *h++=(char)sizeof(int32_t);
+  *h++=(char)sizeof(Instruction);
+  *h++=(char)sizeof(lua_Number);
+  *h++=(char)(((lua_Number)0.5)==0);		/* is lua_Number integral? */
+
+Modified: trunk/src/lua/lundump.h
+===================================================================
+--- trunk/src/lua/lundump.h	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/lua/lundump.h	2009-06-22 23:49:21 UTC (rev 310)
+@@ -7,14 +7,18 @@
+ #ifndef lundump_h
+ #define lundump_h
+ 
++#include &lt;stdint.h&gt;
++
+ #include &quot;lobject.h&quot;
+ #include &quot;lzio.h&quot;
+ 
++typedef uint32_t strsize_t;
++
+ /* info about target machine for cross-compilation */
+ typedef struct {
+  int little_endian;
+  int sizeof_int;
+- int sizeof_size_t;
++ int sizeof_strsize_t;
+  int sizeof_lua_Number;
+  int lua_Number_integral;
+  int is_arm_fpa;
+
+Copied: trunk/src/luarpc_elua_uart.c (from rev 309, branches/luarpc/src/luarpc_elua_uart.c)
+
+Copied: trunk/src/luarpc_posix_serial.c (from rev 309, branches/luarpc/src/luarpc_posix_serial.c)
+
+Modified: trunk/src/modules/auxmods.h
+===================================================================
+--- trunk/src/modules/auxmods.h	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/modules/auxmods.h	2009-06-22 23:49:21 UTC (rev 310)
+@@ -42,6 +42,9 @@
+ #define AUXLIB_ADC      &quot;adc&quot;
+ LUALIB_API int ( luaopen_adc )( lua_State *L );
+ 
++#define AUXLIB_LUARPC   &quot;rpc&quot;
++LUALIB_API int ( luaopen_luarpc )( lua_State *L );
++
+ // Helper macros
+ 
+ #define MOD_CHECK_ID( mod, id )\
+
+Copied: trunk/src/modules/luarpc.c (from rev 309, branches/luarpc/src/modules/luarpc.c)
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/platform/stm32/platform.c	2009-06-22 23:49:21 UTC (rev 310)
+@@ -16,6 +16,7 @@
+ #include &quot;platform_conf.h&quot;
+ #include &quot;common.h&quot;
+ #include &quot;buf.h&quot;
++#include &quot;utils.h&quot;
+ 
+ // Platform specific includes
+ #include &quot;stm32f10x_lib.h&quot;
+@@ -52,6 +53,7 @@
+ static void uarts_init();
+ static void pios_init();
+ static void adcs_init();
++static void cans_init();
+ 
+ int platform_init()
+ {
+@@ -157,11 +159,13 @@
+ * Output         : None
+ * Return         : None
+ *******************************************************************************/
++/* This struct is used for later reconfiguration of ADC interrupt */
++NVIC_InitTypeDef nvic_init_structure_adc;
+ 
+-NVIC_InitTypeDef nvic_init_structure;
+-
+ static void NVIC_Configuration(void)
+ {
++  NVIC_InitTypeDef nvic_init_structure;
++  
+   NVIC_DeInit();
+ 
+ #ifdef  VECT_TAB_RAM
+@@ -179,10 +183,18 @@
+   NVIC_SystemHandlerPriorityConfig(SystemHandler_SysTick, 0, 0);
+ 
+ #ifdef BUILD_ADC  
+-  nvic_init_structure.NVIC_IRQChannel = DMA1_Channel1_IRQChannel; 
+-  nvic_init_structure.NVIC_IRQChannelPreemptionPriority = 1; 
+-  nvic_init_structure.NVIC_IRQChannelSubPriority = 3; 
+-  nvic_init_structure.NVIC_IRQChannelCmd = DISABLE; 
++  nvic_init_structure_adc.NVIC_IRQChannel = DMA1_Channel1_IRQChannel; 
++  nvic_init_structure_adc.NVIC_IRQChannelPreemptionPriority = 1; 
++  nvic_init_structure_adc.NVIC_IRQChannelSubPriority = 3; 
++  nvic_init_structure_adc.NVIC_IRQChannelCmd = DISABLE; 
++  NVIC_Init(&amp;nvic_init_structure_adc);
++#endif
++
++#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
++  /* Enable the USART1 Interrupt */
++  nvic_init_structure.NVIC_IRQChannel = USART1_IRQChannel;
++  nvic_init_structure.NVIC_IRQChannelSubPriority = 0;
++  nvic_init_structure.NVIC_IRQChannelCmd = ENABLE;
+   NVIC_Init(&amp;nvic_init_structure);
+ #endif
+ }
+@@ -288,6 +300,172 @@
+ }
+ 
+ // ****************************************************************************
++// CAN
++// TODO: Many things
++
++void cans_init( void )
++{
++  GPIO_InitTypeDef GPIO_InitStructure;
++
++  /* CAN Periph clock enable */
++  RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN, ENABLE);
++
++  /* Configure CAN pin: RX */
++  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
++  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
++  GPIO_Init(GPIOB, &amp;GPIO_InitStructure);
++  
++  /* Configure CAN pin: TX */
++  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
++  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
++  GPIO_Init(GPIOB, &amp;GPIO_InitStructure);
++}
++
++u32 platform_can_setup( unsigned id, u32 baud )
++{
++  CAN_InitTypeDef        CAN_InitStructure;
++  CAN_FilterInitTypeDef  CAN_FilterInitStructure;
++
++  /* CAN register init */
++  CAN_DeInit();
++  CAN_StructInit(&amp;CAN_InitStructure);
++
++  /* CAN cell init */
++  CAN_InitStructure.CAN_TTCM=DISABLE;
++  CAN_InitStructure.CAN_ABOM=DISABLE;
++  CAN_InitStructure.CAN_AWUM=DISABLE;
++  CAN_InitStructure.CAN_NART=DISABLE;
++  CAN_InitStructure.CAN_RFLM=DISABLE;
++  CAN_InitStructure.CAN_TXFP=DISABLE;
++  CAN_InitStructure.CAN_Mode=CAN_Mode_LoopBack;
++  CAN_InitStructure.CAN_SJW=CAN_SJW_1tq;
++  CAN_InitStructure.CAN_BS1=CAN_BS1_4tq;
++  CAN_InitStructure.CAN_BS2=CAN_BS2_3tq;
++  CAN_InitStructure.CAN_Prescaler=0;
++  CAN_Init(&amp;CAN_InitStructure);
++
++  /* CAN filter init */
++  CAN_FilterInitStructure.CAN_FilterNumber=0;
++  CAN_FilterInitStructure.CAN_FilterMode=CAN_FilterMode_IdMask;
++  CAN_FilterInitStructure.CAN_FilterScale=CAN_FilterScale_32bit;
++  CAN_FilterInitStructure.CAN_FilterIdHigh=0x0000;
++  CAN_FilterInitStructure.CAN_FilterIdLow=0x0000;
++  CAN_FilterInitStructure.CAN_FilterMaskIdHigh=0x0000;
++  CAN_FilterInitStructure.CAN_FilterMaskIdLow=0x0000;
++  CAN_FilterInitStructure.CAN_FilterFIFOAssignment=CAN_FIFO0;
++  CAN_FilterInitStructure.CAN_FilterActivation=ENABLE;
++  CAN_FilterInit(&amp;CAN_FilterInitStructure);
++  
++  return baud;
++}
++/*
++u32 platform_can_op( unsigned id, int op, u32 data )
++{
++  u32 res = 0;
++  TIM_TypeDef *ptimer = timer[ id ];
++  volatile unsigned dummy;
++
++  data = data;
++  switch( op )
++  {
++    case PLATFORM_TIMER_OP_READ:
++      res = TIM_GetCounter( ptimer );
++      break;
++  }
++  return res;
++}
++*/
++
++void platform_can_send_message( unsigned id, u32 canid, u8 idtype, u8 len, u8 *data )
++{
++  CanTxMsg TxMessage;
++  const char *s = ( const char * )data;
++  char *d;
++  
++  switch( idtype )
++  {
++    case 0: /* Standard ID Type  */
++      TxMessage.IDE = CAN_ID_STD;
++      TxMessage.StdId = canid;
++      break;
++    case 1: /* Extended ID Type */
++      TxMessage.IDE=CAN_ID_EXT;
++      TxMessage.ExtId = canid;
++  }
++  
++  TxMessage.RTR=CAN_RTR_DATA;
++  TxMessage.DLC=len;
++  
++  d = ( char* )TxMessage.Data;
++  DUFF_DEVICE_8( len,  *d++ = *s++ );
++  
++  CAN_Transmit(&amp;TxMessage);
++}
++
++void USB_LP_CAN_RX0_IRQHandler(void)
++{
++/*
++  CanRxMsg RxMessage;
++
++  RxMessage.StdId=0x00;
++  RxMessage.ExtId=0x00;
++  RxMessage.IDE=0;
++  RxMessage.DLC=0;
++  RxMessage.FMI=0;
++  RxMessage.Data[0]=0x00;
++  RxMessage.Data[1]=0x00;
++
++  CAN_Receive(CAN_FIFO0, &amp;RxMessage);
++
++  if((RxMessage.ExtId==0x1234) &amp;&amp; (RxMessage.IDE==CAN_ID_EXT)
++     &amp;&amp; (RxMessage.DLC==2) &amp;&amp; ((RxMessage.Data[1]|RxMessage.Data[0]&lt;&lt;8)==0xDECA))
++  {
++    ret = 1; 
++  }
++  else
++  {
++    ret = 0; 
++  }*/
++}
++
++void platform_can_receive_message( unsigned id, u32 *canid, u8 *idtype, u8 *len, u8 *data )
++{
++  CanRxMsg RxMessage;
++  const char *s;
++  char *d;
++  u32 i;
++  
++  while((CAN_MessagePending(CAN_FIFO0) &lt; 1) &amp;&amp; (i != 0xFF))
++  {
++   i++;
++  }
++  
++  RxMessage.StdId=0x00;
++  RxMessage.IDE=CAN_ID_STD;
++  RxMessage.DLC=0;
++  RxMessage.Data[0]=0x00;
++  RxMessage.Data[1]=0x00;
++  CAN_Receive(CAN_FIFO0, &amp;RxMessage);
++  
++  if( RxMessage.IDE == CAN_ID_STD )
++  {
++    *canid = ( u32 )RxMessage.StdId;
++    *idtype = 0;
++  }
++  else
++  {
++    *canid = ( u32 )RxMessage.ExtId;
++    *idtype = 1;
++  }
++  
++  *len = RxMessage.DLC;
++  
++  s = ( const char * )RxMessage.Data;
++  d = ( char* )data;
++  DUFF_DEVICE_8( RxMessage.DLC,  *d++ = *s++ );
++}
++
++// ****************************************************************************
+ // UART
+ // TODO: Support timeouts.
+ 
+@@ -298,6 +476,22 @@
+ static const u16 usart_gpio_rx_pin[] = { GPIO_Pin_10, GPIO_Pin_3, GPIO_Pin_11, GPIO_Pin_11, GPIO_Pin_2 };
+ static const u16 usart_gpio_tx_pin[] = { GPIO_Pin_9, GPIO_Pin_2, GPIO_Pin_10, GPIO_Pin_10, GPIO_Pin_12 };
+ 
++#ifdef BUF_ENABLE_UART
++void USART1_IRQHandler(void)
++{
++  int c;
++
++  if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
++  {
++    /* Read one byte from the receive data register */
++    c = USART_ReceiveData(USART1);
++    buf_write( BUF_ID_UART, CON_UART_ID, ( t_buf_data* )&amp;c );
++  }
++}
++#endif
++
++
++
+ static void usart_init(u32 id, USART_InitTypeDef * initVals)
+ {
+   /* Configure USART IO */
+@@ -316,10 +510,12 @@
+ 
+   /* Configure USART */
+   USART_Init(usart[id], initVals);
+-
++  
++#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
+   /* Enable USART1 Receive and Transmit interrupts */
+-  //USART_ITConfig(usart[id], USART_IT_RXNE, ENABLE);
++  USART_ITConfig(usart[id], USART_IT_RXNE, ENABLE);
+   //USART_ITConfig(usart[id], USART_IT_TXE, ENABLE);
++#endif
+ 
+   /* Enable USART */
+   USART_Cmd(usart[id], ENABLE);
+@@ -336,7 +532,6 @@
+   RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4, ENABLE);
+ 
+   // Configure the U(S)ART
+-
+   USART_InitStructure.USART_BaudRate = CON_UART_SPEED;
+   USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+   USART_InitStructure.USART_StopBits = USART_StopBits_1;
+@@ -344,7 +539,12 @@
+   USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+   USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+ 
++#if defined( BUF_ENABLE_UART ) &amp;&amp; defined( CON_BUF_SIZE )
++  buf_set( BUF_ID_UART, CON_UART_ID, CON_BUF_SIZE, BUF_DSIZE_U8 );
++#endif
++
+   usart_init(CON_UART_ID, &amp;USART_InitStructure);
++
+ }
+ 
+ u32 platform_uart_setup( unsigned id, u32 baud, int databits, int parity, int stopbits )
+@@ -584,8 +784,8 @@
+     ADC_ExternalTrigConvCmd( adc[ d-&gt;seq_id ], DISABLE );
+     
+     // Also ensure that DMA interrupt won't fire ( this shouldn't really be necessary )
+-    nvic_init_structure.NVIC_IRQChannelCmd = DISABLE; 
+-    NVIC_Init(&amp;nvic_init_structure);
++    nvic_init_structure_adc.NVIC_IRQChannelCmd = DISABLE; 
++    NVIC_Init(&amp;nvic_init_structure_adc);
+     
+     d-&gt;running = 0;
+   }
+@@ -796,8 +996,8 @@
+     
+     DMA_ClearITPendingBit( DMA1_IT_TC1 );
+ 
+-    nvic_init_structure.NVIC_IRQChannelCmd = ENABLE; 
+-    NVIC_Init(&amp;nvic_init_structure);
++    nvic_init_structure_adc.NVIC_IRQChannelCmd = ENABLE; 
++    NVIC_Init(&amp;nvic_init_structure_adc);
+ 
+     if( d-&gt;clocked == 1 )
+       ADC_ExternalTrigConvCmd( adc[ d-&gt;seq_id ], ENABLE );
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/platform/stm32/platform_conf.h	2009-06-22 23:49:21 UTC (rev 310)
+@@ -20,6 +20,7 @@
+ //#define BUILD_DNS
+ #define BUILD_CON_GENERIC
+ #define BUILD_ADC
++#define BUILD_LUARPC
+ //#define BUILD_CON_TCP
+ 
+ // *****************************************************************************
+@@ -52,9 +53,10 @@
+   _ROM( AUXLIB_CPU, luaopen_cpu, cpu_map )\
+   _ROM( AUXLIB_TMR, luaopen_tmr, tmr_map )\
+   _ROM( AUXLIB_ADC, luaopen_adc, adc_map )\
++	_ROM( AUXLIB_LUARPC, luaopen_luarpc, rpc_map )\
+   LCDLINE\
+   _ROM( LUA_MATHLIBNAME, luaopen_math, math_map )
+-
++	
+ // *****************************************************************************
+ // Configuration data
+ 
+@@ -94,6 +96,10 @@
+ #define NUM_PWM               0
+ #define NUM_ADC               16
+ 
++// Enable RX buffering on UART
++#define BUF_ENABLE_UART
++#define CON_BUF_SIZE          BUF_SIZE_128
++
+ // ADC Configuration Params
+ #define ADC_BIT_RESOLUTION    12
+ #define BUF_ENABLE_ADC
+
+Modified: trunk/src/platform/stm32/stm32f10x_it.c
+===================================================================
+--- trunk/src/platform/stm32/stm32f10x_it.c	2009-06-22 23:14:32 UTC (rev 309)
++++ trunk/src/platform/stm32/stm32f10x_it.c	2009-06-22 23:49:21 UTC (rev 310)
+@@ -576,10 +576,9 @@
+ * Output         : None
+ * Return         : None
+ *******************************************************************************/
+-void USART1_IRQHandler(void)
+-{
+-}
++extern void USART1_IRQHandler(void);
+ 
++
+ /*******************************************************************************
+ * Function Name  : USART2_IRQHandler
+ * Description    : This function handles USART2 global interrupt request.
+
+Copied: trunk/test (from rev 309, branches/luarpc/test)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000265.html">[Elua-svn] r309 - in branches/luarpc: inc src src/modules test
+</A></li>
+	<LI>Next message: <A HREF="000267.html">[Elua-svn] r311 - in trunk: src/modules test
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#266">[ date ]</a>
+              <a href="thread.html#266">[ thread ]</a>
+              <a href="subject.html#266">[ subject ]</a>
+              <a href="author.html#266">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

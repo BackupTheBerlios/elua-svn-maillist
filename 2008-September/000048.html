@@ -1,0 +1,527 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r92 - in trunk: . src/lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r92%20-%20in%20trunk%3A%20.%20src/lua&In-Reply-To=%3C200809192013.m8JKDUPn023579%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000047.html">
+   <LINK REL="Next"  HREF="000049.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r92 - in trunk: . src/lua</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r92%20-%20in%20trunk%3A%20.%20src/lua&In-Reply-To=%3C200809192013.m8JKDUPn023579%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r92 - in trunk: . src/lua">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Fri Sep 19 22:13:30 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000047.html">[Elua-svn] r91 - in trunk: . inc src src/modules src/newlib	src/platform/at91sam7x src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/str9 src/uip
+</A></li>
+        <LI>Next message: <A HREF="000049.html">[Elua-svn] r93 - in trunk: . inc src src/lua src/platform/lm3s	src/uip
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#48">[ date ]</a>
+              <a href="thread.html#48">[ thread ]</a>
+              <a href="subject.html#48">[ subject ]</a>
+              <a href="author.html#48">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-09-19 22:13:30 +0200 (Fri, 19 Sep 2008)
+New Revision: 92
+
+Added:
+   trunk/cross-lua.py
+Modified:
+   trunk/
+   trunk/src/lua/ldump.c
+   trunk/src/lua/linit.c
+   trunk/src/lua/luac.c
+   trunk/src/lua/lundump.h
+Log:
+added cross-compile support
+
+
+Property changes on: trunk
+___________________________________________________________________
+Name: svn:ignore
+   - .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+
+   + .sconsign.dblite
+mkfs.pyc
+*.elf
+*.bin
+luac*
+
+
+Added: trunk/cross-lua.py
+===================================================================
+--- trunk/cross-lua.py	2008-09-18 20:22:15 UTC (rev 91)
++++ trunk/cross-lua.py	2008-09-19 20:13:30 UTC (rev 92)
+@@ -0,0 +1,23 @@
++import os, sys 
++
++output = 'luac'
++cdefs = '-DLUA_CROSS_COMPILER'
++
++# Lua source files and include path
++lua_files = &quot;&quot;&quot;lapi.c lcode.c ldebug.c ldo.c ldump.c lfunc.c lgc.c llex.c lmem.c lobject.c lopcodes.c
++   lparser.c lstate.c lstring.c ltable.c ltm.c lundump.c lvm.c lzio.c lauxlib.c lbaselib.c
++   ldblib.c liolib.c lmathlib.c loslib.c ltablib.c lstrlib.c loadlib.c linit.c luac.c print.c&quot;&quot;&quot;
++lua_full_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/lua/%s&quot; % name for name in lua_files.split() ] )
++local_include = &quot;-Isrc/lua&quot;
++
++# Compiler/linker options
++cccom = &quot;gcc -O3 %s -Wall %s -c $SOURCE -o $TARGET&quot; % ( local_include, cdefs )
++linkcom = &quot;gcc -o $TARGET $SOURCES -lm&quot;
++
++# Env for building the program
++comp = Environment( CCCOM = cccom,
++                    LINKCOM = linkcom,
++                    ENV = os.environ )
++comp.TargetSignatures( 'content' )
++comp.SourceSignatures( 'MD5' )
++Default( comp.Program( output, Split( lua_full_files ) ) )
+
+Modified: trunk/src/lua/ldump.c
+===================================================================
+--- trunk/src/lua/ldump.c	2008-09-18 20:22:15 UTC (rev 91)
++++ trunk/src/lua/ldump.c	2008-09-19 20:13:30 UTC (rev 92)
+@@ -5,6 +5,8 @@
+ */
+ 
+ #include &lt;stddef.h&gt;
++#include &lt;sys/types.h&gt;
++#include &lt;string.h&gt;
+ 
+ #define ldump_c
+ #define LUA_CORE
+@@ -21,6 +23,7 @@
+  void* data;
+  int strip;
+  int status;
++ DumpTargetInfo target;
+ } DumpState;
+ 
+ #define DumpMem(b,n,size,D)	DumpBlock(b,(n)*(size),D)
+@@ -42,20 +45,125 @@
+  DumpVar(x,D);
+ }
+ 
++static void MaybeByteSwap(char *number, size_t numbersize, DumpState *D)
++{
++ int x=1;
++ int platform_little_endian = *(char*)&x;
++ if (platform_little_endian != D-&gt;target.little_endian)
++ {
++  int i;
++  for (i=0; i&lt;numbersize/2; i++)
++  {
++   char temp = number[i];
++   number[i] = number[numbersize-1-i];
++   number[numbersize-1-i] = temp;
++  }
++ }
++}
++
++static void DumpIntWithSize(int x, int sizeof_int, DumpState* D)
++{
++ /* dump signed integer */
++ switch(sizeof_int) {
++  case 1: {
++   if (x&gt;0x7F || x&lt;(-0x80)) D-&gt;status=LUA_ERR_CC_INTOVERFLOW; 
++   DumpChar(x,D);
++  } break;
++  case 2: {
++   if (x&gt;0x7FFF || x&lt;(-0x8000)) D-&gt;status=LUA_ERR_CC_INTOVERFLOW; 
++   int16_t y=x;
++   MaybeByteSwap((char*)&amp;y,2,D);
++   DumpVar(y,D);
++  } break;
++  case 4: {
++   /* Need to reduce bounds by 1 to avoid messing 32-bit compilers up */
++   if (x&gt;0x7FFFFFFE || x&lt;(-0x7FFFFFFF)) D-&gt;status=LUA_ERR_CC_INTOVERFLOW; 
++   int32_t y=x;
++   MaybeByteSwap((char*)&amp;y,4,D);
++   DumpVar(y,D);
++  } break;
++  default: lua_assert(0);
++ }
++}
++
+ static void DumpInt(int x, DumpState* D)
+ {
+- DumpVar(x,D);
++ DumpIntWithSize(x,D-&gt;target.sizeof_int,D);
+ }
+ 
++static void DumpSize(size_t x, DumpState* D)
++{
++ /* dump unsigned integer */
++ switch(D-&gt;target.sizeof_size_t) {
++  case 1: {
++   if (x&gt;0xFF) D-&gt;status=LUA_ERR_CC_INTOVERFLOW; 
++   DumpChar(x,D);
++  } break;
++  case 2: {
++   if (x&gt;0xFFFF) D-&gt;status=LUA_ERR_CC_INTOVERFLOW;
++   unsigned short y=x;
++   MaybeByteSwap((char*)&amp;y,2,D);
++   DumpVar(y,D);
++  } break;
++  case 4: {
++   /* Reduce bounds to avoid messing 32-bit compilers up */
++   if (x&gt;0xFFFFFFFE) D-&gt;status=LUA_ERR_CC_INTOVERFLOW;
++   unsigned long y=x;
++   MaybeByteSwap((char*)&amp;y,4,D);
++   DumpVar(y,D);
++  } break;
++  default: lua_assert(0);
++ }
++}
++
+ static void DumpNumber(lua_Number x, DumpState* D)
+ {
+- DumpVar(x,D);
++ if (D-&gt;target.lua_Number_integral)
++ {
++  if (((float)(int)x)!=x) D-&gt;status=LUA_ERR_CC_NOTINTEGER;
++  DumpIntWithSize(x,D-&gt;target.sizeof_lua_Number,D);
++ }
++ else
++ {
++  switch(D-&gt;target.sizeof_lua_Number)
++  {
++   /* do we need bounds checking? */
++   case 4: {
++    float y=x;
++    MaybeByteSwap((char*)&amp;y,4,D);
++    DumpVar(y,D);
++   } break;
++   case 8: {
++    double y=x;
++    // ARM FPA mode: keep endianness, but swap high and low parts of the 
++    // memory representation. This is the default compilation mode for ARM 
++    // targets (at least with GCC)
++    if(D-&gt;target.is_arm_fpa)
++    {
++      char *pnum=(char*)&amp;y, temp[4];
++      memcpy(temp,pnum,4);
++      memcpy(pnum,pnum+4,4);
++      memcpy(pnum+4,temp,4);
++    }    
++    MaybeByteSwap((char*)&amp;y,8,D);
++    DumpVar(y,D);
++   } break;
++   default: lua_assert(0);
++  }
++ }
+ }
+ 
+-static void DumpVector(const void* b, int n, size_t size, DumpState* D)
++static void DumpCode(const Proto *f, DumpState* D)
+ {
+- DumpInt(n,D);
+- DumpMem(b,n,size,D);
++ DumpInt(f-&gt;sizecode,D);
++ char buf[10];
++ int i;
++ for (i=0; i&lt;f-&gt;sizecode; i++)
++ {
++  memcpy(buf,&amp;f-&gt;code[i],sizeof(Instruction));
++  MaybeByteSwap(buf,sizeof(Instruction),D);
++  DumpBlock(buf,sizeof(Instruction),D);
++ }
+ }
+ 
+ static void DumpString(const TString* s, DumpState* D)
+@@ -63,18 +171,16 @@
+  if (s==NULL || getstr(s)==NULL)
+  {
+   size_t size=0;
+-  DumpVar(size,D);
++  DumpSize(size,D);
+  }
+  else
+  {
+   size_t size=s-&gt;tsv.len+1;		/* include trailing '\0' */
+-  DumpVar(size,D);
++  DumpSize(size,D);
+   DumpBlock(getstr(s),size,D);
+  }
+ }
+ 
+-#define DumpCode(f,D)	 DumpVector(f-&gt;code,f-&gt;sizecode,sizeof(Instruction),D)
+-
+ static void DumpFunction(const Proto* f, const TString* p, DumpState* D);
+ 
+ static void DumpConstants(const Proto* f, DumpState* D)
+@@ -112,7 +218,12 @@
+ {
+  int i,n;
+  n= (D-&gt;strip) ? 0 : f-&gt;sizelineinfo;
+- DumpVector(f-&gt;lineinfo,n,sizeof(int),D);
++ DumpInt(n,D);
++ for (i=0; i&lt;n; i++)
++ {
++  DumpInt(f-&gt;lineinfo[i],D);
++ }
++ 
+  n= (D-&gt;strip) ? 0 : f-&gt;sizelocvars;
+  DumpInt(n,D);
+  for (i=0; i&lt;n; i++)
+@@ -121,6 +232,7 @@
+   DumpInt(f-&gt;locvars[i].startpc,D);
+   DumpInt(f-&gt;locvars[i].endpc,D);
+  }
++
+  n= (D-&gt;strip) ? 0 : f-&gt;sizeupvalues;
+  DumpInt(n,D);
+  for (i=0; i&lt;n; i++) DumpString(f-&gt;upvalues[i],D);
+@@ -142,15 +254,28 @@
+ 
+ static void DumpHeader(DumpState* D)
+ {
+- char h[LUAC_HEADERSIZE];
+- luaU_header(h);
+- DumpBlock(h,LUAC_HEADERSIZE,D);
++ char buf[LUAC_HEADERSIZE];
++ char *h=buf;
++ 
++ /* This code must be kept in sync wiht luaU_header */
++ memcpy(h,LUA_SIGNATURE,sizeof(LUA_SIGNATURE)-1);
++ h+=sizeof(LUA_SIGNATURE)-1;
++ *h++=(char)LUAC_VERSION;
++ *h++=(char)LUAC_FORMAT;
++ *h++=(char)D-&gt;target.little_endian;
++ *h++=(char)D-&gt;target.sizeof_int;
++ *h++=(char)D-&gt;target.sizeof_size_t;
++ *h++=(char)sizeof(Instruction);
++ *h++=(char)D-&gt;target.sizeof_lua_Number;
++ *h++=(char)D-&gt;target.lua_Number_integral;
++ 
++ DumpBlock(buf,LUAC_HEADERSIZE,D);
+ }
+ 
+ /*
+-** dump Lua function as precompiled chunk
++** dump Lua function as precompiled chunk with specified target
+ */
+-int luaU_dump (lua_State* L, const Proto* f, lua_Writer w, void* data, int strip)
++int luaU_dump_crosscompile (lua_State* L, const Proto* f, lua_Writer w, void* data, int strip, DumpTargetInfo target)
+ {
+  DumpState D;
+  D.L=L;
+@@ -158,7 +283,24 @@
+  D.data=data;
+  D.strip=strip;
+  D.status=0;
++ D.target=target;
+  DumpHeader(&amp;D);
+  DumpFunction(f,NULL,&amp;D);
+  return D.status;
+ }
++
++/*
++ ** dump Lua function as precompiled chunk with local machine as target
++ */
++int luaU_dump (lua_State* L, const Proto* f, lua_Writer w, void* data, int strip)
++{
++ DumpTargetInfo target;
++ int test=1;
++ target.little_endian=*(char*)&test;
++ target.sizeof_int=sizeof(int);
++ target.sizeof_size_t=sizeof(size_t);
++ target.sizeof_lua_Number=sizeof(lua_Number);
++ target.lua_Number_integral=(((lua_Number)0.5)==0);
++ target.is_arm_fpa=0;
++ return luaU_dump_crosscompile(L,f,w,data,strip,target);
++}
+
+Modified: trunk/src/lua/linit.c
+===================================================================
+--- trunk/src/lua/linit.c	2008-09-18 20:22:15 UTC (rev 91)
++++ trunk/src/lua/linit.c	2008-09-19 20:13:30 UTC (rev 92)
+@@ -4,7 +4,6 @@
+ ** See Copyright Notice in lua.h
+ */
+ 
+-
+ #define linit_c
+ #define LUA_LIB
+ 
+@@ -13,7 +12,9 @@
+ #include &quot;lualib.h&quot;
+ #include &quot;lauxlib.h&quot;
+ 
++#ifndef LUA_CROSS_COMPILER
+ #include &quot;platform_libs.h&quot;
++#endif
+ 
+ static const luaL_Reg lualibs[] = {
+   {&quot;&quot;, luaopen_base},
+
+Modified: trunk/src/lua/luac.c
+===================================================================
+--- trunk/src/lua/luac.c	2008-09-18 20:22:15 UTC (rev 91)
++++ trunk/src/lua/luac.c	2008-09-19 20:13:30 UTC (rev 92)
+@@ -32,6 +32,7 @@
+ static char Output[]={ OUTPUT };	/* default output file name */
+ static const char* output=Output;	/* actual output file name */
+ static const char* progname=PROGNAME;	/* actual program name */
++static DumpTargetInfo target;
+ 
+ static void fatal(const char* message)
+ {
+@@ -60,6 +61,9 @@
+  &quot;  -p       parse only\n&quot;
+  &quot;  -s       strip debug information\n&quot;
+  &quot;  -v       show version information\n&quot;
++ &quot;  -cci bits       cross-compile with given integer size\n&quot;
++ &quot;  -ccn type bits  cross-compile with given lua_Number type and size\n&quot;
++ &quot;  -cce endian     cross-compile with given endianness ('big' or 'little')\n&quot;
+  &quot;  --       stop handling options\n&quot;,
+  progname,Output);
+  exit(EXIT_FAILURE);
+@@ -98,6 +102,33 @@
+    stripping=1;
+   else if (IS(&quot;-v&quot;))			/* show version */
+    ++version;
++  else if (IS(&quot;-cci&quot;)) /* target integer size */
++  {
++   int s = target.sizeof_int = target.sizeof_size_t = atoi(argv[++i])/8;
++   if (!(s==1 || s==2 || s==4)) fatal(LUA_QL(&quot;-cci&quot;) &quot; must be 8, 16 or 32&quot;);
++  }
++  else if (IS(&quot;-ccn&quot;)) /* target lua_Number type and size */
++  {
++   const char *type=argv[++i];
++   if (strcmp(type,&quot;int&quot;)==0) target.lua_Number_integral=1;
++   else if (strcmp(type,&quot;float&quot;)==0) target.lua_Number_integral=0;
++   else if (strcmp(type,&quot;float_arm&quot;)==0)
++   {
++     target.lua_Number_integral=0;
++     target.is_arm_fpa=1;
++   }
++   else fatal(LUA_QL(&quot;-ccn&quot;) &quot; type must be &quot; LUA_QL(&quot;int&quot;) &quot; or &quot; LUA_QL(&quot;float&quot;) &quot; or &quot; LUA_QL(&quot;float_arm&quot;));
++   int s = target.sizeof_lua_Number = atoi(argv[++i])/8;
++   if (target.lua_Number_integral &amp;&amp; !(s==1 || s==2 || s==4)) fatal(LUA_QL(&quot;-ccn&quot;) &quot; size must be 8, 16, or 32 for int&quot;);
++   if (!target.lua_Number_integral &amp;&amp; !(s==4 || s==8)) fatal(LUA_QL(&quot;-ccn&quot;) &quot; size must be 32 or 64 for float&quot;);
++  }
++  else if (IS(&quot;-cce&quot;)) /* target endianness */
++  {
++   const char *val=argv[++i];
++   if (strcmp(val,&quot;big&quot;)==0) target.little_endian=0;
++   else if (strcmp(val,&quot;little&quot;)==0) target.little_endian=1;
++   else fatal(LUA_QL(&quot;-cce&quot;) &quot; must be &quot; LUA_QL(&quot;big&quot;) &quot; or &quot; LUA_QL(&quot;little&quot;));
++  }
+   else					/* unknown option */
+    usage(argv[i]);
+  }
+@@ -175,8 +206,10 @@
+   FILE* D= (output==NULL) ? stdout : fopen(output,&quot;wb&quot;);
+   if (D==NULL) cannot(&quot;open&quot;);
+   lua_lock(L);
+-  luaU_dump(L,f,writer,D,stripping);
++  int result=luaU_dump_crosscompile(L,f,writer,D,stripping,target);
+   lua_unlock(L);
++  if (result==LUA_ERR_CC_INTOVERFLOW) fatal(&quot;value too big or small for target integer type&quot;);
++  if (result==LUA_ERR_CC_NOTINTEGER) fatal(&quot;target lua_Number is integral but fractional value found&quot;);
+   if (ferror(D)) cannot(&quot;write&quot;);
+   if (fclose(D)) cannot(&quot;close&quot;);
+  }
+@@ -187,6 +220,15 @@
+ {
+  lua_State* L;
+  struct Smain s;
++ 
++ int test=1;
++ target.little_endian=*(char*)&test;
++ target.sizeof_int=sizeof(int);
++ target.sizeof_size_t=sizeof(size_t);
++ target.sizeof_lua_Number=sizeof(lua_Number);
++ target.lua_Number_integral=(((lua_Number)0.5)==0);
++ target.is_arm_fpa=0;
++
+  int i=doargs(argc,argv);
+  argc-=i; argv+=i;
+  if (argc&lt;=0) usage(&quot;no input files given&quot;);
+
+Modified: trunk/src/lua/lundump.h
+===================================================================
+--- trunk/src/lua/lundump.h	2008-09-18 20:22:15 UTC (rev 91)
++++ trunk/src/lua/lundump.h	2008-09-19 20:13:30 UTC (rev 92)
+@@ -10,12 +10,25 @@
+ #include &quot;lobject.h&quot;
+ #include &quot;lzio.h&quot;
+ 
++/* info about target machine for cross-compilation */
++typedef struct {
++ int little_endian;
++ int sizeof_int;
++ int sizeof_size_t;
++ int sizeof_lua_Number;
++ int lua_Number_integral;
++ int is_arm_fpa;
++} DumpTargetInfo;
++
+ /* load one chunk; from lundump.c */
+ LUAI_FUNC Proto* luaU_undump (lua_State* L, ZIO* Z, Mbuffer* buff, const char* name);
+ 
+ /* make header; from lundump.c */
+ LUAI_FUNC void luaU_header (char* h);
+ 
++/* dump one chunk to a different target; from ldump.c */
++int luaU_dump_crosscompile (lua_State* L, const Proto* f, lua_Writer w, void* data, int strip, DumpTargetInfo target);
++
+ /* dump one chunk; from ldump.c */
+ LUAI_FUNC int luaU_dump (lua_State* L, const Proto* f, lua_Writer w, void* data, int strip);
+ 
+@@ -33,4 +46,11 @@
+ /* size of header of binary files */
+ #define LUAC_HEADERSIZE		12
+ 
++/* error codes from cross-compiler */
++/* target integer is too small to hold a value */
++#define LUA_ERR_CC_INTOVERFLOW 101
++
++/* target lua_Number is integral but a constant is non-integer */
++#define LUA_ERR_CC_NOTINTEGER 102
++
+ #endif
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000047.html">[Elua-svn] r91 - in trunk: . inc src src/modules src/newlib	src/platform/at91sam7x src/platform/i386 src/platform/lm3s	src/platform/lpc288x src/platform/str9 src/uip
+</A></li>
+	<LI>Next message: <A HREF="000049.html">[Elua-svn] r93 - in trunk: . inc src src/lua src/platform/lm3s	src/uip
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#48">[ date ]</a>
+              <a href="thread.html#48">[ thread ]</a>
+              <a href="subject.html#48">[ subject ]</a>
+              <a href="author.html#48">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

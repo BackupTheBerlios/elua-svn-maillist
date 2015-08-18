@@ -1,0 +1,664 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r335 - in trunk/doc: . en luadoc wb
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-June/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r335%20-%20in%20trunk/doc%3A%20.%20en%20luadoc%20wb&In-Reply-To=%3C200906291643.n5TGhIWf029054%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000290.html">
+   <LINK REL="Next"  HREF="000292.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r335 - in trunk/doc: . en luadoc wb</H1>
+    <B>jbsnyder at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r335%20-%20in%20trunk/doc%3A%20.%20en%20luadoc%20wb&In-Reply-To=%3C200906291643.n5TGhIWf029054%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r335 - in trunk/doc: . en luadoc wb">jbsnyder at mail.berlios.de
+       </A><BR>
+    <I>Mon Jun 29 18:43:18 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000290.html">[Elua-svn] r334 - in trunk/doc: . arch_platform en luadoc wb
+</A></li>
+        <LI>Next message: <A HREF="000292.html">[Elua-svn] r336 - in trunk/doc: . luadoc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#291">[ date ]</a>
+              <a href="thread.html#291">[ thread ]</a>
+              <a href="subject.html#291">[ subject ]</a>
+              <a href="author.html#291">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: jbsnyder
+Date: 2009-06-29 18:43:17 +0200 (Mon, 29 Jun 2009)
+New Revision: 335
+
+Added:
+   trunk/doc/en/refman_gen.html
+   trunk/doc/luadoc/refman_gen_bit.lua
+   trunk/doc/luadoc/refman_gen_cpu.lua
+   trunk/doc/luadoc/refman_gen_pack.lua
+   trunk/doc/luadoc/refman_gen_pd.lua
+Modified:
+   trunk/doc/build_dist_doc.sh
+   trunk/doc/builddoc.lua
+   trunk/doc/en/tut_bootstick.html
+   trunk/doc/luadoc/arch_platform_eth.lua
+   trunk/doc/wb/wb_usr_template.lua
+Log:
+working on the reference manual
+
+Modified: trunk/doc/build_dist_doc.sh
+===================================================================
+--- trunk/doc/build_dist_doc.sh	2009-06-29 16:42:56 UTC (rev 334)
++++ trunk/doc/build_dist_doc.sh	2009-06-29 16:43:17 UTC (rev 335)
+@@ -39,6 +39,7 @@
+   for lang in en pt
+   do
+     rm -f $lang/arch_platform_*.html
++    rm -f $lang/refman_gen_*.html
+   done
+   rm -f index_*.html wb/wb_usr.lua ssSearch*.html wb_bar_*.html
+   rm -f wb_search*.txt wb_title*.html wb_tree*.html
+
+Modified: trunk/doc/builddoc.lua
+===================================================================
+--- trunk/doc/builddoc.lua	2009-06-29 16:42:56 UTC (rev 334)
++++ trunk/doc/builddoc.lua	2009-06-29 16:43:17 UTC (rev 335)
+@@ -7,7 +7,7 @@
+ local components = 
+ { 
+   arch_platform = { &quot;ll&quot;, &quot;pio&quot;, &quot;spi&quot;, &quot;uart&quot;, &quot;timers&quot;, &quot;pwm&quot;, &quot;cpu&quot;, &quot;eth&quot; },
+-  refman_gen = { &quot;cpu&quot; }
++  refman_gen = { &quot;bit&quot;, &quot;pd&quot;, &quot;cpu&quot;, &quot;pack&quot; }
+ }
+ 
+ -- List here all languages for the documentation (make sure to keep English (&quot;en&quot;) the first one)
+@@ -40,6 +40,8 @@
+ - the string &quot;eLua&quot; becomes &lt;b&gt;eLua&lt;/b&gt;
+ - strings between two tildas (~~) get special code-like formatting
+ - newlines are changed to ' ' if 'keepnl' isn't true
++- '&amp;' is translated to its corresponding HTML code.
++- '&lt;&lt;' and '&gt;&gt;&quot; are also translated to the corresponding HTML codes (note the repetition).
+ --]]
+ local function format_string( str, keepnl )
+   -- replace double &quot;special chars&quot; with &quot;temps&quot; for later use
+@@ -49,23 +51,36 @@
+   str = str:gsub( &quot;%^%^&quot;, &quot;\004&quot; )
+   str = str:gsub( &quot;~~&quot;, &quot;\005&quot; )
+ 
++   -- Translate 'special' HTML chars to their equivalents
++  local tr_table = 
++  {
++    [ &quot;%&amp;&quot; ] = &quot;&amp;&quot;,
++  }
++  for char, rep in pairs( tr_table ) do
++    str = str:gsub( char, rep )
++  end
++
++  -- some double chars are replaced directly with their HTML codes
++  str = str:gsub( &quot;&lt;&lt;&quot;, &quot;&lt;&quot; )
++  str = str:gsub( &quot;&gt;&gt;&quot;, &quot;&gt;&quot; )
++
+   -- replace eLua with &lt;b&gt;eLua&lt;/b&gt;
+   str = str:gsub( &quot;eLua&quot;, &quot;&lt;b&gt;eLua&lt;/b&gt;&quot; )
+ 
+   -- $string$ becomes &lt;b&gt;string&gt;&lt;/b&gt;
+-  str = str:gsub( &quot;%$([^%s][^%$]+)%$&quot;, &quot;&lt;b&gt;%1&lt;/b&gt;&quot; )
++  str = str:gsub( &quot;%$([^%s%$][^%$]*)%$&quot;, &quot;&lt;b&gt;%1&lt;/b&gt;&quot; )
+ 
+   -- %string% becomes &lt;i&gt;string&lt;/i&gt;
+-  str = str:gsub( &quot;%%([^%s][^%%]+)%%&quot;, &quot;&lt;i&gt;%1&lt;/i&gt;&quot; )
++  str = str:gsub( &quot;%%([^%s%%][^%%]*)%%&quot;, &quot;&lt;i&gt;%1&lt;/i&gt;&quot; )
+ 
+   -- @<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">ref at text</A>@ becomes &lt;a href=&quot;ref&quot;&gt;text&lt;/a&gt;
+-  str = str:gsub( &quot;@([^%s][^@]+)@([^%s][^@]+)@&quot;, '&lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;' )
++  str = str:gsub( &quot;@([^%s@][^@]*)@([^%s@][^@]*)@&quot;, '&lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;' )
+ 
+   -- ^ref^text^ becomes &lt;a target=&quot;_blank&quot; href=&quot;ref&quot;&gt;text&lt;/a&gt;
+-  str = str:gsub( &quot;%^([^%s][^%^]+)%^([^%s][^%^]+)%^&quot;, '&lt;a target=&quot;_blank&quot; href=&quot;%1&quot;&gt;%2&lt;/a&gt;' )
++  str = str:gsub( &quot;%^([^%s%^][^%^]*)%^([^%s%^][^%^]*)%^&quot;, '&lt;a target=&quot;_blank&quot; href=&quot;%1&quot;&gt;%2&lt;/a&gt;' )
+ 
+   -- strings between two tildas (~~) get special code-like formatting
+-  str = str:gsub( &quot;~([^%s][^~]+)~&quot;, function( x )
++  str = str:gsub( &quot;~([^%s~][^~]*)~&quot;, function( x )
+     x = x:gsub( &quot;\n&quot;, &quot;&lt;br&gt;&quot; )
+     x = x:gsub( &quot;%s%s+&quot;, function( x ) return ( &quot;&nbsp;&quot; ):rep( #x ) end )
+     return &quot;&lt;p&gt;&lt;code&gt;&quot; .. x .. &quot;&lt;/code&gt;&lt;/p&gt;&quot;
+
+Added: trunk/doc/en/refman_gen.html
+===================================================================
+--- trunk/doc/en/refman_gen.html	2009-06-29 16:42:56 UTC (rev 334)
++++ trunk/doc/en/refman_gen.html	2009-06-29 16:43:17 UTC (rev 335)
+@@ -0,0 +1,11 @@
++&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0 Strict//EN&quot;&gt;
++&lt;html&gt;&lt;head&gt;
++&lt;meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=ISO-8859-1&quot;&gt;
++&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;en-us&quot;&gt;&lt;title&gt;eLua reference manual - generic modules&lt;/title&gt;
++
++&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;../style.css&quot;&gt;&lt;/head&gt;
++&lt;body style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;
++&lt;h3&gt;Reference manual - generic modules&lt;/h3&gt;
++&lt;p&gt;This part of the reference manual presents the generic modules in &lt;b&gt;eLua&lt;/b&gt; (see &lt;a href=&quot;refman.html&quot;&gt;here&lt;/a&gt; for more information about generic
++modules).&lt;/p&gt;
++&lt;/body&gt;&lt;/html&gt;
+
+Modified: trunk/doc/en/tut_bootstick.html
+===================================================================
+--- trunk/doc/en/tut_bootstick.html	2009-06-29 16:42:56 UTC (rev 334)
++++ trunk/doc/en/tut_bootstick.html	2009-06-29 16:43:17 UTC (rev 335)
+@@ -36,7 +36,7 @@
+ 
+ &lt;h2&gt;Prerequisites&lt;/h2&gt;
+ 
+-&lt;p&gt;To have your own bootable eLua USB stick you'll need:
++&lt;p&gt;To have your own bootable &lt;b&gt;eLua&lt;/b&gt; USB stick you'll need:
+ 
+ &lt;ul&gt;&lt;li&gt;an USB stick. I tested this on an 128M USB stick, because
+ it's the smallest I could find. You should be OK with a 4M stick or
+
+Modified: trunk/doc/luadoc/arch_platform_eth.lua
+===================================================================
+--- trunk/doc/luadoc/arch_platform_eth.lua	2009-06-29 16:42:56 UTC (rev 334)
++++ trunk/doc/luadoc/arch_platform_eth.lua	2009-06-29 16:43:17 UTC (rev 335)
+@@ -18,7 +18,7 @@
+   incoming packets) and a timer interrupt (timers are used internally by uIP). However, the uIP main loop is only called from the Ethernet interrupt handler
+   in eLua, so in order to acknowledge the timer interrupt (as well as to provide some optimizations) a function that &quot;forces&quot; an Ethernet interrupt
+   must also be provided by the platform interface (see @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">platform_eth_force_interrupt at here</A>@ for details).&lt;/p&gt;
+-  &lt;p&gt;To put everything together, part of the Ethernet platform interface for the $m3s$ platform is given below:&lt;/p&gt;
++  &lt;p&gt;To put everything together, part of the Ethernet platform interface for the $lm3s$ platform is given below:&lt;/p&gt;
+   ~u32 platform_eth_get_elapsed_time()
+   {
+     if( eth_timer_fired )
+
+Added: trunk/doc/luadoc/refman_gen_bit.lua
+===================================================================
+--- trunk/doc/luadoc/refman_gen_bit.lua	2009-06-29 16:42:56 UTC (rev 334)
++++ trunk/doc/luadoc/refman_gen_bit.lua	2009-06-29 16:43:17 UTC (rev 335)
+@@ -0,0 +1,145 @@
++-- eLua reference manual - bit module
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - bit module&quot;,
++
++  -- Menu name
++  menu_name = &quot;bit&quot;,
++
++  -- Overview
++  overview = [[Since Lua doesn't have built-in capabilities for bit operations, the $bit$ module was added to eLua to fill this gap. It is based on the ^<A HREF="http://luaforge.net/projects/bitlib^bitlib^">http://luaforge.net/projects/bitlib^bitlib^</A>
++  library written by Reuben Thomas (slightly adapted to eLua) and provides basic bit operations (like setting and clearing bits) and bitwise operations.]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;number = #bit.bit#( position )&quot;,
++      desc = &quot;Generate a number with a 1 bit (used for mask generation). Equivalent to %1 &lt;&lt;&lt;&lt; position% in C.&quot;,
++      args = 
++      {
++        { name = &quot;position&quot;, desc = &quot;position of the bit that will be set to 1.&quot; },
++      },
++      ret = &quot;$number$ - a number with only one 1 bit at $position$ (the rest are set to 0.&quot;
++    },
++
++    { sig = &quot;flag = #bit.isset#( value, position )&quot;,
++      desc = &quot;Test if a given bit is set.&quot;,
++      args = 
++      {
++        { name = &quot;value&quot;, desc = &quot;the value to test.&quot; },
++        { name = &quot;position&quot;, desc = &quot;bit position to test.&quot; }
++      },
++      ret = &quot;$flag$ - 1 if the bit at the given position is 1, 0 otherwise.&quot;
++    },
++
++    { sig = &quot;flag = #bit.isclear#( value, position )&quot;,
++      desc = &quot;Test if a given bit is cleared.&quot;,
++      args = 
++      {
++        { name = &quot;value&quot;, desc = &quot;the value to test.&quot; },
++        { name = &quot;position&quot;, desc = &quot;bit position to test.&quot; }
++      },
++      ret = &quot;$flag$ - 1 if the bit at the given position is 0, 0 othewise.&quot;
++    },
++
++    { sig = &quot;number = #bit.set#( value, pos1, pos2, ..., posn )&quot;,
++      desc = &quot;Set bits in a number.&quot;,
++      args =
++      {
++        { name = &quot;value&quot;, desc = &quot;the base number.&quot; },
++        { name = &quot;pos1&quot;, desc = &quot;position of the first bit to set.&quot; },
++        { name = &quot;pos2&quot;, desc = &quot;position of the second bit to set.&quot; },
++        { name = &quot;posn&quot;, desc = &quot;position of the nth bit to set.&quot; }
++      },
++      ret = &quot;$number$ - the number with the bit(s) set in the given position(s).&quot;
++    },
++
++    { sig = &quot;number = #bit.clear#( value, pos1, pos2, ..., posn )&quot;,
++      desc = &quot;Clear bits in a number.&quot;,
++      args = 
++      {
++        { name = &quot;value&quot;, desc = &quot;the base number.&quot; },
++        { name = &quot;pos1&quot;, desc = &quot;position of the first bit to clear.&quot; },
++        { name = &quot;pos2&quot;, desc = &quot;position of the second bit to clear.&quot; },
++        { name = &quot;posn&quot;, desc = &quot;position of thet nth bit to clear.&quot; },
++      },
++      ret = &quot;$number$ - the number with the bit(s) cleared in the given position(s).&quot;
++    },
++
++    { sig = &quot;number = #bit.bnot#( value )&quot;,
++      desc = &quot;Bitwise negation, equivalent to %~~value% in C.&quot;,
++      args = 
++      {
++        { name = &quot;value&quot;, desc = &quot;the number to negate.&quot; },
++      },
++      ret = &quot;$number$ - the bitwise negated value of the number.&quot;,
++    },
++
++    { sig = &quot;number = #bit.band#( val1, val2, ... valn )&quot;,
++      desc = &quot;Bitwise AND, equivalent to %val1 &amp; val2 &amp; ... &amp; valn% in C.&quot;,
++      args = 
++      {
++        { name = &quot;val1&quot;, desc = &quot;first AND argument.&quot; },
++        { name = &quot;val2&quot;, desc = &quot;second AND argument.&quot; },
++        { name = &quot;valn&quot;, desc = &quot;nth AND argument.&quot; },
++      },
++      ret = &quot;$number$ - the bitwise AND of all the arguments.&quot;
++    },
++
++    { sig = &quot;number = #bit.bor#( val1, val2, ... valn )&quot;,
++      desc = &quot;Bitwise OR, equivalent to %val1 | val2 | ... | valn% in C.&quot;,
++      args = 
++      {
++        { name = &quot;val1&quot;, desc = &quot;first OR argument.&quot; },
++        { name = &quot;val2&quot;, desc = &quot;second OR argument.&quot; },
++        { name = &quot;valn&quot;, desc = &quot;nth OR argument.&quot; }
++      },
++      ret = &quot;$number$ - the bitwise OR of all the arguments.&quot;
++    },
++
++    { sig = &quot;number = #bit.bxor#( val1, val2, ... valn )&quot;,
++      desc = &quot;Bitwise exclusive OR (XOR), equivalent to %val1 ^^ val2 ^^ ... ^^ valn% in C.&quot;,
++      args = 
++      {
++        { name = &quot;val1&quot;, desc = &quot;first XOR argument.&quot; },
++        { name = &quot;val2&quot;, desc = &quot;second XOR argument.&quot; },
++        { name = &quot;valn&quot;, desc = &quot;nth XOR argument.&quot; }
++      },
++      ret = &quot;$number$ - the bitwise exclusive OR of all the arguments.&quot;
++    },
++
++    { sig = &quot;number = #bit.lshift#( value, shift )&quot;,
++      desc = &quot;Left-shift a number, equivalent to %value &lt;&lt; shift% in C.&quot;,
++      args = 
++      {
++        { name = &quot;value&quot;, desc = &quot;the value to shift.&quot; },
++        { name = &quot;shift&quot;, desc = &quot;positions to shift.&quot; },
++      },
++      ret = &quot;$number$ - the number shifted left&quot;,
++    },
++
++    { sig = &quot;number = #bit.rshift#( value, shift )&quot;,
++      desc = &quot;Logical right shift a number, equivalent to %( unsigned )value &gt;&gt;&gt;&gt; shift% in C.&quot;,
++      args = 
++      {
++        { name = &quot;value&quot;, desc = &quot;the value to shift.&quot; },
++        { name = &quot;shift&quot;, desc = &quot;positions to shift.&quot; },
++      },
++      ret = &quot;$number$ - the number shifted right (logically).&quot;
++    },
++
++    { sig = &quot;number = #bit.arshift#( value, shift )&quot;,
++      desc = &quot;Arithmetic right shift a number equivalent to %value &gt;&gt;&gt;&gt; shift% in C.&quot;,
++      args = 
++      {
++        { name = &quot;value&quot;, desc = &quot;the value to shift.&quot; },
++        { name = &quot;shift&quot;, desc = &quot;positions to shift.&quot; }
++      },
++      ret = &quot;$number$ - the number shifted right (arithmetically).&quot;
++    }
++  }
++}
++
+
+Added: trunk/doc/luadoc/refman_gen_cpu.lua
+===================================================================
+--- trunk/doc/luadoc/refman_gen_cpu.lua	2009-06-29 16:42:56 UTC (rev 334)
++++ trunk/doc/luadoc/refman_gen_cpu.lua	2009-06-29 16:43:17 UTC (rev 335)
+@@ -0,0 +1,109 @@
++-- eLua reference manual - CPU module
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - CPU module&quot;,
++
++  -- Menu name
++  menu_name = &quot;cpu&quot;,
++
++  -- Overview
++  overview = [[This module deals with low-level access to CPU (and related modules) functionality, such as reading and writing memory, or 
++  enabling and disabling interrupts. It also offers access to platform specific CPU-related constants using a special macro defined in the
++  platform's $platform_conf.h$ file, as exaplained @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">cpu_constants at here</A>@.]],
++
++  -- Data structures, constants and types
++  structures = 
++  {
++    { text = [[cpu.INT_GPIOA
++cpu.INT_GPIOB
++.............
++cpu.INT_UDMA]],
++      name = &quot;CPU constants&quot;,
++      desc = [[eLua has a mechanism that lets the user export an unlimited number of constants to the $cpu$ module. Although in theory any kind of constant can be exposed by this module,
++one should only use constants related to the CPU and its subsystems (as shown above, where a number of CPU specific interrupt masks are exposed to Lua using this mechanism). To use this
++mechanism, just declare the $PLATFORM_CPU_CONSTANTS$ macro in your platform's $platform_conf.h$ file and list all your constants as part of this macro, each enclosed in a special macro called
++$_C$. For example, to get the constants listed above declare your $PLATFORM_CPU_CONSTANTS$ macro like this:&lt;/p&gt;
++~#define PLATFORM_CPU_CONSTANTS\
++  _C( INT_GPIOA ),\
++  _C( INT_GPIOB ),\
++  .................
++  _C( INT_UDMA )~&lt;p&gt;
++&lt;p&gt;It's worth to note that adding more constants does not increas RAM usage, only Flash usage, so you can expose as much constants as you need without worrying about RAM consumption.]]
++    },
++  },
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;#cpu.w32#( address, data )&quot;,
++      desc = &quot;Writes a 32-bit word to memory.&quot;,
++      args = 
++      {
++        { name = &quot;address&quot;, desc = &quot;the memory address.&quot; },
++        { name = &quot;data&quot;, desc = &quot;the 32-bit data to write.&quot; }
++      },
++    },
++
++    { sig = &quot;data = #cpu.r32#( address )&quot;,
++      desc = &quot;Read a 32-bit word from memory.&quot;,
++      args = 
++      {
++        { name = &quot;address&quot;, desc = &quot;the memory address.&quot; }
++      },
++      ret = &quot;$data$ - the 32-bit word read from memory.&quot;
++    },
++
++    { sig = &quot;#cpu.w16#( address, data )&quot;,
++      desc = &quot;Writes a 16-bit word to memory.&quot;,
++      args =
++      {
++        { name = &quot;address&quot;, desc = &quot;the memory address.&quot; },
++        { name = &quot;data&quot;, desc = &quot;the 16-bit data to write.&quot; }
++      },
++    },
++
++    { sig = &quot;data = #cpu.r16#( address )&quot;,
++      desc = &quot;Reads a 16-bit word from memory.&quot;,
++      args =
++      {
++        { name = &quot;address&quot;, desc = &quot;the memory address.&quot; }
++      },
++      ret = &quot;$data$ - the 16-bit word read from memory.&quot;
++    },
++
++    { sig = &quot;#cpu.w8#( address, data )&quot;,
++      desc = &quot;Writes a byte to memory.&quot;,
++      args =
++      {
++        { name = &quot;address&quot;, desc = &quot;the memory address.&quot; },
++        { name = &quot;data&quot;, desc = &quot;the byte to write.&quot; }
++      }
++    },
++
++    { sig = &quot;data = #cpu.r8#( address )&quot;,
++      desc = &quot;Reads a byte from memory.&quot;,
++      args = 
++      {
++        { name = &quot;address&quot;, desc = &quot;the memory address&quot; }
++      },
++      ret = &quot;$data$ - the byte read from memory.&quot;
++    },
++
++    { sig = &quot;#cpu.cli#()&quot;,
++      desc = &quot;Disable CPU interrupts.&quot;
++    },
++
++    { sig = &quot;#cpu.sei#()&quot;,
++      desc = &quot;Enable CPU interrupts.&quot;
++    },
++
++    { sig = &quot;clock = #cpu.clock#()&quot;,
++      desc = &quot;Get the CPU core frequency.&quot;,
++      ret = &quot;$clock$ - the CPU clock (in Hertz).&quot;
++    }
++  },
++}
++
+
+Added: trunk/doc/luadoc/refman_gen_pack.lua
+===================================================================
+--- trunk/doc/luadoc/refman_gen_pack.lua	2009-06-29 16:42:56 UTC (rev 334)
++++ trunk/doc/luadoc/refman_gen_pack.lua	2009-06-29 16:43:17 UTC (rev 335)
+@@ -0,0 +1,135 @@
++-- eLua reference manual - pack
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - pack&quot;,
++
++  -- Menu name
++  menu_name = &quot;pack&quot;,
++
++  -- Overview
++  overview = [[This module allows for arbitrary packing of data into Lua strings and unpacking data from Lua strings. In this way, a string can be used to store data in a platform-indepdendent 
++manner. It is based on the ^<A HREF="http://www.tecgraf.puc-rio.br/~~lhf/ftp/lua/#lpack^lpack^">http://www.tecgraf.puc-rio.br/~~lhf/ftp/lua/#lpack^lpack^</A> module from Luiz Henrique de Figueiredo (with some minor tweaks). &lt;/p&gt;
++&lt;p&gt;Both methods of this module (@#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">pack at pack</A>@ and @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">unpack at unpack</A>@) use a $format string$ to describe how to pack/unpack the data. The format string contains one or more $data specifiers$, each
++data specifier is applied to a single variable that must be packed/unpacked. The data specifier has the following general format:&lt;/p&gt;
++~[endianness]&lt;&lt;format specifier&gt;&gt;[count]~
++&lt;p&gt;where:
++&lt;ul&gt;
++  &lt;li&gt;$endianness$ is an optional endian flags that specifies how the numbers that are to be packed/unpacked are stored in memory. It can be either:
++  &lt;ol&gt;
++    &lt;li&gt;$'&lt;&lt;'$ for little endian.&lt;/li&gt;
++    &lt;li&gt;$'&gt;&gt;'$ for big endian.&lt;/li&gt;
++    &lt;li&gt;$'='$ for native endian (the platform's endian order, default).&lt;/li&gt;
++  &lt;/ol&gt;&lt;/li&gt;
++  &lt;li&gt;$format specifier$ describes what kind of variable will be packed/unpacked. $The format specifier is case-sensitive$. The possible values of this parameter are summarized in the table below:
++  &lt;p&gt;&lt;table class=&quot;table_center&quot;&gt;
++  &lt;tbody&gt;
++  &lt;tr&gt;
++    &lt;th&gt;Format specifier&lt;/th&gt;
++    &lt;th&gt;Corresponding variable type&lt;/th&gt;
++  &lt;/tr&gt;
++  &lt;tr&gt;
++    &lt;td&gt;'z'&lt;/td&gt;
++    &lt;td&gt;zero-terminated string&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'p'   &lt;/td&gt;
++    &lt;td&gt;string preceded by length byte&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'P'   &lt;/td&gt;
++    &lt;td&gt;string preceded by length word&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'a'   &lt;/td&gt;
++    &lt;td&gt;string preceded by length size_t&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'A'   &lt;/td&gt;
++    &lt;td&gt;string&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'f'   &lt;/td&gt;
++    &lt;td&gt;float&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'d'   &lt;/td&gt;
++    &lt;td&gt;double&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'n'   &lt;/td&gt;
++    &lt;td&gt;Lua number&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'c'   &lt;/td&gt;
++    &lt;td&gt;char&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'b'   &lt;/td&gt;
++    &lt;td&gt;byte = unsigned char&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'h'   &lt;/td&gt;
++    &lt;td&gt;short&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'H'   &lt;/td&gt;
++    &lt;td&gt;unsigned short&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'i'   &lt;/td&gt;
++    &lt;td&gt;int&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'I'   &lt;/td&gt;
++    &lt;td&gt;unsigned int&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'l'   &lt;/td&gt;
++    &lt;td&gt;long&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;tr&gt;
++    &lt;td&gt;'L'   &lt;/td&gt;
++    &lt;td&gt;unsigned long&lt;/td&gt;
++  &lt;/tr&gt;  
++  &lt;/table&gt;&lt;br&gt;&lt;/p&gt;&lt;/li&gt;
++  &lt;li&gt;$count$ is an optional counter for the $format specifier$. For example, $i5$ instructs the code to pack/unpack 5 integer variables, as opposed to $i$ that specifies a
++  single integer variable.&lt;/li&gt;
++&lt;/ul&gt;&lt;/p&gt;]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;packed = #pack.pack#( format, val1, val2, ..., valn )&quot;,
++      desc = &quot;Packs variables in a string.&quot;,
++      args = 
++      {
++        { name = &quot;format&quot;, desc = &quot;format specifier (as described @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">overview at here</A>@).&quot; },
++        { name = &quot;val1&quot;, desc = &quot;first variable to pack.&quot; },
++        { name = &quot;val2&quot;, desc = &quot;second variable to pack.&quot; },
++        { name = &quot;valn&quot;, desc = &quot;nth variable to pack.&quot; },
++      },
++      ret = &quot;$packed$ - a string containing the packed representation of all variables according to the format.&quot;
++    },
++
++    { sig = &quot;nextpos, val1, val2, ..., valn = #pack.unpack#( string, format, [ init ] )&quot;,
++      desc = &quot;Unpacks a string&quot;,
++      args = 
++      {
++        { name = &quot;string&quot;, desc = &quot;the string to unpack.&quot; },
++        { name = &quot;format&quot;, desc = &quot;format specifier (as described @#<A HREF="https://lists.berlios.de/mailman/listinfo/elua-svn">overview at here</A>@).&quot; },
++        { name = &quot;init&quot;, desc = &quot;$(optional)$ marks where in $string$ the unpacking should start (1 if not specified).&quot; }
++      },
++      ret = 
++      {
++        &quot;$nextpos$ - the position in the string after unpacking.&quot;,
++        &quot;$val1$ - the first unpacked value.&quot;,
++        &quot;$val2$ - the second unpacked value.&quot;,
++        &quot;$valn$ - the nth unpacked value.&quot;
++      }
++    }
++  },
++}
++
+
+Added: trunk/doc/luadoc/refman_gen_pd.lua
+===================================================================
+--- trunk/doc/luadoc/refman_gen_pd.lua	2009-06-29 16:42:56 UTC (rev 334)
++++ trunk/doc/luadoc/refman_gen_pd.lua	2009-06-29 16:43:17 UTC (rev 335)
+@@ -0,0 +1,34 @@
++-- eLua reference manual - platform data
++
++data_en = 
++{
++
++  -- Title
++  title = &quot;eLua reference manual - platform data&quot;,
++
++  -- Menu name
++  menu_name = &quot;Platform data (pd)&quot;,
++
++  -- Overview
++  overview = [[This module contains functions that access specific platform data. Useful if the code needs to know on which platform it runs.]],
++
++  -- Functions
++  funcs = 
++  {
++    { sig = &quot;platform = #pd.platform#()&quot;,
++      desc = &quot;Get platform name.&quot;,
++      ret = &quot;$platform$ - the name of the platform on which eLua is running.&quot;,
++    },
++
++    { sig = &quot;cpu = #pd.cpu#()&quot;,
++      desc = &quot;Get CPU name.&quot;,
++      ret = &quot;$cpu$ - the name of the CPU of the platform on which eLua is running.&quot;,
++    },
++
++    { sig = &quot;board = #pd.board#()&quot;,
++      desc = &quot;Get board name.&quot;,
++      ret = &quot;$board$ - the name of the board on which eLua is running.&quot;,
++    }
++  },
++}
++
+
+Modified: trunk/doc/wb/wb_usr_template.lua
+===================================================================
+--- trunk/doc/wb/wb_usr_template.lua	2009-06-29 16:42:56 UTC (rev 334)
++++ trunk/doc/wb/wb_usr_template.lua	2009-06-29 16:43:17 UTC (rev 335)
+@@ -362,7 +362,7 @@
+           name = { en = &quot;Generic Modules&quot;, pt = &quot;M&#243;dulos Gen&#233;ricos&quot; },
+           link = &quot;refman_gen.html&quot;,
+           folder = {
+-            $$REFMAN_GEN$$,        
++            $$REFMAN_GEN$$        
+           },
+         },
+         {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000290.html">[Elua-svn] r334 - in trunk/doc: . arch_platform en luadoc wb
+</A></li>
+	<LI>Next message: <A HREF="000292.html">[Elua-svn] r336 - in trunk/doc: . luadoc
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#291">[ date ]</a>
+              <a href="thread.html#291">[ thread ]</a>
+              <a href="subject.html#291">[ subject ]</a>
+              <a href="author.html#291">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,239 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r106 - in trunk/src: modules platform/lm3s platform/str7
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r106%20-%20in%20trunk/src%3A%20modules%20platform/lm3s%20platform/str7&In-Reply-To=%3C200810062050.m96Ko5hq024212%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000061.html">
+   <LINK REL="Next"  HREF="000063.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r106 - in trunk/src: modules platform/lm3s platform/str7</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r106%20-%20in%20trunk/src%3A%20modules%20platform/lm3s%20platform/str7&In-Reply-To=%3C200810062050.m96Ko5hq024212%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r106 - in trunk/src: modules platform/lm3s platform/str7">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Mon Oct  6 22:50:05 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000061.html">[Elua-svn] r105 - trunk/src/platform/str7
+</A></li>
+        <LI>Next message: <A HREF="000063.html">[Elua-svn] r107 - trunk/src/platform/str7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#62">[ date ]</a>
+              <a href="thread.html#62">[ thread ]</a>
+              <a href="subject.html#62">[ subject ]</a>
+              <a href="author.html#62">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2008-10-06 22:50:04 +0200 (Mon, 06 Oct 2008)
+New Revision: 106
+
+Modified:
+   trunk/src/modules/auxmods.h
+   trunk/src/platform/lm3s/platform.c
+   trunk/src/platform/str7/71x_gpio.c
+   trunk/src/platform/str7/71x_gpio.h
+   trunk/src/platform/str7/platform.c
+   trunk/src/platform/str7/platform_libs.h
+Log:
+added PWM support for STR7, fixed a few bugs
+
+Modified: trunk/src/modules/auxmods.h
+===================================================================
+--- trunk/src/modules/auxmods.h	2008-10-06 19:16:39 UTC (rev 105)
++++ trunk/src/modules/auxmods.h	2008-10-06 20:50:04 UTC (rev 106)
+@@ -43,6 +43,6 @@
+ 
+ #define MOD_CHECK_ID( mod, id )\
+   if( !platform_ ## mod ## _exists( id ) )\
+-    return luaL_error( L, #mod&quot; %u does not exist&quot;, ( unsigned )id )
++    return luaL_error( L, #mod&quot; %d does not exist&quot;, ( unsigned )id )
+ 
+ #endif
+
+Modified: trunk/src/platform/lm3s/platform.c
+===================================================================
+--- trunk/src/platform/lm3s/platform.c	2008-10-06 19:16:39 UTC (rev 105)
++++ trunk/src/platform/lm3s/platform.c	2008-10-06 20:50:04 UTC (rev 106)
+@@ -526,7 +526,8 @@
+   {
+     case PLATFORM_PWM_OP_SET_CLOCK:
+       res = platform_pwm_set_clock( data );
+-      
++      break;
++            
+     case PLATFORM_PWM_OP_GET_CLOCK:
+       res = platform_pwm_get_clock();
+       break;
+@@ -545,8 +546,6 @@
+   return res;
+ }
+ 
+-
+-
+ // *****************************************************************************
+ // CPU specific functions
+ 
+
+Modified: trunk/src/platform/str7/71x_gpio.c
+===================================================================
+--- trunk/src/platform/str7/71x_gpio.c	2008-10-06 19:16:39 UTC (rev 105)
++++ trunk/src/platform/str7/71x_gpio.c	2008-10-06 20:50:04 UTC (rev 106)
+@@ -102,7 +102,7 @@
+   return ((GPIOx-&gt;PD &gt;&gt; Port_Pin) &amp; 0x0001);
+ }
+ 
+-u8 GPIO_BitRead_Mask(GPIO_TypeDef *GPIOx, u8 Port_Mask)
++u8 GPIO_BitRead_Mask(GPIO_TypeDef *GPIOx, u16 Port_Mask)
+ {
+   return (GPIOx-&gt;PD &amp; Port_Mask) ? 1 : 0;
+ }
+@@ -157,7 +157,7 @@
+   }
+ }
+ 
+-void GPIO_BitWrite_Mask(GPIO_TypeDef *GPIOx, u8 Port_Mask, u8 Bit_Val)
++void GPIO_BitWrite_Mask(GPIO_TypeDef *GPIOx, u16 Port_Mask, u8 Bit_Val)
+ {
+   if (Bit_Val &amp; 0x01)
+   {
+
+Modified: trunk/src/platform/str7/71x_gpio.h
+===================================================================
+--- trunk/src/platform/str7/71x_gpio.h	2008-10-06 19:16:39 UTC (rev 105)
++++ trunk/src/platform/str7/71x_gpio.h	2008-10-06 20:50:04 UTC (rev 106)
+@@ -43,11 +43,11 @@
+ void GPIO_Config (GPIO_TypeDef *GPIOx, u16 Port_Pins,
+                   GpioPinMode_TypeDef GPIO_Mode);
+ u8 GPIO_BitRead(GPIO_TypeDef *GPIOx, u8 Port_Pin);
+-u8 GPIO_BitRead_Mask(GPIO_TypeDef *GPIOx, u8 Port_Mask);
++u8 GPIO_BitRead_Mask(GPIO_TypeDef *GPIOx, u16 Port_Mask);
+ u8 GPIO_ByteRead(GPIO_TypeDef *GPIOx, u8 Port_Byte);
+ u16 GPIO_WordRead(GPIO_TypeDef *GPIOx);
+ void GPIO_BitWrite(GPIO_TypeDef *GPIOx, u8 Port_Pin, u8 Port_Val);
+-void GPIO_BitWrite_Mask(GPIO_TypeDef *GPIOx, u8 Port_Mask, u8 Port_Val);
++void GPIO_BitWrite_Mask(GPIO_TypeDef *GPIOx, u16 Port_Mask, u8 Port_Val);
+ void GPIO_ByteWrite(GPIO_TypeDef *GPIOx, u8 Port_Byte, u8 Port_Val);
+ void GPIO_WordWrite(GPIO_TypeDef *GPIOx, u16 Port_Val);
+ 
+
+Modified: trunk/src/platform/str7/platform.c
+===================================================================
+--- trunk/src/platform/str7/platform.c	2008-10-06 19:16:39 UTC (rev 105)
++++ trunk/src/platform/str7/platform.c	2008-10-06 20:50:04 UTC (rev 106)
+@@ -378,6 +378,66 @@
+ }
+ 
+ // ****************************************************************************
++// PWM functions
++
++#define PLATFORM_NUM_PWMS               3
++
++static const u16 pwm_pins[ PLATFORM_NUM_PWMS ] = { 1 &lt;&lt; 7, 1 &lt;&lt; 13, 1 &lt;&lt; 2 };
++static const u8 pwm_ports[ PLATFORM_NUM_PWMS ] = { 1, 0, 1 };
++ 
++int platform_pwm_exists( unsigned id )
++{
++  return id &lt; PLATFORM_NUM_PWMS; 
++}
++
++u32 platform_pwm_setup( unsigned id, u32 frequency, unsigned duty )
++{
++  u32 pwmclk = platform_timer_get_clock( id + 1 );
++  u32 period;
++  GPIO_TypeDef *pport = ( GPIO_TypeDef* )gpio_periph[ pwm_ports[ id ] ];
++  TIM_TypeDef *ptimer = ( TIM_TypeDef* )tim_periph[ id + 1 ];
++  
++  // Set pin as PWM
++  GPIO_Config( pport, pwm_pins[ id ], GPIO_AF_PP );
++  // Compute period
++  period = pwmclk / frequency;
++  if( period &gt; 0xFFFF )
++    period = 0xFFFF;
++  // Set the period and duty cycle
++  TIM_PWMOModeConfig( ptimer, ( duty * period ) / 100, TIM_HIGH, period, TIM_LOW );
++  // Return actual frequency
++  return pwmclk / period;
++}
++
++u32 platform_pwm_op( unsigned id, int op, u32 data )
++{
++  u32 res = 0;
++  TIM_TypeDef *ptimer = ( TIM_TypeDef* )tim_periph[ id + 1 ];
++  
++  switch( op )
++  {
++    case PLATFORM_PWM_OP_SET_CLOCK:
++      res = platform_timer_set_clock( id + 1, data );
++      break;
++      
++    case PLATFORM_PWM_OP_GET_CLOCK:
++      res = platform_timer_get_clock( id + 1 );
++      break;
++      
++    case PLATFORM_PWM_OP_START:
++      TIM_CounterConfig( ptimer, TIM_START );
++      break;
++      
++    case PLATFORM_PWM_OP_STOP:
++      TIM_CounterConfig( ptimer, TIM_STOP );
++      platform_pio_op( pwm_ports[ id ], pwm_pins[ id ], PLATFORM_IO_PIN_DIR_INPUT );
++      break;
++  }
++  
++  return res;
++}
++
++// ****************************************************************************
+ // Allocator support
+ 
+ extern char end[];
+
+Modified: trunk/src/platform/str7/platform_libs.h
+===================================================================
+--- trunk/src/platform/str7/platform_libs.h	2008-10-06 19:16:39 UTC (rev 105)
++++ trunk/src/platform/str7/platform_libs.h	2008-10-06 20:50:04 UTC (rev 106)
+@@ -9,6 +9,7 @@
+   { AUXLIB_PIO, luaopen_pio },\
+   { AUXLIB_TMR, luaopen_tmr },\
+   { AUXLIB_PD, luaopen_pd },\
++  { AUXLIB_PWM, luaopen_pwm },\
+   { AUXLIB_UART, luaopen_uart },\
+   { AUXLIB_TERM, luaopen_term },\
+   { AUXLIB_PACK, luaopen_pack },\
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000061.html">[Elua-svn] r105 - trunk/src/platform/str7
+</A></li>
+	<LI>Next message: <A HREF="000063.html">[Elua-svn] r107 - trunk/src/platform/str7
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#62">[ date ]</a>
+              <a href="thread.html#62">[ thread ]</a>
+              <a href="subject.html#62">[ subject ]</a>
+              <a href="author.html#62">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r603 - branches/pre0.7/src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r603%20-%20branches/pre0.7/src/platform/stm32&In-Reply-To=%3C200912201647.nBKGlQG1029511%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000558.html">
+   <LINK REL="Next"  HREF="000560.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r603 - branches/pre0.7/src/platform/stm32</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r603%20-%20branches/pre0.7/src/platform/stm32&In-Reply-To=%3C200912201647.nBKGlQG1029511%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r603 - branches/pre0.7/src/platform/stm32">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Sun Dec 20 17:47:26 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000558.html">[Elua-svn] r602 - branches/pre0.7/doc/eluadoc
+</A></li>
+        <LI>Next message: <A HREF="000560.html">[Elua-svn] r604 - in branches/pre0.7: . doc doc/en src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#559">[ date ]</a>
+              <a href="thread.html#559">[ thread ]</a>
+              <a href="subject.html#559">[ subject ]</a>
+              <a href="author.html#559">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-12-20 17:47:25 +0100 (Sun, 20 Dec 2009)
+New Revision: 603
+
+Modified:
+   branches/pre0.7/src/platform/stm32/startup_stm32f10x_hd.s
+   branches/pre0.7/src/platform/stm32/stm32f10x_it.c
+Log:
+stm32 fixes: enable compilation for the non-EABI toolchain, remove definition of 'fputc' that prevented proper CR/LF translation in some situations
+
+Modified: branches/pre0.7/src/platform/stm32/startup_stm32f10x_hd.s
+===================================================================
+--- branches/pre0.7/src/platform/stm32/startup_stm32f10x_hd.s	2009-12-17 04:16:18 UTC (rev 602)
++++ branches/pre0.7/src/platform/stm32/startup_stm32f10x_hd.s	2009-12-20 16:47:25 UTC (rev 603)
+@@ -64,6 +64,7 @@
+     .section	.text.Reset_Handler
+ 	.weak	Reset_Handler
+ 	.type	Reset_Handler, %function
++  .thumb_func
+ Reset_Handler:	
+ 
+ /* FSMC Bank1 NOR/SRAM3 is used for the STM3210E-EVAL, if another Bank is 
+
+Modified: branches/pre0.7/src/platform/stm32/stm32f10x_it.c
+===================================================================
+--- branches/pre0.7/src/platform/stm32/stm32f10x_it.c	2009-12-17 04:16:18 UTC (rev 602)
++++ branches/pre0.7/src/platform/stm32/stm32f10x_it.c	2009-12-20 16:47:25 UTC (rev 603)
+@@ -48,11 +48,13 @@
+ {
+ }
+ 
++#if 0
+ int fputc(int ch, FILE *f)
+ {
+    platform_uart_send(0, ch);
+    return ch;
+ }
++#endif
+ 
+ void hard_fault_handler_c(unsigned int * hardfault_args)
+ {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000558.html">[Elua-svn] r602 - branches/pre0.7/doc/eluadoc
+</A></li>
+	<LI>Next message: <A HREF="000560.html">[Elua-svn] r604 - in branches/pre0.7: . doc doc/en src/lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#559">[ date ]</a>
+              <a href="thread.html#559">[ thread ]</a>
+              <a href="subject.html#559">[ subject ]</a>
+              <a href="author.html#559">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r566 - trunk
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r566%20-%20trunk&In-Reply-To=%3C200912031129.nB3BTYW2027046%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000521.html">
+   <LINK REL="Next"  HREF="000523.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r566 - trunk</H1>
+    <B>bogdanm at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r566%20-%20trunk&In-Reply-To=%3C200912031129.nB3BTYW2027046%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r566 - trunk">bogdanm at mail.berlios.de
+       </A><BR>
+    <I>Thu Dec  3 12:29:34 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000521.html">[Elua-svn] r565 - trunk/src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000523.html">[Elua-svn] r567 - trunk/src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#522">[ date ]</a>
+              <a href="thread.html#522">[ thread ]</a>
+              <a href="subject.html#522">[ subject ]</a>
+              <a href="author.html#522">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: bogdanm
+Date: 2009-12-03 12:29:33 +0100 (Thu, 03 Dec 2009)
+New Revision: 566
+
+Modified:
+   trunk/SConstruct
+   trunk/mkfs.py
+Log:
+mostly cosmetic changes for the new romfs compress/compile feature
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2009-12-03 01:15:36 UTC (rev 565)
++++ trunk/SConstruct	2009-12-03 11:29:33 UTC (rev 566)
+@@ -234,6 +234,11 @@
+ # Build the compilation command now
+ compcmd = ''
+ if romfsmode == 'compile':
++  # First check for luac.cross in the current directory
++  if not os.path.isfile( &quot;luac.cross&quot; ):
++    print &quot;The eLua cross compiler was not found.&quot;
++    print &quot;Build it by running 'scons -f cross-lua.py'&quot;
++    sys.exit( -1 )
+   compcmd = './luac.cross -ccn %s -cce %s -o %%s -s %%s' % ( toolset[ 'cross_%s' % target ], toolset[ 'cross_cpumode' ] )
+ elif romfsmode == 'compress':
+   compcmd = 'lua luasrcdiet.lua --quiet --maximum --opt-comments --opt-whitespace --opt-emptylines --opt-eols --opt-strings --opt-numbers --opt-locals -o %s %s'
+
+Modified: trunk/mkfs.py
+===================================================================
+--- trunk/mkfs.py	2009-12-03 01:15:36 UTC (rev 565)
++++ trunk/mkfs.py	2009-12-03 11:29:33 UTC (rev 566)
+@@ -75,12 +75,13 @@
+       return False
+     
+     # Do we need to process the file?
++    fextpart = ''
+     if mode == &quot;compile&quot; or mode == &quot;compress&quot;:
+       fnamepart, fextpart = os.path.splitext( realname )
+       if mode == &quot;compress&quot;:
+         newext = &quot;.lua.tmp&quot;
+       else:
+-        newext = &quot;.luac&quot;
++        newext = &quot;.lc&quot;
+       if fextpart == &quot;.lua&quot;:
+         newname = fnamepart + newext
+         if mode == &quot;compress&quot;:
+@@ -102,9 +103,8 @@
+           fname = fnamepart + &quot;.lc&quot;
+     filedata = crtfile.read()
+     crtfile.close()
+-    if mode == 'compile' or mode == &quot;compress&quot;:
+-      if fextpart == &quot;.lua&quot;:
+-        os.remove( newname )
++    if fextpart == &quot;.lua&quot; and mode != &quot;verbatim&quot;:
++      os.remove( newname )
+ 
+     # Write name, size, id, numpars
+     for c in fname:
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000521.html">[Elua-svn] r565 - trunk/src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000523.html">[Elua-svn] r567 - trunk/src/platform/stm32
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#522">[ date ]</a>
+              <a href="thread.html#522">[ thread ]</a>
+              <a href="subject.html#522">[ subject ]</a>
+              <a href="author.html#522">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>

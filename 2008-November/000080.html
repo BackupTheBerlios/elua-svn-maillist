@@ -1,0 +1,1151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Elua-svn] r124 - in trunk: . src/lua src/modules src/platform/stm32
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/elua-svn/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r124%20-%20in%20trunk%3A%20.%20src/lua%20src/modules%20src/platform/stm32&In-Reply-To=%3C200811120453.mAC4rCW2025591%40sheep.berlios.de%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000079.html">
+   <LINK REL="Next"  HREF="000081.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Elua-svn] r124 - in trunk: . src/lua src/modules src/platform/stm32</H1>
+    <B>mpanetta at BerliOS</B> 
+    <A HREF="mailto:elua-svn%40lists.berlios.de?Subject=Re%3A%20%5BElua-svn%5D%20r124%20-%20in%20trunk%3A%20.%20src/lua%20src/modules%20src/platform/stm32&In-Reply-To=%3C200811120453.mAC4rCW2025591%40sheep.berlios.de%3E"
+       TITLE="[Elua-svn] r124 - in trunk: . src/lua src/modules src/platform/stm32">mpanetta at mail.berlios.de
+       </A><BR>
+    <I>Wed Nov 12 05:53:12 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000079.html">[Elua-svn] r123 - trunk/src/platform/stm32
+</A></li>
+        <LI>Next message: <A HREF="000081.html">[Elua-svn] r125 - in trunk: inc src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#80">[ date ]</a>
+              <a href="thread.html#80">[ thread ]</a>
+              <a href="subject.html#80">[ subject ]</a>
+              <a href="author.html#80">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: mpanetta
+Date: 2008-11-12 05:53:10 +0100 (Wed, 12 Nov 2008)
+New Revision: 124
+
+Added:
+   trunk/src/modules/modcommon.c
+   trunk/src/modules/modcommon.h
+   trunk/src/platform/stm32/fonts.h
+   trunk/src/platform/stm32/lstm32_mod.c
+   trunk/src/platform/stm32/systick.c
+   trunk/src/platform/stm32/systick.h
+Modified:
+   trunk/SConstruct
+   trunk/src/lua/linit.c
+   trunk/src/modules/auxmods.h
+   trunk/src/platform/stm32/conf.py
+   trunk/src/platform/stm32/lcd.c
+   trunk/src/platform/stm32/lcd.h
+   trunk/src/platform/stm32/lua_lcd.c
+   trunk/src/platform/stm32/platform.c
+   trunk/src/platform/stm32/platform_conf.h
+   trunk/src/platform/stm32/stm32.ld
+   trunk/src/platform/stm32/stm32f10x_it.c
+Log:
+ * Finished stm3210lcd module.
+ * Added systick functions (for stm3210lcd module)
+ * Created modcommon.{c,h} which contain module helper functions and module loader
+ * Created lstm32_mod.c which demonstrates module helper functions and module loader (in addition to lua_lcd.c)
+ * Added a .lua_init section to the stm32.ld linker script to facilitate platform module loading (see modcommon and lstm32_mod)
+ * Updated conf.py auxmods.h and SConstruct to build the new files.
+ * Modified linit.c to add support for require and package back in so that require 'stm3210lcd' would work.
+
+
+Modified: trunk/SConstruct
+===================================================================
+--- trunk/SConstruct	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/SConstruct	2008-11-12 04:53:10 UTC (rev 124)
+@@ -132,7 +132,7 @@
+ local_include = local_include + &quot; -Isrc/uip&quot;
+ 
+ # Lua module files
+-module_names = &quot;pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c&quot;
++module_names = &quot;modcommon.c pio.c spi.c tmr.c pd.c uart.c term.c pwm.c lpack.c bit.c net.c cpu.c&quot;
+ module_files = &quot; &quot; + &quot; &quot;.join( [ &quot;src/modules/%s&quot; % name for name in module_names.split() ] )
+   
+ # Optimizer flags (speed or size)
+
+Modified: trunk/src/lua/linit.c
+===================================================================
+--- trunk/src/lua/linit.c	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/lua/linit.c	2008-11-12 04:53:10 UTC (rev 124)
+@@ -18,7 +18,7 @@
+ 
+ static const luaL_Reg lualibs[] = {
+   {&quot;&quot;, luaopen_base},
+-//  {LUA_LOADLIBNAME, luaopen_package},
++  {LUA_LOADLIBNAME, luaopen_package},
+   {LUA_TABLIBNAME, luaopen_table},
+   {LUA_IOLIBNAME, luaopen_io},
+ //  {LUA_OSLIBNAME, luaopen_os},
+
+Modified: trunk/src/modules/auxmods.h
+===================================================================
+--- trunk/src/modules/auxmods.h	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/modules/auxmods.h	2008-11-12 04:53:10 UTC (rev 124)
+@@ -39,6 +39,9 @@
+ #define AUXLIB_CPU      &quot;cpu&quot;
+ LUALIB_API int ( luaopen_cpu )( lua_State* L );
+ 
++#define AUXLIB_MOD      &quot;mod&quot;
++LUALIB_API int ( luaopen_mod )( lua_State* L );
++
+ // Helper macros
+ 
+ #define MOD_CHECK_ID( mod, id )\
+
+Added: trunk/src/modules/modcommon.c
+===================================================================
+--- trunk/src/modules/modcommon.c	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/modules/modcommon.c	2008-11-12 04:53:10 UTC (rev 124)
+@@ -0,0 +1,96 @@
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;auxmods.h&quot;
++#include &lt;string.h&gt; 
++
++#include &quot;modcommon.h&quot;
++
++#define MODCOMMON_CT_NAME &quot;__const_table_&quot;
++
++static int const_mt_index(lua_State * L)
++{
++	const char * key = luaL_checkstring(L, 2);
++	const eLua_const_userdata_t * ct;
++
++	// Get the const table from the module table
++	lua_pushliteral(L, MODCOMMON_CT_NAME);
++	lua_rawget(L, 1);
++	ct = (eLua_const_userdata_t *)lua_touserdata(L, -1);
++
++	if (ct != NULL)
++	{
++		int i;
++
++		for (i = 0; ct[i].name != NULL; i++)
++		{
++			if (strcmp(ct[i].name, key) == 0) // Match
++			{
++				lua_pushinteger(L, ct[i].val);
++				return 1;
++			}
++		}
++		return 0;
++	}
++
++	luaL_error(L, &quot;Could not find constants table!&quot;);
++
++	return 0; // Quiet warning
++}
++
++int eLua_register(lua_State * L, const char * name, const luaL_Reg * t)
++{
++	// Register methods
++	luaL_register(L, name, t);
++
++	return 1;
++}
++
++int eLua_register_const(lua_State * L, const eLua_const_userdata_t * ct)
++{
++
++	// Metatable data
++	static const luaL_reg const_mt_map[] =
++	{
++	  { &quot;__index&quot;, const_mt_index },
++	  { NULL, NULL }
++	};
++	
++	// Store the const table in the module table for later use.
++	lua_pushliteral(L, MODCOMMON_CT_NAME);
++	lua_pushlightuserdata(L, (eLua_const_userdata_t *)ct);
++	lua_rawset(L, -3);
++	
++	lua_newtable(L);
++	luaL_register(L, NULL, const_mt_map);
++	lua_setmetatable(L, -2);
++
++	return 1;
++}
++
++extern luaL_reg _lua_init_start;
++extern luaL_reg _lua_init_end;
++
++LUALIB_API int luaopen_mod(lua_State * L)
++{
++	luaL_reg * modtab = &amp;_lua_init_start;
++
++	printf(&quot;luaopen_mod(%p): lua_init_start = %p, lua_init_end = %p\n&quot;, L, &amp;_lua_init_start, &amp;_lua_init_end);
++
++	printf(&quot;luaopen_mod(%p): Setting up package.preload for modules:\n&quot;, L);
++	
++	lua_getfield(L, LUA_GLOBALSINDEX, &quot;package&quot;); // Get the package table
++	lua_getfield(L, -1, &quot;preload&quot;);               // package.preload is now on stack top
++
++	for ( ; modtab-&gt;func; modtab++)
++	{
++		printf(&quot;\t%s\n&quot;, modtab-&gt;name);
++		lua_pushcfunction(L, modtab-&gt;func);
++		lua_setfield(L, -2, modtab-&gt;name);
++	}
++
++	lua_pop(L, 2); // Restore stack position
++
++	return 0;
++}
+
+Added: trunk/src/modules/modcommon.h
+===================================================================
+--- trunk/src/modules/modcommon.h	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/modules/modcommon.h	2008-11-12 04:53:10 UTC (rev 124)
+@@ -0,0 +1,21 @@
++#ifndef __MODCOMMON_H__
++#define __MODCOMMON_H__ // Sentinel
++
++// Const Table Entry
++#define _ELUA_CTE(x) { #x, x }
++
++// Const table typedef
++typedef struct
++{
++  const char* name;
++  u32 val;
++} eLua_const_userdata_t;
++
++#define _ELUA_MODTAB luaL_reg mod_##__COUNTER__[] __attribute__((section (&quot;.lua_init&quot;))) 
++
++// Register eLua module
++int eLua_register(lua_State * l, const char * name, const luaL_Reg * t);
++// Register const table
++int eLua_register_const(lua_State * l, const eLua_const_userdata_t * ct);
++
++#endif
+
+Modified: trunk/src/platform/stm32/conf.py
+===================================================================
+--- trunk/src/platform/stm32/conf.py	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/conf.py	2008-11-12 04:53:10 UTC (rev 124)
+@@ -8,7 +8,7 @@
+ fwlib_files = &quot; &quot;.join(glob.glob(&quot;src/platform/%s/FWLib/library/src/*.c&quot; % platform))
+ #print &quot;FWLib: %s &quot; % fwlib_files 
+ 
+-specific_files = &quot;cortexm3_macro.s stm32f10x_vector.c  platform.c stm32f10x_it.c lua_lcd.c&quot;
++specific_files = &quot;cortexm3_macro.s stm32f10x_vector.c systick.c platform.c stm32f10x_it.c lcd.c lua_lcd.c lstm32_mod.c&quot;
+ 
+ ldscript = &quot;stm32.ld&quot;
+   
+
+Added: trunk/src/platform/stm32/fonts.h
+===================================================================
+--- trunk/src/platform/stm32/fonts.h	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/fonts.h	2008-11-12 04:53:10 UTC (rev 124)
+@@ -0,0 +1,415 @@
++/******************** (C) COPYRIGHT 2008 STMicroelectronics ********************
++* File Name          : fonts.h
++* Author             : MCD Application Team
++* Version            : V1.1.2
++* Date               : 09/22/2008
++* Description        : This file contains all the LCD fonts size definition.
++********************************************************************************
++* THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
++* WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE TIME.
++* AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY DIRECT,
++* INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING FROM THE
++* CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE CODING
++* INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
++*******************************************************************************/
++
++/* Define to prevent recursive inclusion -------------------------------------*/
++#ifndef __FONTS_H
++#define __FONTS_H
++
++/* Includes ------------------------------------------------------------------*/
++#include &quot;stm32f10x_lib.h&quot;
++
++/* Exported types ------------------------------------------------------------*/
++     /* ASCII Table: each character is 16 column (16dots large) 
++        and 24 raw (24 dots high) */
++     uc16 ASCII_Table[] =
++       {
++         /* Space ' ' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '!' */
++         0x0000, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0000, 0x0000,
++         0x0180, 0x0180, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '&quot;' */
++         0x0000, 0x0000, 0x00CC, 0x00CC, 0x00CC, 0x00CC, 0x00CC, 0x00CC,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '#' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0C60, 0x0C60,
++         0x0C60, 0x0630, 0x0630, 0x1FFE, 0x1FFE, 0x0630, 0x0738, 0x0318,
++         0x1FFE, 0x1FFE, 0x0318, 0x0318, 0x018C, 0x018C, 0x018C, 0x0000,
++         /* '$' */
++         0x0000, 0x0080, 0x03E0, 0x0FF8, 0x0E9C, 0x1C8C, 0x188C, 0x008C,
++         0x0098, 0x01F8, 0x07E0, 0x0E80, 0x1C80, 0x188C, 0x188C, 0x189C,
++         0x0CB8, 0x0FF0, 0x03E0, 0x0080, 0x0080, 0x0000, 0x0000, 0x0000,
++         /* '%' */
++         0x0000, 0x0000, 0x0000, 0x180E, 0x0C1B, 0x0C11, 0x0611, 0x0611,
++         0x0311, 0x0311, 0x019B, 0x018E, 0x38C0, 0x6CC0, 0x4460, 0x4460,
++         0x4430, 0x4430, 0x4418, 0x6C18, 0x380C, 0x0000, 0x0000, 0x0000,
++         /* '&amp;' */
++         0x0000, 0x01E0, 0x03F0, 0x0738, 0x0618, 0x0618, 0x0330, 0x01F0,
++         0x00F0, 0x00F8, 0x319C, 0x330E, 0x1E06, 0x1C06, 0x1C06, 0x3F06,
++         0x73FC, 0x21F0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* ''' */
++         0x0000, 0x0000, 0x000C, 0x000C, 0x000C, 0x000C, 0x000C, 0x000C,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '(' */
++         0x0000, 0x0200, 0x0300, 0x0180, 0x00C0, 0x00C0, 0x0060, 0x0060,
++         0x0030, 0x0030, 0x0030, 0x0030, 0x0030, 0x0030, 0x0030, 0x0030,
++         0x0060, 0x0060, 0x00C0, 0x00C0, 0x0180, 0x0300, 0x0200, 0x0000,
++         /* ')' */
++         0x0000, 0x0020, 0x0060, 0x00C0, 0x0180, 0x0180, 0x0300, 0x0300,
++         0x0600, 0x0600, 0x0600, 0x0600, 0x0600, 0x0600, 0x0600, 0x0600,
++         0x0300, 0x0300, 0x0180, 0x0180, 0x00C0, 0x0060, 0x0020, 0x0000,
++         /* '*' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x00C0, 0x00C0,
++         0x06D8, 0x07F8, 0x01E0, 0x0330, 0x0738, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '+' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0180, 0x3FFC, 0x3FFC, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* ',' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0180, 0x0180, 0x0100, 0x0100, 0x0080, 0x0000, 0x0000,
++         /* '-' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '.' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x00C0, 0x00C0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '/' */
++         0x0000, 0x0C00, 0x0C00, 0x0600, 0x0600, 0x0600, 0x0300, 0x0300,
++         0x0300, 0x0380, 0x0180, 0x0180, 0x0180, 0x00C0, 0x00C0, 0x00C0,
++         0x0060, 0x0060, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '0' */
++         0x0000, 0x03E0, 0x07F0, 0x0E38, 0x0C18, 0x180C, 0x180C, 0x180C,
++         0x180C, 0x180C, 0x180C, 0x180C, 0x180C, 0x180C, 0x0C18, 0x0E38,
++         0x07F0, 0x03E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '1' */
++         0x0000, 0x0100, 0x0180, 0x01C0, 0x01F0, 0x0198, 0x0188, 0x0180,
++         0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '2' */
++         0x0000, 0x03E0, 0x0FF8, 0x0C18, 0x180C, 0x180C, 0x1800, 0x1800,
++         0x0C00, 0x0600, 0x0300, 0x0180, 0x00C0, 0x0060, 0x0030, 0x0018,
++         0x1FFC, 0x1FFC, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '3' */
++         0x0000, 0x01E0, 0x07F8, 0x0E18, 0x0C0C, 0x0C0C, 0x0C00, 0x0600,
++         0x03C0, 0x07C0, 0x0C00, 0x1800, 0x1800, 0x180C, 0x180C, 0x0C18,
++         0x07F8, 0x03E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '4' */
++         0x0000, 0x0C00, 0x0E00, 0x0F00, 0x0F00, 0x0D80, 0x0CC0, 0x0C60,
++         0x0C60, 0x0C30, 0x0C18, 0x0C0C, 0x3FFC, 0x3FFC, 0x0C00, 0x0C00,
++         0x0C00, 0x0C00, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '5' */
++         0x0000, 0x0FF8, 0x0FF8, 0x0018, 0x0018, 0x000C, 0x03EC, 0x07FC,
++         0x0E1C, 0x1C00, 0x1800, 0x1800, 0x1800, 0x180C, 0x0C1C, 0x0E18,
++         0x07F8, 0x03E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '6' */
++         0x0000, 0x07C0, 0x0FF0, 0x1C38, 0x1818, 0x0018, 0x000C, 0x03CC,
++         0x0FEC, 0x0E3C, 0x1C1C, 0x180C, 0x180C, 0x180C, 0x1C18, 0x0E38,
++         0x07F0, 0x03E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '7' */
++         0x0000, 0x1FFC, 0x1FFC, 0x0C00, 0x0600, 0x0600, 0x0300, 0x0380,
++         0x0180, 0x01C0, 0x00C0, 0x00E0, 0x0060, 0x0060, 0x0070, 0x0030,
++         0x0030, 0x0030, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '8' */
++         0x0000, 0x03E0, 0x07F0, 0x0E38, 0x0C18, 0x0C18, 0x0C18, 0x0638,
++         0x07F0, 0x07F0, 0x0C18, 0x180C, 0x180C, 0x180C, 0x180C, 0x0C38,
++         0x0FF8, 0x03E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '9' */
++         0x0000, 0x03E0, 0x07F0, 0x0E38, 0x0C1C, 0x180C, 0x180C, 0x180C,
++         0x1C1C, 0x1E38, 0x1BF8, 0x19E0, 0x1800, 0x0C00, 0x0C00, 0x0E1C,
++         0x07F8, 0x01F0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* ':' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0180, 0x0180,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0180, 0x0180, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* ';' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0180, 0x0180,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0180, 0x0180, 0x0100, 0x0100, 0x0080, 0x0000, 0x0000, 0x0000,
++         /* '&lt;' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x1000, 0x1C00, 0x0F80, 0x03E0, 0x00F8, 0x0018, 0x00F8, 0x03E0,
++         0x0F80, 0x1C00, 0x1000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '=' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x1FF8, 0x0000, 0x0000, 0x0000, 0x1FF8, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '&gt;' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0008, 0x0038, 0x01F0, 0x07C0, 0x1F00, 0x1800, 0x1F00, 0x07C0,
++         0x01F0, 0x0038, 0x0008, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '?' */
++         0x0000, 0x03E0, 0x0FF8, 0x0C18, 0x180C, 0x180C, 0x1800, 0x0C00,
++         0x0600, 0x0300, 0x0180, 0x00C0, 0x00C0, 0x00C0, 0x0000, 0x0000,
++         0x00C0, 0x00C0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '@' */
++         0x0000, 0x0000, 0x07E0, 0x1818, 0x2004, 0x29C2, 0x4A22, 0x4411,
++         0x4409, 0x4409, 0x4409, 0x2209, 0x1311, 0x0CE2, 0x4002, 0x2004,
++         0x1818, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'A' */
++         0x0000, 0x0380, 0x0380, 0x06C0, 0x06C0, 0x06C0, 0x0C60, 0x0C60,
++         0x1830, 0x1830, 0x1830, 0x3FF8, 0x3FF8, 0x701C, 0x600C, 0x600C,
++         0xC006, 0xC006, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'B' */
++         0x0000, 0x03FC, 0x0FFC, 0x0C0C, 0x180C, 0x180C, 0x180C, 0x0C0C,
++         0x07FC, 0x0FFC, 0x180C, 0x300C, 0x300C, 0x300C, 0x300C, 0x180C,
++         0x1FFC, 0x07FC, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'C' */
++         0x0000, 0x07C0, 0x1FF0, 0x3838, 0x301C, 0x700C, 0x6006, 0x0006,
++         0x0006, 0x0006, 0x0006, 0x0006, 0x0006, 0x6006, 0x700C, 0x301C,
++         0x1FF0, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'D' */
++         0x0000, 0x03FE, 0x0FFE, 0x0E06, 0x1806, 0x1806, 0x3006, 0x3006,
++         0x3006, 0x3006, 0x3006, 0x3006, 0x3006, 0x1806, 0x1806, 0x0E06,
++         0x0FFE, 0x03FE, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'E' */
++         0x0000, 0x3FFC, 0x3FFC, 0x000C, 0x000C, 0x000C, 0x000C, 0x000C,
++         0x1FFC, 0x1FFC, 0x000C, 0x000C, 0x000C, 0x000C, 0x000C, 0x000C,
++         0x3FFC, 0x3FFC, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'F' */
++         0x0000, 0x3FF8, 0x3FF8, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018,
++         0x1FF8, 0x1FF8, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018,
++         0x0018, 0x0018, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'G' */
++         0x0000, 0x0FE0, 0x3FF8, 0x783C, 0x600E, 0xE006, 0xC007, 0x0003,
++         0x0003, 0xFE03, 0xFE03, 0xC003, 0xC007, 0xC006, 0xC00E, 0xF03C,
++         0x3FF8, 0x0FE0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'H' */
++         0x0000, 0x300C, 0x300C, 0x300C, 0x300C, 0x300C, 0x300C, 0x300C,
++         0x3FFC, 0x3FFC, 0x300C, 0x300C, 0x300C, 0x300C, 0x300C, 0x300C,
++         0x300C, 0x300C, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'I' */
++         0x0000, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'J' */
++         0x0000, 0x0600, 0x0600, 0x0600, 0x0600, 0x0600, 0x0600, 0x0600,
++         0x0600, 0x0600, 0x0600, 0x0600, 0x0600, 0x0618, 0x0618, 0x0738,
++         0x03F0, 0x01E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'K' */
++         0x0000, 0x3006, 0x1806, 0x0C06, 0x0606, 0x0306, 0x0186, 0x00C6,
++         0x0066, 0x0076, 0x00DE, 0x018E, 0x0306, 0x0606, 0x0C06, 0x1806,
++         0x3006, 0x6006, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'L' */
++         0x0000, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018,
++         0x0018, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018,
++         0x1FF8, 0x1FF8, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'M' */
++         0x0000, 0xE00E, 0xF01E, 0xF01E, 0xF01E, 0xD836, 0xD836, 0xD836,
++         0xD836, 0xCC66, 0xCC66, 0xCC66, 0xC6C6, 0xC6C6, 0xC6C6, 0xC6C6,
++         0xC386, 0xC386, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'N' */
++         0x0000, 0x300C, 0x301C, 0x303C, 0x303C, 0x306C, 0x306C, 0x30CC,
++         0x30CC, 0x318C, 0x330C, 0x330C, 0x360C, 0x360C, 0x3C0C, 0x3C0C,
++         0x380C, 0x300C, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'O' */
++         0x0000, 0x07E0, 0x1FF8, 0x381C, 0x700E, 0x6006, 0xC003, 0xC003,
++         0xC003, 0xC003, 0xC003, 0xC003, 0xC003, 0x6006, 0x700E, 0x381C,
++         0x1FF8, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'P' */
++         0x0000, 0x0FFC, 0x1FFC, 0x380C, 0x300C, 0x300C, 0x300C, 0x300C,
++         0x180C, 0x1FFC, 0x07FC, 0x000C, 0x000C, 0x000C, 0x000C, 0x000C,
++         0x000C, 0x000C, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'Q' */
++         0x0000, 0x07E0, 0x1FF8, 0x381C, 0x700E, 0x6006, 0xE003, 0xC003,
++         0xC003, 0xC003, 0xC003, 0xC003, 0xE007, 0x6306, 0x3F0E, 0x3C1C,
++         0x3FF8, 0xF7E0, 0xC000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'R' */
++         0x0000, 0x0FFE, 0x1FFE, 0x3806, 0x3006, 0x3006, 0x3006, 0x3806,
++         0x1FFE, 0x07FE, 0x0306, 0x0606, 0x0C06, 0x1806, 0x1806, 0x3006,
++         0x3006, 0x6006, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'S' */
++         0x0000, 0x03E0, 0x0FF8, 0x0C1C, 0x180C, 0x180C, 0x000C, 0x001C,
++         0x03F8, 0x0FE0, 0x1E00, 0x3800, 0x3006, 0x3006, 0x300E, 0x1C1C,
++         0x0FF8, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'T' */
++         0x0000, 0x7FFE, 0x7FFE, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'U' */
++         0x0000, 0x300C, 0x300C, 0x300C, 0x300C, 0x300C, 0x300C, 0x300C,
++         0x300C, 0x300C, 0x300C, 0x300C, 0x300C, 0x300C, 0x300C, 0x1818,
++         0x1FF8, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'V' */
++         0x0000, 0x6003, 0x3006, 0x3006, 0x3006, 0x180C, 0x180C, 0x180C,
++         0x0C18, 0x0C18, 0x0E38, 0x0630, 0x0630, 0x0770, 0x0360, 0x0360,
++         0x01C0, 0x01C0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'W' */
++         0x0000, 0x6003, 0x61C3, 0x61C3, 0x61C3, 0x3366, 0x3366, 0x3366,
++         0x3366, 0x3366, 0x3366, 0x1B6C, 0x1B6C, 0x1B6C, 0x1A2C, 0x1E3C,
++         0x0E38, 0x0E38, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'X' */
++         0x0000, 0xE00F, 0x700C, 0x3018, 0x1830, 0x0C70, 0x0E60, 0x07C0,
++         0x0380, 0x0380, 0x03C0, 0x06E0, 0x0C70, 0x1C30, 0x1818, 0x300C,
++         0x600E, 0xE007, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'Y' */
++         0x0000, 0xC003, 0x6006, 0x300C, 0x381C, 0x1838, 0x0C30, 0x0660,
++         0x07E0, 0x03C0, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'Z' */
++         0x0000, 0x7FFC, 0x7FFC, 0x6000, 0x3000, 0x1800, 0x0C00, 0x0600,
++         0x0300, 0x0180, 0x00C0, 0x0060, 0x0030, 0x0018, 0x000C, 0x0006,
++         0x7FFE, 0x7FFE, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '[' */
++         0x0000, 0x03E0, 0x03E0, 0x0060, 0x0060, 0x0060, 0x0060, 0x0060,
++         0x0060, 0x0060, 0x0060, 0x0060, 0x0060, 0x0060, 0x0060, 0x0060,
++         0x0060, 0x0060, 0x0060, 0x0060, 0x0060, 0x03E0, 0x03E0, 0x0000,
++         /* '\' */
++         0x0000, 0x0030, 0x0030, 0x0060, 0x0060, 0x0060, 0x00C0, 0x00C0,
++         0x00C0, 0x01C0, 0x0180, 0x0180, 0x0180, 0x0300, 0x0300, 0x0300,
++         0x0600, 0x0600, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* ']' */
++         0x0000, 0x03E0, 0x03E0, 0x0300, 0x0300, 0x0300, 0x0300, 0x0300,
++         0x0300, 0x0300, 0x0300, 0x0300, 0x0300, 0x0300, 0x0300, 0x0300,
++         0x0300, 0x0300, 0x0300, 0x0300, 0x0300, 0x03E0, 0x03E0, 0x0000,
++         /* '^' */
++         0x0000, 0x0000, 0x01C0, 0x01C0, 0x0360, 0x0360, 0x0360, 0x0630,
++         0x0630, 0x0C18, 0x0C18, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '_' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0xFFFF, 0xFFFF, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* ''' */
++         0x0000, 0x000C, 0x000C, 0x000C, 0x000C, 0x000C, 0x000C, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'a' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x03F0, 0x07F8,
++         0x0C1C, 0x0C0C, 0x0F00, 0x0FF0, 0x0CF8, 0x0C0C, 0x0C0C, 0x0F1C,
++         0x0FF8, 0x18F0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'b' */
++         0x0000, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018, 0x03D8, 0x0FF8,
++         0x0C38, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x0C38,
++         0x0FF8, 0x03D8, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'c' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x03C0, 0x07F0,
++         0x0E30, 0x0C18, 0x0018, 0x0018, 0x0018, 0x0018, 0x0C18, 0x0E30,
++         0x07F0, 0x03C0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'd' */
++         0x0000, 0x1800, 0x1800, 0x1800, 0x1800, 0x1800, 0x1BC0, 0x1FF0,
++         0x1C30, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1C30,
++         0x1FF0, 0x1BC0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'e' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x03C0, 0x0FF0,
++         0x0C30, 0x1818, 0x1FF8, 0x1FF8, 0x0018, 0x0018, 0x1838, 0x1C30,
++         0x0FF0, 0x07C0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'f' */
++         0x0000, 0x0F80, 0x0FC0, 0x00C0, 0x00C0, 0x00C0, 0x07F0, 0x07F0,
++         0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0,
++         0x00C0, 0x00C0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'g' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0DE0, 0x0FF8,
++         0x0E18, 0x0C0C, 0x0C0C, 0x0C0C, 0x0C0C, 0x0C0C, 0x0C0C, 0x0E18,
++         0x0FF8, 0x0DE0, 0x0C00, 0x0C0C, 0x061C, 0x07F8, 0x01F0, 0x0000,
++         /* 'h' */
++         0x0000, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018, 0x07D8, 0x0FF8,
++         0x1C38, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818,
++         0x1818, 0x1818, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'i' */
++         0x0000, 0x00C0, 0x00C0, 0x0000, 0x0000, 0x0000, 0x00C0, 0x00C0,
++         0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0,
++         0x00C0, 0x00C0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'j' */
++         0x0000, 0x00C0, 0x00C0, 0x0000, 0x0000, 0x0000, 0x00C0, 0x00C0,
++         0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0,
++         0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00F8, 0x0078, 0x0000,
++         /* 'k' */
++         0x0000, 0x000C, 0x000C, 0x000C, 0x000C, 0x000C, 0x0C0C, 0x060C,
++         0x030C, 0x018C, 0x00CC, 0x006C, 0x00FC, 0x019C, 0x038C, 0x030C,
++         0x060C, 0x0C0C, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'l' */
++         0x0000, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0,
++         0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0,
++         0x00C0, 0x00C0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'm' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x3C7C, 0x7EFF,
++         0xE3C7, 0xC183, 0xC183, 0xC183, 0xC183, 0xC183, 0xC183, 0xC183,
++         0xC183, 0xC183, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'n' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0798, 0x0FF8,
++         0x1C38, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818,
++         0x1818, 0x1818, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'o' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x03C0, 0x0FF0,
++         0x0C30, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x0C30,
++         0x0FF0, 0x03C0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'p' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x03D8, 0x0FF8,
++         0x0C38, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x0C38,
++         0x0FF8, 0x03D8, 0x0018, 0x0018, 0x0018, 0x0018, 0x0018, 0x0000,
++         /* 'q' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x1BC0, 0x1FF0,
++         0x1C30, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1C30,
++         0x1FF0, 0x1BC0, 0x1800, 0x1800, 0x1800, 0x1800, 0x1800, 0x0000,
++         /* 'r' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x07B0, 0x03F0,
++         0x0070, 0x0030, 0x0030, 0x0030, 0x0030, 0x0030, 0x0030, 0x0030,
++         0x0030, 0x0030, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 's' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x03E0, 0x03F0,
++         0x0E38, 0x0C18, 0x0038, 0x03F0, 0x07C0, 0x0C00, 0x0C18, 0x0E38,
++         0x07F0, 0x03E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 't' */
++         0x0000, 0x0000, 0x0080, 0x00C0, 0x00C0, 0x00C0, 0x07F0, 0x07F0,
++         0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0,
++         0x07C0, 0x0780, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'u' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x1818, 0x1818,
++         0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1818, 0x1C38,
++         0x1FF0, 0x19E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'v' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x180C, 0x0C18,
++         0x0C18, 0x0C18, 0x0630, 0x0630, 0x0630, 0x0360, 0x0360, 0x0360,
++         0x01C0, 0x01C0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'w' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x41C1, 0x41C1,
++         0x61C3, 0x6363, 0x6363, 0x6363, 0x3636, 0x3636, 0x3636, 0x1C1C,
++         0x1C1C, 0x1C1C, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'x' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x381C, 0x1C38,
++         0x0C30, 0x0660, 0x0360, 0x0360, 0x0360, 0x0360, 0x0660, 0x0C30,
++         0x1C38, 0x381C, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* 'y' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x3018, 0x1830,
++         0x1830, 0x1870, 0x0C60, 0x0C60, 0x0CE0, 0x06C0, 0x06C0, 0x0380,
++         0x0380, 0x0380, 0x0180, 0x0180, 0x01C0, 0x00F0, 0x0070, 0x0000,
++         /* 'z' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x1FFC, 0x1FFC,
++         0x0C00, 0x0600, 0x0300, 0x0180, 0x00C0, 0x0060, 0x0030, 0x0018,
++         0x1FFC, 0x1FFC, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         /* '{' */
++         0x0000, 0x0300, 0x0180, 0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x00C0,
++         0x00C0, 0x0060, 0x0060, 0x0030, 0x0060, 0x0040, 0x00C0, 0x00C0,
++         0x00C0, 0x00C0, 0x00C0, 0x00C0, 0x0180, 0x0300, 0x0000, 0x0000,
++         /* '|' */
++         0x0000, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0180, 0x0000,
++         /* '}' */
++         0x0000, 0x0060, 0x00C0, 0x01C0, 0x0180, 0x0180, 0x0180, 0x0180,
++         0x0180, 0x0300, 0x0300, 0x0600, 0x0300, 0x0100, 0x0180, 0x0180,
++         0x0180, 0x0180, 0x0180, 0x0180, 0x00C0, 0x0060, 0x0000, 0x0000,
++         /* '~' */
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x10F0, 0x1FF8, 0x0F08, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++         0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
++      };
++/* Exported constants --------------------------------------------------------*/
++/* Exported macro ------------------------------------------------------------*/
++/* Exported functions ------------------------------------------------------- */
++
++#endif /* __FONTS_H */
++
++/******************* (C) COPYRIGHT 2008 STMicroelectronics *****END OF FILE****/
+
+
+Property changes on: trunk/src/platform/stm32/fonts.h
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Modified: trunk/src/platform/stm32/lcd.c
+===================================================================
+--- trunk/src/platform/stm32/lcd.c	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/lcd.c	2008-11-12 04:53:10 UTC (rev 124)
+@@ -16,7 +16,7 @@
+ *******************************************************************************/
+ 
+ /* Includes ------------------------------------------------------------------*/
+-#include &quot;main.h&quot;
++#include &quot;lcd.h&quot;
+ #include &quot;fonts.h&quot;
+ 
+ /* Private typedef -----------------------------------------------------------*/
+
+Modified: trunk/src/platform/stm32/lcd.h
+===================================================================
+--- trunk/src/platform/stm32/lcd.h	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/lcd.h	2008-11-12 04:53:10 UTC (rev 124)
+@@ -21,6 +21,8 @@
+ /* Includes ------------------------------------------------------------------*/
+ #include &quot;stm32f10x_lib.h&quot;
+ 
++extern void Delay(u32 nCount);
++
+ /* Exported types ------------------------------------------------------------*/
+ /* Exported constants --------------------------------------------------------*/
+ /* LCD Registers */
+
+Added: trunk/src/platform/stm32/lstm32_mod.c
+===================================================================
+--- trunk/src/platform/stm32/lstm32_mod.c	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/lstm32_mod.c	2008-11-12 04:53:10 UTC (rev 124)
+@@ -0,0 +1,48 @@
++// Example module that shows how to use the rom-loader in modcommon.c
++
++#include &quot;lua.h&quot;
++#include &quot;lualib.h&quot;
++#include &quot;lauxlib.h&quot;
++#include &quot;platform.h&quot;
++#include &quot;auxmods.h&quot;
++#include &quot;modcommon.h&quot;
++#include &lt;stdio.h&gt;
++#include &lt;ctype.h&gt;
++#include &lt;string.h&gt;
++
++#define THENUMBERONE 1 // Example constant to demo _ELUA_CTE macro use
++
++static int afunc(lua_State * L)
++{
++	lua_pushliteral(L, &quot;afunc() called!&quot;);
++
++	return 1;
++}
++
++static const eLua_const_userdata_t consts[] =
++{
++	_ELUA_CTE(THENUMBERONE),
++	{ NULL, 0 }
++};
++
++static const luaL_reg funcs[] =
++{
++	{ &quot;afunc&quot;, afunc },
++	{ NULL, NULL }
++}; // Pretty boring module ...
++
++// Function that gets called when lua registers the module
++LUALIB_API int luaopen_stm32(lua_State * L)
++{
++	eLua_register(L, &quot;stm32&quot;, funcs);  // Register module methods first
++	eLua_register_const(L, consts);    // Then register constants, if any.
++
++	return 1;
++}
++
++// Add the module to the module table. Do *NOT* terminate this with a NULL entry
++// The linker script does it for you.
++_ELUA_MODTAB = {
++	{ &quot;stm32&quot;, luaopen_stm32 }
++};
++
+
+Modified: trunk/src/platform/stm32/lua_lcd.c
+===================================================================
+--- trunk/src/platform/stm32/lua_lcd.c	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/lua_lcd.c	2008-11-12 04:53:10 UTC (rev 124)
+@@ -5,13 +5,113 @@
+ #include &quot;lauxlib.h&quot;
+ #include &quot;platform.h&quot;
+ #include &quot;auxmods.h&quot;
++#include &quot;modcommon.h&quot;
+ #include &lt;stdio.h&gt;
+ #include &lt;ctype.h&gt;
+ #include &lt;string.h&gt;
+ 
+ #include &quot;lcd.h&quot;
+ 
++#if ELUA_BOARD == STM3210E-EVAL
+ 
++static int lcd_init(lua_State * L)
++{
++	STM3210E_LCD_Init();
+ 
++	return 0;
++}
+ 
++static int lcd_setforecolor(lua_State * L)
++{
++	u16 color = luaL_checkint(L, 1);
+ 
++	LCD_SetTextColor(color);
++
++	return 0;
++}
++
++static int lcd_setbackcolor(lua_State * L)
++{
++	u16 color = luaL_checkint(L, 1);
++
++	LCD_SetBackColor(color);
++
++	return 0;
++}
++
++static int lcd_clear(lua_State * L)
++{
++	u16 color;
++
++	if (lua_gettop(L) == 0)
++		color = 0x0000;
++	else
++		color = luaL_checkint(L, 1);
++
++	LCD_Clear(color);
++
++	return 0;
++}
++
++static int lcd_clearline(lua_State * L)
++{
++	u8 line = luaL_checkint(L, 1);
++
++	LCD_ClearLine(line);
++
++	return 0;
++}
++
++static int lcd_print(lua_State * L)
++{
++	u8   line = luaL_checkint(L, 1);
++	u8 * text = (u8 *)luaL_checkstring(L, 2);
++
++	LCD_DisplayStringLine(line, text);
++
++	return 0;
++}
++
++static const eLua_const_userdata_t lcd_constants[] = 
++{
++	_ELUA_CTE(Line0),
++	_ELUA_CTE(Line1),
++	_ELUA_CTE(Line2),
++	_ELUA_CTE(Line3),
++	_ELUA_CTE(Line4),
++	_ELUA_CTE(Line5),
++	_ELUA_CTE(Line6),
++	_ELUA_CTE(Line7),
++	_ELUA_CTE(Line8),
++	_ELUA_CTE(Line9),
++	
++	{ NULL, 0 }
++};
++
++static const luaL_reg lcd_map[] =
++{
++	{ &quot;init&quot;, lcd_init },
++	{ &quot;setforecolor&quot;, lcd_setforecolor },
++	{ &quot;setbackcolor&quot;, lcd_setbackcolor },
++	{ &quot;clear&quot;, lcd_clear },
++	{ &quot;clearline&quot;, lcd_clearline },
++	{ &quot;print&quot;, lcd_print },
++
++	{ NULL, NULL }
++};
++
++//LUALIB_API int luaopen_lcd(lua_State * L) __attribute__ ((section (&quot;.lua_init&quot;)));
++LUALIB_API int luaopen_lcd(lua_State * L)
++{
++	eLua_register(L, &quot;stm3210lcd&quot;, lcd_map);
++	eLua_register_const(L, lcd_constants);
++
++	return 1;
++}
++
++const luaL_reg lcd_modtab[] __attribute__ ((section (&quot;.lua_init&quot;))) = {
++	{ &quot;stm3210lcd&quot;, luaopen_lcd }
++};
++
++#endif
++
+
+Modified: trunk/src/platform/stm32/platform.c
+===================================================================
+--- trunk/src/platform/stm32/platform.c	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/platform.c	2008-11-12 04:53:10 UTC (rev 124)
+@@ -28,14 +28,12 @@
+ #include &quot;stm32f10x_spi.h&quot;
+ #include &quot;stm32f10x_systick.h&quot;
+ #include &quot;stm32f10x_flash.h&quot;
++
++#include &quot;systick.h&quot;
+ 
+-// UIP sys tick data
+-#define SYSTICKHZ               4
+-#define SYSTICKMS               (1000 / SYSTICKHZ)
+-
+ #define STM32_USE_PIO
+ #define STM32_USE_USART
+-
++
+ #define CONSOLE 0
+ 
+ void exit(int ret)
+@@ -89,6 +87,9 @@
+   // Setup IRQ's
+   NVIC_Configuration();
+ 
++  // Enable SysTick timer.
++  SysTick_Config();
++
+ #ifdef STM32_USE_PIO
+   // Setup PIO
+   pios_init();
+@@ -200,6 +201,8 @@
+ {
+   NVIC_InitTypeDef NVIC_InitStructure;
+ 
++  NVIC_DeInit();
++
+ #ifdef  VECT_TAB_RAM  
+   /* Set the Vector Table base location at 0x20000000 */ 
+   NVIC_SetVectorTable(NVIC_VectTab_RAM, 0x0); 
+@@ -209,7 +212,10 @@
+ #endif 
+ 
+   /* Configure the NVIC Preemption Priority Bits */  
+-  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
++  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
++
++  /* Configure the SysTick handler priority */
++  NVIC_SystemHandlerPriorityConfig(SystemHandler_SysTick, 0, 0);
+ }
+ 
+ // ****************************************************************************
+@@ -950,7 +956,8 @@
+   else
+     return 0;
+ }
+-
++
++#if 0
+ void SysTickHandler(void)
+ {
+   // Indicate that a SysTick interrupt has occurred.
+@@ -960,6 +967,7 @@
+   // of incrementing the timers and taking the appropriate actions.
+   platform_eth_force_interrupt();
+ }
++#endif
+ 
+ void EthernetIntHandler()
+ {
+@@ -974,10 +982,12 @@
+ }
+ 
+ #else  // #ifdef ELUA_UIP
+-
++
++#if 0
+ void SysTickHandler()
+ {
+ }
++#endif
+ 
+ void EthernetIntHandler()
+ {
+
+Modified: trunk/src/platform/stm32/platform_conf.h
+===================================================================
+--- trunk/src/platform/stm32/platform_conf.h	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/platform_conf.h	2008-11-12 04:53:10 UTC (rev 124)
+@@ -55,6 +55,7 @@
+   { AUXLIB_PACK, luaopen_pack },\
+   { AUXLIB_BIT, luaopen_bit },\
+   { AUXLIB_CPU, luaopen_cpu },\
++  { AUXLIB_MOD, luaopen_mod },\
+   { LUA_MATHLIBNAME, luaopen_math }
+ #endif
+ 
+
+Modified: trunk/src/platform/stm32/stm32.ld
+===================================================================
+--- trunk/src/platform/stm32/stm32.ld	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/stm32.ld	2008-11-12 04:53:10 UTC (rev 124)
+@@ -73,7 +73,16 @@
+ 	. = ALIGN(4);
+     } &gt;FLASH
+  
+-    
++    .lua_init :
++    {
++	. = ALIGN(4);
++        _lua_init_start = .;
++	KEEP(*(.lua_init))
++        LONG(0x00000000);
++        LONG(0x00000000);    /* Terminate table */
++        _lua_init_end = .;
++	. = ALIGN(4);
++    } &gt;FLASH  
+     /* the program code is stored in the .text section, which goes to Flash */
+     .text :
+     {
+
+Modified: trunk/src/platform/stm32/stm32f10x_it.c
+===================================================================
+--- trunk/src/platform/stm32/stm32f10x_it.c	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/stm32f10x_it.c	2008-11-12 04:53:10 UTC (rev 124)
+@@ -18,6 +18,7 @@
+ /* Includes ------------------------------------------------------------------*/
+ #include &quot;stm32f10x_it.h&quot;
+ #include &quot;platform.h&quot;
++#include &quot;systick.h&quot;
+ 
+ /* Private typedef -----------------------------------------------------------*/
+ /* Private define ------------------------------------------------------------*/
+@@ -155,6 +156,8 @@
+ *******************************************************************************/
+ void SysTickHandler(void)
+ {
++  /* Decrement the TimingDelay variable */
++  Decrement_TimingDelay();
+ }
+ 
+ /*******************************************************************************
+
+Added: trunk/src/platform/stm32/systick.c
+===================================================================
+--- trunk/src/platform/stm32/systick.c	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/systick.c	2008-11-12 04:53:10 UTC (rev 124)
+@@ -0,0 +1,66 @@
++#include &lt;stdio.h&gt;
++
++#include &quot;stm32f10x_lib.h&quot;
++#include &quot;stm32f10x_systick.h&quot;
++
++static vu32 TimingDelay = 0;
++
++/*******************************************************************************
++* Function Name  : SysTick_Config
++* Description    : Configure a SysTick Base time to 10 ms.
++* Input          : None
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void SysTick_Config(void)
++{
++  /* Configure HCLK clock as SysTick clock source */
++  SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK);
++ 
++  /* SysTick interrupt each 100 Hz with HCLK equal to 72MHz */
++  SysTick_SetReload(720000);
++
++  /* Enable the SysTick Interrupt */
++  SysTick_ITConfig(ENABLE);
++}
++
++/*******************************************************************************
++* Function Name  : Delay
++* Description    : Inserts a delay time.
++* Input          : nCount: specifies the delay time length (time base 10 ms).
++* Output         : None
++* Return         : None
++*******************************************************************************/
++void Delay(u32 nCount)
++{
++  printf(&quot;Delay(%d)\n&quot;, nCount);
++  TimingDelay = nCount;
++
++  /* Enable the SysTick Counter */
++  SysTick_CounterCmd(SysTick_Counter_Enable);
++  
++  while(TimingDelay != 0)
++  {
++  }
++
++  /* Disable the SysTick Counter */
++  SysTick_CounterCmd(SysTick_Counter_Disable);
++
++  /* Clear the SysTick Counter */
++  SysTick_CounterCmd(SysTick_Counter_Clear);
++}
++
++/*******************************************************************************
++* Function Name  : Decrement_TimingDelay
++* Description    : Decrements the TimingDelay variable.
++* Input          : None
++* Output         : TimingDelay
++* Return         : None
++*******************************************************************************/
++void Decrement_TimingDelay(void)
++{
++  if (TimingDelay != 0x00)
++  {
++    TimingDelay--;
++  }
++}
+
+
+Property changes on: trunk/src/platform/stm32/systick.c
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+Added: trunk/src/platform/stm32/systick.h
+===================================================================
+--- trunk/src/platform/stm32/systick.h	2008-11-11 04:08:48 UTC (rev 123)
++++ trunk/src/platform/stm32/systick.h	2008-11-12 04:53:10 UTC (rev 124)
+@@ -0,0 +1,8 @@
++#ifndef __SYSTICK_H__
++#define __SYSTICK_H__
++
++void SysTick_Config(void);
++void Delay(u32 nCount);
++void Decrement_TimingDelay(void);
++
++#endif
+\ No newline at end of file
+
+
+Property changes on: trunk/src/platform/stm32/systick.h
+___________________________________________________________________
+Name: svn:executable
+   + *
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000079.html">[Elua-svn] r123 - trunk/src/platform/stm32
+</A></li>
+	<LI>Next message: <A HREF="000081.html">[Elua-svn] r125 - in trunk: inc src
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#80">[ date ]</a>
+              <a href="thread.html#80">[ thread ]</a>
+              <a href="subject.html#80">[ subject ]</a>
+              <a href="author.html#80">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/elua-svn">More information about the eLua-svn
+mailing list</a><br>
+</body></html>
